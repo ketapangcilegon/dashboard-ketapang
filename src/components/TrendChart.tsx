@@ -2,8 +2,13 @@
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
-export default function TrendChart() {
-  const data = [
+interface TrendChartProps {
+  trendData: any[];
+}
+
+export default function TrendChart({ trendData = [] }: TrendChartProps) {
+  
+  const defaultData = [
     { name: 'Des', nbm: 85, pph: 80, skpg: 75, fsva: 70 },
     { name: 'Jan', nbm: 88, pph: 82, skpg: 72, fsva: 75 },
     { name: 'Feb', nbm: 86, pph: 85, skpg: 78, fsva: 73 },
@@ -12,13 +17,15 @@ export default function TrendChart() {
     { name: 'Mei', nbm: 94.2, pph: 88.1, skpg: 87, fsva: 85 },
   ];
 
+  const chartData = trendData.length > 0 ? trendData : defaultData;
+
   return (
     <div className="flex flex-col h-full min-h-[300px]">
       <h3 className="font-bold text-slate-800 text-sm mb-4">Tren Skor Ketahanan Pangan</h3>
       
       <div className="flex-1 w-full mt-2 h-64">
         <ResponsiveContainer width="99%" height={250}>
-          <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} dy={10} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} domain={[0, 100]} />

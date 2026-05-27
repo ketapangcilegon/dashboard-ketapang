@@ -2,28 +2,47 @@
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function ProduksiChart() {
-  const data = [
-    { name: 'Des', produksi: 15000 },
-    { name: 'Jan', produksi: 12000 },
-    { name: 'Feb', produksi: 18000 },
-    { name: 'Mar', produksi: 16000 },
-    { name: 'Apr', produksi: 21000 },
-    { name: 'Mei', produksi: 23850 },
-  ];
+interface ProduksiChartProps {
+  ketersediaanData: any[];
+  month: number;
+}
+
+export default function ProduksiChart({ ketersediaanData = [], month }: ProduksiChartProps) {
+  
+  const monthsAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  
+  // Sort and map monthly database records to chart format
+  const chartData = ketersediaanData.length > 0 
+    ? [...ketersediaanData]
+        .sort((a, b) => a.bulan - b.bulan)
+        .map(x => ({
+          name: monthsAbbr[x.bulan - 1] || `${x.bulan}`,
+          produksi: x.produksi_beras_ton
+        }))
+    : [
+        { name: 'Des', produksi: 15000 },
+        { name: 'Jan', produksi: 12000 },
+        { name: 'Feb', produksi: 18000 },
+        { name: 'Mar', produksi: 16000 },
+        { name: 'Apr', produksi: 21000 },
+        { name: 'Mei', produksi: 23850 },
+      ];
+
+  const currentMonthProd = ketersediaanData.find(x => x.bulan === month) || ketersediaanData[ketersediaanData.length - 1];
+  const prodValue = currentMonthProd ? currentMonthProd.produksi_beras_ton : 23850;
 
   return (
     <div className="flex flex-col h-full">
       <h3 className="font-bold text-slate-800 text-sm mb-2 w-full">3. Produksi Beras Lokal<br/><span className="font-normal text-slate-500">(ton)</span></h3>
       
       <div className="mb-2">
-        <span className="text-3xl font-black text-[#10B981]">23.850 <span className="text-sm font-medium text-slate-500">ton</span></span>
-        <div className="text-[10px] font-bold text-emerald-600 mt-1">▲ 8,7% dari bulan lalu</div>
+        <span className="text-3xl font-black text-[#10B981]">{prodValue.toLocaleString('id-ID')} <span className="text-sm font-medium text-slate-500">ton</span></span>
+        <div className="text-[10px] font-bold text-emerald-600 mt-1">Data Bulanan Ter-update</div>
       </div>
 
       <div className="flex-1 w-full mt-2 h-32">
         <ResponsiveContainer width="99%" height={120}>
-          <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorProduksi" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>

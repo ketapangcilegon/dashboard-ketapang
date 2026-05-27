@@ -1,45 +1,75 @@
-import { TrendingUp } from 'lucide-react';
+interface KPIGridProps {
+  giziData: any[];
+  ketersediaanData: any[];
+  year: number;
+  month: number;
+}
 
-export default function KPIGrid() {
+export default function KPIGrid({ giziData = [], ketersediaanData = [], year, month }: KPIGridProps) {
+  
+  // 1. Skor NBM (From ketersediaan_pangan for current month, or the latest available)
+  const currentMonthKetersediaan = ketersediaanData.find(x => x.bulan === month) || ketersediaanData[ketersediaanData.length - 1];
+  const nbmValue = currentMonthKetersediaan ? currentMonthKetersediaan.skor_nbm : 94.2;
+
+  // 2. Averages from giziData (annual per kelurahan)
+  const avgPPH = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length 
+    : 88.1;
+
+  const avgEnergi = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length 
+    : 2163;
+
+  const avgProtein = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length 
+    : 63.4;
+
+  const avgStunting = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.prevalensi_stunting || 0), 0) / giziData.length 
+    : 8.7;
+    
+  // Status gizi baik is roughly 100 - stunting prevalensi
+  const giziBaikValue = Math.round(100 - avgStunting);
+
   const kpis = [
     { 
       title: 'Skor NBM', 
       subtitle: '(Neraca Bahan Makanan)', 
-      value: '94,2', 
-      status: 'Baik',
-      trend: '▲ 2,6 poin dari bulan lalu',
+      value: nbmValue.toFixed(1), 
+      status: nbmValue >= 90 ? 'Baik' : nbmValue >= 80 ? 'Cukup' : 'Kurang',
+      trend: 'Target Nasional: 90',
       bgClass: 'bg-[#10B981]' 
     },
     { 
       title: 'Skor PPH', 
       subtitle: '(Pola Pangan Harapan)', 
-      value: '88,1', 
-      status: 'Baik',
-      trend: '▲ 3,1 poin dari bulan lalu',
+      value: avgPPH.toFixed(1), 
+      status: avgPPH >= 90 ? 'Baik' : avgPPH >= 80 ? 'Cukup' : 'Kurang',
+      trend: 'Target Nasional: 90',
       bgClass: 'bg-[#3B82F6]' 
     },
     { 
       title: 'Konsumsi Energi', 
-      subtitle: '(kkal/kap/hari)', 
-      value: '2.163', 
-      status: 'Cukup',
-      trend: '▲ 45 kkal dari bulan lalu',
+      subtitle: '(kkal/kapita/hari)', 
+      value: Math.round(avgEnergi).toLocaleString('id-ID'), 
+      status: avgEnergi >= 2100 ? 'Baik' : avgEnergi >= 1800 ? 'Cukup' : 'Kurang',
+      trend: 'Target Nasional: 2.100',
       bgClass: 'bg-[#F59E0B]' 
     },
     { 
       title: 'Konsumsi Protein', 
-      subtitle: '(gram/kap/hari)', 
-      value: '63,4', 
-      status: 'Baik',
-      trend: '▲ 2,8 gr dari bulan lalu',
+      subtitle: '(gram/kapita/hari)', 
+      value: avgProtein.toFixed(1), 
+      status: avgProtein >= 57 ? 'Baik' : avgProtein >= 48 ? 'Cukup' : 'Kurang',
+      trend: 'Target Nasional: 57',
       bgClass: 'bg-[#8B5CF6]' 
     },
     { 
       title: 'Status Gizi Balita', 
-      subtitle: '(Gizi Baik)', 
-      value: '87%', 
+      subtitle: '(Persentase Gizi Baik)', 
+      value: `${giziBaikValue}%`, 
       isDonut: true,
-      trend: '▲ 2% dari bulan lalu',
+      trend: `Prevalensi Stunting: ${avgStunting.toFixed(1)}%`,
       bgClass: 'bg-[#14B8A6]' 
     }
   ];
@@ -47,7 +77,7 @@ export default function KPIGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
       {kpis.map((kpi, i) => (
-        <div key={i} className={`kpi-card ${kpi.bgClass}`}>
+        <div key={i} className={`kpi-card ${kpi.bgClass} relative overflow-hidden`}>
           {/* Subtle wave background for premium feel */}
           <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 100% 100%, white 0%, transparent 50%)' }}></div>
           
@@ -60,7 +90,7 @@ export default function KPIGrid() {
                 <div className="relative w-14 h-14">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                     <path className="text-white/20" strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-white" strokeWidth="4" strokeDasharray="87, 100" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-white" strokeWidth="4" strokeDasharray={`${giziBaikValue}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center text-sm font-black">{kpi.value}</div>
                 </div>
