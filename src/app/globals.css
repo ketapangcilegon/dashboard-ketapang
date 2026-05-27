@@ -1,5 +1,57 @@
 @import "tailwindcss";
 
+@theme {
+  --color-sidebar: #0B1E41;
+  --color-card-bg: #FFFFFF;
+  --color-text-main: #1E293B;
+  --color-text-muted: #64748B;
+  
+  --color-kpi-1: #10B981;
+  --color-kpi-2: #3B82F6;
+  --color-kpi-3: #F59E0B;
+  --color-kpi-4: #8B5CF6;
+  --color-kpi-5: #14B8A6;
+}
+
+@layer utilities {
+  .dashboard-card {
+    @apply bg-white rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 p-4;
+  }
+  
+  .kpi-card {
+    @apply rounded-xl p-4 text-white shadow-lg relative overflow-hidden;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white transition-colors rounded-lg mx-2;
+  }
+  .sidebar-link.active {
+    @apply bg-blue-600 text-white shadow-md;
+  }
+  
+  /* Custom scrollbar for clean look */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #1E293B;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
