@@ -60,19 +60,19 @@ export function useKMZLoader() {
         const pmName = pm.querySelector('name')?.textContent || '';
         const pmCoord = getFirstCoord(pm);
         if (!pmCoord) return;
-        
+
         let feature: any = null;
 
         if (['Kecamatan', 'Kelurahan'].includes(top)) {
-          feature = geojson.features.find(f => {
+          feature = geojson.features.find((f: any) => {
             if (!f.geometry) return false;
             let coords = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : f.geometry.coordinates;
             if (!coords?.length) return false;
             return Math.abs(coords[0][0] - pmCoord.lng) < 0.00001 && Math.abs(coords[0][1] - pmCoord.lat) < 0.00001;
           });
-          if (!feature) feature = geojson.features.find(f => f.geometry && (f.properties?.name === pmName || f.properties?.Name === pmName));
+          if (!feature) feature = geojson.features.find((f: any) => f.geometry && (f.properties?.name === pmName || f.properties?.Name === pmName));
         }
-        
+
         if (!feature) return;
 
         if (top === 'Kecamatan') mergeIntoList(kecF, feature, pmName);
