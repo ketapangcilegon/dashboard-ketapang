@@ -1,76 +1,116 @@
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
 interface HargaPanelProps {
   hargaData: any[];
+  previousHargaData?: any[];
 }
 
-export default function HargaPanel({ hargaData = [] }: HargaPanelProps) {
+export default function HargaPanel({ hargaData = [], previousHargaData = [] }: HargaPanelProps) {
   
   // Calculate averages from live dataset
-  const getAverage = (key: string, fallback: number) => {
-    if (!hargaData || hargaData.length === 0) return fallback;
-    const valid = hargaData.filter(x => x[key] > 0);
+  const getAverage = (data: any[], key: string, fallback: number) => {
+    if (!data || data.length === 0) return fallback;
+    const valid = data.filter(x => x[key] > 0);
     if (valid.length === 0) return fallback;
     return valid.reduce((sum, item) => sum + (item[key] || 0), 0) / valid.length;
   };
 
-  const berasAvg = getAverage('beras', 14500);
-  const telurAvg = getAverage('telur', 27000);
-  const ayamAvg = getAverage('daging_ayam', 37500);
-  const minyakAvg = getAverage('minyak_goreng', 20000);
-  const gulaAvg = getAverage('gula_pasir', 17000);
-  const cabeAvg = getAverage('cabe_merah', 48000);
+  // Current averages
+  const berasCur = getAverage(hargaData, 'beras', 13473);
+  const minyakCur = getAverage(hargaData, 'minyak_goreng', 21334);
+  const telurCur = getAverage(hargaData, 'telur', 30482);
+  const ayamCur = getAverage(hargaData, 'daging_ayam', 35000);
+  const gulaCur = getAverage(hargaData, 'gula_pasir', 16000);
+  const cabeCur = getAverage(hargaData, 'cabe_merah', 45000);
 
-  // Generate change percentages realistically for visual premium feel
-  const commodities = [
-    { name: 'Beras Medium', price: Math.round(berasAvg).toLocaleString('id-ID'), change: '-1,4%', isUp: false, status: 'Stabil', emoji: '🍚' },
-    { name: 'Telur Ayam Ras', price: Math.round(telurAvg).toLocaleString('id-ID'), change: '+2,1%', isUp: true, status: 'Naik', emoji: '🥚' },
-    { name: 'Daging Ayam Ras', price: Math.round(ayamAvg).toLocaleString('id-ID'), change: '-0,8%', isUp: false, status: 'Stabil', emoji: '🍗' },
-    { name: 'Minyak Goreng', price: Math.round(minyakAvg).toLocaleString('id-ID'), change: '+1,6%', isUp: true, status: 'Naik', emoji: '🧴' },
-    { name: 'Gula Pasir', price: Math.round(gulaAvg).toLocaleString('id-ID'), change: '-0,6%', isUp: false, status: 'Stabil', emoji: '🧂' },
-    { name: 'Cabe Merah Keriting', price: Math.round(cabeAvg).toLocaleString('id-ID'), change: '+6,3%', isUp: true, status: 'Naik', emoji: '🌶️' },
+  // Previous year averages (YoY)
+  const berasPrev = getAverage(previousHargaData, 'beras', 14000);
+  const minyakPrev = getAverage(previousHargaData, 'minyak_goreng', 18000);
+  const telurPrev = getAverage(previousHargaData, 'telur', 30500);
+  const ayamPrev = getAverage(previousHargaData, 'daging_ayam', 34500);
+  const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 15800);
+  const cabePrev = getAverage(previousHargaData, 'cabe_merah', 48000);
+
+  // Helper to calculate YoY change and metadata
+  const getYoYStats = (curr: number, prev: number) => {
+    const change = ((curr - prev) / prev) * 100;
+    const isUp = change > 0;
+    const isZero = Math.abs(change) < 0.05;
+    
+    // Status thresholds: e.g. for rice/oil increases > 5% are WASPADA
+    const isWaspada = isUp && change > 5;
+    const status = isWaspada ? 'WASPADA' : isUp ? 'NAIK' : isZero ? 'STABIL' : 'AMAN';
+    
+    return {
+      changeText: `${isUp ? '+' : ''}${change.toFixed(1)}%`,
+      isUp,
+      isZero,
+      status,
+      colorClass: isWaspada 
+        ? 'bg-red-50 text-red-600 border border-red-100' 
+        : isUp 
+          ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+          : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+    };
+  };
+
+  const commStats = [
+    { name: 'Beras Medium', curr: berasCur, prev: berasPrev, emoji: '🍚' },
+    { name: 'Minyak Goreng', curr: minyakCur, prev: minyakPrev, emoji: '🧴' },
+    { name: 'Telur Ayam Ras', curr: telurCur, prev: telurPrev, emoji: '🥚' },
+    { name: 'Daging Ayam', curr: ayamCur, prev: ayamPrev, emoji: '🍗' },
+    { name: 'Gula Pasir', curr: gulaCur, prev: gulaPrev, emoji: '🧂' },
+    { name: 'Cabe Merah', curr: cabeCur, prev: cabePrev, emoji: '🌶️' },
   ];
 
   return (
     <div className="flex flex-col h-full">
-      <h3 className="font-bold text-slate-800 text-sm mb-4">1. Harga Pangan Strategis <span className="font-normal text-slate-500">(Rp/kg)</span></h3>
+      <div className="mb-4">
+        <h3 className="font-bold text-slate-800 text-sm">1. Harga Pangan Strategis</h3>
+        <p className="text-[10px] text-slate-500 mt-0.5">Analisis Perbandingan Harga Bulan yang Sama Tahun Lalu (YoY)</p>
+      </div>
       
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="text-slate-400 border-b border-slate-100 text-[11px] uppercase tracking-wider">
               <th className="pb-3 font-semibold text-slate-500">Komoditas</th>
-              <th className="pb-3 font-semibold text-slate-500 text-right">Harga Rata-rata</th>
-              <th className="pb-3 font-semibold text-slate-500 text-right">Perubahan (mtm)</th>
+              <th className="pb-3 font-semibold text-slate-500 text-right">Harga Riil</th>
+              <th className="pb-3 font-semibold text-slate-500 text-right">Perubahan (YoY)</th>
               <th className="pb-3 font-semibold text-slate-500 text-right">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {commodities.map((c, i) => (
-              <tr key={i} className="hover:bg-slate-50 transition-colors">
-                <td className="py-2.5 flex items-center gap-2 text-slate-700 font-medium">
-                  <span className="text-base">{c.emoji}</span> {c.name}
-                </td>
-                <td className="py-2.5 text-right font-bold text-slate-700">Rp {c.price}</td>
-                <td className="py-2.5 text-right">
-                  <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${c.isUp ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {c.isUp ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                    {c.change.replace('+', '').replace('-', '')}
-                  </span>
-                </td>
-                <td className="py-2.5 text-right">
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded ${c.isUp ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                    {c.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {commStats.map((c, i) => {
+              const stats = getYoYStats(c.curr, c.prev);
+              return (
+                <tr key={i} className="hover:bg-slate-50/60 transition-colors">
+                  <td className="py-2.5 flex items-center gap-2 text-slate-700 font-semibold">
+                    <span className="text-base">{c.emoji}</span> {c.name}
+                  </td>
+                  <td className="py-2.5 text-right font-black text-slate-800">
+                    Rp {Math.round(c.curr).toLocaleString('id-ID')}
+                  </td>
+                  <td className="py-2.5 text-right">
+                    <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {stats.isZero ? <Minus className="w-3 h-3" /> : stats.isUp ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                      {stats.changeText.replace('+', '').replace('-', '')}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-right">
+                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${stats.colorClass}`}>
+                      {stats.status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       
       <div className="mt-3 text-right">
-        <span className="text-slate-400 text-[10px]">Data ter-update secara otomatis dari database</span>
+        <span className="text-slate-400 text-[10px]">Benchmark: yoy (Tahun Lalu)</span>
       </div>
     </div>
   );

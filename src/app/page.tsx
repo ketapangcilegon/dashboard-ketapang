@@ -7,13 +7,13 @@ import KPIGrid from '@/components/KPIGrid';
 import HargaPanel from '@/components/HargaPanel';
 import CVGauge from '@/components/CVGauge';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
+import BalitaChart from '@/components/BalitaChart';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
 const ProduksiChart = dynamic(() => import('@/components/ProduksiChart'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
-const MapSKPG = dynamic(() => import('@/components/MapSKPG'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
-const MapFSVA = dynamic(() => import('@/components/MapFSVA'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
+const MapUnified = dynamic(() => import('@/components/MapUnified'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded text-slate-400 flex items-center justify-center text-xs">Memuat Peta...</div>, ssr: false });
 const TrendChart = dynamic(() => import('@/components/TrendChart'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
 
 export default function DashboardPage() {
@@ -21,14 +21,16 @@ export default function DashboardPage() {
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('ALL');
   const [selectedKelurahan, setSelectedKelurahan] = useState<string>('ALL');
   const [selectedYear, setSelectedYear] = useState<number>(2025);
-  const [selectedMonth, setSelectedMonth] = useState<number>(5); // Default to May
+  const [selectedMonth, setSelectedMonth] = useState<number>(2); // Default to February as per YoY data
 
   // Data States
   const [loading, setLoading] = useState<boolean>(true);
   const [hargaData, setHargaData] = useState<any[]>([]);
+  const [previousHargaData, setPreviousHargaData] = useState<any[]>([]);
   const [ketersediaanData, setKetersediaanData] = useState<any[]>([]);
   const [giziData, setGiziData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
+  const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
 
   // Historical data for trend charts
   const [trendData, setTrendData] = useState<any[]>([]);
@@ -40,7 +42,7 @@ export default function DashboardPage() {
         // Construct query parameters
         const dateStr = `${selectedYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
         
-        // 1. Fetch Harga Pangan
+        // 1. Fetch Harga Pangan (Current Period)
         let hargaQuery = supabase.from('harga_pangan').select('*');
         if (selectedKecamatan !== 'ALL') {
           hargaQuery = hargaQuery.eq('kecamatan', selectedKecamatan);
@@ -48,20 +50,21 @@ export default function DashboardPage() {
         if (selectedKelurahan !== 'ALL') {
           hargaQuery = hargaQuery.eq('kelurahan', selectedKelurahan);
         }
-        
-        // Fetch current month + previous month to calculate changes (mtm)
-        const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
-        const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
-        const prevDateStr = `${prevYear}-${prevMonth < 10 ? '0' + prevMonth : prevMonth}-15`;
-
         const { data: currentHarga } = await hargaQuery.eq('tanggal', dateStr);
-        const { data: previousHarga } = await supabase.from('harga_pangan')
-          .select('*')
-          .eq('tanggal', prevDateStr)
-          .eq('kecamatan', selectedKecamatan !== 'ALL' ? selectedKecamatan : '')
-          .eq('kelurahan', selectedKelurahan !== 'ALL' ? selectedKelurahan : '');
-
         setHargaData(currentHarga || []);
+
+        // 1.1 Fetch Harga Pangan (Previous Year for YoY comparison)
+        const prevYear = selectedYear - 1;
+        const prevDateStr = `${prevYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
+        let prevHargaQuery = supabase.from('harga_pangan').select('*').eq('tanggal', prevDateStr);
+        if (selectedKecamatan !== 'ALL') {
+          prevHargaQuery = prevHargaQuery.eq('kecamatan', selectedKecamatan);
+        }
+        if (selectedKelurahan !== 'ALL') {
+          prevHargaQuery = prevHargaQuery.eq('kelurahan', selectedKelurahan);
+        }
+        const { data: prevHarga } = await prevHargaQuery;
+        setPreviousHargaData(prevHarga || []);
 
         // 2. Fetch Ketersediaan Pangan (Production values are city-level/aggregate, fetch trend of 6 months)
         const { data: ketersediaan } = await supabase
@@ -92,7 +95,15 @@ export default function DashboardPage() {
         const { data: intervensi } = await intQuery;
         setIntervensiData(intervensi || []);
 
-        // 5. Fetch Trend Data for TrendChart (All months of the selected year)
+        // 5. Fetch Balita Gizi
+        let balitaQuery = supabase.from('balita_gizi').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+        if (selectedKecamatan !== 'ALL') {
+          balitaQuery = balitaQuery.eq('kecamatan', selectedKecamatan);
+        }
+        const { data: balita } = await balitaQuery;
+        setBalitaDataRaw(balita || []);
+
+        // 6. Fetch Trend Data for TrendChart (All months of the selected year)
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         const trendDataArr = [];
 
@@ -134,28 +145,45 @@ export default function DashboardPage() {
     fetchData();
   }, [selectedKecamatan, selectedKelurahan, selectedYear, selectedMonth]);
 
+  // Dynamic Balita computed calculations
+  const getBalitaData = () => {
+    if (!balitaDataRaw || balitaDataRaw.length === 0) {
+      return { sangatKurang: 232, kurang: 946, normal: 25044, lebih: 1064, total: 27286, status: 'AMAN' };
+    }
+    const sangatKurang = balitaDataRaw.reduce((s, x) => s + (x.sangat_kurang || 0), 0);
+    const kurang = balitaDataRaw.reduce((s, x) => s + (x.kurang || 0), 0);
+    const normal = balitaDataRaw.reduce((s, x) => s + (x.normal || 0), 0);
+    const lebih = balitaDataRaw.reduce((s, x) => s + (x.lebih || 0), 0);
+    const total = sangatKurang + kurang + normal + lebih;
+    return {
+      sangatKurang,
+      kurang,
+      normal,
+      lebih,
+      total,
+      status: balitaDataRaw[0]?.status || 'AMAN'
+    };
+  };
+
   // Derived indicator averages for BenchmarkPanel
   const getBenchmarkData = () => {
-    const avgBeras = hargaData.length > 0 ? hargaData.reduce((s, x) => s + (x.beras || 0), 0) / hargaData.length : 14500;
     const avgPPH = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length : 88.1;
     const avgEnergi = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length : 2163;
     const avgProtein = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length : 63.4;
     const avgStunting = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.prevalensi_stunting || 0), 0) / giziData.length : 8.7;
-    const avgPoU = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.pou || 0), 0) / giziData.length : 5.4;
     const avgCV = hargaData.length > 0 ? hargaData.reduce((s, x) => s + (x.cv_harga || 0), 0) / hargaData.length : 3.65;
     
-    // Map to the 13 national indicators
     return {
       1: parseFloat(avgPPH.toFixed(1)),
-      2: parseFloat(((avgEnergi / 2100 + avgProtein / 57) * 50).toFixed(2)), // Capaian aggregates
+      2: parseFloat(((avgEnergi / 2100 + avgProtein / 57) * 50).toFixed(2)),
       3: parseFloat(avgEnergi.toFixed(1)),
       4: parseFloat(avgProtein.toFixed(1)),
-      5: 121, // Static placeholder for production aggregate
+      5: 121,
       6: 2582,
       7: 85,
-      8: 132.7, // Static PD Government Stock
+      8: 132.7,
       9: parseFloat(avgCV.toFixed(2)),
-      10: 100, // FSVA penanganan
+      10: 100,
       11: 85.9,
       12: 78,
       13: 67
@@ -203,7 +231,7 @@ export default function DashboardPage() {
                 <div className="lg:col-span-4 flex flex-col gap-6">
                   {/* 1. Harga Pangan Strategis */}
                   <div className="dashboard-card flex-1">
-                    <HargaPanel hargaData={hargaData} />
+                    <HargaPanel hargaData={hargaData} previousHargaData={previousHargaData} />
                   </div>
                   
                   {/* 9 & 10. PoU & GPM */}
@@ -212,7 +240,7 @@ export default function DashboardPage() {
                       <h3 className="font-bold text-sm text-slate-700 mb-2">9. PoU (Kerawanan)</h3>
                       <div className="h-24 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-800">
                         <span className="text-2xl font-black text-violet-600">
-                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.pou || 0), 0) / giziData.length : 5.4).toFixed(1)}%
+                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.pou || 0), 0) / giziData.length : 2.78).toFixed(2)}%
                         </span>
                         <span className="text-[10px] text-slate-400 mt-1">Prevalence of Undernourishment</span>
                       </div>
@@ -230,7 +258,7 @@ export default function DashboardPage() {
 
                   {/* Trend Skor */}
                   <div className="dashboard-card">
-                    <TrendChart trendData={trendData} />
+                    <TrendChart />
                   </div>
                 </div>
 
@@ -257,52 +285,47 @@ export default function DashboardPage() {
                         <span className="text-[10px] text-slate-400 mt-1">Penerima Manfaat (Jiwa)</span>
                       </div>
                     </div>
+                    
+                    {/* Dynamic BalitaChart replacing placeholder */}
                     <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">12. Stunting Balita</h3>
-                      <div className="h-24 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-800">
-                        <span className="text-2xl font-black text-emerald-600">
-                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.prevalensi_stunting || 0), 0) / giziData.length : 8.7).toFixed(1)}%
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">Prevalensi Stunting</span>
-                      </div>
+                      <BalitaChart balitaData={getBalitaData()} />
                     </div>
                   </div>
 
                   {/* Bottom Middle: Distribusi & Ringkasan */}
                   <div className="grid grid-cols-2 gap-4 flex-1">
                     <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">Konsumsi Energi</h3>
+                      <h3 className="font-bold text-sm text-slate-700 mb-2">RT Miskin</h3>
                       <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-500">
                         <span className="text-3xl font-black text-blue-600">
-                          {Math.round(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length : 2163)}
+                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.rt_miskin_persen || 0), 0) / giziData.length : 13.47).toFixed(1)}%
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-1">kkal/kapita/hari</span>
+                        <span className="text-[10px] text-slate-400 mt-1">Rata-rata Rumah Tangga Miskin</span>
                       </div>
                     </div>
                     <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">Konsumsi Protein</h3>
+                      <h3 className="font-bold text-sm text-slate-700 mb-2">Akses Air Bersih</h3>
                       <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-500">
                         <span className="text-3xl font-black text-teal-600">
-                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length : 63.4).toFixed(1)}
+                          {(100 - (giziData.length > 0 ? giziData.reduce((s, x) => s + (x.rt_tanpa_air_bersih_persen || 0), 0) / giziData.length : 2.3)).toFixed(1)}%
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-1">gram/kapita/hari</span>
+                        <span className="text-[10px] text-slate-400 mt-1">RT dengan Akses Air Bersih</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* COLUMN 3: Right Maps (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  <div className="dashboard-card flex-1 min-h-[300px] flex flex-col">
-                    <h3 className="font-bold text-sm text-slate-700 mb-2">7. Peta SKPG Kelurahan</h3>
+                <div className="lg:col-span-4 flex flex-col">
+                  <div className="dashboard-card flex-1 min-h-[660px] flex flex-col">
+                    <h3 className="font-bold text-sm text-slate-700 mb-2">7. Peta Tematik Ketahanan Pangan</h3>
                     <div className="flex-1 relative rounded-lg overflow-hidden border border-slate-200">
-                      <MapSKPG />
-                    </div>
-                  </div>
-                  <div className="dashboard-card flex-1 min-h-[300px] flex flex-col">
-                    <h3 className="font-bold text-sm text-slate-700 mb-2">8. Peta FSVA Kelurahan</h3>
-                    <div className="flex-1 relative rounded-lg overflow-hidden border border-slate-200">
-                      <MapFSVA />
+                      <MapUnified 
+                        selectedKecamatan={selectedKecamatan}
+                        selectedKelurahan={selectedKelurahan}
+                        selectedYear={selectedYear}
+                        selectedMonth={selectedMonth}
+                      />
                     </div>
                   </div>
                 </div>

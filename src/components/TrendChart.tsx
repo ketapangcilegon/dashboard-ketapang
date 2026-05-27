@@ -1,46 +1,50 @@
 "use client";
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { IKP_HISTORY } from '@/lib/ikp';
 
-interface TrendChartProps {
-  trendData: any[];
-}
-
-export default function TrendChart({ trendData = [] }: TrendChartProps) {
-  
-  const defaultData = [
-    { name: 'Des', nbm: 85, pph: 80, skpg: 75, fsva: 70 },
-    { name: 'Jan', nbm: 88, pph: 82, skpg: 72, fsva: 75 },
-    { name: 'Feb', nbm: 86, pph: 85, skpg: 78, fsva: 73 },
-    { name: 'Mar', nbm: 90, pph: 84, skpg: 82, fsva: 80 },
-    { name: 'Apr', nbm: 92, pph: 86, skpg: 85, fsva: 83 },
-    { name: 'Mei', nbm: 94.2, pph: 88.1, skpg: 87, fsva: 85 },
-  ];
-
-  const chartData = trendData.length > 0 ? trendData : defaultData;
+export default function TrendChart() {
+  const chartData = IKP_HISTORY.map(x => ({
+    name: x.year.toString(),
+    'Kota Cilegon': x.cilegon,
+    'Provinsi Banten': x.banten,
+    'Kategori Cilegon': x.cilegonKategori,
+    'Kategori Banten': x.bantenKategori
+  }));
 
   return (
     <div className="flex flex-col h-full min-h-[300px]">
-      <h3 className="font-bold text-slate-800 text-sm mb-4">Tren Skor Ketahanan Pangan</h3>
+      <div className="mb-2">
+        <h3 className="font-bold text-slate-800 text-sm">Indeks Ketahanan Pangan (IKP)</h3>
+        <p className="text-[10px] text-slate-500 mt-0.5">Perbandingan Kota Cilegon vs Provinsi Banten (2020 - 2024)</p>
+      </div>
       
       <div className="flex-1 w-full mt-2 h-64">
-        <ResponsiveContainer width="99%" height={250}>
+        <ResponsiveContainer width="99%" height={230}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} domain={[0, 100]} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} domain={[60, 90]} />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
               labelStyle={{ color: '#0B1E41', fontWeight: 'bold', fontSize: '12px', marginBottom: '8px' }}
+              formatter={(value, name, props) => {
+                const yearIndex = chartData.findIndex(d => d.name === props.payload.name);
+                const item = IKP_HISTORY[yearIndex];
+                const kat = name === 'Kota Cilegon' ? item?.cilegonKategori : item?.bantenKategori;
+                return [`${value} (${kat})`, name];
+              }}
             />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '500', color: '#64748B', paddingTop: '20px' }} />
+            <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#64748B', paddingTop: '10px' }} />
             
-            <Line type="monotone" dataKey="nbm" name="NBM" stroke="#10B981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="pph" name="PPH" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="skpg" name="SKPG" stroke="#F59E0B" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="fsva" name="FSVA" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="Kota Cilegon" name="Kota Cilegon" stroke="#10B981" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 7 }} />
+            <Line type="monotone" dataKey="Provinsi Banten" name="Provinsi Banten" stroke="#F59E0B" strokeWidth={3} strokeDasharray="4 4" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="mt-2 p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-[10px] text-emerald-800 font-semibold leading-relaxed">
+        💡 Proyeksi IKP Kota Cilegon menunjukkan arah **tren positif (Sangat Tahan Pangan)**, melampaui rata-rata provinsi sejak 2021.
       </div>
     </div>
   );
