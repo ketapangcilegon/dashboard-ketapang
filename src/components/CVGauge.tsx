@@ -1,29 +1,24 @@
 "use client";
 
 interface CVGaugeProps {
-  hargaData: any[];
+  value: number;
 }
 
-export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
-  // Calculate average CV from database
-  const avgCV = hargaData.length > 0 
-    ? hargaData.reduce((sum, item) => sum + (item.cv_harga || 0), 0) / hargaData.length 
-    : 3.65; // Fallback to historical Cilegon CV (3.65%)
-
+export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   // Determine status and style
   let statusText = 'HARGA STABIL';
   let statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
   
-  if (avgCV > 20) {
+  if (value > 20) {
     statusText = 'HARGA BERGEJOLAK';
     statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
-  } else if (avgCV > 10) {
+  } else if (value > 10) {
     statusText = 'HARGA FLUKTUATIF';
     statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
   }
 
   // Trigonometry to position the needle (range 0 to 30)
-  const clampedCV = Math.min(Math.max(avgCV, 0), 30);
+  const clampedCV = Math.min(Math.max(value, 0), 30);
   const angleRad = (clampedCV / 30) * Math.PI; // 0 (left) to Math.PI (right)
   const needleAngleRad = Math.PI - angleRad;
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
@@ -33,8 +28,8 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
     <div className="flex flex-col h-full bg-gradient-to-br from-[#FFF1F2] to-[#FFE4E6] p-4 rounded-xl shadow-sm border border-[#FECDD3]/60 items-center justify-between">
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest leading-none">2. CV Koefisien Variasi</h4>
-        <h3 className="text-xs font-bold text-rose-900 mt-1 leading-tight">Harga Pangan Strategis</h3>
+        <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest leading-none">CV Koefisien Variasi</h4>
+        <h3 className="text-xs font-bold text-rose-900 mt-1 leading-tight">Harga Beras</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -45,13 +40,13 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
             <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#E2E8F0" strokeWidth="8" strokeLinecap="round" />
             
             {/* Green (0-10) - Target Area */}
-            <path d="M 15 50 A 35 35 0 0 1 32.5 19.7" fill="none" stroke="#10B981" strokeWidth="8" />
+            <path d="M 15 50 A 35 35 0 0 1 38.3 19.7" fill="none" stroke="#10B981" strokeWidth="8" />
             
             {/* Yellow (10-20) */}
-            <path d="M 32.5 19.7 A 35 35 0 0 1 67.5 19.7" fill="none" stroke="#F59E0B" strokeWidth="8" />
+            <path d="M 38.3 19.7 A 35 35 0 0 1 61.7 19.7" fill="none" stroke="#F59E0B" strokeWidth="8" />
             
             {/* Red (20-30) */}
-            <path d="M 67.5 19.7 A 35 35 0 0 1 85 50" fill="none" stroke="#EF4444" strokeWidth="8" />
+            <path d="M 61.7 19.7 A 35 35 0 0 1 85 50" fill="none" stroke="#EF4444" strokeWidth="8" />
             
             {/* Dynamic Jarum Penunjuk (Needle) */}
             <line 
@@ -73,7 +68,7 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
 
         {/* Percentage Number - absolute below the gauge center anchor */}
         <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-rose-950 leading-none">{avgCV.toFixed(2)}%</span>
+          <span className="text-xl font-black text-rose-950 leading-none">{value.toFixed(2)}%</span>
         </div>
       </div>
 
@@ -96,3 +91,4 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
     </div>
   );
 }
+

@@ -61,10 +61,10 @@ export default function MapFSVA() {
 
       {/* Map Legend Floating */}
       <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-sm border border-slate-200 z-[1000] text-[10px] font-semibold text-slate-700">
-        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#d62828]"></span> P1 (Sangat Rentan)</div>
-        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#f4a261]"></span> P3 (Agak Rentan)</div>
-        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#57cc99]"></span> P5 (Tahan)</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-[#2dc653]"></span> P6 (Sangat Tahan)</div>
+        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#6e1f1f]"></span> P1 (Sangat Rentan)</div>
+        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#f4a1a7]"></span> P3 (Agak Rentan)</div>
+        <div className="flex items-center gap-2 mb-1.5"><span className="w-3 h-3 rounded-sm bg-[#94c945]"></span> P5 (Tahan)</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-[#3b703b]"></span> P6 (Sangat Tahan)</div>
       </div>
     </>
   );

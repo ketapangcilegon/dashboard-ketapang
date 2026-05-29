@@ -16,8 +16,21 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein';
 type ViewMode = 'upload' | 'manual';
+
+const DATA_TYPES = [
+  { value: 'harga', label: 'Harga Pangan' },
+  { value: 'gizi', label: 'Gizi & Demografi' },
+  { value: 'balita', label: 'Balita & GPM' },
+  { value: 'pou', label: 'Grafik POU' },
+  { value: 'cv_beras', label: 'CV Beras' },
+  { value: 'pph', label: 'Skor PPH' },
+  { value: 'k_energi', label: 'Konsumsi Energi' },
+  { value: 'k_protein', label: 'Konsumsi Protein' },
+  { value: 't_energi', label: 'Ketersediaan Energi' },
+  { value: 't_protein', label: 'Ketersediaan Protein' }
+] as const;
 
 export default function UploadPanel() {
   const [viewMode, setViewMode] = useState<ViewMode>('upload');
@@ -78,6 +91,48 @@ export default function UploadPanel() {
     cilegon: 2.78
   });
 
+  // Form State: CV Beras
+  const [cvBerasForm, setCvBerasForm] = useState({
+    tahun: 2025,
+    target: 10,
+    cilegon: 3.65
+  });
+
+  // Form State: PPH
+  const [pphForm, setPphForm] = useState({
+    tahun: 2025,
+    target: 80,
+    cilegon: 90.9
+  });
+
+  // Form State: Konsumsi Energi
+  const [kEnergiForm, setKEnergiForm] = useState({
+    tahun: 2025,
+    target: 2100,
+    cilegon: 2021
+  });
+
+  // Form State: Konsumsi Protein
+  const [kProteinForm, setKProteinForm] = useState({
+    tahun: 2025,
+    target: 57,
+    cilegon: 59
+  });
+
+  // Form State: Ketersediaan Energi
+  const [tEnergiForm, setTEnergiForm] = useState({
+    tahun: 2025,
+    target: 2400,
+    cilegon: 2582
+  });
+
+  // Form State: Ketersediaan Protein
+  const [tProteinForm, setTProteinForm] = useState({
+    tahun: 2025,
+    target: 63,
+    cilegon: 85
+  });
+
   // Automatically update kelurahan when kecamatan changes
   const handleKecamatanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newKec = e.target.value;
@@ -131,6 +186,42 @@ export default function UploadPanel() {
         headers = ['Tahun', 'POU Nasional', 'POU Provinsi Banten', 'POU Cilegon'];
         sampleData = [
           [2025, 7.89, 2.88, 2.78],
+        ];
+      } else if (type === 'cv_beras') {
+        filename = 'template_cv_beras.xlsx';
+        headers = ['Tahun', 'CV Beras', 'Target CV'];
+        sampleData = [
+          [2025, 3.65, '< 10 %'],
+        ];
+      } else if (type === 'pph') {
+        filename = 'template_pph.xlsx';
+        headers = ['Tahun', 'PPH Nasional Target', 'PPH Cilegon'];
+        sampleData = [
+          [2025, 80, 90.9],
+        ];
+      } else if (type === 'k_energi') {
+        filename = 'template_konsumsi_energi.xlsx';
+        headers = ['Tahun', 'Konsumsi Energi Standar Nasional', 'Konsumsi Energi Cilegon'];
+        sampleData = [
+          [2025, 2100, 2021],
+        ];
+      } else if (type === 'k_protein') {
+        filename = 'template_konsumsi_protein.xlsx';
+        headers = ['Tahun', 'Konsumsi Protein Standar Nasional', 'Konsumsi Protein Cilegon'];
+        sampleData = [
+          [2025, 57, 59],
+        ];
+      } else if (type === 't_energi') {
+        filename = 'template_ketersediaan_energi.xlsx';
+        headers = ['Tahun', 'Ketersediaan Energi Standar Nasional', 'Ketersediaan Energi Cilegon'];
+        sampleData = [
+          [2025, 2400, 2582],
+        ];
+      } else if (type === 't_protein') {
+        filename = 'template_ketersediaan_protein.xlsx';
+        headers = ['Tahun', 'Ketersediaan Protein Standar Nasional', 'Ketersediaan Protein Cilegon'];
+        sampleData = [
+          [2025, 63, 85],
         ];
       }
 
@@ -291,6 +382,79 @@ export default function UploadPanel() {
           }, { onConflict: 'tahun' });
 
           if (error) throw error;
+        } else if (selectedType === 'cv_beras') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const targetStr = String(row['Target CV'] || '< 10 %');
+          const target = parseFloat(targetStr.replace(/[^\d.]/g, '')) || 10;
+          const cilegon = parseFloat(row['CV Beras']) || 0;
+
+          const { error } = await supabase.from('cv_beras_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 'pph') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const target = parseFloat(row['PPH Nasional Target']) || 80;
+          const cilegon = parseFloat(row['PPH Cilegon']) || 0;
+
+          const { error } = await supabase.from('pph_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 'k_energi') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const target = parseFloat(row['Konsumsi Energi Standar Nasional']) || 2100;
+          const cilegon = parseFloat(row['Konsumsi Energi Cilegon']) || 0;
+
+          const { error } = await supabase.from('konsumsi_energi_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 'k_protein') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const target = parseFloat(row['Konsumsi Protein Standar Nasional']) || 57;
+          const cilegon = parseFloat(row['Konsumsi Protein Cilegon']) || 0;
+
+          const { error } = await supabase.from('konsumsi_protein_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 't_energi') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const target = parseFloat(row['Ketersediaan Energi Standar Nasional']) || 2400;
+          const cilegon = parseFloat(row['Ketersediaan Energi Cilegon']) || 0;
+
+          const { error } = await supabase.from('ketersediaan_energi_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 't_protein') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const target = parseFloat(row['Ketersediaan Protein Standar Nasional']) || 63;
+          const cilegon = parseFloat(row['Ketersediaan Protein Cilegon']) || 0;
+
+          const { error } = await supabase.from('ketersediaan_protein_data').upsert({
+            tahun,
+            target,
+            cilegon
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
         }
 
         successCount++;
@@ -395,6 +559,54 @@ export default function UploadPanel() {
           pou_cilegon: cilegon
         }, { onConflict: 'tahun' });
         if (error) throw error;
+      } else if (selectedType === 'cv_beras') {
+        const { tahun, target, cilegon } = cvBerasForm;
+        const { error } = await supabase.from('cv_beras_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
+      } else if (selectedType === 'pph') {
+        const { tahun, target, cilegon } = pphForm;
+        const { error } = await supabase.from('pph_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
+      } else if (selectedType === 'k_energi') {
+        const { tahun, target, cilegon } = kEnergiForm;
+        const { error } = await supabase.from('konsumsi_energi_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
+      } else if (selectedType === 'k_protein') {
+        const { tahun, target, cilegon } = kProteinForm;
+        const { error } = await supabase.from('konsumsi_protein_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
+      } else if (selectedType === 't_energi') {
+        const { tahun, target, cilegon } = tEnergiForm;
+        const { error } = await supabase.from('ketersediaan_energi_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
+      } else if (selectedType === 't_protein') {
+        const { tahun, target, cilegon } = tProteinForm;
+        const { error } = await supabase.from('ketersediaan_protein_data').upsert({
+          tahun,
+          target,
+          cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
       }
 
       setStatus('success');
@@ -431,16 +643,17 @@ export default function UploadPanel() {
           </button>
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto">
-          {(['harga', 'gizi', 'balita', 'pou'] as DataType[]).map((type) => (
+        <div className="flex flex-wrap bg-slate-100 p-1.5 rounded-xl w-full gap-1">
+          {DATA_TYPES.map((type) => (
             <button
-              key={type}
-              onClick={() => { setSelectedType(type); setStatus('idle'); }}
-              className={`flex-1 md:flex-initial px-4 py-2 text-xs font-bold rounded-md capitalize transition-all ${
-                selectedType === type ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
+              key={type.value}
+              onClick={() => { setSelectedType(type.value); setStatus('idle'); }}
+              type="button"
+              className={`flex-1 md:flex-initial px-3.5 py-2 text-xs font-bold rounded-lg capitalize transition-all cursor-pointer ${
+                selectedType === type.value ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              {type === 'harga' ? 'Harga Pangan' : type === 'gizi' ? 'Gizi & Demografi' : type === 'balita' ? 'Balita & GPM' : 'Grafik POU'}
+              {type.label}
             </button>
           ))}
         </div>
@@ -469,7 +682,7 @@ export default function UploadPanel() {
 
             <div>
               <h3 className="text-xl font-bold text-slate-800">
-                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : 'Data POU Historis'}
+                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : selectedType === 'pou' ? 'Data POU Lintas Tahun' : selectedType === 'cv_beras' ? 'Data CV Beras Lintas Tahun' : selectedType === 'pph' ? 'Data Skor PPH Lintas Tahun' : selectedType === 'k_energi' ? 'Data Konsumsi Energi' : selectedType === 'k_protein' ? 'Data Konsumsi Protein' : selectedType === 't_energi' ? 'Data Ketersediaan Energi' : 'Data Ketersediaan Protein'}
               </h3>
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
@@ -508,12 +721,12 @@ export default function UploadPanel() {
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
               <Edit className="w-5 h-5 text-blue-600" />
               <h3 className="text-lg font-bold text-slate-800 capitalize">
-                Form Input Manual: {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi' ? 'Gizi & Demografi' : selectedType === 'balita' ? 'Balita & GPM' : 'Data POU'}
+                Form Input Manual: {DATA_TYPES.find(d => d.value === selectedType)?.label || selectedType}
               </h3>
             </div>
 
-            {/* Common Location Selectors (Hidden for City-wide POU Data) */}
-            {selectedType !== 'pou' && (
+            {/* Common Location Selectors (Hidden for City-wide Annual Data) */}
+            {!['pou', 'cv_beras', 'pph', 'k_energi', 'k_protein', 't_energi', 't_protein'].includes(selectedType) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kecamatan</label>
@@ -929,6 +1142,242 @@ export default function UploadPanel() {
                       required
                       value={pouForm.cilegon}
                       onChange={(e) => setPouForm({ ...pouForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'cv_beras' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik CV Beras Lintas Tahun</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={cvBerasForm.tahun}
+                      onChange={(e) => setCvBerasForm({ ...cvBerasForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target CV (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={cvBerasForm.target}
+                      onChange={(e) => setCvBerasForm({ ...cvBerasForm, target: parseFloat(e.target.value) || 10 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">CV Cilegon (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={cvBerasForm.cilegon}
+                      onChange={(e) => setCvBerasForm({ ...cvBerasForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'pph' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Pola Pangan Harapan (PPH)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={pphForm.tahun}
+                      onChange={(e) => setPphForm({ ...pphForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Nasional (Skor)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pphForm.target}
+                      onChange={(e) => setPphForm({ ...pphForm, target: parseFloat(e.target.value) || 80 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Skor Cilegon</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pphForm.cilegon}
+                      onChange={(e) => setPphForm({ ...pphForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'k_energi' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Konsumsi Energi</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={kEnergiForm.tahun}
+                      onChange={(e) => setKEnergiForm({ ...kEnergiForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Standar Nasional (kkal)</label>
+                    <input
+                      type="number"
+                      required
+                      value={kEnergiForm.target}
+                      onChange={(e) => setKEnergiForm({ ...kEnergiForm, target: parseInt(e.target.value) || 2100 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Konsumsi Cilegon (kkal)</label>
+                    <input
+                      type="number"
+                      required
+                      value={kEnergiForm.cilegon}
+                      onChange={(e) => setKEnergiForm({ ...kEnergiForm, cilegon: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'k_protein' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Konsumsi Protein</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={kProteinForm.tahun}
+                      onChange={(e) => setKProteinForm({ ...kProteinForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Standar Nasional (gram)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={kProteinForm.target}
+                      onChange={(e) => setKProteinForm({ ...kProteinForm, target: parseFloat(e.target.value) || 57 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Konsumsi Cilegon (gram)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={kProteinForm.cilegon}
+                      onChange={(e) => setKProteinForm({ ...kProteinForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 't_energi' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Ketersediaan Energi</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={tEnergiForm.tahun}
+                      onChange={(e) => setTEnergiForm({ ...tEnergiForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Standar Nasional (kkal)</label>
+                    <input
+                      type="number"
+                      required
+                      value={tEnergiForm.target}
+                      onChange={(e) => setTEnergiForm({ ...tEnergiForm, target: parseInt(e.target.value) || 2400 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Ketersediaan Cilegon (kkal)</label>
+                    <input
+                      type="number"
+                      required
+                      value={tEnergiForm.cilegon}
+                      onChange={(e) => setTEnergiForm({ ...tEnergiForm, cilegon: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 't_protein' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Ketersediaan Protein</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={tProteinForm.tahun}
+                      onChange={(e) => setTProteinForm({ ...tProteinForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Standar Nasional (gram)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={tProteinForm.target}
+                      onChange={(e) => setTProteinForm({ ...tProteinForm, target: parseFloat(e.target.value) || 63 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Ketersediaan Cilegon (gram)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={tProteinForm.cilegon}
+                      onChange={(e) => setTProteinForm({ ...tProteinForm, cilegon: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>

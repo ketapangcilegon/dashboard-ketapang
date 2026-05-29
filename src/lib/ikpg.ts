@@ -1,11 +1,11 @@
 // Warna FSVA (6 prioritas)
 export const FSVA_COLORS: Record<string, { fill: string; border: string }> = {
-  sangat_rentan: { fill: '#d62828', border: '#9b1c1c' },
-  rentan:        { fill: '#e76f51', border: '#c1440e' },
-  agak_rentan:   { fill: '#f4a261', border: '#c97230' },
-  agak_tahan:    { fill: '#a8dadc', border: '#6aacaf' },
-  tahan:         { fill: '#57cc99', border: '#2d9e6b' },
-  sangat_tahan:  { fill: '#2dc653', border: '#1a7a32' },
+  sangat_rentan: { fill: '#6e1f1f', border: '#4a1010' }, // Prioritas 1
+  rentan:        { fill: '#e85961', border: '#c63d45' }, // Prioritas 2
+  agak_rentan:   { fill: '#f4a1a7', border: '#d9848a' }, // Prioritas 3
+  agak_tahan:    { fill: '#c9e077', border: '#a8be58' }, // Prioritas 4
+  tahan:         { fill: '#94c945', border: '#74a431' }, // Prioritas 5
+  sangat_tahan:  { fill: '#3b703b', border: '#295229' }, // Prioritas 6
 };
 
 // Warna SKPG (3 kategori)
@@ -25,8 +25,8 @@ export const BORDA_DESIL_COLORS: Record<number, { fill: string; border: string }
   6:  { fill: '#a5d6a7', border: '#66bb6a' },  // Cukup Tahan
   7:  { fill: '#66bb6a', border: '#388e3c' },  // Tahan
   8:  { fill: '#43a047', border: '#2e7d32' },  // Sangat Tahan
-  9:  { fill: '#2e7d32', border: '#1b5e20' },  // Mandiri
-  10: { fill: '#1b5e20', border: '#0d3b0d' },  // Sangat Mandiri
+  9:  { fill: '#2e7d32', border: '#1b5e20' },  // Sangat Tahan
+  10: { fill: '#1b5e20', border: '#0d3b0d' },  // Sangat Tahan
 };
 
 export const NO_DATA_COLOR = { fill: '#cccccc', border: '#999999' };
@@ -42,12 +42,12 @@ export const getFSVACategory = (ikp: number) => {
 };
 
 export const FSVA_LEGEND = [
-  { color: '#d62828', label: 'P1 Sangat Rentan' },
-  { color: '#e76f51', label: 'P2 Rentan' },
-  { color: '#f4a261', label: 'P3 Agak Rentan' },
-  { color: '#a8dadc', label: 'P4 Agak Tahan' },
-  { color: '#57cc99', label: 'P5 Tahan' },
-  { color: '#2dc653', label: 'P6 Sangat Tahan' },
+  { color: '#6e1f1f', label: 'P1 Sangat Rentan' },
+  { color: '#e85961', label: 'P2 Rentan' },
+  { color: '#f4a1a7', label: 'P3 Agak Rentan' },
+  { color: '#c9e077', label: 'P4 Agak Tahan' },
+  { color: '#94c945', label: 'P5 Tahan' },
+  { color: '#3b703b', label: 'P6 Sangat Tahan' },
 ];
 
 export const SKPG_LEGEND = [

@@ -40,6 +40,14 @@ export default function DashboardPage() {
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
   const [pouData, setPouData] = useState<any[]>([]);
 
+  // New Data States for the 6 annual indicators
+  const [cvBerasList, setCvBerasList] = useState<any[]>([]);
+  const [pphList, setPphList] = useState<any[]>([]);
+  const [konsumsiEnergiList, setKonsumsiEnergiList] = useState<any[]>([]);
+  const [konsumsiProteinList, setKonsumsiProteinList] = useState<any[]>([]);
+  const [ketersediaanEnergiList, setKetersediaanEnergiList] = useState<any[]>([]);
+  const [ketersediaanProteinList, setKetersediaanProteinList] = useState<any[]>([]);
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -114,6 +122,54 @@ export default function DashboardPage() {
           console.warn('Table pou_data might not exist yet:', pouErr);
         }
 
+        // 6.1 Fetch CV Beras
+        try {
+          const { data } = await supabase.from('cv_beras_data').select('*').order('tahun', { ascending: true });
+          setCvBerasList(data || []);
+        } catch (e) {
+          console.warn('cv_beras_data failed:', e);
+        }
+
+        // 6.2 Fetch PPH
+        try {
+          const { data } = await supabase.from('pph_data').select('*').order('tahun', { ascending: true });
+          setPphList(data || []);
+        } catch (e) {
+          console.warn('pph_data failed:', e);
+        }
+
+        // 6.3 Fetch Konsumsi Energi
+        try {
+          const { data } = await supabase.from('konsumsi_energi_data').select('*').order('tahun', { ascending: true });
+          setKonsumsiEnergiList(data || []);
+        } catch (e) {
+          console.warn('konsumsi_energi_data failed:', e);
+        }
+
+        // 6.4 Fetch Konsumsi Protein
+        try {
+          const { data } = await supabase.from('konsumsi_protein_data').select('*').order('tahun', { ascending: true });
+          setKonsumsiProteinList(data || []);
+        } catch (e) {
+          console.warn('konsumsi_protein_data failed:', e);
+        }
+
+        // 6.5 Fetch Ketersediaan Energi
+        try {
+          const { data } = await supabase.from('ketersediaan_energi_data').select('*').order('tahun', { ascending: true });
+          setKetersediaanEnergiList(data || []);
+        } catch (e) {
+          console.warn('ketersediaan_energi_data failed:', e);
+        }
+
+        // 6.6 Fetch Ketersediaan Protein
+        try {
+          const { data } = await supabase.from('ketersediaan_protein_data').select('*').order('tahun', { ascending: true });
+          setKetersediaanProteinList(data || []);
+        } catch (e) {
+          console.warn('ketersediaan_protein_data failed:', e);
+        }
+
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -123,6 +179,49 @@ export default function DashboardPage() {
 
     fetchData();
   }, [selectedKecamatan, selectedKelurahan, selectedYear, selectedMonth]);
+
+  // Getter functions with dynamic database value retrieval and smart default fallbacks
+  const getCVValue = () => {
+    const entry = cvBerasList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 3.65, 2022: 1.45, 2023: 5.21, 2024: 3.65, 2025: 3.65 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 3.65;
+  };
+
+  const getPPHValue = () => {
+    const entry = pphList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 88.3, 2022: 85.5, 2023: 89.8, 2024: 90.9, 2025: 90.9 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 90.9;
+  };
+
+  const getKonsumsiEnergiValue = () => {
+    const entry = konsumsiEnergiList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 1811, 2022: 1970, 2023: 2272, 2024: 2021, 2025: 2021 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 2021;
+  };
+
+  const getKonsumsiProteinValue = () => {
+    const entry = konsumsiProteinList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 67, 2022: 65, 2023: 71, 2024: 59, 2025: 59 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 59;
+  };
+
+  const getKetersediaanEnergiValue = () => {
+    const entry = ketersediaanEnergiList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 2525, 2022: 2529, 2023: 2582, 2024: 2582, 2025: 2582 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 2582;
+  };
+
+  const getKetersediaanProteinValue = () => {
+    const entry = ketersediaanProteinList.find(x => x.tahun === selectedYear);
+    if (entry) return parseFloat(entry.cilegon);
+    const fallbacks: Record<number, number> = { 2021: 92, 2022: 81, 2023: 85, 2024: 85, 2025: 85 };
+    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 85;
+  };
 
   // Dynamic Balita computed calculations
   const getBalitaData = () => {
@@ -146,21 +245,23 @@ export default function DashboardPage() {
 
   // Derived indicator averages for BenchmarkPanel
   const getBenchmarkData = () => {
-    const avgPPH = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length : 88.1;
-    const avgEnergi = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length : 2163;
-    const avgProtein = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length : 63.4;
-    const avgCV = hargaData.length > 0 ? hargaData.reduce((s, x) => s + (x.cv_harga || 0), 0) / hargaData.length : 3.65;
-    
+    const pphVal = getPPHValue();
+    const cEnergiVal = getKonsumsiEnergiValue();
+    const cProteinVal = getKonsumsiProteinValue();
+    const tEnergiVal = getKetersediaanEnergiValue();
+    const tProteinVal = getKetersediaanProteinValue();
+    const cvVal = getCVValue();
+
     return {
-      1: parseFloat(avgPPH.toFixed(1)),
-      2: parseFloat(((avgEnergi / 2100 + avgProtein / 57) * 50).toFixed(2)),
-      3: parseFloat(avgEnergi.toFixed(1)),
-      4: parseFloat(avgProtein.toFixed(1)),
-      5: 121,
-      6: 2582,
-      7: 85,
+      1: pphVal,
+      2: parseFloat(((cEnergiVal / 2100 + cProteinVal / 57) * 50).toFixed(2)),
+      3: cEnergiVal,
+      4: cProteinVal,
+      5: parseFloat(((tEnergiVal / 2400 + tProteinVal / 63) * 50).toFixed(2)),
+      6: tEnergiVal,
+      7: tProteinVal,
       8: 132.7,
-      9: parseFloat(avgCV.toFixed(2)),
+      9: cvVal,
       10: 100,
       11: 85.9,
       12: 78,
@@ -173,18 +274,6 @@ export default function DashboardPage() {
     || ketersediaanData.filter(x => x.tahun === selectedYear)[ketersediaanData.filter(x => x.tahun === selectedYear).length - 1];
   
   const nbmValue = currentMonthKetersediaan ? currentMonthKetersediaan.skor_nbm : 94.2;
-
-  const avgPPH = giziData.length > 0 
-    ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length 
-    : 88.1;
-
-  const avgEnergi = giziData.length > 0 
-    ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length 
-    : 2163;
-
-  const avgProtein = giziData.length > 0 
-    ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length 
-    : 63.4;
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
@@ -219,11 +308,11 @@ export default function DashboardPage() {
               
               {/* TOP ROW: 8 KPI Panels (Responsive Grid) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-                <CVGauge hargaData={hargaData} />
-                <PPHGauge value={avgPPH} />
+                <CVGauge value={getCVValue()} />
+                <PPHGauge value={getPPHValue()} />
                 <NBMGauge value={nbmValue} />
-                <ProteinGauge value={avgProtein} />
-                <EnergiGauge value={avgEnergi} />
+                <ProteinGauge value={getKonsumsiProteinValue()} />
+                <EnergiGauge value={getKonsumsiEnergiValue()} />
                 <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                 <BalitaDoughnut balitaData={getBalitaData()} />
                 <ProduksiLokalChart ketersediaanData={ketersediaanData} selectedYear={selectedYear} selectedMonth={selectedMonth} />
