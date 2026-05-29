@@ -474,7 +474,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* AI Insight Panel - Span 9 */}
-                <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6">
+                <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
                   <AIInsightPanel 
                     year={selectedYear}
                     month={selectedMonth}
@@ -556,13 +556,18 @@ export default function DashboardPage() {
             margin-top: 15mm !important;
           }
 
-          /* General card prints & Flex collapses */
-          .dashboard-card,
-          .dashboard-card > div,
-          .dashboard-card .overflow-hidden {
+          /* General card prints */
+          .dashboard-card {
             box-shadow: none !important;
             border: 1px solid #E2E8F0 !important;
             background: #FFFFFF !important;
+          }
+
+          /* AI Insight container overrides for print to expand text fully */
+          .print-card-grow,
+          .print-card-grow .dashboard-card,
+          .print-card-grow .dashboard-card > div,
+          .print-card-grow .dashboard-card .overflow-hidden {
             overflow: visible !important;
             height: auto !important;
             max-height: none !important;
