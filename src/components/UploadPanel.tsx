@@ -16,7 +16,7 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou';
 type ViewMode = 'upload' | 'manual';
 
 export default function UploadPanel() {
@@ -70,6 +70,14 @@ export default function UploadPanel() {
     bantuan: 1400,
   });
 
+  // Form State: POU Data (Nasional, Provinsi Banten, Kota Cilegon)
+  const [pouForm, setPouForm] = useState({
+    tahun: 2025,
+    nasional: 7.89,
+    provinsi: 2.88,
+    cilegon: 2.78
+  });
+
   // Automatically update kelurahan when kecamatan changes
   const handleKecamatanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newKec = e.target.value;
@@ -112,11 +120,17 @@ export default function UploadPanel() {
         sampleData = [
           [2025, 'Cibeber', 'Cibeber', 11761, 11570, 31.5, 239.0, 92.65, 2.18, 1.798, 97.82, 2.18, 602.62, 20.53, 65.68, 5.25],
         ];
-      } else {
+      } else if (type === 'balita') {
         filename = 'template_balita_gpm.xlsx';
         headers = ['Tahun', 'Bulan', 'Kecamatan', 'BB Sangat Kurang', 'BB Kurang', 'BB Normal', 'BB Lebih', 'Status', 'Kegiatan GPM', 'Bantuan'];
         sampleData = [
           [2026, 2, 'Cibeber', 47, 132, 3731, 102, 'AMAN', 1, 1420],
+        ];
+      } else if (type === 'pou') {
+        filename = 'template_grafik_pou.xlsx';
+        headers = ['Tahun', 'POU Nasional', 'POU Provinsi Banten', 'POU Cilegon'];
+        sampleData = [
+          [2025, 7.89, 2.88, 2.78],
         ];
       }
 
@@ -262,6 +276,21 @@ export default function UploadPanel() {
             kegiatan_gpm: gpm,
           });
           if (errorInt) throw errorInt;
+
+        } else if (selectedType === 'pou') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const pouNasional = parseFloat(row['POU Nasional']) || 0;
+          const pouProvinsi = parseFloat(row['POU Provinsi Banten']) || 0;
+          const pouCilegon = parseFloat(row['POU Cilegon']) || 0;
+
+          const { error } = await supabase.from('pou_data').upsert({
+            tahun,
+            pou_nasional: pouNasional,
+            pou_provinsi: pouProvinsi,
+            pou_cilegon: pouCilegon,
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
         }
 
         successCount++;
@@ -357,6 +386,15 @@ export default function UploadPanel() {
           kegiatan_gpm: gpm,
         });
         if (errorInt) throw errorInt;
+      } else if (selectedType === 'pou') {
+        const { tahun, nasional, provinsi, cilegon } = pouForm;
+        const { error } = await supabase.from('pou_data').upsert({
+          tahun,
+          pou_nasional: nasional,
+          pou_provinsi: provinsi,
+          pou_cilegon: cilegon
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
       }
 
       setStatus('success');
@@ -393,9 +431,8 @@ export default function UploadPanel() {
           </button>
         </div>
 
-        {/* Selected Data Type */}
         <div className="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto">
-          {(['harga', 'gizi', 'balita'] as DataType[]).map((type) => (
+          {(['harga', 'gizi', 'balita', 'pou'] as DataType[]).map((type) => (
             <button
               key={type}
               onClick={() => { setSelectedType(type); setStatus('idle'); }}
@@ -403,7 +440,7 @@ export default function UploadPanel() {
                 selectedType === type ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {type === 'harga' ? 'Harga Pangan' : type === 'gizi' ? 'Gizi & Demografi' : 'Balita & GPM'}
+              {type === 'harga' ? 'Harga Pangan' : type === 'gizi' ? 'Gizi & Demografi' : type === 'balita' ? 'Balita & GPM' : 'Grafik POU'}
             </button>
           ))}
         </div>
@@ -432,7 +469,7 @@ export default function UploadPanel() {
 
             <div>
               <h3 className="text-xl font-bold text-slate-800">
-                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : 'Balita & Intervensi GPM'}
+                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : 'Data POU Historis'}
               </h3>
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
@@ -471,40 +508,42 @@ export default function UploadPanel() {
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
               <Edit className="w-5 h-5 text-blue-600" />
               <h3 className="text-lg font-bold text-slate-800 capitalize">
-                Form Input Manual: {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi' ? 'Gizi & Demografi' : 'Balita & GPM'}
+                Form Input Manual: {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi' ? 'Gizi & Demografi' : selectedType === 'balita' ? 'Balita & GPM' : 'Data POU'}
               </h3>
             </div>
 
-            {/* Common Location Selectors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kecamatan</label>
-                <select
-                  value={kecamatan}
-                  onChange={handleKecamatanChange}
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 transition-all"
-                >
-                  {Object.keys(WILAYAH).map((k) => (
-                    <option key={k} value={k}>{k}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedType !== 'balita' && (
+            {/* Common Location Selectors (Hidden for City-wide POU Data) */}
+            {selectedType !== 'pou' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kelurahan</label>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kecamatan</label>
                   <select
-                    value={kelurahan}
-                    onChange={(e) => setKelurahan(e.target.value)}
+                    value={kecamatan}
+                    onChange={handleKecamatanChange}
                     className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 transition-all"
                   >
-                    {(WILAYAH[kecamatan] || []).map((k) => (
+                    {Object.keys(WILAYAH).map((k) => (
                       <option key={k} value={k}>{k}</option>
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
+
+                {selectedType !== 'balita' && (
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kelurahan</label>
+                    <select
+                      value={kelurahan}
+                      onChange={(e) => setKelurahan(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 transition-all"
+                    >
+                      {(WILAYAH[kecamatan] || []).map((k) => (
+                        <option key={k} value={k}>{k}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Dynamic Specific Form Fields */}
             {selectedType === 'harga' && (
@@ -839,6 +878,57 @@ export default function UploadPanel() {
                       required
                       value={balitaForm.bantuan}
                       onChange={(e) => setBalitaForm({ ...balitaForm, bantuan: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'pou' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik POU Lintas Tahun</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={pouForm.tahun}
+                      onChange={(e) => setPouForm({ ...pouForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">POU Nasional (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pouForm.nasional}
+                      onChange={(e) => setPouForm({ ...pouForm, nasional: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">POU Banten (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pouForm.provinsi}
+                      onChange={(e) => setPouForm({ ...pouForm, provinsi: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">POU Cilegon (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pouForm.cilegon}
+                      onChange={(e) => setPouForm({ ...pouForm, cilegon: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>

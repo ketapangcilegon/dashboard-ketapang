@@ -87,6 +87,19 @@ async function seed() {
     await supabase.from('gizi_masyarakat').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('intervensi_pangan').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('balita_gizi').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    try {
+      await supabase.from('pou_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('pou_data').insert([
+        { tahun: 2021, pou_nasional: 8.49, pou_provinsi: 2.80, pou_cilegon: 2.46 },
+        { tahun: 2022, pou_nasional: 10.21, pou_provinsi: 2.46, pou_cilegon: 2.04 },
+        { tahun: 2023, pou_nasional: 9.13, pou_provinsi: 2.87, pou_cilegon: 2.19 },
+        { tahun: 2024, pou_nasional: 8.27, pou_provinsi: 2.55, pou_cilegon: 1.96 },
+        { tahun: 2025, pou_nasional: 7.89, pou_provinsi: 2.88, pou_cilegon: 2.78 }
+      ]);
+      console.log('Seeded pou_data successfully.');
+    } catch (e) {
+      console.log('Skipping pou_data seeding (table may not exist yet):', e.message);
+    }
 
     // 2. Parse and seed Cilegon Kelurahan Landscape Data
     console.log('Parsing landscape data...');

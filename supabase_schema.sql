@@ -49,5 +49,15 @@ CREATE TABLE intervensi_pangan (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+-- 5. Tabel POU Lintas Tahun (Nasional, Provinsi Banten, Kota Cilegon)
+CREATE TABLE pou_data (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  tahun int UNIQUE NOT NULL,
+  pou_nasional numeric NOT NULL,
+  pou_provinsi numeric NOT NULL,
+  pou_cilegon numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
 -- (Tabel geospasial Peta SKPG & FSVA biasanya dimuat dari GeoJSON terpisah
 -- atau disimpan di PostGIS jika Supabase PostGIS extension diaktifkan).

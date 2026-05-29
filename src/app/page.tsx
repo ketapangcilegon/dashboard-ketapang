@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [giziData, setGiziData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
+  const [pouData, setPouData] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -104,6 +105,14 @@ export default function DashboardPage() {
         }
         const { data: balita } = await balitaQuery;
         setBalitaDataRaw(balita || []);
+
+        // 6. Fetch POU Lintas Tahun
+        try {
+          const { data: pou } = await supabase.from('pou_data').select('*').order('tahun', { ascending: true });
+          setPouData(pou || []);
+        } catch (pouErr) {
+          console.warn('Table pou_data might not exist yet:', pouErr);
+        }
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -250,7 +259,7 @@ export default function DashboardPage() {
 
               {/* BOTTOM ROW 1: Prevalence of Undernourishment Graph (Full Width) */}
               <div className="w-full">
-                <PoUTrendChart giziData={giziData} selectedYear={selectedYear} />
+                <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
               </div>
 
               {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below PoU) */}
