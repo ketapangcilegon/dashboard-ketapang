@@ -127,7 +127,7 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
           )}
         </div>
         <p className="text-[9px] text-[#0B7A53]/70 font-semibold mt-1">
-          {livePrices ? `Sumber: sagon.cilegon.go.id - Pasar Blok F (${formatIndoDate(liveDate)})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
+          {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(liveDate)})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
         </p>
       </div>
       
