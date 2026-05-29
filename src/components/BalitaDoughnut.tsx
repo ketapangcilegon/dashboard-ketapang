@@ -18,8 +18,8 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
   const data = [
     { name: 'Gizi Buruk', value: balitaData.sangatKurang, color: '#EF4444' },
     { name: 'Gizi Kurang', value: balitaData.kurang, color: '#F59E0B' },
-    { name: 'Normal', value: balitaData.normal, color: '#10B981' },
-    { name: 'Gizi Lebih', value: balitaData.lebih, color: '#2563EB' }
+    { name: 'Gizi Lebih', value: balitaData.lebih, color: '#2563EB' },
+    { name: 'Normal', value: balitaData.normal, color: '#10B981' }
   ];
 
   const totalVal = balitaData.total > 0 ? balitaData.total : 27286;
@@ -36,16 +36,16 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
         <h3 className="text-xs font-bold text-teal-900 mt-1 leading-tight">Gizi Balita Kota Cilegon</h3>
       </div>
 
-      {/* Doughnut Chart - Centered */}
+      {/* Doughnut Chart - Legend on left, Pie shifted to right */}
       <div className="relative w-full h-24 flex items-center justify-center pt-1">
         <ResponsiveContainer width="99%" height="100%">
           <PieChart>
             <Pie
               data={data}
-              cx="50%"
+              cx="60%"
               cy="50%"
-              innerRadius={20}
-              outerRadius={35}
+              innerRadius={18}
+              outerRadius={30}
               paddingAngle={2}
               dataKey="value"
             >
@@ -60,16 +60,16 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
             />
             <Legend 
               iconType="circle" 
-              layout="horizontal"
-              align="center"
-              verticalAlign="bottom"
-              wrapperStyle={{ fontSize: '7px', fontWeight: 'bold', color: '#475569', bottom: -5 }} 
+              layout="vertical"
+              align="left"
+              verticalAlign="middle"
+              wrapperStyle={{ fontSize: '8px', fontWeight: 'bold', color: '#334155', left: 0, top: '50%', transform: 'translateY(-50%)' }} 
             />
           </PieChart>
         </ResponsiveContainer>
         
-        {/* Center overlay text (dynamic status label) - FIXED: left is 0 (centered) */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ left: 0, top: '-10px' }}>
+        {/* Center overlay text - FIXED: left: 20% to align with cx="60%" of Pie */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ left: '20%' }}>
           <span className={`text-[7px] font-extrabold px-1.5 py-0.5 rounded-full border shadow-sm ${statusColor}`}>
             {statusLabel}
           </span>

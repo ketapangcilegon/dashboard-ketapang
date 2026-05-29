@@ -54,10 +54,10 @@ export default function ProduksiLokalChart({ ketersediaanData = [], selectedYear
         <span className="text-[8px] font-bold text-slate-400 uppercase">ton</span>
       </div>
 
-      {/* Recharts Bar Chart */}
+      {/* Recharts Bar Chart - Centered by shifting left margin to -38 */}
       <div className="w-full h-16 mt-1">
         <ResponsiveContainer width="99%" height="100%">
-          <BarChart data={chartData} margin={{ top: 2, right: 0, left: -25, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 2, right: 0, left: -38, bottom: 0 }}>
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#64748B' }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#64748B' }} tickFormatter={(val) => `${val/1000}k`} />
             <Tooltip 
@@ -66,7 +66,6 @@ export default function ProduksiLokalChart({ ketersediaanData = [], selectedYear
               itemStyle={{ color: '#10B981', fontWeight: 'bold', fontSize: '9px' }}
               formatter={(value: any) => [`${value.toLocaleString('id-ID')} ton`, 'Produksi']}
             />
-            {/* Custom styled Bar with radius for high-end look */}
             <Bar dataKey="produksi" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
           </BarChart>
         </ResponsiveContainer>
