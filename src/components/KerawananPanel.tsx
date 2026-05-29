@@ -35,60 +35,60 @@ export default function KerawananPanel({ intervensiData = [], selectedKecamatan 
   const bantuanPercentage = totalKPM > 0 ? (activeKPM / totalKPM) * 100 : 100;
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-teal-500 to-emerald-600 p-4 rounded-xl shadow-lg border border-teal-600 text-white justify-between relative overflow-hidden">
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#E2F1FF] to-[#D1FAE5] p-4 rounded-xl shadow-sm border border-[#A7F3D0]/60 text-slate-800 justify-between relative overflow-hidden">
       {/* Subtle ambient circle inside background */}
-      <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+      <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-white/40 blur-xl pointer-events-none"></div>
 
       {/* Header */}
       <div className="z-10 text-left">
-        <h4 className="text-[9px] font-black text-teal-100 uppercase tracking-widest leading-none">Intervensi</h4>
-        <h3 className="text-xs font-bold text-white mt-1 leading-tight">Penanganan Kerawanan</h3>
+        <h4 className="text-[10px] font-black text-teal-700 uppercase tracking-widest leading-none">Intervensi</h4>
+        <h3 className="text-xs font-bold text-teal-950 mt-1 leading-tight">Penanganan Kerawanan</h3>
       </div>
 
       {/* GPM Section */}
-      <div className="z-10 flex flex-col gap-1.5 mt-2">
+      <div className="z-10 flex flex-col gap-1 mt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <Store className="w-3.5 h-3.5 text-teal-100 shrink-0" />
-            <span className="text-[10px] font-bold">GPM</span>
+            <Store className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span className="text-[10px] font-bold text-slate-700">GPM Lokus</span>
           </div>
-          <span className="text-[10px] font-black text-teal-100">{gpmPercentage.toFixed(1)}%</span>
+          <span className="text-[10px] font-black text-teal-700">{gpmPercentage.toFixed(1)}%</span>
         </div>
         <div>
-          <div className="text-[11px] font-black">
-            {finalGpmActive} <span className="font-medium text-teal-100">dari</span> {totalLokus} <span className="font-medium text-teal-100">lokus prioritas</span>
+          <div className="text-[11px] font-black text-slate-800">
+            {finalGpmActive} <span className="font-medium text-slate-500">dari</span> {totalLokus} <span className="font-medium text-slate-500">lokus</span>
           </div>
-          {/* Mini progress bar */}
-          <div className="w-full bg-teal-700/50 rounded-full h-1 mt-1 overflow-hidden border border-teal-500/20">
-            <div className="bg-emerald-300 h-full rounded-full transition-all duration-500" style={{ width: `${gpmPercentage}%` }}></div>
+          {/* Mini progress bar - THICKER to match speedometer bar thickness */}
+          <div className="w-full bg-slate-200 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${gpmPercentage}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Bantuan Pangan Section */}
-      <div className="z-10 flex flex-col gap-1.5 mt-3">
+      <div className="z-10 flex flex-col gap-1 mt-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <HandHelping className="w-3.5 h-3.5 text-teal-100 shrink-0" />
-            <span className="text-[10px] font-bold">Bantuan Pangan</span>
+            <HandHelping className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span className="text-[10px] font-bold text-slate-700">Bantuan Pangan</span>
           </div>
-          <span className="text-[10px] font-black text-teal-100">{bantuanPercentage.toFixed(1)}%</span>
+          <span className="text-[10px] font-black text-teal-700">{bantuanPercentage.toFixed(1)}%</span>
         </div>
         <div>
-          <div className="text-[11px] font-black truncate">
-            {activeKPM.toLocaleString('id-ID')} <span className="font-medium text-teal-100">dari</span> {totalKPM.toLocaleString('id-ID')} <span className="font-medium text-teal-100">KPM</span>
+          <div className="text-[11px] font-black text-slate-800 truncate">
+            {activeKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">dari</span> {totalKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">KPM</span>
           </div>
-          {/* Mini progress bar */}
-          <div className="w-full bg-teal-700/50 rounded-full h-1 mt-1 overflow-hidden border border-teal-500/20">
-            <div className="bg-emerald-300 h-full rounded-full transition-all duration-500" style={{ width: `${bantuanPercentage}%` }}></div>
+          {/* Mini progress bar - THICKER to match speedometer bar thickness */}
+          <div className="w-full bg-slate-200 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${bantuanPercentage}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Footer Info */}
-      <div className="z-10 mt-3 pt-2 border-t border-teal-400/20 flex flex-col gap-0.5 text-[8px] font-bold text-teal-100 leading-tight">
+      <div className="z-10 mt-3 pt-2 border-t border-slate-200/60 flex justify-between items-center text-[8px] font-bold text-slate-500 leading-tight">
         <span>TA 2026</span>
-        <span>Sumber Dana: APBD, APBN</span>
+        <span>Sumber: APBD & APBN</span>
       </div>
     </div>
   );

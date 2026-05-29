@@ -16,7 +16,7 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
@@ -29,7 +29,8 @@ const DATA_TYPES = [
   { value: 'k_energi', label: 'Konsumsi Energi' },
   { value: 'k_protein', label: 'Konsumsi Protein' },
   { value: 't_energi', label: 'Ketersediaan Energi' },
-  { value: 't_protein', label: 'Ketersediaan Protein' }
+  { value: 't_protein', label: 'Ketersediaan Protein' },
+  { value: 'produksi_beras', label: 'Produksi Beras' }
 ] as const;
 
 export default function UploadPanel() {
@@ -133,6 +134,14 @@ export default function UploadPanel() {
     cilegon: 85
   });
 
+  // Form State: Produksi Beras Lokal
+  const [produksiBerasForm, setProduksiBerasForm] = useState({
+    tahun: 2025,
+    produksiGkg: 13772.30,
+    konversi: 63.23,
+    produksiBeras: 8708.20
+  });
+
   // Automatically update kelurahan when kecamatan changes
   const handleKecamatanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newKec = e.target.value;
@@ -222,6 +231,12 @@ export default function UploadPanel() {
         headers = ['Tahun', 'Ketersediaan Protein Standar Nasional', 'Ketersediaan Protein Cilegon'];
         sampleData = [
           [2025, 63, 85],
+        ];
+      } else if (type === 'produksi_beras') {
+        filename = 'template_produksi_beras.xlsx';
+        headers = ['Tahun', 'Produksi GKG', 'Angka Konversi GKG ke Beras', 'Produksi Beras'];
+        sampleData = [
+          [2025, 13772.30, 63.23, 8708.20],
         ];
       }
 
@@ -455,6 +470,20 @@ export default function UploadPanel() {
           }, { onConflict: 'tahun' });
 
           if (error) throw error;
+        } else if (selectedType === 'produksi_beras') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const gkg = parseFloat(row['Produksi GKG']) || 0;
+          const konversi = parseFloat(row['Angka Konversi GKG ke Beras']) || 63.23;
+          const beras = parseFloat(row['Produksi Beras']) || parseFloat((gkg * konversi / 100).toFixed(2));
+
+          const { error } = await supabase.from('produksi_beras_data').upsert({
+            tahun,
+            produksi_gkg: gkg,
+            konversi,
+            produksi_beras: beras
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
         }
 
         successCount++;
@@ -607,6 +636,15 @@ export default function UploadPanel() {
           cilegon
         }, { onConflict: 'tahun' });
         if (error) throw error;
+      } else if (selectedType === 'produksi_beras') {
+        const { tahun, produksiGkg, konversi, produksiBeras } = produksiBerasForm;
+        const { error } = await supabase.from('produksi_beras_data').upsert({
+          tahun,
+          produksi_gkg: produksiGkg,
+          konversi,
+          produksi_beras: produksiBeras
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
       }
 
       setStatus('success');
@@ -682,7 +720,7 @@ export default function UploadPanel() {
 
             <div>
               <h3 className="text-xl font-bold text-slate-800">
-                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : selectedType === 'pou' ? 'Data POU Lintas Tahun' : selectedType === 'cv_beras' ? 'Data CV Beras Lintas Tahun' : selectedType === 'pph' ? 'Data Skor PPH Lintas Tahun' : selectedType === 'k_energi' ? 'Data Konsumsi Energi' : selectedType === 'k_protein' ? 'Data Konsumsi Protein' : selectedType === 't_energi' ? 'Data Ketersediaan Energi' : 'Data Ketersediaan Protein'}
+                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : selectedType === 'pou' ? 'Data POU Lintas Tahun' : selectedType === 'cv_beras' ? 'Data CV Beras Lintas Tahun' : selectedType === 'pph' ? 'Data Skor PPH Lintas Tahun' : selectedType === 'k_energi' ? 'Data Konsumsi Energi' : selectedType === 'k_protein' ? 'Data Konsumsi Protein' : selectedType === 't_energi' ? 'Data Ketersediaan Energi' : selectedType === 't_protein' ? 'Data Ketersediaan Protein' : 'Data Produksi Beras Lokal'}
               </h3>
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
@@ -726,7 +764,7 @@ export default function UploadPanel() {
             </div>
 
             {/* Common Location Selectors (Hidden for City-wide Annual Data) */}
-            {!['pou', 'cv_beras', 'pph', 'k_energi', 'k_protein', 't_energi', 't_protein'].includes(selectedType) && (
+            {!['pou', 'cv_beras', 'pph', 'k_energi', 'k_protein', 't_energi', 't_protein', 'produksi_beras'].includes(selectedType) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kecamatan</label>
@@ -1378,6 +1416,65 @@ export default function UploadPanel() {
                       required
                       value={tProteinForm.cilegon}
                       onChange={(e) => setTProteinForm({ ...tProteinForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'produksi_beras' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik Produksi Beras Lokal</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={produksiBerasForm.tahun}
+                      onChange={(e) => setProduksiBerasForm({ ...produksiBerasForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi GKG (ton)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={produksiBerasForm.produksiGkg}
+                      onChange={(e) => {
+                        const gkg = parseFloat(e.target.value) || 0;
+                        const beras = parseFloat((gkg * (produksiBerasForm.konversi / 100)).toFixed(2));
+                        setProduksiBerasForm({ ...produksiBerasForm, produksiGkg: gkg, produksiBeras: beras });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Konversi GKG ke Beras (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={produksiBerasForm.konversi}
+                      onChange={(e) => {
+                        const konv = parseFloat(e.target.value) || 0;
+                        const beras = parseFloat((produksiBerasForm.produksiGkg * (konv / 100)).toFixed(2));
+                        setProduksiBerasForm({ ...produksiBerasForm, konversi: konv, produksiBeras: beras });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi Beras (ton)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={produksiBerasForm.produksiBeras}
+                      onChange={(e) => setProduksiBerasForm({ ...produksiBerasForm, produksiBeras: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>

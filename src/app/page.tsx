@@ -5,7 +5,8 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import CVGauge from '@/components/CVGauge';
 import PPHGauge from '@/components/PPHGauge';
-import NBMGauge from '@/components/NBMGauge';
+import KetersediaanProteinGauge from '@/components/KetersediaanProteinGauge';
+import KetersediaanEnergiGauge from '@/components/KetersediaanEnergiGauge';
 import ProteinGauge from '@/components/ProteinGauge';
 import EnergiGauge from '@/components/EnergiGauge';
 import KerawananPanel from '@/components/KerawananPanel';
@@ -40,13 +41,14 @@ export default function DashboardPage() {
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
   const [pouData, setPouData] = useState<any[]>([]);
 
-  // New Data States for the 6 annual indicators
+  // New Data States for the annual indicators
   const [cvBerasList, setCvBerasList] = useState<any[]>([]);
   const [pphList, setPphList] = useState<any[]>([]);
   const [konsumsiEnergiList, setKonsumsiEnergiList] = useState<any[]>([]);
   const [konsumsiProteinList, setKonsumsiProteinList] = useState<any[]>([]);
   const [ketersediaanEnergiList, setKetersediaanEnergiList] = useState<any[]>([]);
   const [ketersediaanProteinList, setKetersediaanProteinList] = useState<any[]>([]);
+  const [produksiBerasList, setProduksiBerasList] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -168,6 +170,14 @@ export default function DashboardPage() {
           setKetersediaanProteinList(data || []);
         } catch (e) {
           console.warn('ketersediaan_protein_data failed:', e);
+        }
+
+        // 6.7 Fetch Produksi Beras Lokal
+        try {
+          const { data } = await supabase.from('produksi_beras_data').select('*').order('tahun', { ascending: true });
+          setProduksiBerasList(data || []);
+        } catch (e) {
+          console.warn('produksi_beras_data failed:', e);
         }
 
       } catch (err) {
@@ -306,16 +316,17 @@ export default function DashboardPage() {
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-6">
               
-              {/* TOP ROW: 8 KPI Panels (Responsive Grid) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+              {/* TOP ROW: 9 KPI Panels (Responsive Grid) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4">
                 <CVGauge value={getCVValue()} />
                 <PPHGauge value={getPPHValue()} />
-                <NBMGauge value={nbmValue} />
                 <ProteinGauge value={getKonsumsiProteinValue()} />
                 <EnergiGauge value={getKonsumsiEnergiValue()} />
+                <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                 <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                 <BalitaDoughnut balitaData={getBalitaData()} />
-                <ProduksiLokalChart ketersediaanData={ketersediaanData} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
               </div>
 
               {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}

@@ -41,8 +41,8 @@ export default function PPHGauge({ value = 88.1 }: PPHGaugeProps) {
     <div className="flex flex-col h-full bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] p-4 rounded-xl shadow-sm border border-[#BFDBFE]/60 items-center justify-between">
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest leading-none">Skor PPH</h4>
-        <h3 className="text-xs font-extrabold text-blue-900 mt-1 leading-tight">(Pola Pangan Harapan)</h3>
+        <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest leading-none">Skor PPH Konsumsi</h4>
+        <h3 className="text-xs font-bold text-blue-900 mt-1 leading-tight">(Pola Pangan Harapan)</h3>
       </div>
       
       {/* Gauge Visual Area */}

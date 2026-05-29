@@ -32,7 +32,6 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
       <div className="w-full flex justify-between items-start">
         <div>
           <h4 className="text-[10px] font-black text-teal-700 uppercase tracking-widest leading-none">Status BB/U Balita</h4>
-          <h3 className="text-xs font-bold text-teal-900 mt-1 leading-tight">Gizi Balita Kota Cilegon</h3>
         </div>
         <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border shadow-sm uppercase ${statusColor}`}>
           {statusLabel}
@@ -55,7 +54,7 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
                   <span className="text-[8px] font-medium text-teal-700/80">({pct}%)</span>
                 </span>
               </div>
-              <div className="w-full h-1.5 bg-teal-950/5 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-teal-950/5 rounded-full overflow-hidden">
                 <div 
                   className="h-full rounded-full transition-all duration-500" 
                   style={{ width: `${pct}%`, backgroundColor: item.color }}

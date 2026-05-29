@@ -1,13 +1,37 @@
--- SQL Migration: 6 KPI Tahunan Baru (CV Beras, PPH, Konsumsi Energi, Konsumsi Protein, Ketersediaan Energi, Ketersediaan Protein)
+-- SQL Migration: 7 KPI Tahunan Baru (Produksi Beras, CV Beras, PPH, Konsumsi Energi, Konsumsi Protein, Ketersediaan Energi, Ketersediaan Protein)
 -- Jalankan skrip ini di Supabase SQL Editor.
 
 -- =========================================================================
--- 1. TABEL KOEFISIEN VARIASI (CV) HARGA BERAS
+-- 1. TABEL PRODUKSI BERAS LOKAL (GKG KE BERAS)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS produksi_beras_data (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  tahun int UNIQUE NOT NULL,
+  produksi_gkg numeric NOT NULL,
+  konversi numeric DEFAULT 63.23 NOT NULL, -- 63.23% (Konversi Banten)
+  produksi_beras numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- Seed Produksi Beras Data (2021 - 2025)
+INSERT INTO produksi_beras_data (tahun, produksi_gkg, konversi, produksi_beras) VALUES
+  (2021, 11687.17, 63.23, 7389.8),
+  (2022, 11400.54, 63.23, 7208.6),
+  (2023, 9852.20, 63.23, 6229.5),
+  (2024, 10460.84, 63.23, 6614.4),
+  (2025, 13772.30, 63.23, 8708.2)
+ON CONFLICT (tahun) DO UPDATE SET
+  produksi_gkg = EXCLUDED.produksi_gkg,
+  konversi = EXCLUDED.konversi,
+  produksi_beras = EXCLUDED.produksi_beras;
+
+-- =========================================================================
+-- 2. TABEL KOEFISIEN VARIASI (CV) HARGA BERAS
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS cv_beras_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   tahun int UNIQUE NOT NULL,
-  target numeric DEFAULT 10 NOT NULL, -- target is < 10%
+  target numeric DEFAULT 10 NOT NULL,
   cilegon numeric NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
@@ -24,7 +48,7 @@ ON CONFLICT (tahun) DO UPDATE SET
   cilegon = EXCLUDED.cilegon;
 
 -- =========================================================================
--- 2. TABEL POLA PANGAN HARAPAN (PPH)
+-- 3. TABEL POLA PANGAN HARAPAN (PPH)
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS pph_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -46,7 +70,7 @@ ON CONFLICT (tahun) DO UPDATE SET
   cilegon = EXCLUDED.cilegon;
 
 -- =========================================================================
--- 3. TABEL KONSUMSI ENERGI
+-- 4. TABEL KONSUMSI ENERGI
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS konsumsi_energi_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -68,7 +92,7 @@ ON CONFLICT (tahun) DO UPDATE SET
   cilegon = EXCLUDED.cilegon;
 
 -- =========================================================================
--- 4. TABEL KONSUMSI PROTEIN
+-- 5. TABEL KONSUMSI PROTEIN
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS konsumsi_protein_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -90,7 +114,7 @@ ON CONFLICT (tahun) DO UPDATE SET
   cilegon = EXCLUDED.cilegon;
 
 -- =========================================================================
--- 5. TABEL KETERSEDIAAN ENERGI
+-- 6. TABEL KETERSEDIAAN ENERGI
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS ketersediaan_energi_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -112,7 +136,7 @@ ON CONFLICT (tahun) DO UPDATE SET
   cilegon = EXCLUDED.cilegon;
 
 -- =========================================================================
--- 6. TABEL KETERSEDIAAN PROTEIN
+-- 7. TABEL KETERSEDIAAN PROTEIN
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS ketersediaan_protein_data (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
