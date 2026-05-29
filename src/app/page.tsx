@@ -551,7 +551,7 @@ export default function DashboardPage() {
           /* Set page margins & size */
           @page {
             size: A4 portrait;
-            margin: 15mm 10mm 15mm 10mm;
+            margin: 35mm 10mm 15mm 10mm;
           }
 
           /* Force backgrounds and gradients */
