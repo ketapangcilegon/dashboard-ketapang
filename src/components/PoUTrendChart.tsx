@@ -88,7 +88,7 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
       </div>
 
       {/* Info Banner */}
-      <div className="mt-2.5 p-2 bg-violet-50 rounded-lg border border-violet-100 text-[8px] text-violet-800 font-bold leading-normal">
+      <div className="mt-2.5 p-2.5 bg-violet-50 rounded-lg border border-violet-100 text-[10px] text-violet-850 font-bold leading-normal">
         💡 **Rekomendasi**: Angka PoU Kota Cilegon secara konsisten berada jauh di bawah Prevalensi Provinsi Banten dan Target Maksimal Nasional (&lt; 5%). Hal ini mengindikasikan tingkat kecukupan konsumsi pangan masyarakat kota yang sangat baik dan melampaui rata-rata wilayah lain.
       </div>
     </div>

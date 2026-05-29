@@ -30,6 +30,7 @@ interface AIInsightPanelProps {
     gula: number;
     cabai: number;
   };
+  loadingPrices: boolean;
 }
 
 export default function AIInsightPanel({
@@ -45,7 +46,8 @@ export default function AIInsightPanel({
   ketersediaanProtein,
   produksiBeras,
   balitaStatus,
-  hargaStrategis
+  hargaStrategis,
+  loadingPrices
 }: AIInsightPanelProps) {
   const [insight, setInsight] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -53,6 +55,10 @@ export default function AIInsightPanel({
   const [isFallback, setIsFallback] = useState<boolean>(false);
 
   useEffect(() => {
+    if (loadingPrices) {
+      setLoading(true);
+      return;
+    }
     let active = true;
 
     async function getInsight() {
@@ -115,7 +121,8 @@ export default function AIInsightPanel({
     produksiBeras,
     balitaStatus.total,
     balitaStatus.status,
-    hargaStrategis.beras
+    hargaStrategis.beras,
+    loadingPrices
   ]);
 
   const handleCopy = () => {

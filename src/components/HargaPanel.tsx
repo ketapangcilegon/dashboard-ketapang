@@ -6,35 +6,50 @@ import { ArrowDown, ArrowUp, Minus, Loader2 } from 'lucide-react';
 interface HargaPanelProps {
   hargaData: any[];
   previousHargaData?: any[];
+  livePrices?: Record<string, number> | null;
+  liveDate?: string | null;
+  loadingLive?: boolean;
 }
 
-export default function HargaPanel({ hargaData = [], previousHargaData = [] }: HargaPanelProps) {
-  const [livePrices, setLivePrices] = useState<Record<string, number> | null>(null);
-  const [liveDate, setLiveDate] = useState<string | null>(null);
-  const [loadingLive, setLoadingLive] = useState<boolean>(true);
+export default function HargaPanel({ 
+  hargaData = [], 
+  previousHargaData = [],
+  livePrices: propLivePrices,
+  liveDate: propLiveDate,
+  loadingLive: propLoadingLive
+}: HargaPanelProps) {
+  const [localLivePrices, setLocalLivePrices] = useState<Record<string, number> | null>(null);
+  const [localLiveDate, setLocalLiveDate] = useState<string | null>(null);
+  const [localLoadingLive, setLocalLoadingLive] = useState<boolean>(true);
+
+  const hasPropLive = propLivePrices !== undefined || propLoadingLive !== undefined;
+  const livePrices = hasPropLive ? propLivePrices : localLivePrices;
+  const liveDate = hasPropLive ? propLiveDate : localLiveDate;
+  const loadingLive = hasPropLive ? propLoadingLive : localLoadingLive;
 
   useEffect(() => {
+    if (hasPropLive) return;
     async function fetchLiveHarga() {
       try {
         const res = await fetch('/api/harga-sagon');
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.prices) {
-            setLivePrices(data.prices);
-            setLiveDate(data.tanggal);
+            setLocalLivePrices(data.prices);
+            setLocalLiveDate(data.tanggal);
           }
         }
       } catch (err) {
         console.error('Failed to fetch live prices from SAGON API:', err);
       } finally {
-        setLoadingLive(false);
+        setLocalLoadingLive(false);
       }
     }
     fetchLiveHarga();
-  }, []);
+  }, [hasPropLive]);
 
   // Format YYYY-MM-DD to Indonesian format
-  const formatIndoDate = (dateStr: string | null) => {
+  const formatIndoDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
     const parts = dateStr.split('-');

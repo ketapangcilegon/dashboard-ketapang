@@ -51,6 +51,31 @@ export default function DashboardPage() {
   const [ketersediaanProteinList, setKetersediaanProteinList] = useState<any[]>([]);
   const [produksiBerasList, setProduksiBerasList] = useState<any[]>([]);
 
+  // Lifted SAGON Live Price States
+  const [livePrices, setLivePrices] = useState<any>(null);
+  const [liveDate, setLiveDate] = useState<string | null>(null);
+  const [loadingLive, setLoadingLive] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchLiveHarga() {
+      try {
+        const res = await fetch('/api/harga-sagon');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.prices) {
+            setLivePrices(data.prices);
+            setLiveDate(data.tanggal);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live prices from SAGON API:', err);
+      } finally {
+        setLoadingLive(false);
+      }
+    }
+    fetchLiveHarga();
+  }, []);
+
   // Carousel Slider States for Top row
   const [sliderIndex, setSliderIndex] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState<number>(6);
@@ -363,31 +388,31 @@ export default function DashboardPage() {
                       transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                     }}
                   >
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <CVGauge value={getCVValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <PPHGauge value={getPPHValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <ProteinGauge value={getKonsumsiProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <EnergiGauge value={getKonsumsiEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <BalitaDoughnut balitaData={getBalitaData()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
                       <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                     </div>
                   </div>
@@ -410,7 +435,13 @@ export default function DashboardPage() {
                 {/* Column 1: Harga Panel (Span 4) */}
                 <div className="lg:col-span-4 flex flex-col">
                   <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
-                    <HargaPanel hargaData={hargaData} previousHargaData={previousHargaData} />
+                    <HargaPanel 
+                      hargaData={hargaData} 
+                      previousHargaData={previousHargaData} 
+                      livePrices={livePrices}
+                      liveDate={liveDate}
+                      loadingLive={loadingLive}
+                    />
                   </div>
                 </div>
 
@@ -460,12 +491,13 @@ export default function DashboardPage() {
                     }
                     balitaStatus={getBalitaData()}
                     hargaStrategis={{
-                      beras: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500,
-                      minyak: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000,
-                      telur: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400,
-                      gula: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000,
-                      cabai: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000,
+                      beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+                      minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
+                      telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
+                      gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                      cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
                     }}
+                    loadingPrices={loadingLive}
                   />
                 </div>
               </div>
