@@ -34,6 +34,7 @@ interface MapControllerProps {
   setBasemap: (mode: BasemapMode) => void;
   giziData: any[];
   intervensiData: any[];
+  isPrinting?: boolean;
 }
 
 function MapController({
@@ -44,7 +45,8 @@ function MapController({
   basemap,
   setBasemap,
   giziData,
-  intervensiData
+  intervensiData,
+  isPrinting
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -74,6 +76,13 @@ function MapController({
     };
   }, [map]);
 
+  useEffect(() => {
+    if (!map) return;
+    if (isPrinting) {
+      map.setView([-6.012, 106.015], 11.5);
+    }
+  }, [isPrinting, map]);
+
   const handleZoomIn = () => map.zoomIn();
   const handleZoomOut = () => map.zoomOut();
   const handleLocateMe = () => {
@@ -87,7 +96,7 @@ function MapController({
   return (
     <>
       {/* 1. FLOATING CASCADE/COLLAPSE PANEL (TOP-LEFT) */}
-      <div className="absolute top-4 left-4 z-[1000] pointer-events-auto">
+      <div className="absolute top-4 left-4 z-[1000] pointer-events-auto print:hidden">
         <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-64 transition-all duration-300">
           <button
             onClick={() => setExpandLayers(!expandLayers)}
@@ -182,7 +191,7 @@ function MapController({
       </div>
 
       {/* 2. FLOATING CONTROL BUTTONS (TOP-RIGHT) */}
-      <div className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col gap-2 print:hidden">
         {/* Locate Me */}
         <button
           onClick={handleLocateMe}
@@ -306,6 +315,19 @@ export default function MapUnified({
   const [activeLayer, setActiveLayer] = useState<MapMode>('fsva');
   const [opacity, setOpacity] = useState<number>(75); // transparency state
   const [basemap, setBasemap] = useState<BasemapMode>('streets');
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const beforePrint = () => setIsPrinting(true);
+    const afterPrint = () => setIsPrinting(false);
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
+  }, []);
   
   const { layers, loadFromURL, loading: kmzLoading } = useKMZLoader();
 
@@ -363,6 +385,7 @@ export default function MapUnified({
   // Filter map layers visually if specific Kelurahan/Kecamatan is selected
   const getFilteredKelurahanLayers = () => {
     if (!layers.kelurahan) return [];
+    if (isPrinting) return layers.kelurahan;
     
     let filtered = [...layers.kelurahan];
 
@@ -399,6 +422,7 @@ export default function MapUnified({
 
   const getFilteredKecamatanLayers = () => {
     if (!layers.kecamatan) return [];
+    if (isPrinting) return layers.kecamatan;
     if (selectedKecamatan !== 'ALL') {
       const standardKec = selectedKecamatan.toUpperCase();
       return layers.kecamatan.filter(f => {
@@ -458,6 +482,7 @@ export default function MapUnified({
             setBasemap={setBasemap}
             giziData={giziData}
             intervensiData={intervensiData}
+            isPrinting={isPrinting}
           />
         </MapContainer>
       </div>

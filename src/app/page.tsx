@@ -339,7 +339,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
       {/* Sidebar */}
-      <div className="hidden lg:block w-64 shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20">
+      <div className="hidden lg:block w-64 shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20 print:hidden">
         <Sidebar />
       </div>
 
@@ -347,16 +347,18 @@ export default function DashboardPage() {
       <div className="flex flex-col flex-1 overflow-hidden relative">
         <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-blue-50 to-transparent z-0 opacity-70 pointer-events-none"></div>
 
-        <Navbar 
-          selectedKecamatan={selectedKecamatan}
-          setSelectedKecamatan={setSelectedKecamatan}
-          selectedKelurahan={selectedKelurahan}
-          setSelectedKelurahan={setSelectedKelurahan}
-          selectedYear={selectedYear}
-          setSelectedYear={setSelectedYear}
-          selectedMonth={selectedMonth}
-          setSelectedMonth={setSelectedMonth}
-        />
+        <div className="print:hidden">
+          <Navbar 
+            selectedKecamatan={selectedKecamatan}
+            setSelectedKecamatan={setSelectedKecamatan}
+            selectedKelurahan={selectedKelurahan}
+            setSelectedKelurahan={setSelectedKelurahan}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+          />
+        </div>
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
           {loading ? (
@@ -368,12 +370,12 @@ export default function DashboardPage() {
             <div className="max-w-[1600px] mx-auto space-y-6">
               
               {/* TOP ROW: 9 KPI Panels (Premium React Sliding Carousel) */}
-              <div className="relative w-full flex items-center group px-10">
+              <div className="relative w-full flex items-center group px-10 print:px-0">
                 {/* Left Arrow Button */}
                 {sliderIndex > 0 && (
                   <button
                     onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
-                    className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20"
+                    className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
                     title="Sebelumnya"
                   >
                     <ChevronLeft className="w-6 h-6 text-slate-700" />
@@ -381,38 +383,38 @@ export default function DashboardPage() {
                 )}
 
                 {/* Carousel Viewport */}
-                <div className="w-full overflow-hidden py-1">
+                <div className="w-full overflow-hidden py-1 print:overflow-visible">
                   <div 
-                    className="flex transition-transform duration-500 ease-in-out"
+                    className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-5 print:gap-2 print:!transform-none print:w-full print:h-auto"
                     style={{ 
                       transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                     }}
                   >
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <CVGauge value={getCVValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <PPHGauge value={getPPHValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <ProteinGauge value={getKonsumsiProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <EnergiGauge value={getKonsumsiEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <BalitaDoughnut balitaData={getBalitaData()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
                       <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                     </div>
                   </div>
@@ -422,7 +424,7 @@ export default function DashboardPage() {
                 {sliderIndex < maxSliderIndex && (
                   <button
                     onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
-                    className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20"
+                    className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
                     title="Berikutnya"
                   >
                     <ChevronRight className="w-6 h-6 text-slate-700" />
@@ -431,10 +433,10 @@ export default function DashboardPage() {
               </div>
 
               {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                 {/* Column 1: Harga Panel (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col">
-                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
+                <div className="lg:col-span-4 flex flex-col print:col-span-5">
+                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                     <HargaPanel 
                       hargaData={hargaData} 
                       previousHargaData={previousHargaData} 
@@ -446,13 +448,13 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Column 2: Wide Map (Span 8) */}
-                <div className="lg:col-span-8 flex flex-col">
-                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
+                <div className="lg:col-span-8 flex flex-col print:col-span-7">
+                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                     <div className="mb-2">
                       <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
                       <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
                     </div>
-                    <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px]">
+                    <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px] print:h-[280px] print:min-h-0">
                       <MapUnified 
                         selectedKecamatan={selectedKecamatan}
                         selectedKelurahan={selectedKelurahan}
@@ -465,14 +467,14 @@ export default function DashboardPage() {
               </div>
 
               {/* BOTTOM ROW 1: PoU (1/4 Width) & AI Insight Panel (3/4 Width) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                 {/* PoU Chart - Span 3 */}
-                <div className="lg:col-span-3 flex flex-col">
+                <div className="lg:col-span-3 flex flex-col print:col-span-12 print:break-before-page">
                   <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
                 </div>
 
                 {/* AI Insight Panel - Span 9 */}
-                <div className="lg:col-span-9 flex flex-col">
+                <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6">
                   <AIInsightPanel 
                     year={selectedYear}
                     month={selectedMonth}
@@ -503,7 +505,7 @@ export default function DashboardPage() {
               </div>
 
               {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
-              <div className="w-full">
+              <div className="w-full print:hidden">
                 <BenchmarkPanel currentData={getBenchmarkData()} />
               </div>
               
@@ -511,6 +513,57 @@ export default function DashboardPage() {
           )}
         </main>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* Set page margins & size */
+          @page {
+            size: A4 portrait;
+            margin: 15mm 10mm 15mm 10mm;
+          }
+
+          /* Force backgrounds and gradients */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Reset layouts for full print page flow */
+          html, body, #__next, .flex.h-screen {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            background: #F8FAFC !important;
+          }
+
+          /* Main viewport overrides */
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+          }
+
+          .custom-scrollbar {
+            overflow: visible !important;
+          }
+
+          /* Custom page break utility */
+          .print\\:break-before-page {
+            break-before: page !important;
+            page-break-before: always !important;
+            margin-top: 15mm !important;
+          }
+
+          /* General card prints */
+          .dashboard-card {
+            box-shadow: none !important;
+            border: 1px solid #E2E8F0 !important;
+            background: #FFFFFF !important;
+          }
+        }
+      `}} />
     </div>
   );
 }

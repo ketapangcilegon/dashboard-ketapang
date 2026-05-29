@@ -13,7 +13,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="h-full flex flex-col justify-between py-6">
+    <div className="h-full flex flex-col justify-between py-6 print:hidden">
       <div>
         <div className="px-6 mb-8 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shrink-0">
@@ -48,7 +48,10 @@ export default function Sidebar() {
           <p>Data per tanggal</p>
           <p className="text-slate-300 font-bold">20 Mei 2025 09:00</p>
         </div>
-        <button className="w-full py-2.5 px-4 rounded-lg border border-slate-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors">
+        <button 
+          onClick={() => typeof window !== 'undefined' && window.print()}
+          className="w-full py-2.5 px-4 rounded-lg border border-slate-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+        >
           <Download className="w-4 h-4" /> Unduh Laporan
         </button>
       </div>

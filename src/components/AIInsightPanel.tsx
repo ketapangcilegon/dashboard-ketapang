@@ -209,7 +209,7 @@ export default function AIInsightPanel({
         {insight && !loading && (
           <button
             onClick={handleCopy}
-            className="p-1.5 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-white"
+            className="p-1.5 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-white print:hidden"
             title="Copy Report"
           >
             {copied ? (
@@ -229,7 +229,7 @@ export default function AIInsightPanel({
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
           </div>
         ) : (
-          <div className="w-full h-full overflow-y-auto pr-1 max-h-[240px] custom-scrollbar text-left">
+          <div className="w-full h-full overflow-y-auto pr-1 max-h-[240px] print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left">
             <div className="prose prose-sm max-w-none prose-slate">
               {renderMarkdown(insight)}
             </div>
