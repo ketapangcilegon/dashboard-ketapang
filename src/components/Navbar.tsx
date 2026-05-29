@@ -133,8 +133,8 @@ export default function Navbar({
           </span>
         </button>
 
-        {/* Profile */}
-        <div className="flex items-center gap-3 ml-2 cursor-pointer bg-white py-1.5 px-3 rounded-full shadow-sm border border-slate-100 hover:bg-slate-50">
+        {/* Profile (Clickable Admin Link) */}
+        <a href="/entry" className="flex items-center gap-3 ml-2 cursor-pointer bg-white py-1.5 px-3 rounded-full shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors">
           <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-200">
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" className="w-full h-full object-cover" />
           </div>
@@ -142,7 +142,7 @@ export default function Navbar({
             <p className="text-sm font-bold text-[#0B1E41] leading-none mb-1">Admin Kota</p>
             <p className="text-[10px] font-semibold text-slate-500 leading-none">Administrator</p>
           </div>
-        </div>
+        </a>
       </div>
     </header>
   );

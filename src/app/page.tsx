@@ -248,17 +248,14 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* BOTTOM ROW: PoU Trend & Benchmark Panel */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Prevalence of Undernourishment Graph (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col">
-                  <PoUTrendChart giziData={giziData} selectedYear={selectedYear} />
-                </div>
+              {/* BOTTOM ROW 1: Prevalence of Undernourishment Graph (Full Width) */}
+              <div className="w-full">
+                <PoUTrendChart giziData={giziData} selectedYear={selectedYear} />
+              </div>
 
-                {/* Benchmark Panel (Span 8) */}
-                <div className="lg:col-span-8 flex flex-col">
-                  <BenchmarkPanel currentData={getBenchmarkData()} />
-                </div>
+              {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below PoU) */}
+              <div className="w-full">
+                <BenchmarkPanel currentData={getBenchmarkData()} />
               </div>
               
             </div>

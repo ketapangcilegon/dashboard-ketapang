@@ -11,16 +11,16 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
   // Determine indicator text and style
   let statusTitle = 'Buruk / Sangat Kurang';
   let statusDesc = 'Tingkat konsumsi kalori berada di bawah standar minimal (defisit kronis). Kondisi ini mengindikasikan adanya masalah kerawanan pangan atau kemiskinan yang membuat masyarakat kesulitan mengakses makanan pokok.';
-  let statusColor = 'text-rose-700 bg-rose-50 border-rose-200';
+  let statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
   
   if (value >= 2100) {
     statusTitle = 'Aman / Baik';
     statusDesc = 'Masyarakat telah mengonsumsi kalori dalam jumlah yang cukup untuk mendukung aktivitas fisik harian secara produktif dan sehat. Wilayah perkotaan seperti Kota Cilegon umumnya memiliki ketersediaan pangan yang stabil pada kelompok ini (banten.bps.go.id).';
-    statusColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
   } else if (value >= 1700) {
     statusTitle = 'Sedang / Rentan';
     statusDesc = 'Asupan kalori masyarakat berada di batas ambang toleransi. Kebutuhan dasar tubuh untuk bertahan hidup terpenuhi, tetapi belum optimal jika mereka harus melakukan kerja fisik yang berat.';
-    statusColor = 'text-amber-700 bg-amber-50 border-amber-200';
+    statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
   }
 
   // Convert scale (0-3000 kkal) to percentage (0-100) for drawing
@@ -34,24 +34,23 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
-  // SVG Paths
+  // SVG Paths - FIXED: large-arc-flag is ALWAYS 0 for a semicircle!
   const getArcPath = (vPercent: number) => {
     const clamped = Math.min(Math.max(vPercent, 0), 100);
     const endX = 50 - 35 * Math.cos((clamped / 100) * Math.PI);
     const endY = 50 - 35 * Math.sin((clamped / 100) * Math.PI);
-    const largeArc = clamped > 50 ? 1 : 0;
-    return `M 15 50 A 35 35 0 ${largeArc} 1 ${endX} ${endY}`;
+    return `M 15 50 A 35 35 0 0 1 ${endX} ${endY}`;
   };
 
   const isBelowTarget = value < target;
-  const progressColor = isBelowTarget ? "#EF4444" : "#3B82F6"; // Red if below target, light blue if achieved
+  const progressColor = isBelowTarget ? "#EF4444" : "#2563EB"; // Solid red or blue
 
   return (
-    <div className="flex flex-col h-full bg-white p-4 rounded-xl shadow-sm border border-slate-100 items-center justify-between">
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7] p-4 rounded-xl shadow-sm border border-[#FDE68A]/60 items-center justify-between">
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Konsumsi Energi</h4>
-        <h3 className="text-xs font-bold text-slate-700 mt-1 leading-tight">(kkal/kapita/hari)</h3>
+        <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest leading-none">Konsumsi Energi</h4>
+        <h3 className="text-xs font-bold text-amber-900 mt-1 leading-tight">(kkal/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -87,12 +86,12 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
 
         {/* Percentage Number - absolute below the gauge center anchor */}
         <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-slate-800 leading-none">{Math.round(value).toLocaleString('id-ID')} <span className="text-[10px] text-slate-400 font-bold">kkal</span></span>
+          <span className="text-xl font-black text-amber-950 leading-none">{Math.round(value).toLocaleString('id-ID')} <span className="text-[10px] text-amber-500 font-bold">kkal</span></span>
         </div>
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-slate-400 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-amber-700/60 mt-0.5">
         <span>0</span>
         <span>1.500</span>
         <span>3.000</span>
@@ -100,16 +99,16 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
 
       {/* Indicator Status Box */}
       <div className="w-full mt-2 space-y-1">
-        <div className={`text-center py-1 rounded-md border text-[9px] font-black tracking-wide ${statusColor}`}>
+        <div className={`text-center py-1 rounded-md border text-[9px] font-black tracking-wide shadow-sm ${statusColor}`}>
           {statusTitle.toUpperCase()}
         </div>
-        <p className="text-[8px] text-slate-500 font-semibold text-center leading-normal max-h-[40px] overflow-y-auto custom-scrollbar px-1">
+        <p className="text-[8px] text-amber-900/80 font-bold text-center leading-normal max-h-[40px] overflow-y-auto custom-scrollbar px-1">
           {statusDesc}
         </p>
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-slate-400 font-bold mt-2">Target Nasional: 2.100</p>
+      <p className="text-[9px] text-amber-800 font-bold mt-2">Target Nasional: 2.100</p>
     </div>
   );
 }

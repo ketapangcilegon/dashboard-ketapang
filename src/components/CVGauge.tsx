@@ -12,14 +12,14 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
 
   // Determine status and style
   let statusText = 'HARGA STABIL';
-  let statusColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+  let statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
   
   if (avgCV > 20) {
     statusText = 'HARGA BERGEJOLAK';
-    statusColor = 'text-rose-700 bg-rose-50 border-rose-200';
+    statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
   } else if (avgCV > 10) {
     statusText = 'HARGA FLUKTUATIF';
-    statusColor = 'text-amber-700 bg-amber-50 border-amber-200';
+    statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
   }
 
   // Trigonometry to position the needle (range 0 to 30)
@@ -30,11 +30,11 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
   return (
-    <div className="flex flex-col h-full bg-white p-4 rounded-xl shadow-sm border border-slate-100 items-center justify-between">
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#FFF1F2] to-[#FFE4E6] p-4 rounded-xl shadow-sm border border-[#FECDD3]/60 items-center justify-between">
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">2. CV Koefisien Variasi</h4>
-        <h3 className="text-xs font-bold text-slate-700 mt-1 leading-tight">Harga Pangan Strategis</h3>
+        <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest leading-none">2. CV Koefisien Variasi</h4>
+        <h3 className="text-xs font-bold text-rose-900 mt-1 leading-tight">Harga Pangan Strategis</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -73,12 +73,12 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
 
         {/* Percentage Number - absolute below the gauge center anchor */}
         <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-slate-800 leading-none">{avgCV.toFixed(2)}%</span>
+          <span className="text-xl font-black text-rose-950 leading-none">{avgCV.toFixed(2)}%</span>
         </div>
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-slate-400 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-rose-700/60 mt-0.5">
         <span>0%</span>
         <span>15%</span>
         <span>30%</span>
@@ -86,13 +86,13 @@ export default function CVGauge({ hargaData = [] }: CVGaugeProps) {
 
       {/* Indicator Status Box */}
       <div className="w-full mt-2">
-        <div className={`text-center py-1.5 px-2 rounded-lg border text-[9px] font-black tracking-wide ${statusColor} transition-all duration-300`}>
+        <div className={`text-center py-1.5 px-2 rounded-lg border text-[9px] font-black tracking-wide shadow-sm ${statusColor} transition-all duration-300`}>
           {statusText}
         </div>
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-slate-400 font-bold mt-2">Target Nasional &lt; 10%</p>
+      <p className="text-[9px] text-rose-800 font-bold mt-2">Target Nasional &lt; 10%</p>
     </div>
   );
 }

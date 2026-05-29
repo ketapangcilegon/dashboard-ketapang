@@ -30,7 +30,7 @@ export default function PoUTrendChart({ giziData = [], selectedYear }: PoUTrendC
   ];
 
   return (
-    <div className="dashboard-card border-none shadow-md bg-white p-4 rounded-xl flex flex-col h-full min-h-[220px] justify-between">
+    <div className="dashboard-card border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[220px] justify-between">
       <div>
         <h3 className="font-extrabold text-[#7C3AED] text-sm leading-none flex items-center gap-1.5">
           <span>💜</span> Prevalence of Undernourishment (PoU)
@@ -40,7 +40,7 @@ export default function PoUTrendChart({ giziData = [], selectedYear }: PoUTrendC
         </p>
       </div>
 
-      {/* Main Area Chart */}
+      {/* Main Area Chart - FIXED: Y-axis domain starts at 0 to avoid flat clipping */}
       <div className="flex-1 w-full h-32 mt-3">
         <ResponsiveContainer width="99%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
@@ -52,7 +52,7 @@ export default function PoUTrendChart({ giziData = [], selectedYear }: PoUTrendC
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94A3B8' }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94A3B8' }} domain={[2, 4]} tickFormatter={(val) => `${val}%`} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94A3B8' }} domain={[0, 4]} tickFormatter={(val) => `${val}%`} />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontSize: '10px' }}
               labelStyle={{ color: '#0B1E41', fontWeight: 'bold' }}
