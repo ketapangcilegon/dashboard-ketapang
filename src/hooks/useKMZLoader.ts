@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 import togeojson from '@mapbox/togeojson';
 import { KEL_TO_KEC } from '../lib/wilayah';
 
-const KMZ_URL = '/my-places-apr-2026-v250426.kmz'; // Pointing to local public folder
+const KMZ_URL = process.env.NEXT_PUBLIC_KMZ_URL || '/my-places-apr-2026-v250426.kmz'; // Supports custom Supabase Storage public URLs via NEXT_PUBLIC_KMZ_URL env variable
 
 export function useKMZLoader() {
   const [layers, setLayers] = useState<{ kecamatan: any[], kelurahan: any[] }>({ kecamatan: [], kelurahan: [] });
