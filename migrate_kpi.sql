@@ -156,3 +156,17 @@ INSERT INTO ketersediaan_protein_data (tahun, target, cilegon) VALUES
 ON CONFLICT (tahun) DO UPDATE SET
   target = EXCLUDED.target,
   cilegon = EXCLUDED.cilegon;
+
+-- =========================================================================
+-- 8. TABEL CACHE INSIGHT AI (OPTIMASI BIAYA & GRATISAN)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS ai_insights_cache (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  tahun int NOT NULL,
+  bulan int NOT NULL,
+  kecamatan text NOT NULL,
+  kelurahan text NOT NULL,
+  insight text NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  UNIQUE (tahun, bulan, kecamatan, kelurahan)
+);

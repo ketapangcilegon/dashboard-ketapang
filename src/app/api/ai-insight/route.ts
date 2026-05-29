@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+
+interface CacheEntry {
+  insight: string;
+  timestamp: number;
+}
+
+const localCache: Record<string, CacheEntry> = {};
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 jam TTL (Time To Live)
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +29,52 @@ export async function POST(request: Request) {
     } = data;
 
     const apiKey = process.env.GEMINI_API_KEY;
+    const cacheKey = `${year}-${month}-${kecamatan}-${kelurahan}`;
+    const now = Date.now();
+
+    // 1. CEK CACHE DATABASE (SUPABASE) & IN-MEMORY CACHE
+    try {
+      // Cek in-memory cache lokal terlebih dahulu (sangat cepat)
+      if (localCache[cacheKey] && (now - localCache[cacheKey].timestamp) < CACHE_TTL) {
+        return NextResponse.json({
+          success: true,
+          isFallback: false,
+          isCached: true,
+          insight: localCache[cacheKey].insight
+        });
+      }
+
+      // Cek cache persisten di database Supabase
+      const { data: cacheData, error: cacheError } = await supabase
+        .from('ai_insights_cache')
+        .select('insight, created_at')
+        .eq('tahun', year)
+        .eq('bulan', month)
+        .eq('kecamatan', kecamatan)
+        .eq('kelurahan', kelurahan)
+        .single();
+
+      if (!cacheError && cacheData) {
+        const cacheTime = new Date(cacheData.created_at).getTime();
+        if ((now - cacheTime) < CACHE_TTL) {
+          // Update local in-memory cache
+          localCache[cacheKey] = {
+            insight: cacheData.insight,
+            timestamp: cacheTime
+          };
+
+          return NextResponse.json({
+            success: true,
+            isFallback: false,
+            isCached: true,
+            insight: cacheData.insight
+          });
+        }
+      }
+    } catch (cacheErr) {
+      console.warn('AI Insight Cache Check skipped/error:', cacheErr);
+      // Lanjutkan eksekusi jika tabel database belum dibuat (self-healing fallback)
+    }
 
     if (!apiKey) {
       // Heuristic Fallback Analysis Generator (Professional and Rich in Detail)
@@ -46,8 +101,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // Call official Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // 2. CALL GEMINI API (MENGGUNAKAN MODEL MURAH & GRATIS: gemini-2.5-flash-lite)
+    const model = 'gemini-2.5-flash-lite';
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -57,6 +113,7 @@ export async function POST(request: Request) {
           parts: [{
             text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
 Tugas Anda adalah membaca data indikator ketahanan pangan real-time yang sedang ditampilkan di dashboard Ketapang berikut ini, lalu berikan laporan analisis/insight eksekutif yang tajam, solutif, profesional, dan kaya akan insight metodologis (tuliskan dalam Bahasa Indonesia yang formal dan terstruktur dengan rapi menggunakan Markdown).
+Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 200-250 kata) agar hemat biaya token dan langsung tepat sasaran untuk Dinas Ketahanan Pangan Kota Cilegon.
 
 DATA REAL-TIME KOTA CILEGON (Tahun ${year}, Bulan ${month}, Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan ${kelurahan}):
 1. Skor PPH Konsumsi (Pola Pangan Harapan): ${pphScore} (Target Nasional: 90)
@@ -65,30 +122,25 @@ DATA REAL-TIME KOTA CILEGON (Tahun ${year}, Bulan ${month}, Filter Wilayah: Keca
 4. Ketersediaan Energi: ${ketersediaanEnergi} kkal/kapita/hari (Target Nasional: 2400 kkal)
 5. Ketersediaan Protein: ${ketersediaanProtein} gram/kapita/hari (Target Nasional: 63 g)
 6. Koefisien Variasi (CV) Harga Beras: ${cvBeras}% (Target Nasional: < 10% - Penanda stabilitas pasokan dan harga pangan utama)
-7. Produksi Beras Lokal: ${produksiBeras} ton (Konversi 63.23% dari Gabah Kering Giling/GKG Provinsi Banten)
+7. Produksi Beras Lokal: ${produksiBeras} ton (Konversi GKG Provinsi Banten)
 8. Kondisi Balita (BB/U):
-   - Sangat Kurang: ${balitaStatus.sangatKurang} balita
-   - Kurang: ${balitaStatus.kurang} balita
-   - Normal: ${balitaStatus.normal} balita
-   - Lebih: ${balitaStatus.lebih} balita
-   - Status Gizi Keseluruhan: ${balitaStatus.status}
+   - Sangat Kurang: ${balitaStatus.sangatKurang} balita, Kurang: ${balitaStatus.kurang} balita, Normal: ${balitaStatus.normal} balita, Lebih: ${balitaStatus.lebih} balita (Status Gizi: ${balitaStatus.status})
 9. Rata-rata Harga Pangan Strategis Harian:
-   - Beras: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg
-   - Minyak Goreng: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter
-   - Telur Ayam: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg
-   - Gula Pasir: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg
-   - Cabai Merah: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
+   - Beras: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg, Minyak Goreng: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter, Telur Ayam: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg, Gula Pasir: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg, Cabai Merah: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN HARUS TERDIRI DARI:
-- **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status ketahanan pangan kota Cilegon saat ini (Aman/Waspada/Rentan).
-- **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein masyarakat dengan ketersediaan di pasar. Apakah pasokan mencukupi konsumsi?
-- **Stabilitas Harga & Aksesibilitas**: Ulas mengenai tingkat volatilitas harga beras (CV: ${cvBeras}%) dan harga pangan strategis lainnya. Apakah terjangkau bagi masyarakat berpenghasilan rendah?
+- **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
+- **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
+- **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras (CV: ${cvBeras}%) dan harga pangan strategis lainnya.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
-- **Rekomendasi Kebijakan & Intervensi**: Berikan 3 poin rekomendasi taktis bagi Dinas Ketahanan Pangan Kota Cilegon untuk menjaga pasokan, stabilisasi harga, dan intervensi lokus gizi kurang.
+- **Rekomendasi Kebijakan & Intervensi**: Berikan 3 poin rekomendasi taktis secara singkat untuk menjaga pasokan, stabilisasi harga, dan intervensi gizi kurang.
 
 Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Jangan gunakan placeholder.`
           }]
-        }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 350 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
+        }
       })
     });
 
@@ -98,6 +150,31 @@ Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Ja
 
     const result = await response.json();
     const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (generatedText) {
+      // 3. UPDATE CACHE LOKAL & DATABASE
+      localCache[cacheKey] = {
+        insight: generatedText,
+        timestamp: now
+      };
+
+      try {
+        await supabase
+          .from('ai_insights_cache')
+          .upsert({
+            tahun: year,
+            bulan: month,
+            kecamatan: kecamatan,
+            kelurahan: kelurahan,
+            insight: generatedText,
+            created_at: new Date().toISOString()
+          }, {
+            onConflict: 'tahun,bulan,kecamatan,kelurahan'
+          });
+      } catch (dbSaveErr) {
+        console.warn('Gagal menyimpan AI Insight ke database cache (Supabase):', dbSaveErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
