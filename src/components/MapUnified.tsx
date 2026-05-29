@@ -79,7 +79,7 @@ function MapController({
   useEffect(() => {
     if (!map) return;
     if (isPrinting) {
-      map.setView([-6.012, 106.015], 11.5);
+      map.setView([-6.015, 106.012], 10.8);
     }
   }, [isPrinting, map]);
 

@@ -385,36 +385,36 @@ export default function DashboardPage() {
                 {/* Carousel Viewport */}
                 <div className="w-full overflow-hidden py-1 print:overflow-visible">
                   <div 
-                    className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-5 print:gap-2 print:!transform-none print:w-full print:h-auto"
+                    className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
                     style={{ 
                       transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                     }}
                   >
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <CVGauge value={getCVValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <PPHGauge value={getPPHValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <ProteinGauge value={getKonsumsiProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <EnergiGauge value={getKonsumsiEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                       <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
                       <BalitaDoughnut balitaData={getBalitaData()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:px-1 print:h-[235px]">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
                       <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                     </div>
                   </div>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
               </div>
 
               {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6 print:break-before-page">
                 {/* Column 1: Harga Panel (Span 4) */}
                 <div className="lg:col-span-4 flex flex-col print:col-span-5">
                   <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
@@ -561,6 +561,36 @@ export default function DashboardPage() {
             box-shadow: none !important;
             border: 1px solid #E2E8F0 !important;
             background: #FFFFFF !important;
+          }
+
+          .dashboard-card h3 {
+            font-size: 11px !important;
+            letter-spacing: -0.015em !important;
+          }
+
+          .dashboard-card p {
+            font-size: 8px !important;
+            letter-spacing: -0.01em !important;
+          }
+
+          /* Harga Panel table text styling */
+          .dashboard-card table th {
+            font-size: 8px !important;
+            white-space: nowrap !important;
+            letter-spacing: -0.03em !important;
+          }
+
+          .dashboard-card table td {
+            font-size: 9px !important;
+            padding-top: 3px !important;
+            padding-bottom: 3px !important;
+            white-space: nowrap !important;
+            letter-spacing: -0.025em !important;
+          }
+
+          .dashboard-card table td span {
+            font-size: 8px !important;
+            letter-spacing: -0.02em !important;
           }
         }
       `}} />
