@@ -433,7 +433,7 @@ export default function DashboardPage() {
               </div>
 
               {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6 print:break-before-page">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                 {/* Column 1: Harga Panel (Span 4) */}
                 <div className="lg:col-span-4 flex flex-col print:col-span-5">
                   <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
@@ -529,7 +529,7 @@ export default function DashboardPage() {
           }
 
           /* Reset layouts for full print page flow */
-          html, body, #__next, .flex.h-screen {
+          html, body, #__next, .flex.h-screen, .flex.h-screen > div {
             height: auto !important;
             min-height: 100% !important;
             overflow: visible !important;
@@ -556,11 +556,18 @@ export default function DashboardPage() {
             margin-top: 15mm !important;
           }
 
-          /* General card prints */
-          .dashboard-card {
+          /* General card prints & Flex collapses */
+          .dashboard-card,
+          .dashboard-card > div,
+          .dashboard-card .overflow-hidden {
             box-shadow: none !important;
             border: 1px solid #E2E8F0 !important;
             background: #FFFFFF !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            display: block !important;
           }
 
           .dashboard-card h3 {

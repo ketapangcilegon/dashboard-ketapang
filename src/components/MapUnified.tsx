@@ -50,7 +50,7 @@ function MapController({
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
-  const [expandLegend, setExpandLegend] = useState(true);
+  const [expandLegend, setExpandLegend] = useState(false);
 
   // Dynamically inject zoom-dependent CSS classes to the Leaflet map container
   useEffect(() => {
@@ -451,8 +451,8 @@ export default function MapUnified({
       {/* Leaflet Map Container */}
       <div className="flex-1 w-full h-full relative">
         <MapContainer
-          center={[-6.012, 106.015]} // Centered on Cilegon City (adjusted left for legend overlap)
-          zoom={11.8}
+          center={[-6.015, 106.012]}
+          zoom={11.0}
           zoomControl={false}
           className="w-full h-full z-0"
           style={{ background: '#EEF2F6' }}
