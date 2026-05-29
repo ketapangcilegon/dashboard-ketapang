@@ -97,10 +97,10 @@ function MapController({
     <>
       {/* 1. FLOATING CASCADE/COLLAPSE PANEL (TOP-LEFT) */}
       <div className="absolute top-4 left-4 z-[1000] pointer-events-auto print:hidden">
-        <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-64 transition-all duration-300">
+        <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-[185px] transition-all duration-300">
           <button
             onClick={() => setExpandLayers(!expandLayers)}
-            className="w-full px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-between text-xs font-black tracking-wider uppercase transition-colors"
+            className="w-full px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-between text-xs font-black tracking-wider uppercase transition-colors"
           >
             <div className="flex items-center gap-1.5">
               <Layers className="w-4 h-4" />

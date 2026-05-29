@@ -151,10 +151,10 @@ export default function HargaPanel({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[#0B7A53]/10 text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider">
-              <th className="pb-1.5 font-bold">Komoditas</th>
-              <th className="pb-1.5 font-bold text-right">Harga Riil</th>
-              <th className="pb-1.5 font-bold text-right">Perubahan (YoY)</th>
-              <th className="pb-1.5 font-bold text-right">Status</th>
+              <th className="pb-1.5 font-bold w-[35%]">Komoditas</th>
+              <th className="pb-1.5 font-bold text-right w-[25%]">Harga Rata-Rata</th>
+              <th className="pb-1.5 font-bold text-right w-[22%]">Perubahan (YoY)</th>
+              <th className="pb-1.5 font-bold text-right w-[18%] pr-1">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#0B7A53]/5">
@@ -162,11 +162,11 @@ export default function HargaPanel({
               const stats = getYoYStats(c.curr, c.prev);
               return (
                 <tr key={i} className="hover:bg-white/40 transition-colors">
-                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-xs font-bold">
+                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-xs font-bold whitespace-normal break-words leading-tight">
                     <span className="text-sm shrink-0">{c.emoji}</span>
-                    <span className="truncate">{c.name}</span>
+                    <span>{c.name}</span>
                   </td>
-                  <td className="py-2 text-right font-extrabold text-slate-800 text-xs">
+                  <td className="py-2 text-right font-extrabold text-slate-800 text-xs whitespace-nowrap">
                     Rp {Math.round(c.curr).toLocaleString('id-ID')}
                   </td>
                   <td className="py-2 text-right">
@@ -174,7 +174,7 @@ export default function HargaPanel({
                       {stats.changeText}
                     </span>
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 text-right pr-1">
                     <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
                       {stats.status}
                     </span>

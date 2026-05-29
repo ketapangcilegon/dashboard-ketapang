@@ -80,6 +80,33 @@ export default function DashboardPage() {
   const [sliderIndex, setSliderIndex] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState<number>(6);
 
+  // Touch Swipe States and Handlers for Mobile swipe capability
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    const distance = touchStartX - touchEndX;
+    const minSwipeDistance = 50; // minimum 50px swipe
+    
+    if (distance > minSwipeDistance) {
+      // Swipe left -> Next
+      setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1));
+    } else if (distance < -minSwipeDistance) {
+      // Swipe right -> Prev
+      setSliderIndex(prev => Math.max(0, prev - 1));
+    }
+  };
+
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
@@ -383,7 +410,12 @@ export default function DashboardPage() {
                 )}
 
                 {/* Carousel Viewport */}
-                <div className="w-full overflow-hidden py-1 print:overflow-visible">
+                <div 
+                  className="w-full overflow-hidden py-1 print:overflow-visible select-none cursor-grab active:cursor-grabbing"
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
                   <div 
                     className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
                     style={{ 
