@@ -17,7 +17,7 @@ import PoUTrendChart from '@/components/PoUTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MapUnified = dynamic(() => import('@/components/MapUnified'), { 
   loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded text-slate-400 flex items-center justify-center text-xs">Memuat Peta...</div>, 
@@ -49,6 +49,31 @@ export default function DashboardPage() {
   const [ketersediaanEnergiList, setKetersediaanEnergiList] = useState<any[]>([]);
   const [ketersediaanProteinList, setKetersediaanProteinList] = useState<any[]>([]);
   const [produksiBerasList, setProduksiBerasList] = useState<any[]>([]);
+
+  // Carousel Slider States for Top row
+  const [sliderIndex, setSliderIndex] = useState<number>(0);
+  const [visibleCount, setVisibleCount] = useState<number>(6);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w >= 1280) setVisibleCount(6);      // xl
+      else if (w >= 1024) setVisibleCount(4); // lg
+      else if (w >= 768) setVisibleCount(3);  // md
+      else if (w >= 640) setVisibleCount(2);  // sm
+      else setVisibleCount(1);                // mobile
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const totalPanels = 9;
+  const maxSliderIndex = Math.max(0, totalPanels - visibleCount);
+
+  useEffect(() => {
+    setSliderIndex(prev => Math.min(prev, maxSliderIndex));
+  }, [maxSliderIndex]);
 
   useEffect(() => {
     async function fetchData() {
@@ -316,17 +341,67 @@ export default function DashboardPage() {
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-6">
               
-              {/* TOP ROW: 9 KPI Panels (Responsive Grid) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4">
-                <CVGauge value={getCVValue()} />
-                <PPHGauge value={getPPHValue()} />
-                <ProteinGauge value={getKonsumsiProteinValue()} />
-                <EnergiGauge value={getKonsumsiEnergiValue()} />
-                <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
-                <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
-                <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
-                <BalitaDoughnut balitaData={getBalitaData()} />
-                <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+              {/* TOP ROW: 9 KPI Panels (Premium React Sliding Carousel) */}
+              <div className="relative w-full flex items-center group px-10">
+                {/* Left Arrow Button */}
+                {sliderIndex > 0 && (
+                  <button
+                    onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
+                    className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20"
+                    title="Sebelumnya"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-slate-700" />
+                  </button>
+                )}
+
+                {/* Carousel Viewport */}
+                <div className="w-full overflow-hidden py-1">
+                  <div 
+                    className="flex transition-transform duration-500 ease-in-out"
+                    style={{ 
+                      transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
+                    }}
+                  >
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <CVGauge value={getCVValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <PPHGauge value={getPPHValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <ProteinGauge value={getKonsumsiProteinValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <EnergiGauge value={getKonsumsiEnergiValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <BalitaDoughnut balitaData={getBalitaData()} />
+                    </div>
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                      <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Arrow Button */}
+                {sliderIndex < maxSliderIndex && (
+                  <button
+                    onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
+                    className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20"
+                    title="Berikutnya"
+                  >
+                    <ChevronRight className="w-6 h-6 text-slate-700" />
+                  </button>
+                )}
               </div>
 
               {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
