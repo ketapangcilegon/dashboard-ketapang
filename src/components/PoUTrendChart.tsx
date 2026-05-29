@@ -40,8 +40,8 @@ export default function PoUTrendChart({ giziData = [], selectedYear }: PoUTrendC
         </p>
       </div>
 
-      {/* Main Area Chart - FIXED: Y-axis domain starts at 0 to avoid flat clipping */}
-      <div className="flex-1 w-full h-32 mt-3">
+      {/* Main Area Chart - FIXED: Explicit height h-[140px] to prevent collapsed 0px height in flex layouts */}
+      <div className="w-full h-[140px] mt-3">
         <ResponsiveContainer width="99%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
             <defs>

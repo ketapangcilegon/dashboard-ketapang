@@ -12,6 +12,7 @@
     "@mapbox/togeojson": "^0.16.2",
     "@supabase/supabase-js": "^2.106.2",
     "@turf/turf": "^7.3.5",
+    "cheerio": "^1.2.0",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.16.0",

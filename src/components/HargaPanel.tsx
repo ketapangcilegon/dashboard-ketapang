@@ -1,4 +1,7 @@
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+"use client";
+
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, Minus, Loader2 } from 'lucide-react';
 
 interface HargaPanelProps {
   hargaData: any[];
@@ -6,7 +9,42 @@ interface HargaPanelProps {
 }
 
 export default function HargaPanel({ hargaData = [], previousHargaData = [] }: HargaPanelProps) {
-  
+  const [livePrices, setLivePrices] = useState<Record<string, number> | null>(null);
+  const [liveDate, setLiveDate] = useState<string | null>(null);
+  const [loadingLive, setLoadingLive] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchLiveHarga() {
+      try {
+        const res = await fetch('/api/harga-sagon');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.prices) {
+            setLivePrices(data.prices);
+            setLiveDate(data.tanggal);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live prices from SAGON API:', err);
+      } finally {
+        setLoadingLive(false);
+      }
+    }
+    fetchLiveHarga();
+  }, []);
+
+  // Format YYYY-MM-DD to Indonesian format
+  const formatIndoDate = (dateStr: string | null) => {
+    if (!dateStr) return '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const day = parseInt(parts[2], 10);
+    const month = months[parseInt(parts[1], 10) - 1];
+    const year = parts[0];
+    return `${day} ${month} ${year}`;
+  };
+
   // Calculate averages from live dataset
   const getAverage = (data: any[], key: string, fallback: number) => {
     if (!data || data.length === 0) return fallback;
@@ -19,9 +57,9 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
   const berasCur = getAverage(hargaData, 'beras', 13473);
   const minyakCur = getAverage(hargaData, 'minyak_goreng', 21334);
   const telurCur = getAverage(hargaData, 'telur', 30482);
-  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364); // Chicken price from mockup
-  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963); // Sugar price from mockup
-  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184); // Chili price from mockup
+  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364); // Chicken price
+  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963); // Sugar price
+  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184); // Chili price
 
   // Previous year averages (YoY)
   const berasPrev = getAverage(previousHargaData, 'beras', 14050);
@@ -57,22 +95,39 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
   };
 
   const commStats = [
-    { name: 'Beras Medium', curr: berasCur, prev: berasPrev, emoji: '🍚' },
-    { name: 'Minyak Goreng', curr: minyakCur, prev: minyakPrev, emoji: '🧴' },
-    { name: 'Telur Ayam Ras', curr: telurCur, prev: telurPrev, emoji: '🥚' },
-    { name: 'Daging Ayam', curr: ayamCur, prev: ayamPrev, emoji: '🍗' },
-    { name: 'Gula Pasir', curr: gulaCur, prev: gulaPrev, emoji: '🧂' },
-    { name: 'Cabe Merah', curr: cabeCur, prev: cabePrev, emoji: '🌶️' },
+    { name: 'Beras Medium', curr: livePrices ? livePrices.beras : berasCur, prev: berasPrev, emoji: '🍚' },
+    { name: 'Minyak Goreng', curr: livePrices ? livePrices.minyak_goreng : minyakCur, prev: minyakPrev, emoji: '🧴' },
+    { name: 'Telur Ayam Ras', curr: livePrices ? livePrices.telur : telurCur, prev: telurPrev, emoji: '🥚' },
+    { name: 'Daging Ayam', curr: livePrices ? livePrices.daging_ayam : ayamCur, prev: ayamPrev, emoji: '🍗' },
+    { name: 'Gula Pasir', curr: livePrices ? livePrices.gula_pasir : gulaCur, prev: gulaPrev, emoji: '🧂' },
+    { name: 'Cabe Merah', curr: livePrices ? livePrices.cabe_merah : cabeCur, prev: cabePrev, emoji: '🌶️' },
   ];
 
   return (
     <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between">
       <div>
-        <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
-          <span className="text-base">🟢</span> 1. Harga Pangan Strategis
-        </h3>
+        <div className="flex justify-between items-center">
+          <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
+            <span className="text-base">🟢</span> 1. Harga Pangan Strategis
+          </h3>
+          {loadingLive ? (
+            <span className="flex items-center gap-1 text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 font-bold animate-pulse">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              SAGON...
+            </span>
+          ) : livePrices ? (
+            <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full border border-red-600 font-extrabold flex items-center gap-1 animate-pulse shadow-sm">
+              <span className="w-1 h-1 bg-white rounded-full"></span>
+              SAGON LIVE
+            </span>
+          ) : (
+            <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200 font-bold">
+              OFFLINE/DB
+            </span>
+          )}
+        </div>
         <p className="text-[9px] text-[#0B7A53]/70 font-semibold mt-1">
-          Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)
+          {livePrices ? `Sumber: sagon.cilegon.go.id - Pasar Blok F (${formatIndoDate(liveDate)})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
         </p>
       </div>
       

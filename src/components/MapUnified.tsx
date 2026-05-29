@@ -305,7 +305,7 @@ export default function MapUnified({
   const [mounted, setMounted] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapMode>('fsva');
   const [opacity, setOpacity] = useState<number>(75); // transparency state
-  const [basemap, setBasemap] = useState<BasemapMode>('light');
+  const [basemap, setBasemap] = useState<BasemapMode>('streets');
   
   const { layers, loadFromURL, loading: kmzLoading } = useKMZLoader();
 
@@ -427,8 +427,8 @@ export default function MapUnified({
       {/* Leaflet Map Container */}
       <div className="flex-1 w-full h-full relative">
         <MapContainer
-          center={[-6.012, 106.028]} // Centered on Cilegon City
-          zoom={11.5}
+          center={[-6.012, 106.015]} // Centered on Cilegon City (adjusted left for legend overlap)
+          zoom={11.8}
           zoomControl={false}
           className="w-full h-full z-0"
           style={{ background: '#EEF2F6' }}
