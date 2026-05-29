@@ -15,6 +15,7 @@ import ProduksiLokalChart from '@/components/ProduksiLokalChart';
 import HargaPanel from '@/components/HargaPanel';
 import PoUTrendChart from '@/components/PoUTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
+import AIInsightPanel from '@/components/AIInsightPanel';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -362,31 +363,31 @@ export default function DashboardPage() {
                       transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                     }}
                   >
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <CVGauge value={getCVValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <PPHGauge value={getPPHValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <ProteinGauge value={getKonsumsiProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <EnergiGauge value={getKonsumsiEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <BalitaDoughnut balitaData={getBalitaData()} />
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-full">
+                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[215px]">
                       <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                     </div>
                   </div>
@@ -432,12 +433,44 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* BOTTOM ROW 1: Prevalence of Undernourishment Graph (Full Width) */}
-              <div className="w-full">
-                <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+              {/* BOTTOM ROW 1: PoU (1/4 Width) & AI Insight Panel (3/4 Width) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* PoU Chart - Span 3 */}
+                <div className="lg:col-span-3 flex flex-col">
+                  <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+                </div>
+
+                {/* AI Insight Panel - Span 9 */}
+                <div className="lg:col-span-9 flex flex-col">
+                  <AIInsightPanel 
+                    year={selectedYear}
+                    month={selectedMonth}
+                    kecamatan={selectedKecamatan}
+                    kelurahan={selectedKelurahan}
+                    cvBeras={getCVValue()}
+                    pphScore={getPPHValue()}
+                    konsumsiEnergi={getKonsumsiEnergiValue()}
+                    konsumsiProtein={getKonsumsiProteinValue()}
+                    ketersediaanEnergi={getKetersediaanEnergiValue()}
+                    ketersediaanProtein={getKetersediaanProteinValue()}
+                    produksiBeras={
+                      produksiBerasList.find(x => x.tahun === selectedYear)
+                        ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                        : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+                    }
+                    balitaStatus={getBalitaData()}
+                    hargaStrategis={{
+                      beras: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500,
+                      minyak: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000,
+                      telur: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400,
+                      gula: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000,
+                      cabai: hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000,
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below PoU) */}
+              {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
               <div className="w-full">
                 <BenchmarkPanel currentData={getBenchmarkData()} />
               </div>

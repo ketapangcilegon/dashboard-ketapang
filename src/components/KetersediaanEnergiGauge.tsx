@@ -98,13 +98,10 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
       </div>
 
       {/* Indicator Status Box */}
-      <div className="w-full mt-2 space-y-1">
+      <div className="w-full mt-2">
         <div className={`text-center py-1 rounded-md border text-[9px] font-black tracking-wide shadow-sm ${statusColor}`}>
           {statusTitle.toUpperCase()}
         </div>
-        <p className="text-[8px] text-amber-900/80 font-bold text-center leading-normal max-h-[40px] overflow-y-auto custom-scrollbar px-1">
-          {statusDesc}
-        </p>
       </div>
       
       {/* Target info */}
