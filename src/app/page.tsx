@@ -3,18 +3,25 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
-import KPIGrid from '@/components/KPIGrid';
-import HargaPanel from '@/components/HargaPanel';
 import CVGauge from '@/components/CVGauge';
+import PPHGauge from '@/components/PPHGauge';
+import NBMGauge from '@/components/NBMGauge';
+import ProteinGauge from '@/components/ProteinGauge';
+import EnergiGauge from '@/components/EnergiGauge';
+import KerawananPanel from '@/components/KerawananPanel';
+import BalitaDoughnut from '@/components/BalitaDoughnut';
+import ProduksiLokalChart from '@/components/ProduksiLokalChart';
+import HargaPanel from '@/components/HargaPanel';
+import PoUTrendChart from '@/components/PoUTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
-import BalitaChart from '@/components/BalitaChart';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
-const ProduksiChart = dynamic(() => import('@/components/ProduksiChart'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
-const MapUnified = dynamic(() => import('@/components/MapUnified'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded text-slate-400 flex items-center justify-center text-xs">Memuat Peta...</div>, ssr: false });
-const TrendChart = dynamic(() => import('@/components/TrendChart'), { loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded"></div> });
+const MapUnified = dynamic(() => import('@/components/MapUnified'), { 
+  loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded text-slate-400 flex items-center justify-center text-xs">Memuat Peta...</div>, 
+  ssr: false 
+});
 
 export default function DashboardPage() {
   // Filter States
@@ -32,14 +39,10 @@ export default function DashboardPage() {
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
 
-  // Historical data for trend charts
-  const [trendData, setTrendData] = useState<any[]>([]);
-
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        // Construct query parameters
         const dateStr = `${selectedYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
         
         // 1. Fetch Harga Pangan (Current Period)
@@ -66,11 +69,10 @@ export default function DashboardPage() {
         const { data: prevHarga } = await prevHargaQuery;
         setPreviousHargaData(prevHarga || []);
 
-        // 2. Fetch Ketersediaan Pangan (Production values are city-level/aggregate, fetch trend of 6 months)
+        // 2. Fetch Ketersediaan Pangan (Unfiltered by year to get full 5-year series!)
         const { data: ketersediaan } = await supabase
           .from('ketersediaan_pangan')
-          .select('*')
-          .eq('tahun', selectedYear);
+          .select('*');
         setKetersediaanData(ketersediaan || []);
 
         // 3. Fetch Gizi Masyarakat (Year-based)
@@ -102,38 +104,6 @@ export default function DashboardPage() {
         }
         const { data: balita } = await balitaQuery;
         setBalitaDataRaw(balita || []);
-
-        // 6. Fetch Trend Data for TrendChart (All months of the selected year)
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        const trendDataArr = [];
-
-        for (let m = 1; m <= (selectedYear === 2026 ? 5 : 12); m++) {
-          const { data: h } = await supabase.from('harga_pangan')
-            .select('cv_harga')
-            .eq('tanggal', `${selectedYear}-${m < 10 ? '0' + m : m}-15`);
-          
-          const { data: k } = await supabase.from('ketersediaan_pangan')
-            .select('skor_nbm')
-            .eq('tahun', selectedYear)
-            .eq('bulan', m)
-            .single();
-
-          const { data: g } = await supabase.from('gizi_masyarakat')
-            .select('skor_pph')
-            .eq('tahun', selectedYear);
-
-          const pphAvg = g && g.length > 0 ? g.reduce((sum, item) => sum + (item.skor_pph || 0), 0) / g.length : 85;
-          const cvAvg = h && h.length > 0 ? h.reduce((sum, item) => sum + (item.cv_harga || 0), 0) / h.length : 4;
-          
-          trendDataArr.push({
-            name: months[m - 1],
-            nbm: k ? k.skor_nbm : 90 + Math.random() * 5,
-            pph: pphAvg,
-            skpg: 80 + Math.sin(m) * 5,
-            fsva: 85 - (cvAvg / 2)
-          });
-        }
-        setTrendData(trendDataArr);
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -170,7 +140,6 @@ export default function DashboardPage() {
     const avgPPH = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length : 88.1;
     const avgEnergi = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length : 2163;
     const avgProtein = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length : 63.4;
-    const avgStunting = giziData.length > 0 ? giziData.reduce((s, x) => s + (x.prevalensi_stunting || 0), 0) / giziData.length : 8.7;
     const avgCV = hargaData.length > 0 ? hargaData.reduce((s, x) => s + (x.cv_harga || 0), 0) / hargaData.length : 3.65;
     
     return {
@@ -189,6 +158,24 @@ export default function DashboardPage() {
       13: 67
     };
   };
+
+  // Pre-calculate values for top row speedometers
+  const currentMonthKetersediaan = ketersediaanData.filter(x => x.tahun === selectedYear).find(x => x.bulan === selectedMonth) 
+    || ketersediaanData.filter(x => x.tahun === selectedYear)[ketersediaanData.filter(x => x.tahun === selectedYear).length - 1];
+  
+  const nbmValue = currentMonthKetersediaan ? currentMonthKetersediaan.skor_nbm : 94.2;
+
+  const avgPPH = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.skor_pph || 0), 0) / giziData.length 
+    : 88.1;
+
+  const avgEnergi = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.konsumsi_energi_kkal || 0), 0) / giziData.length 
+    : 2163;
+
+  const avgProtein = giziData.length > 0 
+    ? giziData.reduce((s, x) => s + (x.konsumsi_protein_gram || 0), 0) / giziData.length 
+    : 63.4;
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
@@ -221,105 +208,35 @@ export default function DashboardPage() {
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-6">
               
-              {/* TOP: 5 KPI Boxes */}
-              <KPIGrid giziData={giziData} ketersediaanData={ketersediaanData} year={selectedYear} month={selectedMonth} />
+              {/* TOP ROW: 8 KPI Panels (Responsive Grid) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+                <CVGauge hargaData={hargaData} />
+                <PPHGauge value={avgPPH} />
+                <NBMGauge value={nbmValue} />
+                <ProteinGauge value={avgProtein} />
+                <EnergiGauge value={avgEnergi} />
+                <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
+                <BalitaDoughnut balitaData={getBalitaData()} />
+                <ProduksiLokalChart ketersediaanData={ketersediaanData} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+              </div>
 
-              {/* MIDDLE: 3 Column Layout */}
+              {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* COLUMN 1: Left (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  {/* 1. Harga Pangan Strategis */}
-                  <div className="dashboard-card flex-1">
+                {/* Column 1: Harga Panel (Span 4) */}
+                <div className="lg:col-span-4 flex flex-col">
+                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
                     <HargaPanel hargaData={hargaData} previousHargaData={previousHargaData} />
                   </div>
-                  
-                  {/* 9 & 10. PoU & GPM */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">9. PoU (Kerawanan)</h3>
-                      <div className="h-24 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-800">
-                        <span className="text-2xl font-black text-violet-600">
-                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.pou || 0), 0) / giziData.length : 2.78).toFixed(2)}%
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">Prevalence of Undernourishment</span>
-                      </div>
-                    </div>
-                    <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">10. Kegiatan GPM</h3>
-                      <div className="h-24 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-800">
-                        <span className="text-2xl font-black text-rose-600">
-                          {intervensiData.length > 0 ? intervensiData.reduce((s, x) => s + (x.kegiatan_gpm || 0), 0) : 1}
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">Gerakan Pangan Murah</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Trend Skor */}
-                  <div className="dashboard-card">
-                    <TrendChart />
-                  </div>
                 </div>
 
-                {/* COLUMN 2: Middle (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  {/* 2 & 3. CV & Produksi */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="dashboard-card">
-                      <CVGauge hargaData={hargaData} />
+                {/* Column 2: Wide Map (Span 8) */}
+                <div className="lg:col-span-8 flex flex-col">
+                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
+                    <div className="mb-2">
+                      <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
+                      <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
                     </div>
-                    <div className="dashboard-card">
-                      <ProduksiChart ketersediaanData={ketersediaanData} month={selectedMonth} />
-                    </div>
-                  </div>
-
-                  {/* 11 & 12. Bantuan Pangan & Status Gizi */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">11. Bantuan Pangan</h3>
-                      <div className="h-24 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-800">
-                        <span className="text-2xl font-black text-amber-600">
-                          {(intervensiData.length > 0 ? intervensiData.reduce((s, x) => s + (x.penerima_bantuan_jiwa || 0), 0) : 1420).toLocaleString('id-ID')}
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">Penerima Manfaat (Jiwa)</span>
-                      </div>
-                    </div>
-                    
-                    {/* Dynamic BalitaChart replacing placeholder */}
-                    <div className="dashboard-card">
-                      <BalitaChart balitaData={getBalitaData()} />
-                    </div>
-                  </div>
-
-                  {/* Bottom Middle: Distribusi & Ringkasan */}
-                  <div className="grid grid-cols-2 gap-4 flex-1">
-                    <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">RT Miskin</h3>
-                      <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-500">
-                        <span className="text-3xl font-black text-blue-600">
-                          {(giziData.length > 0 ? giziData.reduce((s, x) => s + (x.rt_miskin_persen || 0), 0) / giziData.length : 13.47).toFixed(1)}%
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">Rata-rata Rumah Tangga Miskin</span>
-                      </div>
-                    </div>
-                    <div className="dashboard-card">
-                      <h3 className="font-bold text-sm text-slate-700 mb-2">Akses Air Bersih</h3>
-                      <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 text-slate-500">
-                        <span className="text-3xl font-black text-teal-600">
-                          {(100 - (giziData.length > 0 ? giziData.reduce((s, x) => s + (x.rt_tanpa_air_bersih_persen || 0), 0) / giziData.length : 2.3)).toFixed(1)}%
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-1">RT dengan Akses Air Bersih</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* COLUMN 3: Right Maps (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col">
-                  <div className="dashboard-card flex-1 min-h-[660px] flex flex-col">
-                    <h3 className="font-bold text-sm text-slate-700 mb-2">7. Peta Tematik Ketahanan Pangan</h3>
-                    <div className="flex-1 relative rounded-lg overflow-hidden border border-slate-200">
+                    <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px]">
                       <MapUnified 
                         selectedKecamatan={selectedKecamatan}
                         selectedKelurahan={selectedKelurahan}
@@ -329,12 +246,19 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-
               </div>
 
-              {/* BOTTOM: Full-width Benchmark Panel */}
-              <div className="w-full">
-                <BenchmarkPanel currentData={getBenchmarkData()} />
+              {/* BOTTOM ROW: PoU Trend & Benchmark Panel */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Prevalence of Undernourishment Graph (Span 4) */}
+                <div className="lg:col-span-4 flex flex-col">
+                  <PoUTrendChart giziData={giziData} selectedYear={selectedYear} />
+                </div>
+
+                {/* Benchmark Panel (Span 8) */}
+                <div className="lg:col-span-8 flex flex-col">
+                  <BenchmarkPanel currentData={getBenchmarkData()} />
+                </div>
               </div>
               
             </div>
@@ -344,4 +268,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

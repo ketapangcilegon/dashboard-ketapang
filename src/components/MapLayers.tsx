@@ -125,7 +125,7 @@ export function KelurahanLayer({
             onEachFeature={(f, l) => {
               const namaKel = f.properties?.name || f.properties?.Name || '';
               l.bindTooltip(
-                `<span style="font-size:10px;font-weight:700;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap">${namaKel}</span>`,
+                `<span class="ikpg-tooltip-text" style="font-weight:700;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap">${namaKel}</span>`,
                 { permanent: true, direction: 'center', className: 'ikpg-kel-label', interactive: false }
               );
               

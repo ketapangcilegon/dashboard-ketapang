@@ -21,7 +21,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="text-white font-black leading-tight">KETAHANAN<br/>PANGAN</h1>
-            <p className="text-blue-300 text-[10px] uppercase tracking-widest">KOTA MAJU</p>
+            <p className="text-blue-300 text-[10px] uppercase tracking-widest">KOTA CILEGON</p>
           </div>
         </div>
 

@@ -19,22 +19,22 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
   const berasCur = getAverage(hargaData, 'beras', 13473);
   const minyakCur = getAverage(hargaData, 'minyak_goreng', 21334);
   const telurCur = getAverage(hargaData, 'telur', 30482);
-  const ayamCur = getAverage(hargaData, 'daging_ayam', 35000);
-  const gulaCur = getAverage(hargaData, 'gula_pasir', 16000);
-  const cabeCur = getAverage(hargaData, 'cabe_merah', 45000);
+  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364); // Chicken price from mockup
+  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963); // Sugar price from mockup
+  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184); // Chili price from mockup
 
   // Previous year averages (YoY)
-  const berasPrev = getAverage(previousHargaData, 'beras', 14000);
+  const berasPrev = getAverage(previousHargaData, 'beras', 14050);
   const minyakPrev = getAverage(previousHargaData, 'minyak_goreng', 18000);
-  const telurPrev = getAverage(previousHargaData, 'telur', 30500);
-  const ayamPrev = getAverage(previousHargaData, 'daging_ayam', 34500);
-  const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 15800);
-  const cabePrev = getAverage(previousHargaData, 'cabe_merah', 48000);
+  const telurPrev = getAverage(previousHargaData, 'telur', 30543);
+  const ayamPrev = getAverage(previousHargaData, 'daging_ayam', 36364);
+  const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 15900);
+  const cabePrev = getAverage(previousHargaData, 'cabe_merah', 53184);
 
   // Helper to calculate YoY change and metadata
   const getYoYStats = (curr: number, prev: number) => {
-    const change = ((curr - prev) / prev) * 100;
-    const isUp = change > 0;
+    const change = prev > 0 ? ((curr - prev) / prev) * 100 : 0;
+    const isUp = change > 0.05;
     const isZero = Math.abs(change) < 0.05;
     
     // Status thresholds: e.g. for rice/oil increases > 5% are WASPADA
@@ -42,7 +42,7 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
     const status = isWaspada ? 'WASPADA' : isUp ? 'NAIK' : isZero ? 'STABIL' : 'AMAN';
     
     return {
-      changeText: `${isUp ? '+' : ''}${change.toFixed(1)}%`,
+      changeText: `${isUp ? '↑' : isZero ? '' : '↓'} ${Math.abs(change).toFixed(1)}%`,
       isUp,
       isZero,
       status,
@@ -50,7 +50,9 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
         ? 'bg-red-50 text-red-600 border border-red-100' 
         : isUp 
           ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-          : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+          : isZero
+            ? 'bg-slate-50 text-slate-600 border border-slate-200'
+            : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
     };
   };
 
@@ -64,41 +66,46 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h3 className="font-bold text-slate-800 text-sm">1. Harga Pangan Strategis</h3>
-        <p className="text-[10px] text-slate-500 mt-0.5">Analisis Perbandingan Harga Bulan yang Sama Tahun Lalu (YoY)</p>
+    <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between">
+      <div>
+        <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
+          <span className="text-base">🟢</span> 1. Harga Pangan Strategis
+        </h3>
+        <p className="text-[9px] text-[#0B7A53]/70 font-semibold mt-1">
+          Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)
+        </p>
       </div>
       
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm text-left">
+      {/* Table */}
+      <div className="flex-1 mt-3 overflow-hidden">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="text-slate-400 border-b border-slate-100 text-[11px] uppercase tracking-wider">
-              <th className="pb-3 font-semibold text-slate-500">Komoditas</th>
-              <th className="pb-3 font-semibold text-slate-500 text-right">Harga Riil</th>
-              <th className="pb-3 font-semibold text-slate-500 text-right">Perubahan (YoY)</th>
-              <th className="pb-3 font-semibold text-slate-500 text-right">Status</th>
+            <tr className="border-b border-[#0B7A53]/10 text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider">
+              <th className="pb-1.5 font-bold">Komoditas</th>
+              <th className="pb-1.5 font-bold text-right">Harga Riil</th>
+              <th className="pb-1.5 font-bold text-right">Perubahan (YoY)</th>
+              <th className="pb-1.5 font-bold text-right">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-[#0B7A53]/5">
             {commStats.map((c, i) => {
               const stats = getYoYStats(c.curr, c.prev);
               return (
-                <tr key={i} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-2.5 flex items-center gap-2 text-slate-700 font-semibold">
-                    <span className="text-base">{c.emoji}</span> {c.name}
+                <tr key={i} className="hover:bg-white/40 transition-colors">
+                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-xs font-bold">
+                    <span className="text-sm shrink-0">{c.emoji}</span>
+                    <span className="truncate">{c.name}</span>
                   </td>
-                  <td className="py-2.5 text-right font-black text-slate-800">
+                  <td className="py-2 text-right font-extrabold text-slate-800 text-xs">
                     Rp {Math.round(c.curr).toLocaleString('id-ID')}
                   </td>
-                  <td className="py-2.5 text-right">
-                    <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-red-500' : 'text-emerald-500'}`}>
-                      {stats.isZero ? <Minus className="w-3 h-3" /> : stats.isUp ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                      {stats.changeText.replace('+', '').replace('-', '')}
+                  <td className="py-2 text-right">
+                    <span className={`text-[10px] font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {stats.changeText}
                     </span>
                   </td>
-                  <td className="py-2.5 text-right">
-                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${stats.colorClass}`}>
+                  <td className="py-2 text-right">
+                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
                       {stats.status}
                     </span>
                   </td>
@@ -109,8 +116,10 @@ export default function HargaPanel({ hargaData = [], previousHargaData = [] }: H
         </table>
       </div>
       
-      <div className="mt-3 text-right">
-        <span className="text-slate-400 text-[10px]">Benchmark: yoy (Tahun Lalu)</span>
+      {/* Footer Benchmark */}
+      <div className="mt-2 pt-2 border-t border-[#0B7A53]/10 flex justify-between items-center text-[8px] font-bold text-[#0B7A53]/70">
+        <span>*Benchmark YoY</span>
+        <span>Ter-update otomatis</span>
       </div>
     </div>
   );
