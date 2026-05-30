@@ -67,56 +67,66 @@ function getIKPGStyle(
   activeIKPGLayer: string,
   fsvaData: any[],
   skpgData: any[],
+  fsvaMatangData: any[],
+  skpgMatangData: any[],
   intervensiData: any[],
   ikpgOpacity: number
 ) {
   if (!activeIKPGLayer) return kelStyle;
 
   if (activeIKPGLayer === 'fsva') {
-    const row = fsvaData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
+    const row = fsvaMatangData?.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
     if (!row) return { ...kelStyle, fillOpacity: 0.1, fillColor: NO_DATA_COLOR.fill };
     
-    // Calculate actual composite FSVA IKP (indeks_komposit) on-the-fly
-    const calc = getFSVACalculatedResult(row);
-    const ikp = calc ? calc.indeks_komposit : parseFloat(row.ikp || row.skor_pph || '0');
-    
+    const ikp = parseFloat(row.ikp || '0');
     const { k } = getFSVACategory(ikp);
     const c = FSVA_COLORS[k] || NO_DATA_COLOR;
     return { color: c.border, weight: 1.5, fillColor: c.fill, fillOpacity: ikpgOpacity };
   }
   if (activeIKPGLayer === 'skpg') {
-    const row = skpgData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
-    if (!row) return { ...kelStyle, fillOpacity: 0.1, fillColor: NO_DATA_COLOR.fill };
-    const prev = parseFloat(row.prevalensi_gizi_buruk || row.prevalensi_stunting || '0');
+    const row = skpgMatangData?.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
+    if (!row) {
+      // Fallback to raw stunting
+      const fallbackRow = skpgData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
+      if (!fallbackRow) return { ...kelStyle, fillOpacity: 0.1, fillColor: NO_DATA_COLOR.fill };
+      const prev = parseFloat(fallbackRow.prevalensi_gizi_buruk || fallbackRow.prevalensi_stunting || '0');
+      const cat = prev > 15 ? 'rentan' : prev >= 10 ? 'waspada' : 'aman';
+      const c = SKPG_COLORS[cat] || NO_DATA_COLOR;
+      return { color: c.border, weight: 1.5, fillColor: c.fill, fillOpacity: ikpgOpacity };
+    }
+    const total = (row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0) + (row.gizi_normal || 0) + (row.gizi_berlebih || 0);
+    const prev = total > 0 ? ((row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0)) / total * 100 : 0;
     const cat = prev > 15 ? 'rentan' : prev >= 10 ? 'waspada' : 'aman';
     const c = SKPG_COLORS[cat] || NO_DATA_COLOR;
     return { color: c.border, weight: 1.5, fillColor: c.fill, fillOpacity: ikpgOpacity };
   }
   if (activeIKPGLayer === 'borda') {
-    const row = skpgData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
+    const row = skpgMatangData?.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
     if (!row) return { ...kelStyle, fillOpacity: 0.1, fillColor: NO_DATA_COLOR.fill };
     
-    // Calculate on-the-fly Borda sum ranking using actual composite IKP
-    const calculatedFSVA = skpgData.map(item => {
-      const calc = getFSVACalculatedResult(item);
+    // Calculate Borda rank using exact mature data
+    const calculatedBorda = skpgMatangData.map(item => {
+      const fsvaRow = fsvaMatangData?.find(x => x.nama_kelurahan === item.nama_kelurahan);
+      const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
+      const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
       return {
-        kelurahan: item.kelurahan,
-        ikp: calc ? calc.indeks_komposit : parseFloat(item.ikp || item.skor_pph || '0'),
-        prevalensi_stunting: parseFloat(item.prevalensi_stunting || '0')
+        kelurahan: item.nama_kelurahan,
+        ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
+        prevalensi: prev
       };
     });
     
-    const fsvaSorted = [...calculatedFSVA].sort((a, b) => a.ikp - b.ikp);
-    const skpgSorted = [...calculatedFSVA].sort((a, b) => b.prevalensi_stunting - a.prevalensi_stunting);
+    const fsvaSorted = [...calculatedBorda].sort((a, b) => a.ikp - b.ikp);
+    const skpgSorted = [...calculatedBorda].sort((a, b) => b.prevalensi - a.prevalensi);
     
-    const allBordaSums = calculatedFSVA.map(r => {
+    const allBordaSums = calculatedBorda.map(r => {
       const fRank = fsvaSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
       const sRank = skpgSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
       return { kelurahan: r.kelurahan, sum: fRank + sRank };
     });
     
     const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
-    const bordaRank = sortedSums.findIndex(x => x.kelurahan === row.kelurahan) + 1;
+    const bordaRank = sortedSums.findIndex(x => x.kelurahan === row.nama_kelurahan) + 1;
     const total = sortedSums.length;
     
     const desil = Math.min(10, Math.ceil((bordaRank / total) * 10));
@@ -148,13 +158,16 @@ function getIKPGStyle(
 }
 
 export function KelurahanLayer({
-  data, activeIKPGLayer, ikpgOpacity = 0.65, fsvaData = [], skpgData = [], intervensiData = []
+  data, activeIKPGLayer, ikpgOpacity = 0.65, fsvaData = [], skpgData = [],
+  fsvaMatangData = [], skpgMatangData = [], intervensiData = []
 }: {
   data: any[];
   activeIKPGLayer: string;
   ikpgOpacity?: number;
   fsvaData?: any[];
   skpgData?: any[];
+  fsvaMatangData?: any[];
+  skpgMatangData?: any[];
   intervensiData?: any[];
 }) {
   if (!data?.length) return null;
@@ -162,7 +175,7 @@ export function KelurahanLayer({
     <>
       {data.map((f, i) => {
         const nama = f.properties?.name || f.properties?.Name || '';
-        const style = getIKPGStyle(nama, activeIKPGLayer, fsvaData, skpgData, intervensiData, ikpgOpacity);
+        const style = getIKPGStyle(nama, activeIKPGLayer, fsvaData, skpgData, fsvaMatangData, skpgMatangData, intervensiData, ikpgOpacity);
         return (
           <GeoJSON
             key={`kel-${i}-${activeIKPGLayer || 'x'}-${ikpgOpacity}`}
@@ -180,12 +193,12 @@ export function KelurahanLayer({
                 <h4 style="margin:0 0 6px 0;color:#1e293b;font-weight:bold;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">🏘️ Kel. ${namaKel}</h4>`;
               
               if (activeIKPGLayer === 'fsva') {
-                const row = fsvaData.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
+                const row = fsvaMatangData?.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
                 if (row) {
-                  const calc = getFSVACalculatedResult(row);
-                  const ikp = calc ? calc.indeks_komposit : parseFloat(row.ikp || row.skor_pph || '0');
-                  const prioritas = calc ? calc.prioritas : 6;
+                  const ikp = parseFloat(row.ikp || '0');
                   const { k } = getFSVACategory(ikp);
+                  // Calculate raw priorities (1-6) from cutoff desils
+                  const prioritas = ikp < 46.37 ? 1 : ikp < 53.95 ? 2 : ikp < 61.83 ? 3 : ikp < 69.71 ? 4 : ikp < 77.29 ? 5 : 6;
                   const label = k.replace('_', ' ').toUpperCase();
                   popupContent += `
                     <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Indeks Ketahanan Pangan (IKP)</b>: <span style="font-weight:900;color:#0f172a;">${ikp.toFixed(2)}</span></p>
@@ -196,44 +209,49 @@ export function KelurahanLayer({
                   popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data FSVA.</p>`;
                 }
               } else if (activeIKPGLayer === 'skpg') {
-                const row = skpgData.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
+                const row = skpgMatangData?.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
                 if (row) {
-                  const prev = parseFloat(row.prevalensi_gizi_buruk || row.prevalensi_stunting || '0');
+                  const total = (row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0) + (row.gizi_normal || 0) + (row.gizi_berlebih || 0);
+                  const prev = total > 0 ? ((row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0)) / total * 100 : 0;
                   const cat = prev > 15 ? 'rentan' : prev >= 10 ? 'waspada' : 'aman';
                   const label = cat.toUpperCase();
                   popupContent += `
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Stunting (SKPG)</b>: <span style="font-weight:900;color:#0f172a;">${prev.toFixed(1)}%</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Kurang (SKPG)</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_kurang} balita</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Sangat Kurang</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_sangat_kurang} balita</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Rasio Kerawanan Gizi</b>: <span style="font-weight:900;color:#0f172a;">${prev.toFixed(2)}%</span></p>
                     <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Kategori</b>: <span style="font-weight:bold;color:${SKPG_COLORS[cat]?.border || '#333'};">${label}</span></p>
                   `;
                 } else {
                   popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data SKPG.</p>`;
                 }
               } else if (activeIKPGLayer === 'borda') {
-                const row = skpgData.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
+                const row = skpgMatangData?.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
                 if (row) {
-                  const calculatedFSVA = skpgData.map(item => {
-                    const calc = getFSVACalculatedResult(item);
+                  const calculatedBorda = skpgMatangData.map(item => {
+                    const fsvaRow = fsvaMatangData?.find(x => x.nama_kelurahan === item.nama_kelurahan);
+                    const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
+                    const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
                     return {
-                      kelurahan: item.kelurahan,
-                      ikp: calc ? calc.indeks_komposit : parseFloat(item.ikp || item.skor_pph || '0'),
-                      prevalensi_stunting: parseFloat(item.prevalensi_stunting || '0')
+                      kelurahan: item.nama_kelurahan,
+                      ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
+                      prevalensi: prev
                     };
                   });
                   
-                  const fsvaSorted = [...calculatedFSVA].sort((a, b) => a.ikp - b.ikp);
-                  const skpgSorted = [...calculatedFSVA].sort((a, b) => b.prevalensi_stunting - a.prevalensi_stunting);
+                  const fsvaSorted = [...calculatedBorda].sort((a, b) => a.ikp - b.ikp);
+                  const skpgSorted = [...calculatedBorda].sort((a, b) => b.prevalensi - a.prevalensi);
                   
-                  const fsvaRank = fsvaSorted.findIndex(r => r.kelurahan === row.kelurahan) + 1;
-                  const skpgRank = skpgSorted.findIndex(r => r.kelurahan === row.kelurahan) + 1;
+                  const fsvaRank = fsvaSorted.findIndex(r => r.kelurahan === row.nama_kelurahan) + 1;
+                  const skpgRank = skpgSorted.findIndex(r => r.kelurahan === row.nama_kelurahan) + 1;
                   const bordaSum = fsvaRank + skpgRank;
                   
-                  const allBordaSums = calculatedFSVA.map(r => {
+                  const allBordaSums = calculatedBorda.map(r => {
                     const fRank = fsvaSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
                     const sRank = skpgSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
                     return { kelurahan: r.kelurahan, sum: fRank + sRank };
                   });
                   const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
-                  const bordaRank = sortedSums.findIndex(x => x.kelurahan === row.kelurahan) + 1;
+                  const bordaRank = sortedSums.findIndex(x => x.kelurahan === row.nama_kelurahan) + 1;
                   const total = sortedSums.length;
                   const desil = Math.min(10, Math.ceil((bordaRank / total) * 10));
                   

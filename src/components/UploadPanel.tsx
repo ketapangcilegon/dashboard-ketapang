@@ -16,13 +16,15 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
   { value: 'harga', label: 'Harga Pangan' },
   { value: 'gizi', label: 'Gizi & Demografi' },
   { value: 'balita', label: 'Balita & GPM' },
+  { value: 'fsva_matang', label: 'FSVA Matang' },
+  { value: 'skpg_matang', label: 'SKPG Matang' },
   { value: 'pou', label: 'Grafik POU' },
   { value: 'cv_beras', label: 'CV Beras' },
   { value: 'pph', label: 'Skor PPH' },
@@ -237,6 +239,20 @@ export default function UploadPanel() {
         headers = ['Tahun', 'Produksi GKG', 'Angka Konversi GKG ke Beras', 'Produksi Beras'];
         sampleData = [
           [2025, 13772.30, 63.23, 8708.20],
+        ];
+      } else if (type === 'fsva_matang') {
+        filename = 'template_fsva.xlsx';
+        headers = ['nama_kelurahan', 'kode_kel_bps', 'ikp', 'periode'];
+        sampleData = [
+          ['Bagendung', '3672030001', 70.78556644, 2025],
+          ['Banjar Negara', '3672010005', 71.90255582, 2025],
+        ];
+      } else if (type === 'skpg_matang') {
+        filename = 'template_skpg.xlsx';
+        headers = ['nama_kelurahan', 'gizi_kurang', 'gizi_sangat_kurang', 'gizi_berlebih', 'gizi_normal', 'periode'];
+        sampleData = [
+          ['Bagendung', 462, 72, 8414, 338, 2025],
+          ['Banjar Negara', 122, 92, 7684, 165, 2025],
         ];
       }
 
@@ -482,6 +498,42 @@ export default function UploadPanel() {
             konversi,
             produksi_beras: beras
           }, { onConflict: 'tahun' });
+
+          if (error) throw error;
+        } else if (selectedType === 'fsva_matang') {
+          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
+          const kode_kel_bps = String(row['kode_kel_bps'] || '').trim();
+          const ikp = parseFloat(row['ikp']) || 0;
+          const periode = parseInt(row['periode']) || 2025;
+
+          if (!nama_kelurahan || !kode_kel_bps) continue;
+
+          const { error } = await supabase.from('fsva_matang').insert({
+            nama_kelurahan,
+            kode_kel_bps,
+            ikp,
+            periode
+          });
+
+          if (error) throw error;
+        } else if (selectedType === 'skpg_matang') {
+          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
+          const gizi_kurang = parseInt(row['gizi_kurang']) || 0;
+          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang']) || 0;
+          const gizi_berlebih = parseInt(row['gizi_berlebih']) || 0;
+          const gizi_normal = parseInt(row['gizi_normal']) || 0;
+          const periode = parseInt(row['periode']) || 2025;
+
+          if (!nama_kelurahan) continue;
+
+          const { error } = await supabase.from('skpg_matang').insert({
+            nama_kelurahan,
+            gizi_kurang,
+            gizi_sangat_kurang,
+            gizi_berlebih,
+            gizi_normal,
+            periode
+          });
 
           if (error) throw error;
         }
@@ -1479,6 +1531,15 @@ export default function UploadPanel() {
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {(selectedType === 'fsva_matang' || selectedType === 'skpg_matang') && (
+              <div className="p-5 bg-blue-50 text-blue-800 rounded-xl border border-blue-100 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
+                <span className="text-xs font-bold leading-normal">
+                  Pemberitahuan: Pengisian data matang FSVA & SKPG sangat disarankan melalui metode <b>Upload Excel</b> untuk kepraktisan pemrosesan batch seluruh kelurahan Kota Cilegon secara kolektif.
+                </span>
               </div>
             )}
 

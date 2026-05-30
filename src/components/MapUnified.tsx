@@ -33,6 +33,8 @@ interface MapControllerProps {
   basemap: BasemapMode;
   setBasemap: (mode: BasemapMode) => void;
   giziData: any[];
+  fsvaMatangData?: any[];
+  skpgMatangData?: any[];
   intervensiData: any[];
   isPrinting?: boolean;
 }
@@ -333,6 +335,8 @@ export default function MapUnified({
 
   // Supabase Data States
   const [giziData, setGiziData] = useState<any[]>([]);
+  const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
+  const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -354,6 +358,28 @@ export default function MapUnified({
           .select('*')
           .eq('tahun', selectedYear);
         setGiziData(gizi || []);
+
+        // Fetch Mature FSVA Dataset
+        try {
+          const { data: fsvaM } = await supabase
+            .from('fsva_matang')
+            .select('*')
+            .eq('periode', selectedYear);
+          setFsvaMatangData(fsvaM || []);
+        } catch (e) {
+          console.warn('fsva_matang fetch failed:', e);
+        }
+
+        // Fetch Mature SKPG Dataset
+        try {
+          const { data: skpgM } = await supabase
+            .from('skpg_matang')
+            .select('*')
+            .eq('periode', selectedYear);
+          setSkpgMatangData(skpgM || []);
+        } catch (e) {
+          console.warn('skpg_matang fetch failed:', e);
+        }
 
         // Fetch Intervensi & Bantuan
         const { data: intervensi } = await supabase
@@ -468,6 +494,8 @@ export default function MapUnified({
             activeIKPGLayer={activeLayer}
             fsvaData={giziData}
             skpgData={giziData}
+            fsvaMatangData={fsvaMatangData}
+            skpgMatangData={skpgMatangData}
             intervensiData={intervensiData}
             ikpgOpacity={opacity / 100}
           />
@@ -481,6 +509,8 @@ export default function MapUnified({
             basemap={basemap}
             setBasemap={setBasemap}
             giziData={giziData}
+            fsvaMatangData={fsvaMatangData}
+            skpgMatangData={skpgMatangData}
             intervensiData={intervensiData}
             isPrinting={isPrinting}
           />
