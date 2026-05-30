@@ -67,7 +67,7 @@ export default function Sidebar({ currentView = 'beranda', setCurrentView = () =
              <span className="text-yellow-300 text-sm font-black tracking-tight">D</span>
           </div>
           <div>
-            <h1 className="text-white font-black leading-tight text-xs tracking-wider">SAGON KETAPANG</h1>
+            <h1 className="text-white font-black leading-tight text-xs tracking-wider">KETAHANAN PANGAN</h1>
             <p className="text-emerald-400 text-[9px] uppercase tracking-widest font-black">KOTA CILEGON</p>
           </div>
         </div>
