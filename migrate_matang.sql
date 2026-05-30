@@ -30,3 +30,7 @@ CREATE TABLE IF NOT EXISTS skpg_matang (
 -- Indexing for high-speed queries on period and kelurahan
 CREATE INDEX IF NOT EXISTS idx_fsva_matang_period_kel ON fsva_matang (periode, nama_kelurahan);
 CREATE INDEX IF NOT EXISTS idx_skpg_matang_period_kel ON skpg_matang (periode, nama_kelurahan);
+
+-- Disable Row Level Security (RLS) so seeder and app can read & write using the anon key
+ALTER TABLE fsva_matang DISABLE ROW LEVEL SECURITY;
+ALTER TABLE skpg_matang DISABLE ROW LEVEL SECURITY;
