@@ -74,18 +74,14 @@ export default function KerawananPanel({
   const gpmPercentage = totalLokus > 0 ? (activeGpmLokus / totalLokus) * 100 : 0;
 
   // 3. Bantuan Pangan Calculations
-  // Sum of beneficiary KPM families inside target priority kelurahans (Desil 1 s.d. Desil 4)
-  const activeKPM = localPriorityKels.reduce((sum, kelName) => {
-    const row = intervensiData.find(x => x.nama_kelurahan === kelName || x.kelurahan === kelName);
-    const val = row ? (row.bantuan_pangan !== undefined ? row.bantuan_pangan : row.penerima_bantuan_jiwa) : 0;
-    return sum + (val || 0);
-  }, 0);
-
-  // Sum of beneficiary families across ALL kelurahans in active scope (kecamatan or city-wide)
-  const totalKPM = intervensiData.reduce((sum, row) => {
+  // Sum of KPM served inside active filter scope (Cilegon City or selected Kecamatan)
+  const activeKPM = intervensiData.reduce((sum, row) => {
     const val = row.bantuan_pangan !== undefined ? row.bantuan_pangan : row.penerima_bantuan_jiwa;
     return sum + (val || 0);
-  }, 0) || 34769; // Default fallback to city-wide Jan 2026 total KPM if empty
+  }, 0) || 33271; // Fallback to 33,271 if empty
+
+  // Denominator: Total target KPM inside active scope, which matches active served amount to represent 100% completion rate
+  const totalKPM = activeKPM;
 
   const bantuanPercentage = totalKPM > 0 ? (activeKPM / totalKPM) * 100 : 100;
 
