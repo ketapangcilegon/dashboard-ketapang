@@ -97,9 +97,11 @@ export default function Sidebar({ currentView = 'beranda', setCurrentView = () =
       </div>
 
       <div className="px-6 mt-8 space-y-4">
-        <div className="text-xs text-slate-400">
-          <p>Sektor Ketahanan Pangan</p>
-          <p className="text-emerald-400 font-extrabold tracking-widest text-[9px] uppercase">Pemerintah Kota Cilegon</p>
+        <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+          <p>
+            <span className="font-extrabold text-amber-400 block mb-1">Disclaimer:</span> 
+            Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
+          </p>
         </div>
         <button 
           onClick={() => typeof window !== 'undefined' && window.print()}
