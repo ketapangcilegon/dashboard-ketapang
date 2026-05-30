@@ -372,11 +372,32 @@ export default function MapUnified({
 
         // Fetch Mature SKPG Dataset
         try {
-          const { data: skpgM } = await supabase
-            .from('skpg_matang')
-            .select('*')
-            .eq('periode', selectedYear);
-          setSkpgMatangData(skpgM || []);
+          if (selectedYear === 2026) {
+            // Fetch from the new gizi_balita table for 2026
+            const { data: skpgM } = await supabase
+              .from('gizi_balita')
+              .select('*')
+              .eq('tahun', selectedYear)
+              .eq('bulan', selectedMonth);
+            
+            // Format to match the skpg_matang column schema used in the map layer
+            const formatted = (skpgM || []).map(x => ({
+              nama_kelurahan: x.nama_kelurahan,
+              gizi_kurang: x.gizi_kurang,
+              gizi_sangat_kurang: x.gizi_sangat_kurang,
+              gizi_normal: x.gizi_normal,
+              gizi_berlebih: x.gizi_berlebih,
+              periode: x.tahun
+            }));
+            setSkpgMatangData(formatted);
+          } else {
+            // Fetch from pre-calculated skpg_matang table for 2025
+            const { data: skpgM } = await supabase
+              .from('skpg_matang')
+              .select('*')
+              .eq('periode', selectedYear);
+            setSkpgMatangData(skpgM || []);
+          }
         } catch (e) {
           console.warn('skpg_matang fetch failed:', e);
         }
