@@ -166,69 +166,46 @@ export default function DashboardPage() {
           .select('*');
         setKetersediaanData(ketersediaan || []);
 
-        // 4. Fetch Intervensi Pangan (Try intervensi_kelurahan for 2026, fallback to intervensi_pangan for 2025)
-        let intFetched = false;
-        try {
-          if (selectedYear === 2026) {
-            let intQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-            if (selectedKelurahan !== 'ALL') {
-              intQuery = intQuery.eq('nama_kelurahan', selectedKelurahan);
-            } else if (selectedKecamatan !== 'ALL') {
-              intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
-            }
-            let { data: intervensi, error } = await intQuery;
-            
-            // Fallback to month 1 (January) if empty
-            if ((!intervensi || intervensi.length === 0) && !error) {
-              let fbQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', 1);
-              if (selectedKelurahan !== 'ALL') {
-                fbQuery = fbQuery.eq('nama_kelurahan', selectedKelurahan);
-              } else if (selectedKecamatan !== 'ALL') {
-                fbQuery = fbQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
-              }
-              const { data: fb } = await fbQuery;
-              intervensi = fb;
-            }
-
-            if (!error && intervensi && intervensi.length > 0) {
-              setIntervensiData(intervensi);
-              intFetched = true;
-            }
-          }
-        } catch (e) {
-          console.warn('intervensi_kelurahan failed, falling back:', e);
+        // 4. Fetch Intervensi Pangan (Always use intervensi_kelurahan with fallbacks)
+        let intQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+        if (selectedKelurahan !== 'ALL') {
+          intQuery = intQuery.eq('nama_kelurahan', selectedKelurahan);
+        } else if (selectedKecamatan !== 'ALL') {
+          intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
         }
+        let { data: intervensi, error: intError } = await intQuery;
 
-        if (!intFetched) {
-          let intQuery = supabase.from('intervensi_pangan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-          if (selectedKecamatan !== 'ALL') {
-            intQuery = intQuery.eq('kecamatan', selectedKecamatan);
-          }
+        if (!intError && intervensi && intervensi.length > 0) {
+          setIntervensiData(intervensi);
+        } else {
+          // Fallback 1: January of the selected year
+          let fbQuery1 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', 1);
           if (selectedKelurahan !== 'ALL') {
-            intQuery = intQuery.eq('kelurahan', selectedKelurahan);
+            fbQuery1 = fbQuery1.eq('nama_kelurahan', selectedKelurahan);
+          } else if (selectedKecamatan !== 'ALL') {
+            fbQuery1 = fbQuery1.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
           }
-          let { data: intervensi } = await intQuery;
+          const { data: fb1 } = await fbQuery1;
 
-          // Fallback to month 12 for 2025 if empty
-          if ((!intervensi || intervensi.length === 0) && selectedYear === 2025) {
-            let fbQuery = supabase.from('intervensi_pangan').select('*').eq('tahun', selectedYear).eq('bulan', 12);
-            if (selectedKecamatan !== 'ALL') {
-              fbQuery = fbQuery.eq('kecamatan', selectedKecamatan);
-            }
+          if (fb1 && fb1.length > 0) {
+            setIntervensiData(fb1);
+          } else {
+            // Fallback 2: Year 2026 Month 1 (January)
+            let fbQuery2 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', 2026).eq('bulan', 1);
             if (selectedKelurahan !== 'ALL') {
-              fbQuery = fbQuery.eq('kelurahan', selectedKelurahan);
+              fbQuery2 = fbQuery2.eq('nama_kelurahan', selectedKelurahan);
+            } else if (selectedKecamatan !== 'ALL') {
+              fbQuery2 = fbQuery2.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
             }
-            const { data: fb } = await fbQuery;
-            intervensi = fb;
+            const { data: fb2 } = await fbQuery2;
+            setIntervensiData(fb2 || []);
           }
-
-          setIntervensiData(intervensi || []);
         }
 
         // Fetch Mature FSVA & SKPG for Borda Desil calculation
         try {
           // GPM/Borda calculation for 2026 uses FSVA 2025 as there is no 2026 FSVA yet
-          const fsvaYear = selectedYear === 2026 ? 2025 : selectedYear;
+          const fsvaYear = Number(selectedYear) === 2026 ? 2025 : Number(selectedYear);
           const { data: fsvaM } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
           setFsvaMatangData(fsvaM || []);
         } catch (e) {
@@ -236,12 +213,12 @@ export default function DashboardPage() {
         }
 
         try {
-          if (selectedYear === 2026) {
-            let { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+          if (Number(selectedYear) === 2026) {
+            let { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', Number(selectedYear)).eq('bulan', Number(selectedMonth));
             
             // Fallback to month 1 (January) if empty
             if (!skpgM || skpgM.length === 0) {
-              const { data: fb } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+              const { data: fb } = await supabase.from('gizi_balita').select('*').eq('tahun', Number(selectedYear)).eq('bulan', 1);
               skpgM = fb;
             }
 
@@ -673,7 +650,7 @@ export default function DashboardPage() {
           /* Set page margins & size */
           @page {
             size: A4 portrait;
-            margin: 35mm 10mm 15mm 10mm;
+            margin: 10mm 10mm 15mm 10mm;
           }
 
           /* Force backgrounds and gradients */

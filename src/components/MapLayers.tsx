@@ -160,7 +160,8 @@ function getIKPGStyle(
 
 export function KelurahanLayer({
   data, activeIKPGLayer, ikpgOpacity = 0.65, fsvaData = [], skpgData = [],
-  fsvaMatangData = [], skpgMatangData = [], intervensiData = []
+  fsvaMatangData = [], skpgMatangData = [], intervensiData = [],
+  selectedYear = 2026, selectedMonth = 1
 }: {
   data: any[];
   activeIKPGLayer: string;
@@ -170,6 +171,8 @@ export function KelurahanLayer({
   fsvaMatangData?: any[];
   skpgMatangData?: any[];
   intervensiData?: any[];
+  selectedYear?: number;
+  selectedMonth?: number;
 }) {
   if (!data?.length) return null;
   return (
@@ -179,7 +182,7 @@ export function KelurahanLayer({
         const style = getIKPGStyle(nama, activeIKPGLayer, fsvaData, skpgData, fsvaMatangData, skpgMatangData, intervensiData, ikpgOpacity);
         return (
           <GeoJSON
-            key={`kel-${i}-${activeIKPGLayer || 'x'}-${ikpgOpacity}`}
+            key={`kel-${i}-${activeIKPGLayer || 'x'}-${ikpgOpacity}-${selectedYear}-${selectedMonth}-${fsvaMatangData.length}-${skpgMatangData.length}-${intervensiData.length}`}
             data={f}
             style={style as any}
             onEachFeature={(f, l) => {

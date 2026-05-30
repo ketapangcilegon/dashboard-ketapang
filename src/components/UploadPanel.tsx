@@ -403,16 +403,6 @@ export default function UploadPanel() {
           });
           if (errorBalita) throw errorBalita;
 
-          // Insert into intervensi_pangan
-          const { error: errorInt } = await supabase.from('intervensi_pangan').insert({
-            tahun,
-            bulan,
-            kecamatan: kec.trim(),
-            kelurahan: '-', // Aggregated kecamatan level
-            penerima_bantuan_jiwa: bantuan,
-            kegiatan_gpm: gpm,
-          });
-          if (errorInt) throw errorInt;
 
         } else if (selectedType === 'pou') {
           const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
@@ -685,15 +675,6 @@ export default function UploadPanel() {
         });
         if (errorBalita) throw errorBalita;
 
-        const { error: errorInt } = await supabase.from('intervensi_pangan').insert({
-          tahun,
-          bulan,
-          kecamatan,
-          kelurahan: '-',
-          penerima_bantuan_jiwa: bantuan,
-          kegiatan_gpm: gpm,
-        });
-        if (errorInt) throw errorInt;
       } else if (selectedType === 'pou') {
         const { tahun, nasional, provinsi, cilegon } = pouForm;
         const { error } = await supabase.from('pou_data').upsert({
