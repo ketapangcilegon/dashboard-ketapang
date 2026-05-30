@@ -42,13 +42,20 @@ export default function KerawananPanel({
     });
     
     const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
-    
-    priorityKelurahans = sortedSums.slice(0, 13).map(x => x.kelurahan);
+    priorityKelurahans = sortedSums
+      .map((r, idx) => {
+        const rank = idx + 1;
+        const desil = Math.min(10, Math.ceil((rank / sortedSums.length) * 10));
+        return { kelurahan: r.kelurahan, desil };
+      })
+      .filter(x => x.desil <= 4)
+      .map(x => x.kelurahan);
   } else {
-    // High-fidelity fallback default priority kelurahans (exactly 13 priority lokus)
+    // High-fidelity fallback default priority kelurahans matching map desil <= 4
     priorityKelurahans = [
-      'Bagendung', 'Bulakan', 'Cikerai', 'Mekarsari', 'Samangraya', 'Suralaya', 
-      'Tamansari', 'Tegal Ratu', 'Gerem', 'Karang Asem', 'Kotasari', 'Warnasari', 'Lebakgede'
+      'Banjar Negara', 'Bulakan', 'Citangkil', 'Gerogol', 'Cikerai', 'Bendungan',
+      'Gerem', 'Gunung Sugih', 'Kepuh', 'Kubangsari', 'Karang Asem', 'Mekarsari',
+      'Bagendung', 'Cibeber', 'Ciwaduk', 'Kalitimbang', 'Jombang Wetan'
     ];
   }
 
