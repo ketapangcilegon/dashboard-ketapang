@@ -21,7 +21,6 @@ type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
   { value: 'harga', label: 'Harga Pangan' },
-  { value: 'gizi', label: 'Gizi & Demografi' },
   { value: 'balita', label: 'Balita & GPM' },
   { value: 'gizi_balita', label: 'Gizi Balita Kel' },
   { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },

@@ -32,7 +32,6 @@ interface MapControllerProps {
   setOpacity: (val: number) => void;
   basemap: BasemapMode;
   setBasemap: (mode: BasemapMode) => void;
-  giziData: any[];
   fsvaMatangData?: any[];
   skpgMatangData?: any[];
   intervensiData: any[];
@@ -46,7 +45,6 @@ function MapController({
   setOpacity,
   basemap,
   setBasemap,
-  giziData,
   intervensiData,
   isPrinting
 }: MapControllerProps) {
@@ -334,7 +332,6 @@ export default function MapUnified({
   const { layers, loadFromURL, loading: kmzLoading } = useKMZLoader();
 
   // Supabase Data States
-  const [giziData, setGiziData] = useState<any[]>([]);
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
@@ -352,13 +349,6 @@ export default function MapUnified({
     async function fetchMapData() {
       setDataLoading(true);
       try {
-        // Fetch Gizi & Demografi
-        const { data: gizi } = await supabase
-          .from('gizi_masyarakat')
-          .select('*')
-          .eq('tahun', selectedYear);
-        setGiziData(gizi || []);
-
         // Fetch Mature FSVA Dataset
         try {
           const { data: fsvaM } = await supabase
@@ -513,8 +503,6 @@ export default function MapUnified({
           <KelurahanLayer
             data={getFilteredKelurahanLayers()}
             activeIKPGLayer={activeLayer}
-            fsvaData={giziData}
-            skpgData={giziData}
             fsvaMatangData={fsvaMatangData}
             skpgMatangData={skpgMatangData}
             intervensiData={intervensiData}
@@ -529,7 +517,6 @@ export default function MapUnified({
             setOpacity={setOpacity}
             basemap={basemap}
             setBasemap={setBasemap}
-            giziData={giziData}
             fsvaMatangData={fsvaMatangData}
             skpgMatangData={skpgMatangData}
             intervensiData={intervensiData}

@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const [hargaData, setHargaData] = useState<any[]>([]);
   const [previousHargaData, setPreviousHargaData] = useState<any[]>([]);
   const [ketersediaanData, setKetersediaanData] = useState<any[]>([]);
-  const [giziData, setGiziData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
@@ -166,17 +165,6 @@ export default function DashboardPage() {
           .from('ketersediaan_pangan')
           .select('*');
         setKetersediaanData(ketersediaan || []);
-
-        // 3. Fetch Gizi Masyarakat (Year-based)
-        let giziQuery = supabase.from('gizi_masyarakat').select('*').eq('tahun', selectedYear);
-        if (selectedKecamatan !== 'ALL') {
-          giziQuery = giziQuery.eq('kecamatan', selectedKecamatan);
-        }
-        if (selectedKelurahan !== 'ALL') {
-          giziQuery = giziQuery.eq('kelurahan', selectedKelurahan);
-        }
-        const { data: gizi } = await giziQuery;
-        setGiziData(gizi || []);
 
         // 4. Fetch Intervensi Pangan (Try intervensi_kelurahan for 2026, fallback to intervensi_pangan for 2025)
         let intFetched = false;
