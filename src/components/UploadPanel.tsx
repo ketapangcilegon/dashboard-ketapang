@@ -16,7 +16,7 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
@@ -24,6 +24,7 @@ const DATA_TYPES = [
   { value: 'gizi', label: 'Gizi & Demografi' },
   { value: 'balita', label: 'Balita & GPM' },
   { value: 'gizi_balita', label: 'Gizi Balita Kel' },
+  { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
   { value: 'skpg_matang', label: 'SKPG Matang' },
   { value: 'pou', label: 'Grafik POU' },
@@ -261,6 +262,13 @@ export default function UploadPanel() {
         sampleData = [
           [2026, 1, 'Bagendung', 10, 23, 673, 27],
           [2026, 1, 'Banjar Negara', 17, 70, 553, 12],
+        ];
+      } else if (type === 'intervensi_kelurahan') {
+        filename = 'template_intervensi.xlsx';
+        headers = ['no_urut', 'Tahun', 'kode_kec_bps', 'nama_kecamatan', 'kode_desa_bps', 'nama_kelurahan', 'GPM', 'bantuan_pangan'];
+        sampleData = [
+          [1, 2026, '3672030', 'CILEGON', '3672030001', 'Bagendung', 1, 742],
+          [2, 2026, '3672010', 'CIWANDAN', '3672010005', 'Banjar Negara', 0, 960],
         ];
       }
 
@@ -563,6 +571,32 @@ export default function UploadPanel() {
             gizi_kurang,
             gizi_normal,
             gizi_berlebih
+          });
+
+          if (error) throw error;
+        } else if (selectedType === 'intervensi_kelurahan') {
+          const no_urut = parseInt(row['no_urut']) || 0;
+          const tahun = parseInt(row['Tahun']) || 2026;
+          const bulan = 1; // Default to Jan
+          const kode_kec_bps = String(row['kode_kec_bps'] || '').trim();
+          const nama_kecamatan = String(row['nama_kecamatan'] || '').trim();
+          const kode_desa_bps = String(row['kode_desa_bps'] || '').trim();
+          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
+          const gpm = parseInt(row['GPM']) || 0;
+          const bantuan_pangan = parseInt(row['bantuan_pangan']) || 0;
+
+          if (!nama_kelurahan) continue;
+
+          const { error } = await supabase.from('intervensi_kelurahan').insert({
+            no_urut,
+            tahun,
+            bulan,
+            kode_kec_bps,
+            nama_kecamatan,
+            kode_desa_bps,
+            nama_kelurahan,
+            gpm,
+            bantuan_pangan
           });
 
           if (error) throw error;

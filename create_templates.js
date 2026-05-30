@@ -43,4 +43,15 @@ const wb_gizi_balita = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb_gizi_balita, ws_gizi_balita, 'Gizi Balita Kelurahan');
 XLSX.writeFile(wb_gizi_balita, path.join(publicDir, 'template_gizi_balita.xlsx'));
 
+// 4. Create Intervensi Kelurahan Template
+const intervensiData = [
+  { no_urut: 1, Tahun: 2026, kode_kec_bps: '3672030', nama_kecamatan: 'CILEGON', kode_desa_bps: '3672030001', nama_kelurahan: 'Bagendung', GPM: 1, bantuan_pangan: 742 },
+  { no_urut: 2, Tahun: 2026, kode_kec_bps: '3672010', nama_kecamatan: 'CIWANDAN', kode_desa_bps: '3672010005', nama_kelurahan: 'Banjar Negara', GPM: 0, bantuan_pangan: 960 }
+];
+
+const ws_intervensi = XLSX.utils.json_to_sheet(intervensiData);
+const wb_intervensi = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb_intervensi, ws_intervensi, 'Intervensi Kelurahan');
+XLSX.writeFile(wb_intervensi, path.join(publicDir, 'template_intervensi.xlsx'));
+
 console.log('🎉 Separate XLSX templates generated in public directory successfully!');

@@ -41,6 +41,8 @@ export default function DashboardPage() {
   const [giziData, setGiziData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [balitaDataRaw, setBalitaDataRaw] = useState<any[]>([]);
+  const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
+  const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [pouData, setPouData] = useState<any[]>([]);
 
   // New Data States for the annual indicators
@@ -176,16 +178,65 @@ export default function DashboardPage() {
         const { data: gizi } = await giziQuery;
         setGiziData(gizi || []);
 
-        // 4. Fetch Intervensi Pangan
-        let intQuery = supabase.from('intervensi_pangan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-        if (selectedKecamatan !== 'ALL') {
-          intQuery = intQuery.eq('kecamatan', selectedKecamatan);
+        // 4. Fetch Intervensi Pangan (Try intervensi_kelurahan for 2026, fallback to intervensi_pangan for 2025)
+        let intFetched = false;
+        try {
+          if (selectedYear === 2026) {
+            let intQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            if (selectedKelurahan !== 'ALL') {
+              intQuery = intQuery.eq('nama_kelurahan', selectedKelurahan);
+            } else if (selectedKecamatan !== 'ALL') {
+              intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
+            }
+            const { data: intervensi, error } = await intQuery;
+            if (!error && intervensi && intervensi.length > 0) {
+              setIntervensiData(intervensi);
+              intFetched = true;
+            }
+          }
+        } catch (e) {
+          console.warn('intervensi_kelurahan failed, falling back:', e);
         }
-        if (selectedKelurahan !== 'ALL') {
-          intQuery = intQuery.eq('kelurahan', selectedKelurahan);
+
+        if (!intFetched) {
+          let intQuery = supabase.from('intervensi_pangan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+          if (selectedKecamatan !== 'ALL') {
+            intQuery = intQuery.eq('kecamatan', selectedKecamatan);
+          }
+          if (selectedKelurahan !== 'ALL') {
+            intQuery = intQuery.eq('kelurahan', selectedKelurahan);
+          }
+          const { data: intervensi } = await intQuery;
+          setIntervensiData(intervensi || []);
         }
-        const { data: intervensi } = await intQuery;
-        setIntervensiData(intervensi || []);
+
+        // Fetch Mature FSVA & SKPG for Borda Desil calculation
+        try {
+          const { data: fsvaM } = await supabase.from('fsva_matang').select('*').eq('periode', selectedYear);
+          setFsvaMatangData(fsvaM || []);
+        } catch (e) {
+          console.warn('fsva_matang query failed in page.tsx:', e);
+        }
+
+        try {
+          if (selectedYear === 2026) {
+            const { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            const formatted = (skpgM || []).map(x => ({
+              nama_kelurahan: x.nama_kelurahan,
+              gizi_kurang: x.gizi_kurang,
+              gizi_sangat_kurang: x.gizi_sangat_kurang,
+              gizi_normal: x.gizi_normal,
+              gizi_berlebih: x.gizi_berlebih,
+              periode: x.tahun
+            }));
+            setSkpgMatangData(formatted);
+          } else {
+            const { data: skpgM } = await supabase.from('skpg_matang').select('*').eq('periode', selectedYear);
+            setSkpgMatangData(skpgM || []);
+          }
+        } catch (e) {
+          console.warn('skpg_matang query failed in page.tsx:', e);
+        }
 
         // 5. Fetch Balita Gizi (Try gizi_balita kelurahan level first, fallback to balita_gizi kecamatan level)
         let balitaFetched = false;
@@ -467,7 +518,12 @@ export default function DashboardPage() {
                       <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                     </div>
                     <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <KerawananPanel intervensiData={intervensiData} selectedKecamatan={selectedKecamatan} />
+                      <KerawananPanel 
+                        intervensiData={intervensiData} 
+                        selectedKecamatan={selectedKecamatan} 
+                        fsvaMatangData={fsvaMatangData}
+                        skpgMatangData={skpgMatangData}
+                      />
                     </div>
                     <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
                       <BalitaDoughnut balitaData={getBalitaData()} />

@@ -1,37 +1,92 @@
 "use client";
 
 import { HandHelping, Store } from 'lucide-react';
+import { WILAYAH } from '@/lib/wilayah';
 
 interface KerawananPanelProps {
   intervensiData: any[];
   selectedKecamatan: string;
+  fsvaMatangData?: any[];
+  skpgMatangData?: any[];
 }
 
-export default function KerawananPanel({ intervensiData = [], selectedKecamatan = 'ALL' }: KerawananPanelProps) {
+export default function KerawananPanel({ 
+  intervensiData = [], 
+  selectedKecamatan = 'ALL',
+  fsvaMatangData = [],
+  skpgMatangData = []
+}: KerawananPanelProps) {
   
-  // 1. Calculate GPM (Gerakan Pangan Murah) Lokus
-  const gpmActiveCount = intervensiData.length > 0
-    ? intervensiData.filter(x => (x.kegiatan_gpm || 0) > 0).length
-    : 7; // Fallback
+  // 1. Calculate Borda Ranks & Deciles dynamically to identify priority kelurahans (Desil 1 s.d. Desil 4)
+  let priorityKelurahans: string[] = [];
   
-  // Total lokus prioritas standard: Cilegon City has 8 priority lokus, or if kecamatan is selected, it's specific
-  let totalLokus = 8;
-  if (selectedKecamatan !== 'ALL') {
-    // If a specific kecamatan is selected, total lokus is the active kelurahans in that kecamatan
-    totalLokus = Math.max(1, Math.round(gpmActiveCount * 1.15));
+  if (fsvaMatangData && fsvaMatangData.length > 0 && skpgMatangData && skpgMatangData.length > 0) {
+    const calculatedBorda = skpgMatangData.map(item => {
+      const fsvaRow = fsvaMatangData.find(x => x.nama_kelurahan === item.nama_kelurahan);
+      const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
+      const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
+      return {
+        kelurahan: item.nama_kelurahan,
+        ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
+        prevalensi: prev
+      };
+    });
+    
+    const fsvaSorted = [...calculatedBorda].sort((a, b) => a.ikp - b.ikp);
+    const skpgSorted = [...calculatedBorda].sort((a, b) => b.prevalensi - a.prevalensi);
+    
+    const allBordaSums = calculatedBorda.map(r => {
+      const fRank = fsvaSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
+      const sRank = skpgSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
+      return { kelurahan: r.kelurahan, sum: fRank + sRank };
+    });
+    
+    const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
+    
+    priorityKelurahans = sortedSums
+      .map((r, idx) => {
+        const rank = idx + 1;
+        const desil = Math.min(10, Math.ceil((rank / sortedSums.length) * 10));
+        return { kelurahan: r.kelurahan, desil };
+      })
+      .filter(x => x.desil <= 4)
+      .map(x => x.kelurahan);
+  } else {
+    // High-fidelity fallback default priority kelurahans if mature data is loading
+    priorityKelurahans = ['Bagendung', 'Bulakan', 'Cikerai', 'Mekarsari', 'Samangraya', 'Suralaya', 'Tamansari', 'Tegal Ratu'];
   }
-  
-  // Ensure active gpm count doesn't exceed total lokus
-  const finalGpmActive = Math.min(gpmActiveCount, totalLokus);
-  const gpmPercentage = totalLokus > 0 ? (finalGpmActive / totalLokus) * 100 : 0;
 
-  // 2. Calculate Bantuan Pangan Bapanas
-  const activeKPM = intervensiData.length > 0
-    ? intervensiData.reduce((sum, item) => sum + (item.penerima_bantuan_jiwa || 0), 0)
-    : 72508; // Fallback to mockup value (72,508 KPM)
+  // Filter priority kelurahans by active Kecamatan if selected
+  const localPriorityKels = selectedKecamatan === 'ALL'
+    ? priorityKelurahans
+    : priorityKelurahans.filter(k => (WILAYAH[selectedKecamatan] || []).includes(k));
 
-  // Total KPM target (standard target is slightly higher, or matching 100% as in mockup)
-  const totalKPM = selectedKecamatan === 'ALL' ? 72508 : activeKPM; 
+  const totalLokus = localPriorityKels.length; // Denominator (faktor pembagi)
+
+  // 2. GPM Lokus Calculations
+  // Count how many priority kelurahans actually received GPM (gpm > 0 or kegiatan_gpm > 0)
+  const activeGpmLokus = localPriorityKels.filter(kelName => {
+    const row = intervensiData.find(x => x.nama_kelurahan === kelName || x.kelurahan === kelName);
+    const gpmVal = row ? (row.gpm !== undefined ? row.gpm : row.kegiatan_gpm) : 0;
+    return gpmVal > 0;
+  }).length;
+
+  const gpmPercentage = totalLokus > 0 ? (activeGpmLokus / totalLokus) * 100 : 0;
+
+  // 3. Bantuan Pangan Calculations
+  // Sum of beneficiary KPM families inside target priority kelurahans (Desil 1 s.d. Desil 4)
+  const activeKPM = localPriorityKels.reduce((sum, kelName) => {
+    const row = intervensiData.find(x => x.nama_kelurahan === kelName || x.kelurahan === kelName);
+    const val = row ? (row.bantuan_pangan !== undefined ? row.bantuan_pangan : row.penerima_bantuan_jiwa) : 0;
+    return sum + (val || 0);
+  }, 0);
+
+  // Sum of beneficiary families across ALL kelurahans in active scope (kecamatan or city-wide)
+  const totalKPM = intervensiData.reduce((sum, row) => {
+    const val = row.bantuan_pangan !== undefined ? row.bantuan_pangan : row.penerima_bantuan_jiwa;
+    return sum + (val || 0);
+  }, 0) || 34769; // Default fallback to city-wide Jan 2026 total KPM if empty
+
   const bantuanPercentage = totalKPM > 0 ? (activeKPM / totalKPM) * 100 : 100;
 
   return (
@@ -56,10 +111,10 @@ export default function KerawananPanel({ intervensiData = [], selectedKecamatan 
         </div>
         <div>
           <div className="text-[11px] font-black text-slate-800">
-            {finalGpmActive} <span className="font-medium text-slate-500">dari</span> {totalLokus} <span className="font-medium text-slate-500">lokus</span>
+            {activeGpmLokus} <span className="font-medium text-slate-500">dari</span> {totalLokus} <span className="font-medium text-slate-500">lokus (D1-D4)</span>
           </div>
-          {/* Mini progress bar - THICKER to match speedometer bar thickness */}
-          <div className="w-full bg-slate-200 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+          {/* Mini progress bar */}
+          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
             <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${gpmPercentage}%` }}></div>
           </div>
         </div>
@@ -78,8 +133,8 @@ export default function KerawananPanel({ intervensiData = [], selectedKecamatan 
           <div className="text-[11px] font-black text-slate-800 truncate">
             {activeKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">dari</span> {totalKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">KPM</span>
           </div>
-          {/* Mini progress bar - THICKER to match speedometer bar thickness */}
-          <div className="w-full bg-slate-200 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+          {/* Mini progress bar */}
+          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
             <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${bantuanPercentage}%` }}></div>
           </div>
         </div>
