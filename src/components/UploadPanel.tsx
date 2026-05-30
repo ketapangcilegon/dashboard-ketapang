@@ -16,13 +16,14 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang';
+type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
   { value: 'harga', label: 'Harga Pangan' },
   { value: 'gizi', label: 'Gizi & Demografi' },
   { value: 'balita', label: 'Balita & GPM' },
+  { value: 'gizi_balita', label: 'Gizi Balita Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
   { value: 'skpg_matang', label: 'SKPG Matang' },
   { value: 'pou', label: 'Grafik POU' },
@@ -253,6 +254,13 @@ export default function UploadPanel() {
         sampleData = [
           ['Bagendung', 462, 72, 8414, 338, 2025],
           ['Banjar Negara', 122, 92, 7684, 165, 2025],
+        ];
+      } else if (type === 'gizi_balita') {
+        filename = 'template_gizi_balita.xlsx';
+        headers = ['Tahun', 'Bulan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
+        sampleData = [
+          [2026, 1, 'Bagendung', 10, 23, 673, 27],
+          [2026, 1, 'Banjar Negara', 17, 70, 553, 12],
         ];
       }
 
@@ -533,6 +541,28 @@ export default function UploadPanel() {
             gizi_berlebih,
             gizi_normal,
             periode
+          });
+
+          if (error) throw error;
+        } else if (selectedType === 'gizi_balita') {
+          const tahun = parseInt(row['Tahun']) || 2026;
+          const bulan = parseInt(row['Bulan']) || 1;
+          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
+          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang']) || 0;
+          const gizi_kurang = parseInt(row['gizi_kurang']) || 0;
+          const gizi_normal = parseInt(row['gizi_normal']) || 0;
+          const gizi_berlebih = parseInt(row['gizi_berlebih']) || 0;
+
+          if (!nama_kelurahan) continue;
+
+          const { error } = await supabase.from('gizi_balita').insert({
+            tahun,
+            bulan,
+            nama_kelurahan,
+            gizi_sangat_kurang,
+            gizi_kurang,
+            gizi_normal,
+            gizi_berlebih
           });
 
           if (error) throw error;

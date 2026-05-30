@@ -17,6 +17,7 @@ import PoUTrendChart from '@/components/PoUTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import AIInsightPanel from '@/components/AIInsightPanel';
 import { supabase } from '@/lib/supabase';
+import { WILAYAH } from '@/lib/wilayah';
 import dynamic from 'next/dynamic';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -186,13 +187,38 @@ export default function DashboardPage() {
         const { data: intervensi } = await intQuery;
         setIntervensiData(intervensi || []);
 
-        // 5. Fetch Balita Gizi
-        let balitaQuery = supabase.from('balita_gizi').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-        if (selectedKecamatan !== 'ALL') {
-          balitaQuery = balitaQuery.eq('kecamatan', selectedKecamatan);
+        // 5. Fetch Balita Gizi (Try gizi_balita kelurahan level first, fallback to balita_gizi kecamatan level)
+        let balitaFetched = false;
+        try {
+          let balitaQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+          
+          if (selectedKelurahan !== 'ALL') {
+            balitaQuery = balitaQuery.eq('nama_kelurahan', selectedKelurahan);
+          } else if (selectedKecamatan !== 'ALL') {
+            const kels = WILAYAH[selectedKecamatan] || [];
+            if (kels.length > 0) {
+              balitaQuery = balitaQuery.in('nama_kelurahan', kels);
+            }
+          }
+          
+          const { data: balita, error } = await balitaQuery;
+          if (!error && balita && balita.length > 0) {
+            setBalitaDataRaw(balita);
+            balitaFetched = true;
+          }
+        } catch (e) {
+          console.warn('gizi_balita fetch failed, falling back to balita_gizi:', e);
         }
-        const { data: balita } = await balitaQuery;
-        setBalitaDataRaw(balita || []);
+
+        if (!balitaFetched) {
+          // Fallback to old balita_gizi kecamatan table
+          let balitaQuery = supabase.from('balita_gizi').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+          if (selectedKecamatan !== 'ALL') {
+            balitaQuery = balitaQuery.eq('kecamatan', selectedKecamatan);
+          }
+          const { data: balita } = await balitaQuery;
+          setBalitaDataRaw(balita || []);
+        }
 
         // 6. Fetch POU Lintas Tahun
         try {
@@ -316,10 +342,10 @@ export default function DashboardPage() {
     if (!balitaDataRaw || balitaDataRaw.length === 0) {
       return { sangatKurang: 232, kurang: 946, normal: 25044, lebih: 1064, total: 27286, status: 'AMAN' };
     }
-    const sangatKurang = balitaDataRaw.reduce((s, x) => s + (x.sangat_kurang || 0), 0);
-    const kurang = balitaDataRaw.reduce((s, x) => s + (x.kurang || 0), 0);
-    const normal = balitaDataRaw.reduce((s, x) => s + (x.normal || 0), 0);
-    const lebih = balitaDataRaw.reduce((s, x) => s + (x.lebih || 0), 0);
+    const sangatKurang = balitaDataRaw.reduce((s, x) => s + (x.gizi_sangat_kurang !== undefined ? x.gizi_sangat_kurang : (x.sangat_kurang || 0)), 0);
+    const kurang = balitaDataRaw.reduce((s, x) => s + (x.gizi_kurang !== undefined ? x.gizi_kurang : (x.kurang || 0)), 0);
+    const normal = balitaDataRaw.reduce((s, x) => s + (x.gizi_normal !== undefined ? x.gizi_normal : (x.normal || 0)), 0);
+    const lebih = balitaDataRaw.reduce((s, x) => s + (x.gizi_berlebih !== undefined ? x.gizi_berlebih : (x.lebih || 0)), 0);
     const total = sangatKurang + kurang + normal + lebih;
     return {
       sangatKurang,

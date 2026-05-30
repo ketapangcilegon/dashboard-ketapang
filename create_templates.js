@@ -32,4 +32,15 @@ const wb_skpg = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb_skpg, ws_skpg, 'SKPG Matang');
 XLSX.writeFile(wb_skpg, path.join(publicDir, 'template_skpg.xlsx'));
 
+// 3. Create Gizi Balita Template (Kelurahan Level)
+const giziBalitaData = [
+  { Tahun: 2026, Bulan: 1, nama_kelurahan: 'Bagendung', gizi_sangat_kurang: 10, gizi_kurang: 23, gizi_normal: 673, gizi_berlebih: 27 },
+  { Tahun: 2026, Bulan: 1, nama_kelurahan: 'Banjar Negara', gizi_sangat_kurang: 17, gizi_kurang: 70, gizi_normal: 553, gizi_berlebih: 12 }
+];
+
+const ws_gizi_balita = XLSX.utils.json_to_sheet(giziBalitaData);
+const wb_gizi_balita = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb_gizi_balita, ws_gizi_balita, 'Gizi Balita Kelurahan');
+XLSX.writeFile(wb_gizi_balita, path.join(publicDir, 'template_gizi_balita.xlsx'));
+
 console.log('🎉 Separate XLSX templates generated in public directory successfully!');
