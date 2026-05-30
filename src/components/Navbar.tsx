@@ -33,7 +33,7 @@ export default function Navbar({
   const activeKelurahans = selectedKecamatan !== 'ALL' ? WILAYAH[selectedKecamatan] : [];
 
   return (
-    <header className="h-auto pt-[2cm] pb-4 bg-transparent flex items-center justify-between px-6 z-10">
+    <header className="h-auto pt-[1cm] pb-4 bg-transparent flex items-center justify-between px-6 z-10">
       <div>
         <h1 className="text-2xl font-black text-[#0B1E41] tracking-tight">DASHBOARD KETAHANAN PANGAN</h1>
         <p className="text-[#64748B] text-sm font-medium">Kota Cilegon</p>

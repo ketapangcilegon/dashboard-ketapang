@@ -13,7 +13,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="h-full flex flex-col justify-between pt-[2cm] pb-6 print:hidden">
+    <div className="h-full flex flex-col justify-between pt-[1cm] pb-6 print:hidden">
       <div>
         <div className="px-6 mb-8 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shrink-0">
