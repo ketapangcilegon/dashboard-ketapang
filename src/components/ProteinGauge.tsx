@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from 'react';
+import { Sparkles, Brain } from 'lucide-react';
+
 interface ProteinGaugeProps {
   value: number;
 }
 
 export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
+  const [showAIModal, setShowAIModal] = useState(false);
   const target = 57;
 
   // Determine indicator text and style
@@ -41,7 +45,17 @@ export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
   const progressColor = isBelowTarget ? "#EF4444" : "#2563EB"; // Solid red or blue
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] p-4 rounded-xl shadow-sm border border-[#DDD6FE]/60 items-center justify-between">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] p-4 rounded-xl shadow-sm border border-[#DDD6FE]/60 items-center justify-between group">
+      
+      {/* AI Interpretation Icon */}
+      <button 
+        onClick={() => setShowAIModal(true)}
+        title="Analisis AI GovTech"
+        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-purple-200/50 hover:bg-white text-purple-600 hover:text-purple-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+      >
+        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+      </button>
+
       {/* Header */}
       <div className="w-full text-left">
         <h4 className="text-[10px] font-black text-violet-700 uppercase tracking-widest leading-none">Konsumsi Protein</h4>
@@ -101,6 +115,48 @@ export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
       
       {/* Target info */}
       <p className="text-[9px] text-violet-800 font-bold mt-2">Target Nasional: 57</p>
+
+      {/* AI Modal Popup */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowAIModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left" onClick={(e) => e.stopPropagation()}>
+             {/* Header */}
+             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                   <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                   <span className="font-extrabold text-xs tracking-wide uppercase">Analisis AI GovTech</span>
+                </div>
+                <button onClick={() => setShowAIModal(false)} className="text-white hover:text-slate-200 font-bold text-sm">✕</button>
+             </div>
+             {/* Body */}
+             <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5">
+                   <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0 border border-purple-100">
+                      <Brain className="w-5 h-5" />
+                   </div>
+                   <div>
+                      <h4 className="text-xs font-black text-slate-800 leading-none">Konsumsi Protein</h4>
+                      <span className="text-[10px] font-bold text-slate-400 mt-1 block">STATISTIK KECUKUPAN GIZI</span>
+                   </div>
+                </div>
+                
+                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/60">
+                   <div className="text-[10px] font-black text-purple-700 uppercase">Capaian Saat Ini</div>
+                   <div className="text-2xl font-black text-purple-950 mt-1">{value.toFixed(1)} <span className="text-xs font-bold text-slate-500">gram/kapita/hari</span></div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                   Tingkat konsumsi protein per kapita per hari di Kota Cilegon saat ini adalah **{value.toFixed(1)} gram**, melampaui standar kecukupan nasional sebesar **57 gram**. Pemenuhan zat gizi makro protein ini merupakan pilar utama dalam pencegahan prevalensi stunting dan gizi buruk di seluruh kelurahan lokus prioritas Cilegon.
+                </p>
+             </div>
+             {/* Footer */}
+             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400">
+                <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
+                <button onClick={() => setShowAIModal(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-[9px] font-black transition-all active:scale-95 shadow-sm">Tutup</button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

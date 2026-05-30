@@ -18,8 +18,186 @@ import BenchmarkPanel from '@/components/BenchmarkPanel';
 import AIInsightPanel from '@/components/AIInsightPanel';
 import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
+import { BENCHMARKS } from '@/lib/benchmark';
 import dynamic from 'next/dynamic';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils } from 'lucide-react';
+import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
+
+interface MiniBenchmarkChartProps {
+  indicatorNo: number;
+  currentValue: number;
+  unit: string;
+  nationalStandard: number | string | null;
+  colorTheme?: 'emerald' | 'blue' | 'purple';
+}
+
+function MiniBenchmarkChart({ indicatorNo, currentValue, unit, nationalStandard, colorTheme = 'emerald' }: MiniBenchmarkChartProps) {
+  const indicator = BENCHMARKS.find(x => x.no === indicatorNo);
+  if (!indicator) return null;
+
+  const data = [
+    { year: '2021', value: indicator.history['2021'] },
+    { year: '2022', value: indicator.history['2022'] },
+    { year: '2023', value: indicator.history['2023'] },
+    { year: '2024', value: indicator.history['2024'] },
+    { year: '2025', value: currentValue }
+  ];
+
+  const colors = {
+    emerald: {
+      stroke: '#10B981',
+      fill: 'url(#gradient-emerald)',
+      dot: '#10B981'
+    },
+    blue: {
+      stroke: '#3B82F6',
+      fill: 'url(#gradient-blue)',
+      dot: '#3B82F6'
+    },
+    purple: {
+      stroke: '#8B5CF6',
+      fill: 'url(#gradient-purple)',
+      dot: '#8B5CF6'
+    }
+  };
+
+  const activeColor = colors[colorTheme];
+  const numericStandard = typeof nationalStandard === 'number' ? nationalStandard : null;
+
+  return (
+    <div className="w-full h-[180px] relative">
+      <svg className="absolute w-0 h-0">
+        <defs>
+          <linearGradient id="gradient-emerald" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
+            <stop offset="95%" stopColor="#10B981" stopOpacity={0.0}/>
+          </linearGradient>
+          <linearGradient id="gradient-blue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
+          </linearGradient>
+          <linearGradient id="gradient-purple" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.2}/>
+            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0}/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 15, right: 10, left: -20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+          <XAxis 
+            dataKey="year" 
+            stroke="#94A3B8" 
+            fontSize={10} 
+            tickLine={false} 
+            axisLine={false} 
+          />
+          <YAxis 
+            stroke="#94A3B8" 
+            fontSize={10} 
+            tickLine={false} 
+            axisLine={false} 
+            domain={['auto', 'auto']}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-slate-900/95 text-white px-3 py-2 rounded-lg border border-slate-800 shadow-xl text-[10px] font-semibold">
+                    <p className="text-slate-400">Tahun {payload[0].payload.year}</p>
+                    <p className="text-emerald-400 mt-0.5">{payload[0].value} {unit}</p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            fill={activeColor.fill} 
+            stroke="none" 
+          />
+          <Line 
+            type="monotone" 
+            dataKey="value" 
+            stroke={activeColor.stroke} 
+            strokeWidth={2.5} 
+            dot={{ r: 4, fill: activeColor.dot, strokeWidth: 1.5, stroke: '#fff' }} 
+            activeDot={{ r: 6 }} 
+          />
+          {numericStandard && (
+            <ReferenceLine 
+              y={numericStandard} 
+              stroke="#EF4444" 
+              strokeDasharray="4 4" 
+              label={{ 
+                value: `Standar: ${numericStandard}`, 
+                position: 'top', 
+                fill: '#EF4444', 
+                fontSize: 9,
+                fontWeight: 'bold'
+              }} 
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function getSubViewInsights(view: string, values: any) {
+  if (view === 'ketersediaan') {
+    return {
+      energi: [
+        `Penyediaan energi pangan Kota Cilegon saat ini berada pada **${values.ketersediaanEnergi} kkal/kapita/hari**, melampaui standar kecukupan nasional (2400 kkal).`,
+        `Stok pangan didukung oleh kelancaran distribusi logistik melalui Pelabuhan Merak dan kerja sama antar daerah (KAD) dengan wilayah produsen utama.`,
+        `Rekomendasi: Optimalisasi rantai pasok komoditas pokok dan pengawasan pergudangan untuk menjaga stabilitas ketersediaan energi sepanjang tahun.`
+      ],
+      protein: [
+        `Ketersediaan protein hewani dan nabati tercatat sebesar **${values.ketersediaanProtein} gram/kapita/hari**, di atas standar minimal nasional sebesar 63 gram.`,
+        `Pasokan protein didominasi dari sektor perikanan tangkap Selat Sunda dan distribusi daging serta telur ayam ras yang stabil.`,
+        `Rekomendasi: Dorong diversifikasi konsumsi protein lokal non-beras melalui kampanye pangan B2SA (Beragam, Bergizi Seimbang, dan Aman).`
+      ],
+      cppd: [
+        `Cadangan Pangan Pemerintah Daerah (CPPD) Kota Cilegon saat ini mencapai **${values.cppd} Ton**, melebihi target minimal nasional (100 Ton).`,
+        `Cadangan ini disimpan secara aman di gudang Bulog dan siap dimobilisasi untuk penanganan darurat bencana serta intervensi kerawanan pangan.`,
+        `Rekomendasi: Pemeliharaan kualitas fisik beras cadangan secara berkala guna meminimalkan penyusutan kadar nutrisi.`
+      ]
+    };
+  }
+  
+  if (view === 'keterjangkauan') {
+    return [
+      `Koefisien Variasi (CV) harga beras tercatat sebesar **${values.cvBeras}%**, menunjukkan stabilitas harga yang sangat baik (di bawah ambang batas nasional 10%).`,
+      `Intervensi pasar berkala, seperti Gerakan Pangan Murah (GPM) dan penyaluran bantuan pangan, terbukti efektif menekan lonjakan harga beras di tingkat pengecer.`,
+      `Rekomendasi: Lanjutkan pemantauan harga harian secara real-time melalui integrasi aplikasi SAGON untuk deteksi dini anomali harga komoditas strategis.`
+    ];
+  }
+  
+  if (view === 'pemanfaatan') {
+    const prevalensi = values.balitaTotal > 0 ? ((values.balitaKurang / values.balitaTotal) * 100).toFixed(2) : '3.47';
+    return {
+      balita: [
+        `Tingkat prevalensi balita gizi kurang di wilayah sasaran tercatat sebesar **${prevalensi}%**, dengan kategori status ketahanan **${values.balitaStatus}**.`,
+        `Pemerintah Kota Cilegon secara intensif melaksanakan program Pemberian Makanan Tambahan (PMT) berbahan pangan lokal di posyandu kelurahan prioritas.`,
+        `Rekomendasi: Sinergitas program intervensi spesifik stunting lintas sektor guna menekan angka gizi kurang hingga batas minimal.`
+      ],
+      energi: [
+        `Rata-rata konsumsi energi masyarakat berada pada level **${values.konsumsiEnergi} kkal/kapita/hari**, mendekati target kecukupan 2100 kkal.`,
+        `Pola konsumsi masih didominasi oleh karbohidrat padi-padian, memerlukan akselerasi konsumsi sayuran dan umbi-umbian.`,
+        `Rekomendasi: Sosialisasi pola pangan sehat B2SA untuk mengurangi ketergantungan konsumsi beras.`
+      ],
+      protein: [
+        `Konsumsi protein masyarakat tercatat sebesar **${values.konsumsiProtein} gram/kapita/hari**, melampaui standar kecukupan nasional sebesar 57 gram.`,
+        `Meningkatnya daya beli dan kesadaran gizi mendorong konsumsi protein hewani (ikan, telur, dan daging unggas) di perkotaan.`,
+        `Rekomendasi: Program promosi konsumsi pangan kaya protein hewani bagi ibu hamil dan balita untuk pencegahan stunting.`
+      ]
+    };
+  }
+  
+  return null;
+}
 
 const MapUnified = dynamic(() => import('@/components/MapUnified'), { 
   loading: () => <div className="animate-pulse bg-slate-100 w-full h-full rounded text-slate-400 flex items-center justify-center text-xs">Memuat Peta...</div>, 
@@ -27,6 +205,9 @@ const MapUnified = dynamic(() => import('@/components/MapUnified'), {
 });
 
 export default function DashboardPage() {
+  // Navigation State
+  const [currentView, setCurrentView] = useState<string>('beranda');
+
   // Filter States
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('ALL');
   const [selectedKelurahan, setSelectedKelurahan] = useState<string>('ALL');
@@ -461,7 +642,7 @@ export default function DashboardPage() {
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
       {/* Sidebar */}
       <div className="hidden lg:block w-64 shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20 print:hidden">
-        <Sidebar />
+        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
       </div>
 
       {/* Main Content Area */}
@@ -490,155 +671,495 @@ export default function DashboardPage() {
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-6">
               
-              {/* TOP ROW: 9 KPI Panels (Premium React Sliding Carousel) */}
-              <div className="relative w-full flex items-center group px-10 print:px-0">
-                {/* Left Arrow Button */}
-                {sliderIndex > 0 && (
-                  <button
-                    onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
-                    className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
-                    title="Sebelumnya"
-                  >
-                    <ChevronLeft className="w-6 h-6 text-slate-700" />
-                  </button>
-                )}
+              {currentView === 'beranda' && (
+                <>
+                  {/* TOP ROW: 9 KPI Panels (Premium React Sliding Carousel) */}
+                  <div className="relative w-full flex items-center group px-10 print:px-0">
+                    {/* Left Arrow Button */}
+                    {sliderIndex > 0 && (
+                      <button
+                        onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
+                        className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
+                        title="Sebelumnya"
+                      >
+                        <ChevronLeft className="w-6 h-6 text-slate-700" />
+                      </button>
+                    )}
 
-                {/* Carousel Viewport */}
-                <div 
-                  className="w-full overflow-hidden py-1 print:overflow-visible select-none cursor-grab active:cursor-grabbing"
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                >
-                  <div 
-                    className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
-                    style={{ 
-                      transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
-                    }}
-                  >
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <CVGauge value={getCVValue()} />
+                    {/* Carousel Viewport */}
+                    <div 
+                      className="w-full overflow-hidden py-1 print:overflow-visible select-none cursor-grab active:cursor-grabbing"
+                      onTouchStart={onTouchStart}
+                      onTouchMove={onTouchMove}
+                      onTouchEnd={onTouchEnd}
+                    >
+                      <div 
+                        className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
+                        style={{ 
+                          transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
+                        }}
+                      >
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <CVGauge value={getCVValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <PPHGauge value={getPPHValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <ProteinGauge value={getKonsumsiProteinValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <EnergiGauge value={getKonsumsiEnergiValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                          <KerawananPanel 
+                            intervensiData={intervensiData} 
+                            selectedKecamatan={selectedKecamatan} 
+                            fsvaMatangData={fsvaMatangData}
+                            skpgMatangData={skpgMatangData}
+                          />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
+                          <BalitaDoughnut balitaData={getBalitaData()} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
+                          <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <PPHGauge value={getPPHValue()} />
+
+                    {/* Right Arrow Button */}
+                    {sliderIndex < maxSliderIndex && (
+                      <button
+                        onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
+                        className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
+                        title="Berikutnya"
+                      >
+                        <ChevronRight className="w-6 h-6 text-slate-700" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
+                    {/* Column 1: Harga Panel (Span 4) */}
+                    <div className="lg:col-span-4 flex flex-col print:col-span-5">
+                      <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <HargaPanel 
+                          hargaData={hargaData} 
+                          previousHargaData={previousHargaData} 
+                          livePrices={livePrices}
+                          liveDate={liveDate}
+                          loadingLive={loadingLive}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <ProteinGauge value={getKonsumsiProteinValue()} />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <EnergiGauge value={getKonsumsiEnergiValue()} />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                      <KerawananPanel 
-                        intervensiData={intervensiData} 
-                        selectedKecamatan={selectedKecamatan} 
-                        fsvaMatangData={fsvaMatangData}
-                        skpgMatangData={skpgMatangData}
-                      />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
-                      <BalitaDoughnut balitaData={getBalitaData()} />
-                    </div>
-                    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
-                      <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+
+                    {/* Column 2: Wide Map (Span 8) */}
+                    <div className="lg:col-span-8 flex flex-col print:col-span-7">
+                      <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <div className="mb-2">
+                          <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
+                          <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
+                        </div>
+                        <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px] print:h-[280px] print:min-h-0">
+                          <MapUnified 
+                            selectedKecamatan={selectedKecamatan}
+                            selectedKelurahan={selectedKelurahan}
+                            selectedYear={selectedYear}
+                            selectedMonth={selectedMonth}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Arrow Button */}
-                {sliderIndex < maxSliderIndex && (
+                  {/* BOTTOM ROW 1: PoU (1/4 Width) & AI Insight Panel (3/4 Width) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
+                    {/* PoU Chart - Span 3 */}
+                    <div className="lg:col-span-3 flex flex-col print:col-span-12 print:break-before-page">
+                      <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+                    </div>
+
+                    {/* AI Insight Panel - Span 9 */}
+                    <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
+                      <AIInsightPanel 
+                        year={selectedYear}
+                        month={selectedMonth}
+                        kecamatan={selectedKecamatan}
+                        kelurahan={selectedKelurahan}
+                        cvBeras={getCVValue()}
+                        pphScore={getPPHValue()}
+                        konsumsiEnergi={getKonsumsiEnergiValue()}
+                        konsumsiProtein={getKonsumsiProteinValue()}
+                        ketersediaanEnergi={getKetersediaanEnergiValue()}
+                        ketersediaanProtein={getKetersediaanProteinValue()}
+                        produksiBeras={
+                          produksiBerasList.find(x => x.tahun === selectedYear)
+                            ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                            : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+                        }
+                        balitaStatus={getBalitaData()}
+                        hargaStrategis={{
+                          beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+                          minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
+                          telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
+                          gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                          cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
+                        }}
+                        loadingPrices={loadingLive}
+                      />
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
+                  <div className="w-full print:hidden">
+                    <BenchmarkPanel currentData={getBenchmarkData()} />
+                  </div>
+                </>
+              )}
+
+              {currentView === 'insight' && (
+                <div className="space-y-4">
                   <button
-                    onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
-                    className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
-                    title="Berikutnya"
+                    onClick={() => setCurrentView('beranda')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
                   >
-                    <ChevronRight className="w-6 h-6 text-slate-700" />
+                    <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                    Kembali ke Beranda
                   </button>
-                )}
-              </div>
-
-              {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                {/* Column 1: Harga Panel (Span 4) */}
-                <div className="lg:col-span-4 flex flex-col print:col-span-5">
-                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
-                    <HargaPanel 
-                      hargaData={hargaData} 
-                      previousHargaData={previousHargaData} 
-                      livePrices={livePrices}
-                      liveDate={liveDate}
-                      loadingLive={loadingLive}
+                  <div className="flex flex-col min-h-[500px]">
+                    <AIInsightPanel 
+                      year={selectedYear}
+                      month={selectedMonth}
+                      kecamatan={selectedKecamatan}
+                      kelurahan={selectedKelurahan}
+                      cvBeras={getCVValue()}
+                      pphScore={getPPHValue()}
+                      konsumsiEnergi={getKonsumsiEnergiValue()}
+                      konsumsiProtein={getKonsumsiProteinValue()}
+                      ketersediaanEnergi={getKetersediaanEnergiValue()}
+                      ketersediaanProtein={getKetersediaanProteinValue()}
+                      produksiBeras={
+                        produksiBerasList.find(x => x.tahun === selectedYear)
+                          ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                          : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+                      }
+                      balitaStatus={getBalitaData()}
+                      hargaStrategis={{
+                        beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+                        minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
+                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
+                        gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                        cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
+                      }}
+                      loadingPrices={loadingLive}
                     />
                   </div>
                 </div>
+              )}
 
-                {/* Column 2: Wide Map (Span 8) */}
-                <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                  <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
-                    <div className="mb-2">
-                      <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
-                      <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
-                    </div>
-                    <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px] print:h-[280px] print:min-h-0">
-                      <MapUnified 
-                        selectedKecamatan={selectedKecamatan}
-                        selectedKelurahan={selectedKelurahan}
-                        selectedYear={selectedYear}
-                        selectedMonth={selectedMonth}
-                      />
+              {currentView === 'ketersediaan' && (() => {
+                const values = {
+                  ketersediaanEnergi: getKetersediaanEnergiValue(),
+                  ketersediaanProtein: getKetersediaanProteinValue(),
+                  cppd: 132.7
+                };
+                const insights = getSubViewInsights('ketersediaan', values) as { energi: string[]; protein: string[]; cppd: string[] };
+                
+                return (
+                  <div className="space-y-6">
+                    <button
+                      onClick={() => setCurrentView('beranda')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                      Kembali ke Beranda
+                    </button>
+                    
+                    <div className="space-y-6">
+                      {/* Row 1: Ketersediaan Energi */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: AI Insights */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-emerald-50/10">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-emerald-600" />
+                            AI Insight Ketersediaan Energi
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.energi.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-emerald-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {/* Right Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-emerald-600" />
+                            6. Jumlah Ketersediaan Energi (kkal/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={6} 
+                            currentValue={values.ketersediaanEnergi} 
+                            unit="kkal" 
+                            nationalStandard={2400} 
+                            colorTheme="emerald"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 2: Ketersediaan Protein */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: AI Insights */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-blue-50/10">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-blue-600" />
+                            AI Insight Ketersediaan Protein
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.protein.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-blue-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {/* Right Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-blue-600" />
+                            7. Jumlah Ketersediaan Protein (gram/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={7} 
+                            currentValue={values.ketersediaanProtein} 
+                            unit="gram" 
+                            nationalStandard={63} 
+                            colorTheme="blue"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 3: Cadangan Pangan */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: AI Insights */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-purple-50/10">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-purple-600" />
+                            AI Insight Cadangan Pangan
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.cppd.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-purple-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {/* Right Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-purple-600" />
+                            8. Jumlah Cadangan Pangan Pemerintah Daerah (Ton)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={8} 
+                            currentValue={values.cppd} 
+                            unit="Ton" 
+                            nationalStandard={100} 
+                            colorTheme="purple"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
-              {/* BOTTOM ROW 1: PoU (1/4 Width) & AI Insight Panel (3/4 Width) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                {/* PoU Chart - Span 3 */}
-                <div className="lg:col-span-3 flex flex-col print:col-span-12 print:break-before-page">
-                  <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
-                </div>
+              {currentView === 'keterjangkauan' && (() => {
+                const cvVal = getCVValue();
+                const insights = getSubViewInsights('keterjangkauan', { cvBeras: cvVal }) as string[];
+                
+                return (
+                  <div className="space-y-6">
+                    <button
+                      onClick={() => setCurrentView('beranda')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                      Kembali ke Beranda
+                    </button>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Column 1: Harga Panel (Span 7) */}
+                      <div className="lg:col-span-7 flex flex-col">
+                        <div className="dashboard-card flex-1 min-h-[420px] flex flex-col">
+                          <HargaPanel 
+                            hargaData={hargaData} 
+                            previousHargaData={previousHargaData} 
+                            livePrices={livePrices}
+                            liveDate={liveDate}
+                            loadingLive={loadingLive}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Column 2: CV Gauge and Insights (Span 5) */}
+                      <div className="lg:col-span-5 flex flex-col gap-6">
+                        <div className="dashboard-card flex items-center justify-center min-h-[220px]">
+                          <div className="w-full max-w-[280px]">
+                            <CVGauge value={cvVal} />
+                          </div>
+                        </div>
+                        
+                        <div className="dashboard-card bg-gradient-to-br from-white to-blue-50/15 flex-1">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-blue-600 animate-pulse" />
+                            AI Insight Stabilitas Harga Beras
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-blue-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
-                {/* AI Insight Panel - Span 9 */}
-                <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
-                  <AIInsightPanel 
-                    year={selectedYear}
-                    month={selectedMonth}
-                    kecamatan={selectedKecamatan}
-                    kelurahan={selectedKelurahan}
-                    cvBeras={getCVValue()}
-                    pphScore={getPPHValue()}
-                    konsumsiEnergi={getKonsumsiEnergiValue()}
-                    konsumsiProtein={getKonsumsiProteinValue()}
-                    ketersediaanEnergi={getKetersediaanEnergiValue()}
-                    ketersediaanProtein={getKetersediaanProteinValue()}
-                    produksiBeras={
-                      produksiBerasList.find(x => x.tahun === selectedYear)
-                        ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
-                        : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
-                    }
-                    balitaStatus={getBalitaData()}
-                    hargaStrategis={{
-                      beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
-                      minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
-                      telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
-                      gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
-                      cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
-                    }}
-                    loadingPrices={loadingLive}
-                  />
-                </div>
-              </div>
+              {currentView === 'pemanfaatan' && (() => {
+                const balitaInfo = getBalitaData();
+                const values = {
+                  balitaKurang: balitaInfo.kurang,
+                  balitaTotal: balitaInfo.total,
+                  balitaStatus: balitaInfo.status,
+                  konsumsiEnergi: getKonsumsiEnergiValue(),
+                  konsumsiProtein: getKonsumsiProteinValue()
+                };
+                const insights = getSubViewInsights('pemanfaatan', values) as { balita: string[]; energi: string[]; protein: string[] };
+                
+                return (
+                  <div className="space-y-6">
+                    <button
+                      onClick={() => setCurrentView('beranda')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                      Kembali ke Beranda
+                    </button>
+                    
+                    <div className="space-y-6">
+                      {/* Row 1: Nutrition & Balita Gizi */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: Doughnut Chart */}
+                        <div className="dashboard-card flex items-center justify-center min-h-[300px]">
+                          <div className="w-full max-w-[340px]">
+                            <BalitaDoughnut balitaData={balitaInfo} />
+                          </div>
+                        </div>
+                        
+                        {/* Right Card: AI Nutrition Analysis */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-purple-50/15">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-purple-600" />
+                            AI Insight Status Gizi Balita
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.balita.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-purple-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
 
-              {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
-              <div className="w-full print:hidden">
-                <BenchmarkPanel currentData={getBenchmarkData()} />
-              </div>
+                      {/* Row 2: Konsumsi Energi */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-emerald-600" />
+                            3. Tingkat Konsumsi Energi (kkal/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={3} 
+                            currentValue={values.konsumsiEnergi} 
+                            unit="kkal" 
+                            nationalStandard={2100} 
+                            colorTheme="emerald"
+                          />
+                        </div>
+                        {/* Right Card: AI Insights */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-emerald-50/10">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-emerald-600" />
+                            AI Insight Konsumsi Energi
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.energi.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-emerald-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Row 3: Konsumsi Protein */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-blue-600" />
+                            4. Tingkat Konsumsi Protein (gram/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={4} 
+                            currentValue={values.konsumsiProtein} 
+                            unit="gram" 
+                            nationalStandard={57} 
+                            colorTheme="blue"
+                          />
+                        </div>
+                        {/* Right Card: AI Insights */}
+                        <div className="dashboard-card bg-gradient-to-br from-white to-blue-50/10">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-blue-600" />
+                            AI Insight Konsumsi Protein
+                          </h3>
+                          <ul className="space-y-3">
+                            {insights?.protein.map((bullet, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                                <span className="text-blue-500 font-bold">•</span>
+                                <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               
             </div>
           )}

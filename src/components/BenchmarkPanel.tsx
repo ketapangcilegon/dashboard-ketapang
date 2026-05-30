@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { BENCHMARKS, BenchmarkIndicator } from '@/lib/benchmark';
 import { 
   Award, CheckCircle2, AlertCircle, HelpCircle, 
@@ -142,6 +142,14 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
 
 export default function BenchmarkPanel({ currentData = {} }: BenchmarkPanelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -200 : 200;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const activeIndicator = BENCHMARKS[currentIndex];
   
@@ -204,7 +212,7 @@ export default function BenchmarkPanel({ currentData = {} }: BenchmarkPanelProps
         <div>
           <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
             <Award className="w-5 h-5 text-blue-600" />
-            Benchmark Capaian & Standar Nasional Kota Cilegon
+            Benchmark Capaian Kota Cilegon & Standar Nasional
           </h2>
           <p className="text-xs text-slate-500 mt-1">Evaluasi visual data historis (2021-2025) perbandingan daerah terhadap standar baku nasional.</p>
         </div>
@@ -231,23 +239,47 @@ export default function BenchmarkPanel({ currentData = {} }: BenchmarkPanelProps
         </div>
       </div>
 
-      {/* Quick Indicator Select Grid Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-50 -mx-6 px-6">
-        <div className="flex flex-nowrap gap-1.5">
-          {BENCHMARKS.map((item, idx) => (
-            <button
-              key={item.no}
-              onClick={() => setCurrentIndex(idx)}
-              className={`px-3 py-2 text-[11px] font-black rounded-lg transition-all whitespace-nowrap border capitalize cursor-pointer ${
-                currentIndex === idx
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                  : 'bg-white border-slate-100 text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {item.no}. {item.indicator.replace('Pencapaian ', '').replace('Persentase ', '').replace('Tingkat ', '').replace('Jumlah ', '').substring(0, 20)}...
-            </button>
-          ))}
+      {/* Quick Indicator Select Grid Bar with Scroll Chevrons */}
+      <div className="relative flex items-center border-b border-slate-50 -mx-6 px-10">
+        {/* Left Scroll Chevron */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-2 z-10 p-1.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-slate-600 hover:text-slate-900 transition-all hover:bg-slate-50 active:scale-90"
+          title="Scroll Kiri"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Scroll Container */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none scroll-smooth"
+        >
+          <div className="flex flex-nowrap gap-1.5">
+            {BENCHMARKS.map((item, idx) => (
+              <button
+                key={item.no}
+                onClick={() => setCurrentIndex(idx)}
+                className={`px-3 py-2 text-[11px] font-black rounded-lg transition-all whitespace-nowrap border capitalize cursor-pointer ${
+                  currentIndex === idx
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                    : 'bg-white border-slate-100 text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {item.no}. {item.indicator.replace('Pencapaian ', '').replace('Persentase ', '').replace('Tingkat ', '').replace('Jumlah ', '').substring(0, 20)}...
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Right Scroll Chevron */}
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-2 z-10 p-1.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-slate-600 hover:text-slate-900 transition-all hover:bg-slate-50 active:scale-90"
+          title="Scroll Kanan"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Slide Content Grid Layout */}

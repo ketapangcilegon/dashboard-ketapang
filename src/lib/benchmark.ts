@@ -21,7 +21,7 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
   },
   {
     no: 2,
-    indicator: 'Persentase Konsumsi Energi dan Protein Perkapita',
+    indicator: '% Agregat Konsumsi Energi & Protein',
     unit: '%',
     nationalStandard: 100,
     history: { '2021': 101.89, '2022': 103.91, '2023': 116.21, '2024': 100.22 }
@@ -42,7 +42,7 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
   },
   {
     no: 5,
-    indicator: 'Persentase Ketersediaan Energi dan Protein Perkapita',
+    indicator: '% Agregat Ketersediaan Energi & Protein',
     unit: '%',
     nationalStandard: 100,
     history: { '2021': 125, '2022': 117, '2023': 121, '2024': 121 }

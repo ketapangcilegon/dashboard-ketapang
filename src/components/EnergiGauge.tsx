@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from 'react';
+import { Sparkles, Brain } from 'lucide-react';
+
 interface EnergiGaugeProps {
   value: number;
 }
 
 export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
+  const [showAIModal, setShowAIModal] = useState(false);
   const target = 2100;
   const maxScale = 3000;
 
@@ -46,7 +50,17 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
   const progressColor = isBelowTarget ? "#EF4444" : "#2563EB"; // Solid red or blue
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7] p-4 rounded-xl shadow-sm border border-[#FDE68A]/60 items-center justify-between">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7] p-4 rounded-xl shadow-sm border border-[#FDE68A]/60 items-center justify-between group">
+      
+      {/* AI Interpretation Icon */}
+      <button 
+        onClick={() => setShowAIModal(true)}
+        title="Analisis AI GovTech"
+        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-amber-200/50 hover:bg-white text-amber-600 hover:text-amber-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+      >
+        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+      </button>
+
       {/* Header */}
       <div className="w-full text-left">
         <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest leading-none">Konsumsi Energi</h4>
@@ -106,6 +120,48 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
       
       {/* Target info */}
       <p className="text-[9px] text-amber-800 font-bold mt-2">Target Nasional: 2.100</p>
+
+      {/* AI Modal Popup */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowAIModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left" onClick={(e) => e.stopPropagation()}>
+             {/* Header */}
+             <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                   <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                   <span className="font-extrabold text-xs tracking-wide uppercase">Analisis AI GovTech</span>
+                </div>
+                <button onClick={() => setShowAIModal(false)} className="text-white hover:text-slate-200 font-bold text-sm">✕</button>
+             </div>
+             {/* Body */}
+             <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5">
+                   <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 border border-amber-100">
+                      <Brain className="w-5 h-5" />
+                   </div>
+                   <div>
+                      <h4 className="text-xs font-black text-slate-800 leading-none">Konsumsi Energi</h4>
+                      <span className="text-[10px] font-bold text-slate-400 mt-1 block">STATISTIK KECUKUPAN KALORI</span>
+                   </div>
+                </div>
+                
+                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/60">
+                   <div className="text-[10px] font-black text-amber-700 uppercase">Capaian Saat Ini</div>
+                   <div className="text-2xl font-black text-amber-950 mt-1">{Math.round(value).toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-500">kkal/kapita/hari</span></div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                   Angka konsumsi energi rata-rata harian masyarakat Cilegon saat ini tercatat sebesar **{Math.round(value).toLocaleString('id-ID')} kkal/kapita/hari**, sedikit di bawah target nasional sebesar **2100 kkal**. Meskipun surplus di sektor protein, akselerasi edukasi diversifikasi pangan karbohidrat non-beras perlu terus digalakkan untuk mencapai pemenuhan energi yang optimal di wilayah perkotaan.
+                </p>
+             </div>
+             {/* Footer */}
+             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400">
+                <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
+                <button onClick={() => setShowAIModal(false)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-[9px] font-black transition-all active:scale-95 shadow-sm">Tutup</button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

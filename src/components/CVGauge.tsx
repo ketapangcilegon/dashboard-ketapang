@@ -1,10 +1,15 @@
 "use client";
 
+import { useState } from 'react';
+import { Sparkles, Brain } from 'lucide-react';
+
 interface CVGaugeProps {
   value: number;
 }
 
 export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
+  const [showAIModal, setShowAIModal] = useState(false);
+
   // Determine status and style
   let statusText = 'HARGA STABIL';
   let statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
@@ -25,7 +30,17 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-[#FFF1F2] to-[#FFE4E6] p-4 rounded-xl shadow-sm border border-[#FECDD3]/60 items-center justify-between">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#FFF1F2] to-[#FFE4E6] p-4 rounded-xl shadow-sm border border-[#FECDD3]/60 items-center justify-between group">
+      
+      {/* AI Interpretation Icon */}
+      <button 
+        onClick={() => setShowAIModal(true)}
+        title="Analisis AI GovTech"
+        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-rose-200/50 hover:bg-white text-rose-600 hover:text-rose-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+      >
+        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+      </button>
+
       {/* Header */}
       <div className="w-full text-left">
         <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest leading-none">CV Koefisien Variasi</h4>
@@ -88,6 +103,48 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
       
       {/* Target info */}
       <p className="text-[9px] text-rose-800 font-bold mt-2">Target Nasional &lt; 10%</p>
+
+      {/* AI Modal Popup */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowAIModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left" onClick={(e) => e.stopPropagation()}>
+             {/* Header */}
+             <div className="bg-gradient-to-r from-rose-600 to-red-600 px-6 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                   <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                   <span className="font-extrabold text-xs tracking-wide uppercase">Analisis AI GovTech</span>
+                </div>
+                <button onClick={() => setShowAIModal(false)} className="text-white hover:text-slate-200 font-bold text-sm">✕</button>
+             </div>
+             {/* Body */}
+             <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5">
+                   <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0 border border-rose-100">
+                      <Brain className="w-5 h-5" />
+                   </div>
+                   <div>
+                      <h4 className="text-xs font-black text-slate-800 leading-none">Koefisien Variasi (CV)</h4>
+                      <span className="text-[10px] font-bold text-slate-400 mt-1 block">STATISTIK STABILITAS HARGA</span>
+                   </div>
+                </div>
+                
+                <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100/60">
+                   <div className="text-[10px] font-black text-rose-700 uppercase">Capaian Saat Ini</div>
+                   <div className="text-2xl font-black text-rose-950 mt-1">{value.toFixed(2)}% <span className="text-xs font-bold text-slate-500">Koefisien</span></div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                   Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, jauh di bawah ambang batas kerawanan nasional sebesar 10%. Angka ini mencerminkan stabilitas pasokan beras lokal yang sangat kokoh di pasar tradisional serta keberhasilan distribusi bantuan pangan yang tepat waktu dan efisien dalam menjaga keseimbangan harga pasar.
+                </p>
+             </div>
+             {/* Footer */}
+             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400">
+                <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
+                <button onClick={() => setShowAIModal(false)} className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-[9px] font-black transition-all active:scale-95 shadow-sm">Tutup</button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

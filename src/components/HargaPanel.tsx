@@ -123,7 +123,7 @@ export default function HargaPanel({
       <div>
         <div className="flex justify-between items-center">
           <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
-            <span className="text-base">🟢</span> 1. Harga Pangan Strategis
+            <span className="text-base">🟢</span> Harga Pangan Strategis
           </h3>
           {loadingLive ? (
             <span className="flex items-center gap-1 text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 font-bold animate-pulse">
