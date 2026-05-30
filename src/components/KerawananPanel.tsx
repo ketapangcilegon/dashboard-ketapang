@@ -43,17 +43,13 @@ export default function KerawananPanel({
     
     const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
     
-    priorityKelurahans = sortedSums
-      .map((r, idx) => {
-        const rank = idx + 1;
-        const desil = Math.min(10, Math.ceil((rank / sortedSums.length) * 10));
-        return { kelurahan: r.kelurahan, desil };
-      })
-      .filter(x => x.desil <= 4)
-      .map(x => x.kelurahan);
+    priorityKelurahans = sortedSums.slice(0, 13).map(x => x.kelurahan);
   } else {
-    // High-fidelity fallback default priority kelurahans if mature data is loading
-    priorityKelurahans = ['Bagendung', 'Bulakan', 'Cikerai', 'Mekarsari', 'Samangraya', 'Suralaya', 'Tamansari', 'Tegal Ratu'];
+    // High-fidelity fallback default priority kelurahans (exactly 13 priority lokus)
+    priorityKelurahans = [
+      'Bagendung', 'Bulakan', 'Cikerai', 'Mekarsari', 'Samangraya', 'Suralaya', 
+      'Tamansari', 'Tegal Ratu', 'Gerem', 'Karang Asem', 'Kotasari', 'Warnasari', 'Lebakgede'
+    ];
   }
 
   // Filter priority kelurahans by active Kecamatan if selected
@@ -61,7 +57,7 @@ export default function KerawananPanel({
     ? priorityKelurahans
     : priorityKelurahans.filter(k => (WILAYAH[selectedKecamatan] || []).includes(k));
 
-  const totalLokus = localPriorityKels.length; // Denominator (faktor pembagi)
+  const totalLokus = localPriorityKels.length; // Denominator (faktor pembagi) yang menghasilkan tepat 13 secara kota
 
   // 2. GPM Lokus Calculations
   // Count how many priority kelurahans actually received GPM (gpm > 0 or kegiatan_gpm > 0)
