@@ -200,7 +200,9 @@ export default function DashboardPage() {
 
         // Fetch Mature FSVA & SKPG for Borda Desil calculation
         try {
-          const { data: fsvaM } = await supabase.from('fsva_matang').select('*').eq('periode', selectedYear);
+          // GPM/Borda calculation for 2026 uses FSVA 2025 as there is no 2026 FSVA yet
+          const fsvaYear = selectedYear === 2026 ? 2025 : selectedYear;
+          const { data: fsvaM } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
           setFsvaMatangData(fsvaM || []);
         } catch (e) {
           console.warn('fsva_matang query failed in page.tsx:', e);

@@ -351,10 +351,11 @@ export default function MapUnified({
       try {
         // Fetch Mature FSVA Dataset
         try {
+          const fsvaYear = selectedYear === 2026 ? 2025 : selectedYear;
           const { data: fsvaM } = await supabase
             .from('fsva_matang')
             .select('*')
-            .eq('periode', selectedYear);
+            .eq('periode', fsvaYear);
           setFsvaMatangData(fsvaM || []);
         } catch (e) {
           console.warn('fsva_matang fetch failed:', e);
