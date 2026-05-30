@@ -137,8 +137,9 @@ function getIKPGStyle(
     const row = intervensiData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
     if (!row) return { ...kelStyle, fillOpacity: 0.1, fillColor: '#cccccc' };
     
-    const gpm = parseInt(row.kegiatan_gpm || '0');
-    const bantuan = parseInt(row.penerima_bantuan_jiwa || '0');
+    // Support both new intervensi_kelurahan schema (gpm, bantuan_pangan) and legacy intervensi_pangan schema (kegiatan_gpm, penerima_bantuan_jiwa)
+    const gpm = row.gpm !== undefined ? (row.gpm || 0) : parseInt(row.kegiatan_gpm || '0');
+    const bantuan = row.bantuan_pangan !== undefined ? (row.bantuan_pangan || 0) : parseInt(row.penerima_bantuan_jiwa || '0');
     
     let c = { fill: '#e2e8f0', border: '#94a3b8' }; // fallback
     if (gpm > 0 && bantuan > 0) {
@@ -266,8 +267,8 @@ export function KelurahanLayer({
               } else if (activeIKPGLayer === 'intervensi') {
                 const row = intervensiData.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
                 if (row) {
-                  const gpm = parseInt(row.kegiatan_gpm || '0');
-                  const bantuan = parseInt(row.penerima_bantuan_jiwa || '0');
+                  const gpm = row.gpm !== undefined ? (row.gpm || 0) : parseInt(row.kegiatan_gpm || '0');
+                  const bantuan = row.bantuan_pangan !== undefined ? (row.bantuan_pangan || 0) : parseInt(row.penerima_bantuan_jiwa || '0');
                   popupContent += `
                     <p style="margin:4px 0;font-size:11px;color:#475569;">🎪 <b>Kegiatan GPM</b>: <span style="font-weight:900;color:#0f172a;">${gpm} kegiatan</span></p>
                     <p style="margin:4px 0;font-size:11px;color:#475569;">🌾 <b>Penerima Bantuan Pangan</b>: <span style="font-weight:900;color:#0f172a;">${bantuan.toLocaleString('id-ID')} jiwa</span></p>

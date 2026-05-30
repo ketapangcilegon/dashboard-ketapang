@@ -365,11 +365,21 @@ export default function MapUnified({
         try {
           if (selectedYear === 2026) {
             // Fetch from the new gizi_balita table for 2026
-            const { data: skpgM } = await supabase
+            let { data: skpgM } = await supabase
               .from('gizi_balita')
               .select('*')
               .eq('tahun', selectedYear)
               .eq('bulan', selectedMonth);
+            
+            // Fallback to month 1 (January) if empty
+            if (!skpgM || skpgM.length === 0) {
+              const { data: fb } = await supabase
+                .from('gizi_balita')
+                .select('*')
+                .eq('tahun', selectedYear)
+                .eq('bulan', 1);
+              skpgM = fb;
+            }
             
             // Format to match the skpg_matang column schema used in the map layer
             const formatted = (skpgM || []).map(x => ({
@@ -393,13 +403,54 @@ export default function MapUnified({
           console.warn('skpg_matang fetch failed:', e);
         }
 
-        // Fetch Intervensi & Bantuan
-        const { data: intervensi } = await supabase
-          .from('intervensi_pangan')
-          .select('*')
-          .eq('tahun', selectedYear)
-          .eq('bulan', selectedMonth);
-        setIntervensiData(intervensi || []);
+        // Fetch Intervensi & Bantuan (Try intervensi_kelurahan for 2026, fallback to intervensi_pangan for 2025)
+        let intFetched = false;
+        try {
+          if (selectedYear === 2026) {
+            let { data: intervensi, error } = await supabase
+              .from('intervensi_kelurahan')
+              .select('*')
+              .eq('tahun', selectedYear)
+              .eq('bulan', selectedMonth);
+              
+            if (!error && intervensi && intervensi.length > 0) {
+              setIntervensiData(intervensi);
+              intFetched = true;
+            } else {
+              // Fallback to month 1 (January)
+              const { data: fb } = await supabase
+                .from('intervensi_kelurahan')
+                .select('*')
+                .eq('tahun', selectedYear)
+                .eq('bulan', 1);
+              if (fb && fb.length > 0) {
+                setIntervensiData(fb);
+                intFetched = true;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('intervensi_kelurahan fetch failed in MapUnified:', e);
+        }
+
+        if (!intFetched) {
+          let { data: intervensi } = await supabase
+            .from('intervensi_pangan')
+            .select('*')
+            .eq('tahun', selectedYear)
+            .eq('bulan', selectedMonth);
+            
+          // Fallback to month 12 for 2025 if empty
+          if ((!intervensi || intervensi.length === 0) && selectedYear === 2025) {
+            const { data: fb } = await supabase
+              .from('intervensi_pangan')
+              .select('*')
+              .eq('tahun', selectedYear)
+              .eq('bulan', 12);
+            intervensi = fb;
+          }
+          setIntervensiData(intervensi || []);
+        }
 
       } catch (err) {
         console.error('Gagal mengambil data peta Supabase:', err);

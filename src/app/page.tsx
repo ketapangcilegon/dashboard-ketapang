@@ -176,7 +176,20 @@ export default function DashboardPage() {
             } else if (selectedKecamatan !== 'ALL') {
               intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
             }
-            const { data: intervensi, error } = await intQuery;
+            let { data: intervensi, error } = await intQuery;
+            
+            // Fallback to month 1 (January) if empty
+            if ((!intervensi || intervensi.length === 0) && !error) {
+              let fbQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+              if (selectedKelurahan !== 'ALL') {
+                fbQuery = fbQuery.eq('nama_kelurahan', selectedKelurahan);
+              } else if (selectedKecamatan !== 'ALL') {
+                fbQuery = fbQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
+              }
+              const { data: fb } = await fbQuery;
+              intervensi = fb;
+            }
+
             if (!error && intervensi && intervensi.length > 0) {
               setIntervensiData(intervensi);
               intFetched = true;
@@ -194,7 +207,21 @@ export default function DashboardPage() {
           if (selectedKelurahan !== 'ALL') {
             intQuery = intQuery.eq('kelurahan', selectedKelurahan);
           }
-          const { data: intervensi } = await intQuery;
+          let { data: intervensi } = await intQuery;
+
+          // Fallback to month 12 for 2025 if empty
+          if ((!intervensi || intervensi.length === 0) && selectedYear === 2025) {
+            let fbQuery = supabase.from('intervensi_pangan').select('*').eq('tahun', selectedYear).eq('bulan', 12);
+            if (selectedKecamatan !== 'ALL') {
+              fbQuery = fbQuery.eq('kecamatan', selectedKecamatan);
+            }
+            if (selectedKelurahan !== 'ALL') {
+              fbQuery = fbQuery.eq('kelurahan', selectedKelurahan);
+            }
+            const { data: fb } = await fbQuery;
+            intervensi = fb;
+          }
+
           setIntervensiData(intervensi || []);
         }
 
@@ -210,7 +237,14 @@ export default function DashboardPage() {
 
         try {
           if (selectedYear === 2026) {
-            const { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            let { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            
+            // Fallback to month 1 (January) if empty
+            if (!skpgM || skpgM.length === 0) {
+              const { data: fb } = await supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+              skpgM = fb;
+            }
+
             const formatted = (skpgM || []).map(x => ({
               nama_kelurahan: x.nama_kelurahan,
               gizi_kurang: x.gizi_kurang,
@@ -242,7 +276,23 @@ export default function DashboardPage() {
             }
           }
           
-          const { data: balita, error } = await balitaQuery;
+          let { data: balita, error } = await balitaQuery;
+          
+          // Fallback to month 1 (January) if empty
+          if ((!balita || balita.length === 0) && !error) {
+            let fbQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+            if (selectedKelurahan !== 'ALL') {
+              fbQuery = fbQuery.eq('nama_kelurahan', selectedKelurahan);
+            } else if (selectedKecamatan !== 'ALL') {
+              const kels = WILAYAH[selectedKecamatan] || [];
+              if (kels.length > 0) {
+                fbQuery = fbQuery.in('nama_kelurahan', kels);
+              }
+            }
+            const { data: fb } = await fbQuery;
+            balita = fb;
+          }
+
           if (!error && balita && balita.length > 0) {
             setBalitaDataRaw(balita);
             balitaFetched = true;
