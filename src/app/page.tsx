@@ -292,6 +292,33 @@ export default function DashboardPage() {
     }
   };
 
+  const [activeMobileIndex, setActiveMobileIndex] = useState<number>(0);
+
+  const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.clientWidth;
+    const children = Array.from(container.children) as HTMLElement[];
+    
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    const containerCenter = scrollLeft + containerWidth / 2;
+    
+    children.forEach((child, idx) => {
+      const childCenter = child.offsetLeft + child.clientWidth / 2;
+      const diff = Math.abs(containerCenter - childCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIndex = idx;
+      }
+    });
+    
+    if (closestIndex !== activeMobileIndex) {
+      setActiveMobileIndex(closestIndex);
+    }
+  };
+
+
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
@@ -719,8 +746,10 @@ export default function DashboardPage() {
               
               {currentView === 'beranda' && (
                 <>
-                  {/* TOP ROW: 9 KPI Panels (Premium React Sliding Carousel) */}
-                  <div className="relative w-full flex items-center group px-10 print:px-0">
+                  {/* TOP ROW: 9 KPI Panels (Dual Viewport: Desktop Slider + Mobile Snap Carousel) */}
+                  
+                  {/* 1. Desktop KPI Carousel (lg:flex, print:flex, hidden on mobile) */}
+                  <div className="hidden lg:flex print:flex relative w-full items-center group px-10 print:px-0">
                     {/* Left Arrow Button */}
                     {sliderIndex > 0 && (
                       <button
@@ -790,6 +819,76 @@ export default function DashboardPage() {
                         <ChevronRight className="w-6 h-6 text-slate-700" />
                       </button>
                     )}
+                  </div>
+
+                  {/* 2. Mobile/Android KPI Carousel (lg:hidden, block on mobile) */}
+                  <div className="block lg:hidden w-full relative print:hidden">
+                    {/* The snap scroll container */}
+                    <div 
+                      onScroll={handleMobileScroll}
+                      className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth w-full px-[15vw] py-4 gap-4 no-scrollbar"
+                      style={{ scrollbarWidth: 'none' }}
+                    >
+                      {/* Card 1 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <CVGauge value={getCVValue()} />
+                      </div>
+                      
+                      {/* Card 2 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <PPHGauge value={getPPHValue()} />
+                      </div>
+                      
+                      {/* Card 3 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <ProteinGauge value={getKonsumsiProteinValue()} />
+                      </div>
+                      
+                      {/* Card 4 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <EnergiGauge value={getKonsumsiEnergiValue()} />
+                      </div>
+                      
+                      {/* Card 5 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                      </div>
+                      
+                      {/* Card 6 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
+                      </div>
+                      
+                      {/* Card 7 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <KerawananPanel 
+                          intervensiData={intervensiData} 
+                          selectedKecamatan={selectedKecamatan} 
+                          fsvaMatangData={fsvaMatangData}
+                          skpgMatangData={skpgMatangData}
+                        />
+                      </div>
+                      
+                      {/* Card 8 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 7 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <BalitaDoughnut balitaData={getBalitaData()} />
+                      </div>
+                      
+                      {/* Card 9 */}
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 8 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                        <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Dot Indicators */}
+                    <div className="flex justify-center gap-1.5 mt-2">
+                      {Array.from({ length: 9 }).map((_, idx) => (
+                        <span 
+                          key={idx} 
+                          className={`h-1.5 rounded-full transition-all duration-300 ${activeMobileIndex === idx ? 'w-4 bg-emerald-600' : 'w-1.5 bg-slate-300'}`}
+                        />
+                      ))}
+                    </div>
                   </div>
 
                   {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
