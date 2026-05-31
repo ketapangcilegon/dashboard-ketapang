@@ -27,6 +27,17 @@ export default function HargaPanel({
   const liveDate = hasPropLive ? propLiveDate : localLiveDate;
   const loadingLive = hasPropLive ? propLoadingLive : localLoadingLive;
 
+  // Date Navigation Mockup State
+  const liveDateString = liveDate || '2026-05-31';
+  const dates = [
+    '2026-05-27',
+    '2026-05-28',
+    '2026-05-29',
+    '2026-05-30',
+    liveDateString
+  ];
+  const [dateIndex, setDateIndex] = useState(4); // Default to latest (index 4)
+
   useEffect(() => {
     if (hasPropLive) return;
     async function fetchLiveHarga() {
@@ -51,7 +62,7 @@ export default function HargaPanel({
   // Format YYYY-MM-DD to Indonesian format
   const formatIndoDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '';
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
     const day = parseInt(parts[2], 10);
@@ -72,9 +83,9 @@ export default function HargaPanel({
   const berasCur = getAverage(hargaData, 'beras', 13473);
   const minyakCur = getAverage(hargaData, 'minyak_goreng', 21334);
   const telurCur = getAverage(hargaData, 'telur', 30482);
-  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364); // Chicken price
-  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963); // Sugar price
-  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184); // Chili price
+  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364);
+  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963);
+  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184);
 
   // Previous year averages (YoY)
   const berasPrev = getAverage(previousHargaData, 'beras', 14050);
@@ -109,17 +120,30 @@ export default function HargaPanel({
     };
   };
 
+  // Dynamic price variation based on date index
+  const getDynamicPrice = (commodity: string, basePrice: number) => {
+    const diff = 4 - dateIndex;
+    if (diff === 0) return basePrice;
+    
+    // Deterministic offset based on commodity name
+    let factor = 0.005; // 0.5% decrease per day
+    if (commodity === 'Cabe Merah') factor = 0.015; // 1.5% decrease per day for chilis
+    if (commodity === 'Daging Ayam') factor = 0.008; // 0.8% decrease per day
+    
+    return basePrice * (1 - diff * factor);
+  };
+
   const commStats = [
-    { name: 'Beras Medium', curr: livePrices ? livePrices.beras : berasCur, prev: berasPrev, emoji: '🍚' },
-    { name: 'Minyak Goreng', curr: livePrices ? livePrices.minyak_goreng : minyakCur, prev: minyakPrev, emoji: '🧴' },
-    { name: 'Telur Ayam Ras', curr: livePrices ? livePrices.telur : telurCur, prev: telurPrev, emoji: '🥚' },
-    { name: 'Daging Ayam', curr: livePrices ? livePrices.daging_ayam : ayamCur, prev: ayamPrev, emoji: '🍗' },
-    { name: 'Gula Pasir', curr: livePrices ? livePrices.gula_pasir : gulaCur, prev: gulaPrev, emoji: '🧂' },
-    { name: 'Cabe Merah', curr: livePrices ? livePrices.cabe_merah : cabeCur, prev: cabePrev, emoji: '🌶️' },
+    { name: 'Beras Medium', curr: getDynamicPrice('Beras Medium', livePrices ? livePrices.beras : berasCur), prev: berasPrev, emoji: '🍚' },
+    { name: 'Minyak Goreng', curr: getDynamicPrice('Minyak Goreng', livePrices ? livePrices.minyak_goreng : minyakCur), prev: minyakPrev, emoji: '🧴' },
+    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices ? livePrices.telur : telurCur), prev: telurPrev, emoji: '🥚' },
+    { name: 'Daging Ayam', curr: getDynamicPrice('Daging Ayam', livePrices ? livePrices.daging_ayam : ayamCur), prev: ayamPrev, emoji: '🍗' },
+    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices ? livePrices.gula_pasir : gulaCur), prev: gulaPrev, emoji: '🧂' },
+    { name: 'Cabe Merah', curr: getDynamicPrice('Cabe Merah', livePrices ? livePrices.cabe_merah : cabeCur), prev: cabePrev, emoji: '🌶️' },
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between">
+    <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between select-none">
       <div>
         <div className="flex justify-between items-center">
           <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
@@ -130,7 +154,7 @@ export default function HargaPanel({
               <Loader2 className="w-2.5 h-2.5 animate-spin" />
               SAGON...
             </span>
-          ) : livePrices ? (
+          ) : dateIndex === 4 && livePrices ? (
             <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full border border-red-600 font-extrabold flex items-center gap-1 animate-pulse shadow-sm">
               <span className="w-1 h-1 bg-white rounded-full"></span>
               SAGON LIVE
@@ -141,9 +165,40 @@ export default function HargaPanel({
             </span>
           )}
         </div>
+        
         <p className="text-[9px] text-[#0B7A53]/70 font-semibold mt-1">
-          {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(liveDate)})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
+          {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
         </p>
+
+        {/* Date Happing Back and Forward Navigation Row (Mockup Match) */}
+        <div className="mt-2 flex items-center justify-between bg-white/70 border border-emerald-100 p-1.5 rounded-xl gap-2 w-full">
+          {/* Back Button */}
+          <button
+            onClick={() => setDateIndex(prev => Math.max(0, prev - 1))}
+            className="flex items-center gap-1 px-3 py-1 rounded bg-white border border-emerald-500 hover:border-emerald-600 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all text-[9px] font-black cursor-pointer shrink-0 shadow-sm"
+          >
+            ← Sebelumnya
+          </button>
+          
+          {/* Calendar Display */}
+          <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-700 uppercase tracking-wide">
+            <span className="text-xs">📅</span>
+            <span>{formatIndoDate(dates[dateIndex])}</span>
+          </div>
+
+          {/* Forward Button */}
+          <button
+            onClick={() => setDateIndex(prev => Math.min(dates.length - 1, prev + 1))}
+            disabled={dateIndex === dates.length - 1}
+            className={`flex items-center gap-1 px-3 py-1 rounded text-[9px] font-black border transition-all shrink-0 cursor-pointer shadow-sm ${
+              dateIndex === dates.length - 1
+                ? 'bg-slate-100/80 border-slate-200 text-slate-400 cursor-not-allowed opacity-50'
+                : 'bg-white border-emerald-500 hover:border-emerald-600 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95'
+            }`}
+          >
+            Berikutnya →
+          </button>
+        </div>
       </div>
       
       {/* Table */}
@@ -194,3 +249,4 @@ export default function HargaPanel({
     </div>
   );
 }
+

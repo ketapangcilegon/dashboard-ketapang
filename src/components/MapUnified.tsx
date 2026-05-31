@@ -351,12 +351,20 @@ export default function MapUnified({
       try {
         // Fetch Mature FSVA Dataset
         try {
-          const fsvaYear = Number(selectedYear) === 2026 ? 2025 : Number(selectedYear);
-          const { data: fsvaM } = await supabase
+          const fsvaYear = Number(selectedYear) - 1;
+          const { data: fsvaM, error } = await supabase
             .from('fsva_matang')
             .select('*')
             .eq('periode', fsvaYear);
-          setFsvaMatangData(fsvaM || []);
+          if (!error && fsvaM && fsvaM.length > 0) {
+            setFsvaMatangData(fsvaM);
+          } else {
+            const { data: fsvaMFb } = await supabase
+              .from('fsva_matang')
+              .select('*')
+              .eq('periode', 2025);
+            setFsvaMatangData(fsvaMFb || []);
+          }
         } catch (e) {
           console.warn('fsva_matang fetch failed:', e);
         }
@@ -392,16 +400,28 @@ export default function MapUnified({
             }));
             setSkpgMatangData(formatted);
           } else {
-            // Fetch from pre-calculated skpg_matang table for 2025
-            const { data: skpgM } = await supabase
+            // Fetch from pre-calculated skpg_matang table (with monthly filter support)
+            const { data: skpgM, error } = await supabase
               .from('skpg_matang')
               .select('*')
-              .eq('periode', Number(selectedYear));
-            setSkpgMatangData(skpgM || []);
+              .eq('periode', Number(selectedYear))
+              .eq('bulan', Number(selectedMonth));
+              
+            if (!error && skpgM && skpgM.length > 0) {
+              setSkpgMatangData(skpgM);
+            } else {
+              // Fallback to query only by year (periode)
+              const { data: skpgMFallback } = await supabase
+                .from('skpg_matang')
+                .select('*')
+                .eq('periode', Number(selectedYear));
+              setSkpgMatangData(skpgMFallback || []);
+            }
           }
         } catch (e) {
           console.warn('skpg_matang fetch failed:', e);
         }
+
 
         // Fetch Intervensi & Bantuan (Try intervensi_kelurahan with fallbacks)
         let { data: intervensi, error: intError } = await supabase

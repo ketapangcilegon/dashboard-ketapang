@@ -414,10 +414,15 @@ export default function DashboardPage() {
 
         // Fetch Mature FSVA & SKPG for Borda Desil calculation
         try {
-          // GPM/Borda calculation for 2026 uses FSVA 2025 as there is no 2026 FSVA yet
-          const fsvaYear = Number(selectedYear) === 2026 ? 2025 : Number(selectedYear);
-          const { data: fsvaM } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
-          setFsvaMatangData(fsvaM || []);
+          // FSVA used in realtime year is FSVA year n-1 (realtime-1)
+          const fsvaYear = Number(selectedYear) - 1;
+          const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
+          if (!error && fsvaM && fsvaM.length > 0) {
+            setFsvaMatangData(fsvaM);
+          } else {
+            const { data: fsvaMFb } = await supabase.from('fsva_matang').select('*').eq('periode', 2025);
+            setFsvaMatangData(fsvaMFb || []);
+          }
         } catch (e) {
           console.warn('fsva_matang query failed in page.tsx:', e);
         }
@@ -442,12 +447,28 @@ export default function DashboardPage() {
             }));
             setSkpgMatangData(formatted);
           } else {
-            const { data: skpgM } = await supabase.from('skpg_matang').select('*').eq('periode', selectedYear);
-            setSkpgMatangData(skpgM || []);
+            // Fetch from pre-calculated skpg_matang table (with monthly filter support)
+            const { data: skpgM, error } = await supabase
+              .from('skpg_matang')
+              .select('*')
+              .eq('periode', Number(selectedYear))
+              .eq('bulan', Number(selectedMonth));
+              
+            if (!error && skpgM && skpgM.length > 0) {
+              setSkpgMatangData(skpgM);
+            } else {
+              // Fallback to query only by year (periode)
+              const { data: skpgMFallback } = await supabase
+                .from('skpg_matang')
+                .select('*')
+                .eq('periode', Number(selectedYear));
+              setSkpgMatangData(skpgMFallback || []);
+            }
           }
         } catch (e) {
           console.warn('skpg_matang query failed in page.tsx:', e);
         }
+
 
         // 5. Fetch Balita Gizi (Try gizi_balita kelurahan level first, fallback to balita_gizi kecamatan level)
         let balitaFetched = false;
@@ -574,46 +595,41 @@ export default function DashboardPage() {
 
   // Getter functions with dynamic database value retrieval and smart default fallbacks
   const getCVValue = () => {
-    const entry = cvBerasList.find(x => x.tahun === selectedYear);
+    const entry = cvBerasList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 3.65, 2022: 1.45, 2023: 5.21, 2024: 3.65, 2025: 3.65 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 3.65;
+    return 3.65;
   };
 
   const getPPHValue = () => {
-    const entry = pphList.find(x => x.tahun === selectedYear);
+    const entry = pphList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 88.3, 2022: 85.5, 2023: 89.8, 2024: 90.9, 2025: 90.9 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 90.9;
+    return 90.9;
   };
 
   const getKonsumsiEnergiValue = () => {
-    const entry = konsumsiEnergiList.find(x => x.tahun === selectedYear);
+    const entry = konsumsiEnergiList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 1811, 2022: 1970, 2023: 2272, 2024: 2021, 2025: 2021 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 2021;
+    return 2021;
   };
 
   const getKonsumsiProteinValue = () => {
-    const entry = konsumsiProteinList.find(x => x.tahun === selectedYear);
+    const entry = konsumsiProteinList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 67, 2022: 65, 2023: 71, 2024: 59, 2025: 59 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 59;
+    return 59;
   };
 
   const getKetersediaanEnergiValue = () => {
-    const entry = ketersediaanEnergiList.find(x => x.tahun === selectedYear);
+    const entry = ketersediaanEnergiList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 2525, 2022: 2529, 2023: 2582, 2024: 2582, 2025: 2582 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 2582;
+    return 2582;
   };
 
   const getKetersediaanProteinValue = () => {
-    const entry = ketersediaanProteinList.find(x => x.tahun === selectedYear);
+    const entry = ketersediaanProteinList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
-    const fallbacks: Record<number, number> = { 2021: 92, 2022: 81, 2023: 85, 2024: 85, 2025: 85 };
-    return fallbacks[selectedYear] !== undefined ? fallbacks[selectedYear] : 85;
+    return 85;
   };
+
 
   // Dynamic Balita computed calculations
   const getBalitaData = () => {

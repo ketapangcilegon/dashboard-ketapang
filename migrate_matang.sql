@@ -24,8 +24,10 @@ CREATE TABLE IF NOT EXISTS skpg_matang (
   gizi_berlebih int NOT NULL,
   gizi_normal int NOT NULL,
   periode int NOT NULL,
+  bulan int NOT NULL DEFAULT 1,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
+
 
 -- Indexing for high-speed queries on period and kelurahan
 CREATE INDEX IF NOT EXISTS idx_fsva_matang_period_kel ON fsva_matang (periode, nama_kelurahan);

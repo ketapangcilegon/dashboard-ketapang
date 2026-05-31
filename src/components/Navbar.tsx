@@ -45,9 +45,13 @@ export default function Navbar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-sm sm:text-2xl font-black text-white tracking-tight leading-tight drop-shadow-sm uppercase">DASHBOARD KETAHANAN PANGAN</h1>
-          <p className="text-emerald-100 text-xs sm:text-sm font-bold tracking-wide mt-0.5">Kota Cilegon</p>
+        <div className="flex flex-col justify-center">
+          <h1 className="text-[11px] sm:text-base lg:text-lg font-black text-white tracking-tight leading-tight drop-shadow-sm max-w-[180px] sm:max-w-md md:max-w-lg lg:max-w-xl break-words uppercase">
+            Food Security Intelligence & Decision Support System
+          </h1>
+          <p className="text-emerald-100 text-[9px] sm:text-[11px] font-black tracking-widest uppercase mt-0.5">
+            KOTA CILEGON
+          </p>
         </div>
       </div>
 
