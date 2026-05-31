@@ -207,6 +207,8 @@ const MapUnified = dynamic(() => import('@/components/MapUnified'), {
 export default function DashboardPage() {
   // Navigation State
   const [currentView, setCurrentView] = useState<string>('beranda');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
   // Filter States
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('ALL');
@@ -639,10 +641,53 @@ export default function DashboardPage() {
   const nbmValue = currentMonthKetersediaan ? currentMonthKetersediaan.skor_nbm : 94.2;
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
-      {/* Sidebar */}
-      <div className="hidden lg:block w-64 shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20 print:hidden">
-        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
+    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans relative">
+      {/* Mobile Sidebar sliding drawer */}
+      <div 
+        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
+          isMobileSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+        {/* Drawer Content */}
+        <div 
+          className={`absolute left-0 top-0 bottom-0 w-64 max-w-[280px] bg-[#0B1E41] shadow-2xl transition-transform duration-300 ease-out transform ${
+            isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {/* Close button inside mobile sidebar drawer */}
+          <div className="absolute right-4 top-6 z-50">
+            <button 
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-slate-800 transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center"
+              aria-label="Close Sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <Sidebar 
+            currentView={currentView} 
+            setCurrentView={setCurrentView} 
+            isMobile={true} 
+            onCloseMobile={() => setIsMobileSidebarOpen(false)} 
+          />
+        </div>
+      </div>
+
+      {/* Sidebar (Desktop) */}
+      <div className={`hidden lg:block shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <Sidebar 
+          currentView={currentView} 
+          setCurrentView={setCurrentView} 
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
+        />
       </div>
 
       {/* Main Content Area */}
@@ -659,6 +704,7 @@ export default function DashboardPage() {
             setSelectedYear={setSelectedYear}
             selectedMonth={selectedMonth}
             setSelectedMonth={setSelectedMonth}
+            onMenuClick={() => setIsMobileSidebarOpen(true)}
           />
         </div>
         

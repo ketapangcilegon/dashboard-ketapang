@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, MapPin, Calendar, Filter, ChevronDown } from 'lucide-react';
+import { Bell, MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
 
 interface NavbarProps {
@@ -12,6 +12,7 @@ interface NavbarProps {
   setSelectedYear?: (year: number) => void;
   selectedMonth?: number;
   setSelectedMonth?: (month: number) => void;
+  onMenuClick?: () => void;
 }
 
 export default function Navbar({
@@ -23,6 +24,7 @@ export default function Navbar({
   setSelectedYear = () => {},
   selectedMonth = 5,
   setSelectedMonth = () => {},
+  onMenuClick = () => {},
 }: NavbarProps) {
   
   const handleKecamatanChange = (kec: string) => {
@@ -34,9 +36,19 @@ export default function Navbar({
 
   return (
     <header className="h-auto pt-[1cm] pb-4 bg-transparent flex items-center justify-between px-6 z-10">
-      <div>
-        <h1 className="text-sm sm:text-2xl font-black text-[#0B1E41] tracking-tight">DASHBOARD KETAHANAN PANGAN</h1>
-        <p className="text-[#64748B] text-sm font-medium">Kota Cilegon</p>
+      <div className="flex items-center gap-3">
+        {/* Mobile Menu Toggle Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-[#0B1E41] hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer flex items-center justify-center shrink-0"
+          aria-label="Open Sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-sm sm:text-2xl font-black text-[#0B1E41] tracking-tight leading-tight">DASHBOARD KETAHANAN PANGAN</h1>
+          <p className="text-[#64748B] text-xs sm:text-sm font-medium">Kota Cilegon</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
