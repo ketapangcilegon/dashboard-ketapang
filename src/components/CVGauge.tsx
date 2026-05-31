@@ -10,15 +10,18 @@ interface CVGaugeProps {
 export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
 
-  // Determine status and style
-  let statusText = 'HARGA STABIL';
-  let statusColor = 'text-blue-700 bg-blue-50/90 border-blue-200';
+  // Determine status and style based on requested CV thresholds:
+  // < 10%: Aman / Stabil
+  // 10-20%: Waspada / Fluktuatif Sedang
+  // > 20%: Rentan / Tidak Stabil
+  let statusText = 'AMAN / STABIL';
+  let statusColor = 'text-emerald-700 bg-emerald-50/90 border-emerald-200';
   
   if (value > 20) {
-    statusText = 'HARGA BERGEJOLAK';
+    statusText = 'RENTAN / TIDAK STABIL';
     statusColor = 'text-red-700 bg-red-50/90 border-red-200';
-  } else if (value > 10) {
-    statusText = 'HARGA FLUKTUATIF';
+  } else if (value >= 10) {
+    statusText = 'WASPADA / FLUKTUATIF SEDANG';
     statusColor = 'text-amber-700 bg-amber-50/90 border-amber-200';
   }
 
@@ -28,13 +31,6 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const needleAngleRad = Math.PI - angleRad;
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
-
-  const getArcPath = (v: number) => {
-    const clamped = Math.min(Math.max(v, 0), 30);
-    const endX = 50 - 35 * Math.cos((clamped / 30) * Math.PI);
-    const endY = 50 - 35 * Math.sin((clamped / 30) * Math.PI);
-    return `M 15 50 A 35 35 0 0 1 ${endX} ${endY}`;
-  };
 
   return (
     <div className="relative flex flex-col h-full bg-gradient-to-br from-[#2563EB] via-[#93C5FD]/45 to-white/95 p-4 rounded-xl shadow-md border border-blue-200/50 items-center justify-between group select-none">
@@ -58,11 +54,17 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
       <div className="relative w-full flex flex-col items-center justify-center pt-2">
         <div className="relative w-36 h-18 overflow-hidden">
           <svg className="w-full h-full" viewBox="0 0 100 50">
-            {/* Outer Gray Track */}
-            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
+            {/* Background base track */}
+            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* Blue Progress Arc */}
-            <path d={getArcPath(value)} fill="none" stroke="#1D4ED8" strokeWidth="8" strokeLinecap="round" />
+            {/* Green Segment (0% - 10%) */}
+            <path d="M 15 50 A 35 35 0 0 1 32.5 19.69" fill="none" stroke="#10B981" strokeWidth="8" strokeLinecap="round" />
+            
+            {/* Yellow/Orange Segment (10% - 20%) */}
+            <path d="M 32.5 19.69 A 35 35 0 0 1 67.5 19.69" fill="none" stroke="#F59E0B" strokeWidth="8" strokeLinecap="round" />
+            
+            {/* Red Segment (20% - 30%) */}
+            <path d="M 67.5 19.69 A 35 35 0 0 1 85 50" fill="none" stroke="#EF4444" strokeWidth="8" strokeLinecap="round" />
             
             {/* Dynamic Jarum Penunjuk (Needle) */}
             <line 
@@ -119,7 +121,7 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, jauh di bawah ambang batas kerawanan nasional sebesar 10%. Angka ini mencerminkan stabilitas pasokan beras lokal yang sangat kokoh di pasar tradisional serta keberhasilan distribusi bantuan pangan yang tepat waktu dan efisien dalam menjaga keseimbangan harga pasar.
+                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, yang dikategorikan sebagai **{statusText}**. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
               </p>
            </div>
            {/* Footer */}
