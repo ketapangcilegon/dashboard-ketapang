@@ -123,43 +123,26 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowAIModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left" onClick={(e) => e.stopPropagation()}>
-             {/* Header */}
-             <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between text-white">
-                <div className="flex items-center gap-2">
-                   <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
-                   <span className="font-extrabold text-xs tracking-wide uppercase">Analisis AI GovTech</span>
-                </div>
-                <button onClick={() => setShowAIModal(false)} className="text-white hover:text-slate-200 font-bold text-sm">✕</button>
-             </div>
-             {/* Body */}
-             <div className="p-6 space-y-4">
-                <div className="flex items-center gap-2.5">
-                   <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100">
-                      <Brain className="w-5 h-5" />
-                   </div>
-                   <div>
-                      <h4 className="text-xs font-black text-slate-800 leading-none">Ketersediaan Protein</h4>
-                      <span className="text-[10px] font-bold text-slate-400 mt-1 block">STATISTIK LOGISTIK PANGAN</span>
-                   </div>
-                </div>
-                
-                <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/60">
-                   <div className="text-[10px] font-black text-emerald-700 uppercase">Capaian Saat Ini</div>
-                   <div className="text-2xl font-black text-emerald-950 mt-1">{value.toFixed(1)} <span className="text-xs font-bold text-slate-500">gram/kapita/hari</span></div>
-                </div>
-
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                   Ketersediaan protein pangan di wilayah Kota Cilegon mencapai **{value.toFixed(1)} gram/kapita/hari**, surplus sebesar **+{(value - 63).toFixed(1)} gram** di atas standar kecukupan nasional 63 gram. Angka ini menjamin ketersediaan stok protein hewani dan nabati yang sangat aman bagi stabilitas pangan dan gizi daerah.
-                </p>
-             </div>
-             {/* Footer */}
-             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400">
-                <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-                <button onClick={() => setShowAIModal(false)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-[9px] font-black transition-all active:scale-95 shadow-sm">Tutup</button>
-             </div>
-          </div>
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-emerald-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+           {/* Header */}
+           <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+              <div className="flex items-center gap-1.5 text-emerald-600">
+                 <Sparkles className="w-4 h-4 animate-pulse" />
+                 <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
+              </div>
+              <button onClick={() => setShowAIModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer">✕</button>
+           </div>
+           {/* Body */}
+           <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
+              <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
+                 Ketersediaan protein pangan di wilayah Kota Cilegon mencapai **{value.toFixed(1)} gram/kapita/hari**, surplus sebesar **+{(value - 63).toFixed(1)} gram** di atas standar kecukupan nasional 63 gram. Angka ini menjamin ketersediaan stok protein hewani dan nabati yang sangat aman bagi stabilitas pangan dan gizi daerah.
+              </p>
+           </div>
+           {/* Footer */}
+           <div className="border-t border-emerald-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+              <span>BPN / KEMENTAN RI</span>
+              <button onClick={() => setShowAIModal(false)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+           </div>
         </div>
       )}
     </div>

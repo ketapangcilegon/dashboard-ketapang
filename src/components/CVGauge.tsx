@@ -106,43 +106,26 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowAIModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left" onClick={(e) => e.stopPropagation()}>
-             {/* Header */}
-             <div className="bg-gradient-to-r from-rose-600 to-red-600 px-6 py-4 flex items-center justify-between text-white">
-                <div className="flex items-center gap-2">
-                   <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
-                   <span className="font-extrabold text-xs tracking-wide uppercase">Analisis AI GovTech</span>
-                </div>
-                <button onClick={() => setShowAIModal(false)} className="text-white hover:text-slate-200 font-bold text-sm">✕</button>
-             </div>
-             {/* Body */}
-             <div className="p-6 space-y-4">
-                <div className="flex items-center gap-2.5">
-                   <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0 border border-rose-100">
-                      <Brain className="w-5 h-5" />
-                   </div>
-                   <div>
-                      <h4 className="text-xs font-black text-slate-800 leading-none">Koefisien Variasi (CV)</h4>
-                      <span className="text-[10px] font-bold text-slate-400 mt-1 block">STATISTIK STABILITAS HARGA</span>
-                   </div>
-                </div>
-                
-                <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100/60">
-                   <div className="text-[10px] font-black text-rose-700 uppercase">Capaian Saat Ini</div>
-                   <div className="text-2xl font-black text-rose-950 mt-1">{value.toFixed(2)}% <span className="text-xs font-bold text-slate-500">Koefisien</span></div>
-                </div>
-
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                   Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, jauh di bawah ambang batas kerawanan nasional sebesar 10%. Angka ini mencerminkan stabilitas pasokan beras lokal yang sangat kokoh di pasar tradisional serta keberhasilan distribusi bantuan pangan yang tepat waktu dan efisien dalam menjaga keseimbangan harga pasar.
-                </p>
-             </div>
-             {/* Footer */}
-             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400">
-                <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-                <button onClick={() => setShowAIModal(false)} className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-[9px] font-black transition-all active:scale-95 shadow-sm">Tutup</button>
-             </div>
-          </div>
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-rose-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+           {/* Header */}
+           <div className="flex items-center justify-between border-b border-rose-100 pb-2">
+              <div className="flex items-center gap-1.5 text-rose-600">
+                 <Sparkles className="w-4 h-4 animate-pulse" />
+                 <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
+              </div>
+              <button onClick={() => setShowAIModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer">✕</button>
+           </div>
+           {/* Body */}
+           <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
+              <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
+                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, jauh di bawah ambang batas kerawanan nasional sebesar 10%. Angka ini mencerminkan stabilitas pasokan beras lokal yang sangat kokoh di pasar tradisional serta keberhasilan distribusi bantuan pangan yang tepat waktu dan efisien dalam menjaga keseimbangan harga pasar.
+              </p>
+           </div>
+           {/* Footer */}
+           <div className="border-t border-rose-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+              <span>BPN / KEMENTAN RI</span>
+              <button onClick={() => setShowAIModal(false)} className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+           </div>
         </div>
       )}
     </div>
