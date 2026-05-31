@@ -56,90 +56,16 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Dropdowns */}
-        <div className="hidden md:flex items-center gap-3">
-          
-          {/* Kecamatan Filter */}
-          <div className="relative">
-            <select
-              value={selectedKecamatan}
-              onChange={(e) => handleKecamatanChange(e.target.value)}
-              className="appearance-none bg-white border border-emerald-100 py-2.5 pl-9.5 pr-9 rounded-full text-xs font-black text-slate-700 shadow-md hover:bg-slate-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-            >
-              <option value="ALL">Semua Kecamatan</option>
-              {Object.keys(WILAYAH).sort().map((kec) => (
-                <option key={kec} value={kec}>
-                  Kec. {kec}
-                </option>
-              ))}
-            </select>
-            <MapPin className="w-3.5 h-3.5 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-
-          {/* Kelurahan Filter (Cascading) */}
-          <div className="relative">
-            <select
-              value={selectedKelurahan}
-              onChange={(e) => setSelectedKelurahan(e.target.value)}
-              disabled={selectedKecamatan === 'ALL'}
-              className="appearance-none bg-white border border-emerald-100 py-2.5 pl-9.5 pr-9 rounded-full text-xs font-black text-slate-700 shadow-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-            >
-              <option value="ALL">Semua Kelurahan</option>
-              {activeKelurahans.sort().map((kel) => (
-                <option key={kel} value={kel}>
-                  Kel. {kel}
-                </option>
-              ))}
-            </select>
-            <MapPin className="w-3.5 h-3.5 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-          
-          {/* Month/Year Filter */}
-          <div className="relative flex items-center gap-1.5 bg-white border border-emerald-100 py-2 px-3.5 rounded-full shadow-md">
-            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-            
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="appearance-none bg-transparent text-xs font-black text-slate-700 focus:outline-none cursor-pointer pr-1"
-            >
-              {[
-                { val: 1, name: 'Januari' },
-                { val: 2, name: 'Februari' },
-                { val: 3, name: 'Maret' },
-                { val: 4, name: 'April' },
-                { val: 5, name: 'Mei' },
-                { val: 6, name: 'Juni' },
-                { val: 7, name: 'Juli' },
-                { val: 8, name: 'Agustus' },
-                { val: 9, name: 'September' },
-                { val: 10, name: 'Oktober' },
-                { val: 11, name: 'November' },
-                { val: 12, name: 'Desember' },
-              ].map((m) => (
-                <option key={m.val} value={m.val}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-
-            <span className="text-slate-300 text-[10px] font-medium">|</span>
-
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="appearance-none bg-transparent text-xs font-black text-slate-700 focus:outline-none cursor-pointer"
-            >
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-            </select>
-          </div>
-
+        {/* Timestamp & Update Data Info Block (Professional GovTech Style) */}
+        <div className="hidden md:flex flex-col text-right text-[10px] font-black text-emerald-50/90 tracking-wide leading-tight whitespace-nowrap select-none">
+          <div>Harga Pangan Strategis: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
+          <div>Indikator Ketahanan Pangan: <span className="text-white">Tahun 2025</span></div>
+          <div>Peta FSVA: <span className="text-white">Tahun 2025</span></div>
+          <div>Peta SKPG: <span className="text-white">Februari 2026</span></div>
         </div>
 
         <div className="h-8 w-px bg-white/20 mx-2 hidden md:block"></div>
+
 
         {/* Notifications */}
         <button className="relative p-2.5 text-emerald-800 bg-white hover:bg-emerald-50 transition-all rounded-full shadow-md hover:scale-105 active:scale-95 flex items-center justify-center border border-emerald-100 cursor-pointer">
