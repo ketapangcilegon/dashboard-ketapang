@@ -136,7 +136,7 @@ export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
            </div>
            {/* Footer */}
            <div className="border-t border-purple-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
-              <span>BPN / KEMENTAN RI</span>
+              <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
               <button onClick={() => setShowAIModal(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
