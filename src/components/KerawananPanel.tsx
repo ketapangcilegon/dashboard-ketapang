@@ -1,6 +1,7 @@
 "use client";
 
-import { HandHelping, Store } from 'lucide-react';
+import { useState } from 'react';
+import { HandHelping, Store, Sparkles } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
 
 interface KerawananPanelProps {
@@ -16,6 +17,7 @@ export default function KerawananPanel({
   fsvaMatangData = [],
   skpgMatangData = []
 }: KerawananPanelProps) {
+  const [showAIModal, setShowAIModal] = useState(false);
   
   // 1. Calculate Borda Ranks & Deciles dynamically to identify priority kelurahans (Desil 1 s.d. Desil 4)
   let priorityKelurahans: string[] = [];
@@ -89,22 +91,29 @@ export default function KerawananPanel({
   const bantuanPercentage = totalKPM > 0 ? (activeKPM / totalKPM) * 100 : 100;
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-[#E2F1FF] to-[#D1FAE5] p-4 rounded-xl shadow-sm border border-[#A7F3D0]/60 text-slate-800 justify-between relative overflow-hidden">
-      {/* Subtle ambient circle inside background */}
-      <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-white/40 blur-xl pointer-events-none"></div>
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#0D9488] via-[#5EEAD4]/45 to-white/95 p-4 rounded-xl shadow-md border border-teal-200/50 justify-between relative overflow-hidden select-none">
+      
+      {/* AI Interpretation Icon */}
+      <button 
+        onClick={() => setShowAIModal(true)}
+        title="Analisis AI GovTech"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-teal-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-teal-100 z-10"
+      >
+        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+      </button>
 
       {/* Header */}
       <div className="z-10 text-left">
-        <h4 className="text-[10px] font-black text-teal-700 uppercase tracking-widest leading-none">Intervensi</h4>
-        <h3 className="text-xs font-bold text-teal-950 mt-1 leading-tight">Penanganan Kerawanan</h3>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Intervensi</h4>
+        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">Penanganan Kerawanan</h3>
       </div>
 
       {/* GPM Section */}
       <div className="z-10 flex flex-col gap-1 mt-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Store className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            <span className="text-[10px] font-bold text-slate-700">GPM Lokus</span>
+          <div className="flex items-center gap-1.5">
+            <Store className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[10px] font-extrabold text-slate-700">GPM Lokus</span>
           </div>
           <span className="text-[10px] font-black text-teal-700">{gpmPercentage.toFixed(1)}%</span>
         </div>
@@ -113,7 +122,7 @@ export default function KerawananPanel({
             {activeGpmLokus} <span className="font-medium text-slate-500">dari</span> {totalLokus} <span className="font-medium text-slate-500">lokus (D1-D4)</span>
           </div>
           {/* Mini progress bar */}
-          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1.5 overflow-hidden border border-slate-300/30">
             <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${gpmPercentage}%` }}></div>
           </div>
         </div>
@@ -122,9 +131,9 @@ export default function KerawananPanel({
       {/* Bantuan Pangan Section */}
       <div className="z-10 flex flex-col gap-1 mt-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <HandHelping className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            <span className="text-[10px] font-bold text-slate-700">Bantuan Pangan</span>
+          <div className="flex items-center gap-1.5">
+            <HandHelping className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[10px] font-extrabold text-slate-700">Bantuan Pangan</span>
           </div>
           <span className="text-[10px] font-black text-teal-700">{bantuanPercentage.toFixed(1)}%</span>
         </div>
@@ -133,17 +142,42 @@ export default function KerawananPanel({
             {activeKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">dari</span> {totalKPM.toLocaleString('id-ID')} <span className="font-medium text-slate-500">KPM</span>
           </div>
           {/* Mini progress bar */}
-          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1 overflow-hidden border border-slate-300/30">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 mt-1.5 overflow-hidden border border-slate-300/30">
             <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${bantuanPercentage}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Footer Info */}
-      <div className="z-10 mt-3 pt-2 border-t border-slate-200/60 flex justify-between items-center text-[8px] font-bold text-slate-500 leading-tight">
+      <div className="z-10 mt-3 pt-2 border-t border-slate-200/60 flex justify-between items-center text-[8px] font-bold text-slate-400 leading-tight">
         <span>TA 2026</span>
         <span>Sumber: APBD & APBN</span>
       </div>
+
+      {/* AI Modal Popup */}
+      {showAIModal && (
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-teal-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+           {/* Header */}
+           <div className="flex items-center justify-between border-b border-teal-100 pb-2">
+              <div className="flex items-center gap-1.5 text-teal-600">
+                 <Sparkles className="w-4 h-4 animate-pulse" />
+                 <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
+              </div>
+              <button onClick={() => setShowAIModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer">✕</button>
+           </div>
+           {/* Body */}
+           <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
+              <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
+                 Berdasarkan analisis Borda dinamis Kota Cilegon pada tahun 2026, intervensi Gerakan Pangan Murah (GPM) telah dilaksanakan secara optimal di **{activeGpmLokus} dari {totalLokus} kelurahan lokus prioritas** (Desil 1 s.d. Desil 4). Sinergi dengan penyaluran bantuan pangan gratis bagi **{activeKPM.toLocaleString('id-ID')} Keluarga Penerima Manfaat (KPM)** berhasil menekan laju kerawanan pangan di wilayah rentan secara komprehensif.
+              </p>
+           </div>
+           {/* Footer */}
+           <div className="border-t border-teal-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+              <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
+              <button onClick={() => setShowAIModal(false)} className="bg-teal-600 hover:bg-teal-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,22 +14,18 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
 
   // Determine indicator text and style
   let statusTitle = 'Kurang';
-  let statusDesc = 'Ketersediaan energi pangan masih di bawah standar kebutuhan, mengindikasikan pasokan energi pangan belum optimal dan berpotensi membatasi pemenuhan kebutuhan konsumsi masyarakat.';
-  let statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
+  let statusColor = 'text-red-700 bg-red-50/90 border-red-200';
   
   if (value > 2400) {
     statusTitle = 'Baik';
-    statusDesc = 'Ketersediaan energi pangan sudah memadai atau melampaui standar kebutuhan, menunjukkan pasokan energi pangan wilayah relatif cukup untuk mendukung pemenuhan kebutuhan konsumsi penduduk.';
-    statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
+    statusColor = 'text-red-700 bg-red-50/90 border-red-200';
   } else if (value >= 2200 && value <= 2400) {
     statusTitle = 'Sedang';
-    statusDesc = 'Ketersediaan energi pangan berada di sekitar tingkat kebutuhan standar, menunjukkan kecukupan pasokan relatif terpenuhi namun masih memerlukan penjagaan stabilitas produksi, distribution, atau akses pangan.';
-    statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
+    statusColor = 'text-amber-700 bg-amber-50/90 border-amber-200';
   }
 
   // Convert scale (0-3500 kkal) to percentage (0-100) for drawing
   const percentValue = (value / maxScale) * 100;
-  const percentTarget = (target / maxScale) * 100; // 68.5%
 
   // Trigonometry to position the needle (range 0 to 100)
   const clampedPercent = Math.min(Math.max(percentValue, 0), 100);
@@ -46,41 +42,35 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
     return `M 15 50 A 35 35 0 0 1 ${endX} ${endY}`;
   };
 
-  const isBelowTarget = value < target;
-  const progressColor = isBelowTarget ? "#EF4444" : "#2563EB"; // Solid red or blue
-
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7] p-4 rounded-xl shadow-sm border border-[#FDE68A]/60 items-center justify-between group">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#DC2626] via-[#FCA5A5]/45 to-white/95 p-4 rounded-xl shadow-md border border-red-200/50 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
         onClick={() => setShowAIModal(true)}
         title="Analisis AI GovTech"
-        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-amber-200/50 hover:bg-white text-amber-600 hover:text-amber-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-red-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-red-100 z-10"
       >
         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
       </button>
 
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest leading-none">Ketersediaan Energi</h4>
-        <h3 className="text-xs font-bold text-amber-900 mt-1 leading-tight">(kkal/kapita/hari)</h3>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Ketersediaan Energi</h4>
+        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">(kkal/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}
       <div className="relative w-full flex flex-col items-center justify-center pt-2">
         <div className="relative w-36 h-18 overflow-hidden">
           <svg className="w-full h-full" viewBox="0 0 100 50">
-            {/* 1. Background Gray Track */}
-            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#E2E8F0" strokeWidth="8" strokeLinecap="round" />
+            {/* Outer Gray Track */}
+            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* 2. Target Track */}
-            <path d={getArcPath(percentTarget)} fill="none" stroke="#A7F3D0" strokeWidth="8" />
+            {/* Red Progress Arc */}
+            <path d={getArcPath(percentValue)} fill="none" stroke="#DC2626" strokeWidth="8" strokeLinecap="round" />
             
-            {/* 3. Achieved Track */}
-            <path d={getArcPath(percentValue)} fill="none" stroke={progressColor} strokeWidth="8" />
-            
-            {/* 4. Needle */}
+            {/* Needle */}
             <line 
               x1="50" 
               y1="50" 
@@ -99,13 +89,13 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
         </div>
 
         {/* Percentage Number */}
-        <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-amber-950 leading-none">{Math.round(value).toLocaleString('id-ID')} <span className="text-[10px] text-amber-500 font-bold">kkal</span></span>
+        <div className="text-center mt-1.5 z-10">
+          <span className="text-xl font-black text-slate-800 leading-none">{Math.round(value).toLocaleString('id-ID')} <span className="text-[10px] text-slate-400 font-bold">kkal</span></span>
         </div>
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-amber-700/60 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-red-800/80 mt-0.5">
         <span>0</span>
         <span>1.750</span>
         <span>3.500</span>
@@ -113,20 +103,20 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
 
       {/* Indicator Status Box */}
       <div className="w-full mt-2">
-        <div className={`text-center py-1 rounded-md border text-[9px] font-black tracking-wide shadow-sm ${statusColor}`}>
+        <div className={`text-center py-1.5 px-2 rounded-lg border text-[9px] font-black tracking-wide shadow-sm transition-all duration-300 ${statusColor}`}>
           {statusTitle.toUpperCase()}
         </div>
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-amber-800 font-bold mt-2">Target Nasional: 2.400</p>
+      <p className="text-[9px] text-red-900 font-bold mt-2">Target Nasional: 2.400</p>
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="absolute inset-0 bg-white/98 rounded-xl border border-amber-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-red-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
            {/* Header */}
-           <div className="flex items-center justify-between border-b border-amber-100 pb-2">
-              <div className="flex items-center gap-1.5 text-amber-600">
+           <div className="flex items-center justify-between border-b border-red-100 pb-2">
+              <div className="flex items-center gap-1.5 text-red-600">
                  <Sparkles className="w-4 h-4 animate-pulse" />
                  <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
               </div>
@@ -139,9 +129,9 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
               </p>
            </div>
            {/* Footer */}
-           <div className="border-t border-amber-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+           <div className="border-t border-red-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
               <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-              <button onClick={() => setShowAIModal(false)} className="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+              <button onClick={() => setShowAIModal(false)} className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
       )}

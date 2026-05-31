@@ -14,22 +14,18 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
 
   // Determine indicator text and style
   let statusTitle = 'Kurang';
-  let statusDesc = 'Ketersediaan protein pangan masih di bawah standar kebutuhan, mengindikasikan pasokan protein belum memadai dan dapat mempengaruhi kualitas konsumsi serta pemenuhan kebutuhan gizi penduduk.';
-  let statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
+  let statusColor = 'text-red-700 bg-red-50/90 border-red-200';
   
   if (value > 63) {
     statusTitle = 'Baik';
-    statusDesc = 'Ketersediaan protein pangan sudah memadai atau melampaui standar kebutuhan, menunjukkan pasokan protein relatif cukup untuk mendukung kualitas konsumsi dan pemenuhan kebutuhan gizi masyarakat.';
-    statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
+    statusColor = 'text-teal-700 bg-teal-50/90 border-teal-200';
   } else if (value >= 59 && value <= 63) {
     statusTitle = 'Sedang';
-    statusDesc = 'Ketersediaan protein pangan berada di sekitar tingkat kebutuhan standar, menunjukkan kecukupan pasokan protein relatif terpenuhi namun masih perlu dipertahankan dan ditingkatkan kualitas maupun keragamannya.';
-    statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
+    statusColor = 'text-amber-700 bg-amber-50/90 border-amber-200';
   }
 
   // Convert scale (0-120 g) to percentage (0-100) for drawing
   const percentValue = (value / maxScale) * 100;
-  const percentTarget = (target / maxScale) * 100; // 52.5%
 
   // Trigonometry to position the needle (range 0 to 100)
   const clampedPercent = Math.min(Math.max(percentValue, 0), 100);
@@ -38,7 +34,6 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
-  // SVG Paths
   const getArcPath = (vPercent: number) => {
     const clamped = Math.min(Math.max(vPercent, 0), 100);
     const endX = 50 - 35 * Math.cos((clamped / 100) * Math.PI);
@@ -46,41 +41,35 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
     return `M 15 50 A 35 35 0 0 1 ${endX} ${endY}`;
   };
 
-  const isBelowTarget = value < target;
-  const progressColor = isBelowTarget ? "#EF4444" : "#2563EB"; // Solid red or blue
-
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] p-4 rounded-xl shadow-sm border border-[#A7F3D0]/60 items-center justify-between group">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#0D9488] via-[#5EEAD4]/45 to-white/95 p-4 rounded-xl shadow-md border border-teal-200/50 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
         onClick={() => setShowAIModal(true)}
         title="Analisis AI GovTech"
-        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-emerald-200/50 hover:bg-white text-emerald-600 hover:text-emerald-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-teal-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-teal-100 z-10"
       >
         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
       </button>
 
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-widest leading-none">Ketersediaan Protein</h4>
-        <h3 className="text-xs font-bold text-emerald-900 mt-1 leading-tight">(gram/kapita/hari)</h3>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Ketersediaan Protein</h4>
+        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">(gram/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}
       <div className="relative w-full flex flex-col items-center justify-center pt-2">
         <div className="relative w-36 h-18 overflow-hidden">
           <svg className="w-full h-full" viewBox="0 0 100 50">
-            {/* 1. Background Gray Track */}
-            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#E2E8F0" strokeWidth="8" strokeLinecap="round" />
+            {/* Outer Gray Track */}
+            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* 2. Target Track */}
-            <path d={getArcPath(percentTarget)} fill="none" stroke="#A7F3D0" strokeWidth="8" />
+            {/* Teal Progress Arc */}
+            <path d={getArcPath(percentValue)} fill="none" stroke="#0D9488" strokeWidth="8" strokeLinecap="round" />
             
-            {/* 3. Achieved Track */}
-            <path d={getArcPath(percentValue)} fill="none" stroke={progressColor} strokeWidth="8" />
-            
-            {/* 4. Needle */}
+            {/* Needle */}
             <line 
               x1="50" 
               y1="50" 
@@ -99,13 +88,13 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
         </div>
 
         {/* Percentage Number */}
-        <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-emerald-950 leading-none">{value.toFixed(1)} <span className="text-[10px] text-emerald-500 font-bold">g</span></span>
+        <div className="text-center mt-1.5 z-10">
+          <span className="text-xl font-black text-slate-800 leading-none">{value.toFixed(1)} <span className="text-[10px] text-slate-400 font-bold">g</span></span>
         </div>
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-emerald-700/60 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-teal-800/80 mt-0.5">
         <span>0</span>
         <span>60</span>
         <span>120</span>
@@ -113,20 +102,20 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
 
       {/* Indicator Status Box */}
       <div className="w-full mt-2">
-        <div className={`text-center py-1 rounded-md border text-[9px] font-black tracking-wide shadow-sm ${statusColor}`}>
+        <div className={`text-center py-1.5 px-2 rounded-lg border text-[9px] font-black tracking-wide shadow-sm transition-all duration-300 ${statusColor}`}>
           {statusTitle.toUpperCase()}
         </div>
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-emerald-800 font-bold mt-2">Target Nasional: 63</p>
+      <p className="text-[9px] text-teal-900 font-bold mt-2">Target Nasional: 63</p>
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="absolute inset-0 bg-white/98 rounded-xl border border-emerald-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-teal-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
            {/* Header */}
-           <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
-              <div className="flex items-center gap-1.5 text-emerald-600">
+           <div className="flex items-center justify-between border-b border-teal-100 pb-2">
+              <div className="flex items-center gap-1.5 text-teal-600">
                  <Sparkles className="w-4 h-4 animate-pulse" />
                  <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
               </div>
@@ -141,7 +130,7 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
            {/* Footer */}
            <div className="border-t border-emerald-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
               <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-              <button onClick={() => setShowAIModal(false)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+              <button onClick={() => setShowAIModal(false)} className="bg-teal-600 hover:bg-teal-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
       )}

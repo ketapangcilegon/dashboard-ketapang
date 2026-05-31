@@ -12,14 +12,14 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
 
   // Determine status and style
   let statusText = 'HARGA STABIL';
-  let statusColor = 'text-emerald-800 bg-emerald-50/80 border-emerald-200';
+  let statusColor = 'text-blue-700 bg-blue-50/90 border-blue-200';
   
   if (value > 20) {
     statusText = 'HARGA BERGEJOLAK';
-    statusColor = 'text-rose-800 bg-rose-50/80 border-rose-200';
+    statusColor = 'text-red-700 bg-red-50/90 border-red-200';
   } else if (value > 10) {
     statusText = 'HARGA FLUKTUATIF';
-    statusColor = 'text-amber-800 bg-amber-50/80 border-amber-200';
+    statusColor = 'text-amber-700 bg-amber-50/90 border-amber-200';
   }
 
   // Trigonometry to position the needle (range 0 to 30)
@@ -29,22 +29,29 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
+  const getArcPath = (v: number) => {
+    const clamped = Math.min(Math.max(v, 0), 30);
+    const endX = 50 - 35 * Math.cos((clamped / 30) * Math.PI);
+    const endY = 50 - 35 * Math.sin((clamped / 30) * Math.PI);
+    return `M 15 50 A 35 35 0 0 1 ${endX} ${endY}`;
+  };
+
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#FFF1F2] to-[#FFE4E6] p-4 rounded-xl shadow-sm border border-[#FECDD3]/60 items-center justify-between group">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#2563EB] via-[#93C5FD]/45 to-white/95 p-4 rounded-xl shadow-md border border-blue-200/50 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
         onClick={() => setShowAIModal(true)}
         title="Analisis AI GovTech"
-        className="absolute top-3 right-3 p-1 rounded-lg bg-white/80 border border-rose-200/50 hover:bg-white text-rose-600 hover:text-rose-800 transition-all cursor-pointer shadow-sm hover:shadow active:scale-90 z-10"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-blue-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-blue-100 z-10"
       >
         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
       </button>
 
       {/* Header */}
       <div className="w-full text-left">
-        <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest leading-none">CV Koefisien Variasi</h4>
-        <h3 className="text-xs font-bold text-rose-900 mt-1 leading-tight">Harga Beras</h3>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">CV Koefisien Variasi</h4>
+        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">Harga Beras</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -52,16 +59,10 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
         <div className="relative w-36 h-18 overflow-hidden">
           <svg className="w-full h-full" viewBox="0 0 100 50">
             {/* Outer Gray Track */}
-            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#E2E8F0" strokeWidth="8" strokeLinecap="round" />
+            <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* Green (0-10) - Target Area */}
-            <path d="M 15 50 A 35 35 0 0 1 38.3 19.7" fill="none" stroke="#10B981" strokeWidth="8" />
-            
-            {/* Yellow (10-20) */}
-            <path d="M 38.3 19.7 A 35 35 0 0 1 61.7 19.7" fill="none" stroke="#F59E0B" strokeWidth="8" />
-            
-            {/* Red (20-30) */}
-            <path d="M 61.7 19.7 A 35 35 0 0 1 85 50" fill="none" stroke="#EF4444" strokeWidth="8" />
+            {/* Blue Progress Arc */}
+            <path d={getArcPath(value)} fill="none" stroke="#1D4ED8" strokeWidth="8" strokeLinecap="round" />
             
             {/* Dynamic Jarum Penunjuk (Needle) */}
             <line 
@@ -82,13 +83,13 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
         </div>
 
         {/* Percentage Number - absolute below the gauge center anchor */}
-        <div className="text-center mt-1 z-10">
-          <span className="text-xl font-black text-rose-950 leading-none">{value.toFixed(2)}%</span>
+        <div className="text-center mt-1.5 z-10">
+          <span className="text-xl font-black text-slate-800 leading-none">{value.toFixed(2)}%</span>
         </div>
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-rose-700/60 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-blue-800/80 mt-0.5">
         <span>0%</span>
         <span>15%</span>
         <span>30%</span>
@@ -102,14 +103,14 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-rose-800 font-bold mt-2">Target Nasional &lt; 10%</p>
+      <p className="text-[9px] text-blue-900 font-bold mt-2">Target Nasional &lt; 10%</p>
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="absolute inset-0 bg-white/98 rounded-xl border border-rose-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-blue-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
            {/* Header */}
-           <div className="flex items-center justify-between border-b border-rose-100 pb-2">
-              <div className="flex items-center gap-1.5 text-rose-600">
+           <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+              <div className="flex items-center gap-1.5 text-blue-600">
                  <Sparkles className="w-4 h-4 animate-pulse" />
                  <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
               </div>
@@ -122,9 +123,9 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
               </p>
            </div>
            {/* Footer */}
-           <div className="border-t border-rose-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+           <div className="border-t border-blue-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
               <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-              <button onClick={() => setShowAIModal(false)} className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+              <button onClick={() => setShowAIModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
       )}
