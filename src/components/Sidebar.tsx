@@ -37,7 +37,7 @@ export default function Sidebar({ currentView = 'beranda', setCurrentView = () =
     },
     { 
       icon: ExternalLink, 
-      label: 'Serumpun Padi : Pertanian', 
+      label: 'Serumpun Padi : Dashboard Pertanian dan Kelautan', 
       view: 'serumpun',
       url: 'https://serumpunpadi.web.id/'
     },
@@ -88,8 +88,8 @@ export default function Sidebar({ currentView = 'beranda', setCurrentView = () =
                   isActive ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} />
-                <span className="text-[11px] font-black tracking-wide uppercase leading-none">{item.label}</span>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} />
+                <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1">{item.label}</span>
               </a>
             );
           })}
