@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight, Leaf } from 'lucide-react';
 
 interface SidebarProps {
   currentView?: string;
@@ -91,10 +91,10 @@ export default function Sidebar({
       )}
 
       <div>
-        {/* Yellow 'D' on Green Circle Header Icon */}
+        {/* Leaf Green Circle Header Icon */}
         <div className={`px-6 mb-8 flex items-center gap-3 ${isCollapsed ? 'justify-center px-0' : ''}`}>
           <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center shrink-0 border border-emerald-400 shadow-md">
-             <span className="text-yellow-300 text-sm font-black tracking-tight">D</span>
+             <Leaf className="w-4 h-4 text-white" />
           </div>
           {!isCollapsed && (
             <div className="animate-in fade-in duration-300">

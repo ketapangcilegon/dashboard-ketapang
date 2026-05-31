@@ -694,7 +694,7 @@ export default function DashboardPage() {
       <div className="flex flex-col flex-1 overflow-hidden relative">
         
         {/* Eye-catching Professional Green Gradient Header Wrapper (Mockup Match) */}
-        <div className="bg-gradient-to-r from-[#03593b] via-[#047857] to-[#10b981] text-white print:hidden pb-6 shadow-md relative z-10 border-b border-emerald-800/10">
+        <div className="bg-gradient-to-r from-[#03593b] via-[#047857] to-[#10b981] text-white print:hidden pb-1 shadow-md relative z-10 border-b border-emerald-800/10">
           <Navbar 
             selectedKecamatan={selectedKecamatan}
             setSelectedKecamatan={setSelectedKecamatan}
@@ -706,23 +706,6 @@ export default function DashboardPage() {
             setSelectedMonth={setSelectedMonth}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
           />
-          
-          {/* Dynamic Leaf Banner Card (Mockup Match) */}
-          <div className="px-6 mx-auto w-full max-w-[1600px] mt-1 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 border border-emerald-500/10 shadow-lg flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center shrink-0 shadow-md text-white border border-emerald-400">
-                <Leaf className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-slate-800 text-xs sm:text-sm font-black leading-snug">
-                  Data dan analitik untuk mendukung ketahanan pangan dan mengurangi ketergantungan konsumsi beras.
-                </p>
-                <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-0.5">
-                  Sistem Informasi Pemantauan Pangan Strategis • Pemerintah Kota Cilegon
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">

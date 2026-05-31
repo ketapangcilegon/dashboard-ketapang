@@ -11,19 +11,29 @@ export default function Icon() {
     (
       <div
         style={{
-          fontSize: 20,
-          background: '#047857', // dark green
+          background: '#10B981', // emerald green background
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#FDE047', // yellow
-          fontWeight: 900,
           borderRadius: '50%',
+          padding: '4px',
         }}
       >
-        D
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 9.8a7 7 0 0 1-9 8.2Z" />
+          <path d="M19 2c-2.26 4.33-5.27 7.14-8 10" />
+        </svg>
       </div>
     ),
     {
