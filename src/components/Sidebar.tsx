@@ -57,6 +57,11 @@ export default function Sidebar({
       label: 'DSS FSVA : Otomasi Peta', 
       view: 'dss_fsva',
       url: 'https://dss-fsva.vercel.app/'
+    },
+    { 
+      icon: FileText, 
+      label: 'Analisis SKPG', 
+      view: 'analisis_skpg'
     }
   ];
 

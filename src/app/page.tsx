@@ -16,6 +16,7 @@ import HargaPanel from '@/components/HargaPanel';
 import PoUTrendChart from '@/components/PoUTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import AIInsightPanel from '@/components/AIInsightPanel';
+import AnalisisSKPG from '@/components/AnalisisSKPG';
 import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
@@ -1321,6 +1322,10 @@ export default function DashboardPage() {
                   </div>
                 );
               })()}
+              
+              {currentView === 'analisis_skpg' && (
+                <AnalisisSKPG />
+              )}
               
             </div>
           )}

@@ -16,12 +16,11 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'gizi' | 'balita' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
+type DataType = 'harga' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
   { value: 'harga', label: 'Harga Pangan' },
-  { value: 'balita', label: 'Balita & GPM' },
   { value: 'gizi_balita', label: 'Gizi Balita Kel' },
   { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
@@ -54,37 +53,6 @@ export default function UploadPanel() {
     telur: 30400,
     gula: 16000,
     cabai: 45000,
-  });
-
-  // Form State: Gizi & Demografi
-  const [giziForm, setGiziForm] = useState({
-    tahun: 2025,
-    pendudukLaki: 5000,
-    pendudukPerempuan: 4900,
-    luasSawah: 25.5,
-    luasWilayah: 200.0,
-    pph: 92.5,
-    stunting: 8.5,
-    pou: 2.5,
-    airBersih: 98.0,
-    miskin: 12.5,
-    gkg: 150.0,
-    jagung: 10.0,
-    ubiKayu: 15.0,
-    ubiJalar: 5.0,
-  });
-
-  // Form State: Balita & GPM
-  const [balitaForm, setBalitaForm] = useState({
-    tahun: 2026,
-    bulan: 2,
-    sangatKurang: 30,
-    kurang: 120,
-    normal: 3500,
-    lebih: 100,
-    status: 'AMAN',
-    gpm: 1,
-    bantuan: 1400,
   });
 
   // Form State: POU Data (Nasional, Provinsi Banten, Kota Cilegon)
@@ -171,28 +139,6 @@ export default function UploadPanel() {
       let filename = '';
 
       if (type === 'harga') {
-        filename = 'template_harga_pangan.xlsx';
-        headers = ['Tanggal', 'Kecamatan', 'Kelurahan', 'Beras', 'Minyak', 'Telur', 'Gula', 'Cabai'];
-        sampleData = [
-          ['2026-05-28', 'Cibeber', 'Cibeber', 13500, 22000, 30400, 16000, 45000],
-          ['2026-05-28', 'Cibeber', 'Kedaleman', 13500, 22000, 30400, 16000, 45000],
-        ];
-      } else if (type === 'gizi') {
-        filename = 'template_gizi_demografi.xlsx';
-        headers = [
-          'Tahun', 'Kecamatan', 'Kelurahan', 'Penduduk Laki', 'Penduduk Perempuan', 
-          'Luas Sawah', 'Luas Wilayah', 'PPH', 'Stunting', 'PoU', 'Air Bersih', 
-          'Miskin', 'GKG', 'Jagung', 'Ubi Kayu', 'Ubi Jalar'
-        ];
-        sampleData = [
-          [2025, 'Cibeber', 'Cibeber', 11761, 11570, 31.5, 239.0, 92.65, 2.18, 1.798, 97.82, 2.18, 602.62, 20.53, 65.68, 5.25],
-        ];
-      } else if (type === 'balita') {
-        filename = 'template_balita_gpm.xlsx';
-        headers = ['Tahun', 'Bulan', 'Kecamatan', 'BB Sangat Kurang', 'BB Kurang', 'BB Normal', 'BB Lebih', 'Status', 'Kegiatan GPM', 'Bantuan'];
-        sampleData = [
-          [2026, 2, 'Cibeber', 47, 132, 3731, 102, 'AMAN', 1, 1420],
-        ];
       } else if (type === 'pou') {
         filename = 'template_grafik_pou.xlsx';
         headers = ['Tahun', 'POU Nasional', 'POU Provinsi Banten', 'POU Cilegon'];
@@ -341,68 +287,6 @@ export default function UploadPanel() {
           });
 
           if (error) throw error;
-
-        } else if (selectedType === 'gizi') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const kec = row['Kecamatan'] || 'Cibeber';
-          const kel = row['Kelurahan'] || 'Cibeber';
-          const l = parseInt(row['Penduduk Laki']) || 0;
-          const p = parseInt(row['Penduduk Perempuan']) || 0;
-          const airBersih = parseFloat(row['Air Bersih']) || 100;
-          const miskin = parseFloat(row['Miskin']) || 0;
-
-          const { error } = await supabase.from('gizi_masyarakat').insert({
-            tahun,
-            kecamatan: kec.trim(),
-            kelurahan: kel.trim(),
-            penduduk_laki: l,
-            penduduk_perempuan: p,
-            penduduk_total: l + p,
-            luas_sawah: parseFloat(row['Luas Sawah']) || 0,
-            luas_wilayah: parseFloat(row['Luas Wilayah']) || 0,
-            skor_pph: parseFloat(row['PPH']) || 0,
-            prevalensi_stunting: parseFloat(row['Stunting']) || 0,
-            pou: parseFloat(row['PoU']) || 0,
-            rt_tanpa_air_bersih_persen: Math.max(0, 100 - airBersih),
-            rt_miskin_persen: miskin,
-            produksi_gkg: parseFloat(row['GKG']) || 0,
-            produksi_jagung: parseFloat(row['Jagung']) || 0,
-            produksi_ubi_kayu: parseFloat(row['Ubi Kayu']) || 0,
-            produksi_ubi_jalar: parseFloat(row['Ubi Jalar']) || 0,
-            konsumsi_energi_kkal: 2050, // Rich defaults
-            standar_energi: 2100,
-            konsumsi_protein_gram: 20,
-            standar_protein_hewani: 25,
-            perempuan_sekolah_persen: 92,
-          });
-
-          if (error) throw error;
-
-        } else if (selectedType === 'balita') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const bulan = parseInt(row['Bulan']) || 1;
-          const kec = row['Kecamatan'] || 'Cibeber';
-          const sangatKurang = parseInt(row['BB Sangat Kurang']) || 0;
-          const kurang = parseInt(row['BB Kurang']) || 0;
-          const normal = parseInt(row['BB Normal']) || 0;
-          const lebih = parseInt(row['BB Lebih']) || 0;
-          const status = row['Status'] || 'AMAN';
-          const gpm = parseInt(row['Kegiatan GPM']) || 0;
-          const bantuan = parseInt(row['Bantuan']) || 0;
-
-          // Insert into balita_gizi
-          const { error: errorBalita } = await supabase.from('balita_gizi').insert({
-            tahun,
-            bulan,
-            kecamatan: kec.trim(),
-            sangat_kurang: sangatKurang,
-            kurang,
-            normal,
-            lebih,
-            status,
-          });
-          if (errorBalita) throw errorBalita;
-
 
         } else if (selectedType === 'pou') {
           const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
@@ -628,53 +512,6 @@ export default function UploadPanel() {
         });
         if (error) throw error;
 
-      } else if (selectedType === 'gizi') {
-        const {
-          tahun, pendudukLaki, pendudukPerempuan, luasSawah, luasWilayah,
-          pph, stunting, pou, airBersih, miskin, gkg, jagung, ubiKayu, ubiJalar
-        } = giziForm;
-
-        const { error } = await supabase.from('gizi_masyarakat').insert({
-          tahun,
-          kecamatan,
-          kelurahan,
-          penduduk_laki: pendudukLaki,
-          penduduk_perempuan: pendudukPerempuan,
-          penduduk_total: pendudukLaki + pendudukPerempuan,
-          luas_sawah: luasSawah,
-          luas_wilayah: luasWilayah,
-          skor_pph: pph,
-          prevalensi_stunting: stunting,
-          pou,
-          rt_tanpa_air_bersih_persen: Math.max(0, 100 - airBersih),
-          rt_miskin_persen: miskin,
-          produksi_gkg: gkg,
-          produksi_jagung: jagung,
-          produksi_ubi_kayu: ubiKayu,
-          produksi_ubi_jalar: ubiJalar,
-          konsumsi_energi_kkal: 2050,
-          standar_energi: 2100,
-          konsumsi_protein_gram: 20,
-          standar_protein_hewani: 25,
-          perempuan_sekolah_persen: 92,
-        });
-        if (error) throw error;
-
-      } else if (selectedType === 'balita') {
-        const { tahun, bulan, sangatKurang, kurang, normal, lebih, status: statusGizi, gpm, bantuan } = balitaForm;
-
-        const { error: errorBalita } = await supabase.from('balita_gizi').insert({
-          tahun,
-          bulan,
-          kecamatan,
-          sangat_kurang: sangatKurang,
-          kurang,
-          normal,
-          lebih,
-          status: statusGizi,
-        });
-        if (errorBalita) throw errorBalita;
-
       } else if (selectedType === 'pou') {
         const { tahun, nasional, provinsi, cilegon } = pouForm;
         const { error } = await supabase.from('pou_data').upsert({
@@ -815,9 +652,7 @@ export default function UploadPanel() {
             </div>
 
             <div>
-              <h3 className="text-xl font-bold text-slate-800">
-                Upload {selectedType === 'harga' ? 'Harga Pangan Strategis' : selectedType === 'gizi' ? 'Gizi & Demografi Kelurahan' : selectedType === 'balita' ? 'Balita & Intervensi GPM' : selectedType === 'pou' ? 'Data POU Lintas Tahun' : selectedType === 'cv_beras' ? 'Data CV Beras Lintas Tahun' : selectedType === 'pph' ? 'Data Skor PPH Lintas Tahun' : selectedType === 'k_energi' ? 'Data Konsumsi Energi' : selectedType === 'k_protein' ? 'Data Konsumsi Protein' : selectedType === 't_energi' ? 'Data Ketersediaan Energi' : selectedType === 't_protein' ? 'Data Ketersediaan Protein' : 'Data Produksi Beras Lokal'}
-              </h3>
+                Upload {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi_balita' ? 'Gizi Balita Kel' : selectedType === 'intervensi_kelurahan' ? 'Intervensi Kel' : selectedType === 'fsva_matang' ? 'FSVA Matang' : selectedType === 'skpg_matang' ? 'SKPG Matang' : selectedType === 'pou' ? 'POU' : selectedType === 'cv_beras' ? 'CV Beras' : selectedType === 'pph' ? 'Skor PPH' : selectedType === 'k_energi' ? 'Konsumsi Energi' : selectedType === 'k_protein' ? 'Konsumsi Protein' : selectedType === 't_energi' ? 'Ketersediaan Energi' : selectedType === 't_protein' ? 'Ketersediaan Protein' : 'Produksi Beras'} Template
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
               </p>
@@ -875,7 +710,7 @@ export default function UploadPanel() {
                   </select>
                 </div>
 
-                {selectedType !== 'balita' && (
+                {selectedType === 'harga' && (
                   <div>
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kelurahan</label>
                     <select
@@ -958,279 +793,7 @@ export default function UploadPanel() {
               </div>
             )}
 
-            {selectedType === 'gizi' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun Rilis</label>
-                    <input
-                      type="number"
-                      required
-                      value={giziForm.tahun}
-                      onChange={(e) => setGiziForm({ ...giziForm, tahun: parseInt(e.target.value) || 2025 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Penduduk Laki-laki (Jiwa)</label>
-                    <input
-                      type="number"
-                      required
-                      value={giziForm.pendudukLaki}
-                      onChange={(e) => setGiziForm({ ...giziForm, pendudukLaki: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Penduduk Perempuan (Jiwa)</label>
-                    <input
-                      type="number"
-                      required
-                      value={giziForm.pendudukPerempuan}
-                      onChange={(e) => setGiziForm({ ...giziForm, pendudukPerempuan: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Luas Sawah (Ha)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.luasSawah}
-                      onChange={(e) => setGiziForm({ ...giziForm, luasSawah: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Luas Wilayah (Ha)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.luasWilayah}
-                      onChange={(e) => setGiziForm({ ...giziForm, luasWilayah: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">PPH (Skor)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.pph}
-                      onChange={(e) => setGiziForm({ ...giziForm, pph: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Prevalensi Stunting (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.stunting}
-                      onChange={(e) => setGiziForm({ ...giziForm, stunting: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">PoU (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.pou}
-                      onChange={(e) => setGiziForm({ ...giziForm, pou: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Akses Air Bersih (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.airBersih}
-                      onChange={(e) => setGiziForm({ ...giziForm, airBersih: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Masyarakat Miskin (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.miskin}
-                      onChange={(e) => setGiziForm({ ...giziForm, miskin: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi GKG (Ton)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.gkg}
-                      onChange={(e) => setGiziForm({ ...giziForm, gkg: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi Jagung (Ton)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.jagung}
-                      onChange={(e) => setGiziForm({ ...giziForm, jagung: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi Ubi Kayu (Ton)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.ubiKayu}
-                      onChange={(e) => setGiziForm({ ...giziForm, ubiKayu: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Produksi Ubi Jalar (Ton)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={giziForm.ubiJalar}
-                      onChange={(e) => setGiziForm({ ...giziForm, ubiJalar: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedType === 'balita' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun Rilis</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.tahun}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, tahun: parseInt(e.target.value) || 2026 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Bulan</label>
-                    <select
-                      value={balitaForm.bulan}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, bulan: parseInt(e.target.value) || 1 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 transition-all"
-                    >
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>Bulan {i + 1}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Status Gizi Balita</label>
-                    <select
-                      value={balitaForm.status}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, status: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 transition-all"
-                    >
-                      <option value="AMAN">AMAN</option>
-                      <option value="WASPADA">WASPADA</option>
-                      <option value="AWAS">AWAS</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">BB Sangat Kurang (Balita)</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.sangatKurang}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, sangatKurang: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">BB Kurang (Balita)</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.kurang}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, kurang: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">BB Normal (Balita)</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.normal}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, normal: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">BB Lebih (Balita)</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.lebih}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, lebih: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Jumlah Kegiatan GPM</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.gpm}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, gpm: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Bantuan Pangan (Jiwa)</label>
-                    <input
-                      type="number"
-                      required
-                      value={balitaForm.bantuan}
-                      onChange={(e) => setBalitaForm({ ...balitaForm, bantuan: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {selectedType === 'pou' && (
               <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">

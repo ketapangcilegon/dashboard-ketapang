@@ -56,11 +56,21 @@ export default function EntryPage() {
       )}
 
       <div className="flex flex-col flex-1 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-blue-50 to-transparent z-0 opacity-70 pointer-events-none"></div>
+        {!isLoggedIn && (
+          <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-blue-50 to-transparent z-0 opacity-70 pointer-events-none"></div>
+        )}
         
-        {isLoggedIn && <Navbar />}
+        {isLoggedIn && (
+          <div className="bg-gradient-to-r from-[#03593b] via-[#047857] to-[#10b981] text-white print:hidden pb-1 shadow-md relative z-10 border-b border-emerald-800/10">
+            <Navbar />
+          </div>
+        )}
         
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10 flex items-center justify-center">
+        <main className={`flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10 flex ${
+          !isLoggedIn 
+            ? 'items-center justify-center' 
+            : 'flex-col items-center justify-start pt-20 pb-16'
+        }`}>
           {!isLoggedIn ? (
             /* GLASSMORPHISM PREMIUM LOGIN CARD */
             <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 relative z-20 transition-all duration-300">
