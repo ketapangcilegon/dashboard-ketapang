@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowUp, Minus, Loader2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface HargaPanelProps {
   hargaData: any[];
@@ -170,19 +170,20 @@ export default function HargaPanel({
           {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
         </p>
 
-        {/* Date Happing Back and Forward Navigation Row (Mockup Match) */}
-        <div className="mt-2 flex items-center justify-between bg-white/70 border border-emerald-100 p-1.5 rounded-xl gap-2 w-full">
+        {/* Date Hopping Back and Forward Navigation Row (Mockup Match) */}
+        <div className="mt-2 flex items-center justify-between bg-white border border-[#E6FDF4] p-1.5 rounded-2xl w-full shadow-sm">
           {/* Back Button */}
           <button
             onClick={() => setDateIndex(prev => Math.max(0, prev - 1))}
-            className="flex items-center gap-1 px-3 py-1 rounded bg-white border border-emerald-500 hover:border-emerald-600 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all text-[9px] font-black cursor-pointer shrink-0 shadow-sm"
+            className="w-7 h-7 rounded-full bg-[#10B981] hover:bg-[#0B7A53] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer shrink-0 border-none"
+            title="Tanggal Sebelumnya"
           >
-            ← Sebelumnya
+            <ChevronLeft className="w-4 h-4 stroke-[3]" />
           </button>
           
           {/* Calendar Display */}
-          <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-700 uppercase tracking-wide">
-            <span className="text-xs">📅</span>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-slate-700 uppercase tracking-wide">
+            <span className="text-sm">📅</span>
             <span>{formatIndoDate(dates[dateIndex])}</span>
           </div>
 
@@ -190,13 +191,14 @@ export default function HargaPanel({
           <button
             onClick={() => setDateIndex(prev => Math.min(dates.length - 1, prev + 1))}
             disabled={dateIndex === dates.length - 1}
-            className={`flex items-center gap-1 px-3 py-1 rounded text-[9px] font-black border transition-all shrink-0 cursor-pointer shadow-sm ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 border-none ${
               dateIndex === dates.length - 1
-                ? 'bg-slate-100/80 border-slate-200 text-slate-400 cursor-not-allowed opacity-50'
-                : 'bg-white border-emerald-500 hover:border-emerald-600 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95'
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60 shadow-inner'
+                : 'bg-[#10B981] hover:bg-[#0B7A53] text-white hover:scale-105 active:scale-95 shadow-sm cursor-pointer'
             }`}
+            title="Tanggal Berikutnya"
           >
-            Berikutnya →
+            <ChevronRight className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
       </div>
@@ -205,7 +207,7 @@ export default function HargaPanel({
       <div className="flex-1 mt-3 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-[#0B7A53]/10 text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider">
+            <tr className="border-b border-[#0B7A53]/10 text-[8px] sm:text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider">
               <th className="pb-1.5 font-bold w-[35%]">Komoditas</th>
               <th className="pb-1.5 font-bold text-right w-[25%]">Harga Rata-Rata</th>
               <th className="pb-1.5 font-bold text-right w-[22%]">Perubahan (YoY)</th>
@@ -217,20 +219,20 @@ export default function HargaPanel({
               const stats = getYoYStats(c.curr, c.prev);
               return (
                 <tr key={i} className="hover:bg-white/40 transition-colors">
-                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-xs font-bold whitespace-normal break-words leading-tight">
-                    <span className="text-sm shrink-0">{c.emoji}</span>
+                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-[10px] sm:text-xs font-bold whitespace-normal break-words leading-tight">
+                    <span className="text-xs sm:text-sm shrink-0">{c.emoji}</span>
                     <span>{c.name}</span>
                   </td>
-                  <td className="py-2 text-right font-extrabold text-slate-800 text-xs whitespace-nowrap">
+                  <td className="py-2 text-right font-extrabold text-slate-800 text-[10px] sm:text-xs whitespace-nowrap">
                     Rp {Math.round(c.curr).toLocaleString('id-ID')}
                   </td>
                   <td className="py-2 text-right">
-                    <span className={`text-[10px] font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    <span className={`text-[9px] sm:text-[10px] font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {stats.changeText}
                     </span>
                   </td>
                   <td className="py-2 text-right pr-1">
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
+                    <span className={`text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
                       {stats.status}
                     </span>
                   </td>
