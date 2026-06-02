@@ -1007,51 +1007,51 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW 1: IKP (1/4 Width), PoU (1/4 Width) & AI Insight Panel (2/4 Width) */}
+                  {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                    {/* IKP Chart - Span 3 */}
-                    <div className="lg:col-span-3 flex flex-col print:col-span-12">
+                    {/* IKP Chart - Span 6 */}
+                    <div className="lg:col-span-6 flex flex-col print:col-span-6">
                       <IKPTrendChart ikpData={ikpData} selectedYear={selectedYear} />
                     </div>
 
-                    {/* PoU Chart - Span 3 */}
-                    <div className="lg:col-span-3 flex flex-col print:col-span-12 print:break-before-page">
+                    {/* PoU Chart - Span 6 */}
+                    <div className="lg:col-span-6 flex flex-col print:col-span-6 print:break-before-page">
                       <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
-                    </div>
-
-                    {/* AI Insight Panel - Span 6 */}
-                    <div className="lg:col-span-6 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
-                      <AIInsightPanel 
-                        year={selectedYear}
-                        month={selectedMonth}
-                        kecamatan={selectedKecamatan}
-                        kelurahan={selectedKelurahan}
-                        cvBeras={getCVValue()}
-                        pphScore={getPPHValue()}
-                        konsumsiEnergi={getKonsumsiEnergiValue()}
-                        konsumsiProtein={getKonsumsiProteinValue()}
-                        ketersediaanEnergi={getKetersediaanEnergiValue()}
-                        ketersediaanProtein={getKetersediaanProteinValue()}
-                        produksiBeras={
-                          produksiBerasList.find(x => x.tahun === selectedYear)
-                            ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
-                            : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
-                        }
-                        balitaStatus={getBalitaData()}
-                        hargaStrategis={{
-                          beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
-                          minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
-                          telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
-                          gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
-                          cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
-                        }}
-                        loadingPrices={loadingLive}
-                      />
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
-                  <div className="w-full print:hidden">
+                  {/* BOTTOM ROW 2: AI Insight Panel (Full Width) */}
+                  <div className="w-full mt-6 print:mt-6 print:break-before-page">
+                    <AIInsightPanel 
+                      year={selectedYear}
+                      month={selectedMonth}
+                      kecamatan={selectedKecamatan}
+                      kelurahan={selectedKelurahan}
+                      cvBeras={getCVValue()}
+                      pphScore={getPPHValue()}
+                      konsumsiEnergi={getKonsumsiEnergiValue()}
+                      konsumsiProtein={getKonsumsiProteinValue()}
+                      ketersediaanEnergi={getKetersediaanEnergiValue()}
+                      ketersediaanProtein={getKetersediaanProteinValue()}
+                      produksiBeras={
+                        produksiBerasList.find(x => x.tahun === selectedYear)
+                          ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                          : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+                      }
+                      balitaStatus={getBalitaData()}
+                      hargaStrategis={{
+                        beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+                        minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
+                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
+                        gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                        cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
+                      }}
+                      loadingPrices={loadingLive}
+                    />
+                  </div>
+
+                  {/* BOTTOM ROW 3: Benchmark Panel (Full Width, directly below) */}
+                  <div className="w-full mt-6 print:hidden">
                     <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
                   </div>
                 </>

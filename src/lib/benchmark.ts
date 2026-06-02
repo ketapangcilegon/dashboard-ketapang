@@ -49,14 +49,14 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
   },
   {
     no: 6,
-    indicator: 'Jumlah Ketersediaan Energi',
+    indicator: 'Tingkat Ketersediaan Energi',
     unit: 'kkal/kapita/hari',
     nationalStandard: 2400,
     history: { '2021': 2525, '2022': 2529, '2023': 2582, '2024': 2582 }
   },
   {
     no: 7,
-    indicator: 'Jumlah Ketersediaan Protein',
+    indicator: 'Tingkat Ketersediaan Protein',
     unit: 'gram/kapita/hari',
     nationalStandard: 63,
     history: { '2021': 92, '2022': 81, '2023': 85, '2024': 85 }
