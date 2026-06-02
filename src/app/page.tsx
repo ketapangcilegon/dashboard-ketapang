@@ -14,6 +14,7 @@ import BalitaDoughnut from '@/components/BalitaDoughnut';
 import ProduksiLokalChart from '@/components/ProduksiLokalChart';
 import HargaPanel from '@/components/HargaPanel';
 import PoUTrendChart from '@/components/PoUTrendChart';
+import IKPTrendChart from '@/components/IKPTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import AIInsightPanel from '@/components/AIInsightPanel';
 import AnalisisSKPG from '@/components/AnalisisSKPG';
@@ -227,6 +228,7 @@ export default function DashboardPage() {
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [pouData, setPouData] = useState<any[]>([]);
+  const [ikpData, setIkpData] = useState<any[]>([]);
 
   // New Data States for the annual indicators
   const [cvBerasList, setCvBerasList] = useState<any[]>([]);
@@ -567,6 +569,14 @@ export default function DashboardPage() {
           setPouData(pou || []);
         } catch (pouErr) {
           console.warn('Table pou_data might not exist yet:', pouErr);
+        }
+
+        // 6.0 Fetch IKP Lintas Tahun
+        try {
+          const { data: ikp } = await supabase.from('ikp_data').select('*').order('tahun', { ascending: true });
+          setIkpData(ikp || []);
+        } catch (ikpErr) {
+          console.warn('Table ikp_data might not exist yet:', ikpErr);
         }
 
         // 6.1 Fetch CV Beras
@@ -997,15 +1007,20 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW 1: PoU (1/4 Width) & AI Insight Panel (3/4 Width) */}
+                  {/* BOTTOM ROW 1: IKP (1/4 Width), PoU (1/4 Width) & AI Insight Panel (2/4 Width) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
+                    {/* IKP Chart - Span 3 */}
+                    <div className="lg:col-span-3 flex flex-col print:col-span-12">
+                      <IKPTrendChart ikpData={ikpData} selectedYear={selectedYear} />
+                    </div>
+
                     {/* PoU Chart - Span 3 */}
                     <div className="lg:col-span-3 flex flex-col print:col-span-12 print:break-before-page">
                       <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
                     </div>
 
-                    {/* AI Insight Panel - Span 9 */}
-                    <div className="lg:col-span-9 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
+                    {/* AI Insight Panel - Span 6 */}
+                    <div className="lg:col-span-6 flex flex-col print:col-span-12 print:mt-6 print-card-grow">
                       <AIInsightPanel 
                         year={selectedYear}
                         month={selectedMonth}

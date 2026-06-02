@@ -16,7 +16,7 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
+type DataType = 'harga' | 'pou' | 'ikp' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
@@ -24,6 +24,7 @@ const DATA_TYPES = [
   { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
   { value: 'skpg_matang', label: 'SKPG Matang' },
+  { value: 'ikp', label: 'Grafik IKP' },
   { value: 'pou', label: 'Grafik POU' },
   { value: 'cv_beras', label: 'CV Beras' },
   { value: 'pph', label: 'Skor PPH' },
@@ -60,6 +61,14 @@ export default function UploadPanel() {
     nasional: 7.89,
     provinsi: 2.88,
     cilegon: 2.78
+  });
+
+  // Form State: IKP Data (Cilegon, Provinsi, Nasional)
+  const [ikpForm, setIkpForm] = useState({
+    tahun: 2025,
+    cilegon: 76.15,
+    provinsi: 77.78,
+    nasional: 73.00
   });
 
   // Form State: CV Beras
@@ -138,6 +147,12 @@ export default function UploadPanel() {
       let filename = '';
 
       if (type === 'harga') {
+      } else if (type === 'ikp') {
+        filename = 'template_grafik_ikp.xlsx';
+        headers = ['Tahun', 'IKP Cilegon', 'IKP Provinsi Banten', 'IKP Nasional'];
+        sampleData = [
+          [2025, 76.15, 77.78, 73.00],
+        ];
       } else if (type === 'pou') {
         filename = 'template_grafik_pou.xlsx';
         headers = ['Tahun', 'POU Nasional', 'POU Provinsi Banten', 'POU Cilegon'];
@@ -285,8 +300,20 @@ export default function UploadPanel() {
             cv_harga: cv,
           });
 
-          if (error) throw error;
+        } else if (selectedType === 'ikp') {
+          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+          const ikpCilegon = parseFloat(row['IKP Cilegon']) || 0;
+          const ikpProvinsi = row['IKP Provinsi Banten'] !== undefined && row['IKP Provinsi Banten'] !== '' ? parseFloat(row['IKP Provinsi Banten']) : (row['IKP Banten'] !== undefined && row['IKP Banten'] !== '' ? parseFloat(row['IKP Banten']) : null);
+          const ikpNasional = row['IKP Nasional'] !== undefined && row['IKP Nasional'] !== '' ? parseFloat(row['IKP Nasional']) : null;
 
+          const { error } = await supabase.from('ikp_data').upsert({
+            tahun,
+            ikp_cilegon: ikpCilegon,
+            ikp_provinsi: ikpProvinsi,
+            ikp_nasional: ikpNasional,
+          }, { onConflict: 'tahun' });
+
+          if (error) throw error;
         } else if (selectedType === 'pou') {
           const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
           const pouNasional = parseFloat(row['POU Nasional']) || 0;
@@ -513,6 +540,15 @@ export default function UploadPanel() {
         });
         if (error) throw error;
 
+      } else if (selectedType === 'ikp') {
+        const { tahun, cilegon, provinsi, nasional } = ikpForm;
+        const { error } = await supabase.from('ikp_data').upsert({
+          tahun,
+          ikp_cilegon: cilegon,
+          ikp_provinsi: provinsi,
+          ikp_nasional: nasional
+        }, { onConflict: 'tahun' });
+        if (error) throw error;
       } else if (selectedType === 'pou') {
         const { tahun, nasional, provinsi, cilegon } = pouForm;
         const { error } = await supabase.from('pou_data').upsert({
@@ -653,7 +689,7 @@ export default function UploadPanel() {
             </div>
 
             <div>
-                Upload {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi_balita' ? 'Gizi Balita Kel' : selectedType === 'intervensi_kelurahan' ? 'Intervensi Kel' : selectedType === 'fsva_matang' ? 'FSVA Matang' : selectedType === 'skpg_matang' ? 'SKPG Matang' : selectedType === 'pou' ? 'POU' : selectedType === 'cv_beras' ? 'CV Beras' : selectedType === 'pph' ? 'Skor PPH' : selectedType === 'k_energi' ? 'Konsumsi Energi' : selectedType === 'k_protein' ? 'Konsumsi Protein' : selectedType === 't_energi' ? 'Ketersediaan Energi' : selectedType === 't_protein' ? 'Ketersediaan Protein' : 'Produksi Beras'} Template
+              Upload {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi_balita' ? 'Gizi Balita Kel' : selectedType === 'intervensi_kelurahan' ? 'Intervensi Kel' : selectedType === 'fsva_matang' ? 'FSVA Matang' : selectedType === 'skpg_matang' ? 'SKPG Matang' : selectedType === 'ikp' ? 'IKP' : selectedType === 'pou' ? 'POU' : selectedType === 'cv_beras' ? 'CV Beras' : selectedType === 'pph' ? 'Skor PPH' : selectedType === 'k_energi' ? 'Konsumsi Energi' : selectedType === 'k_protein' ? 'Konsumsi Protein' : selectedType === 't_energi' ? 'Ketersediaan Energi' : selectedType === 't_protein' ? 'Ketersediaan Protein' : 'Produksi Beras'} Template
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
               </p>
@@ -696,7 +732,7 @@ export default function UploadPanel() {
             </div>
 
             {/* Common Location Selectors (Hidden for City-wide Annual Data) */}
-            {!['pou', 'cv_beras', 'pph', 'k_energi', 'k_protein', 't_energi', 't_protein', 'produksi_beras'].includes(selectedType) && (
+            {!['pou', 'ikp', 'cv_beras', 'pph', 'k_energi', 'k_protein', 't_energi', 't_protein', 'produksi_beras'].includes(selectedType) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kecamatan</label>
@@ -795,6 +831,57 @@ export default function UploadPanel() {
             )}
 
 
+
+            {selectedType === 'ikp' && (
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-4">Metrik IKP Lintas Tahun</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun</label>
+                    <input
+                      type="number"
+                      required
+                      value={ikpForm.tahun}
+                      onChange={(e) => setIkpForm({ ...ikpForm, tahun: parseInt(e.target.value) || 2025 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">IKP Kota Cilegon</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={ikpForm.cilegon}
+                      onChange={(e) => setIkpForm({ ...ikpForm, cilegon: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">IKP Provinsi Banten</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={ikpForm.provinsi}
+                      onChange={(e) => setIkpForm({ ...ikpForm, provinsi: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">IKP Nasional</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={ikpForm.nasional || ''}
+                      onChange={(e) => setIkpForm({ ...ikpForm, nasional: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500"
+                      placeholder="N/A (Kosongkan jika tidak ada)"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {selectedType === 'pou' && (
               <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100">
