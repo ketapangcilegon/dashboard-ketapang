@@ -74,7 +74,7 @@ export default function ProduksiLokalChart({ produksiBerasData = [], selectedYea
       {/* Recharts Bar Chart - Centered by shifting left margin to -38 */}
       <div className="w-full h-20 mt-2 flex-1 z-10">
         <ResponsiveContainer width="99%" height="100%">
-          <BarChart data={chartData} margin={{ top: 2, right: 0, left: -38, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 0, left: -38, bottom: 0 }}>
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#475569', fontWeight: 'bold' }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#475569', fontWeight: 'bold' }} tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} />
             <Tooltip 
@@ -83,7 +83,13 @@ export default function ProduksiLokalChart({ produksiBerasData = [], selectedYea
               itemStyle={{ color: '#EA580C', fontWeight: 'bold', fontSize: '9px' }}
               formatter={(value: any) => [`${value.toLocaleString('id-ID')} ton`, 'Produksi']}
             />
-            <Bar dataKey="produksi" fill="#EA580C" radius={[4, 4, 0, 0]} barSize={12} />
+            <Bar 
+              dataKey="produksi" 
+              fill="#EA580C" 
+              radius={[4, 4, 0, 0]} 
+              barSize={12} 
+              label={{ position: 'top', fill: '#334155', fontSize: 6.5, fontWeight: 'bold', offset: 3 }}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

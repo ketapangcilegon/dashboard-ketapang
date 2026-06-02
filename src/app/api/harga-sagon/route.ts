@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import { supabase } from '@/lib/supabase';
 
 // Disable TLS verification to bypass self-signed SSL issues on government websites
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -195,54 +194,7 @@ export async function GET(request: Request) {
     }
   });
   
-  // Try to write to Supabase harga_pangan table for auto-archiving!
-  try {
-    // Check if entry for this date and kecamatan 'Kota Cilegon' already exists
-    const { data: existing } = await supabase
-      .from('harga_pangan')
-      .select('id')
-      .eq('tanggal', parsedDate)
-      .eq('kecamatan', 'Kota Cilegon')
-      .limit(1);
-      
-    const cvVal = 3.65; // standard CV base fallback
-    
-    if (existing && existing.length > 0) {
-      // Update
-      await supabase
-        .from('harga_pangan')
-        .update({
-          beras: prices.beras,
-          minyak_goreng: prices.minyak_goreng,
-          telur: prices.telur,
-          daging_ayam: prices.daging_ayam,
-          gula_pasir: prices.gula_pasir,
-          cabe_merah: prices.cabe_merah,
-          cv_harga: cvVal
-        })
-        .eq('tanggal', parsedDate)
-        .eq('kecamatan', 'Kota Cilegon');
-      console.log(`[SAGON Scraper] Updated Supabase table with 3-market average for date: ${parsedDate}`);
-    } else {
-      // Insert
-      await supabase
-        .from('harga_pangan')
-        .insert({
-          tanggal: parsedDate,
-          kecamatan: 'Kota Cilegon',
-          beras: prices.beras,
-          minyak_goreng: prices.minyak_goreng,
-          telur: prices.telur,
-          daging_ayam: prices.daging_ayam,
-          gula_pasir: prices.gula_pasir,
-          cabe_merah: prices.cabe_merah,
-          cv_harga: cvVal
-        });
-      console.log(`[SAGON Scraper] Inserted new 3-market average record to Supabase table for date: ${parsedDate}`);
-    }
-  } catch (supabaseErr) {
-    console.error(`[SAGON Scraper] Supabase auto-archive failed:`, supabaseErr);
-  }
+
   
   return NextResponse.json({
     success: true,

@@ -20,7 +20,6 @@ type DataType = 'harga' | 'pou' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' 
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
-  { value: 'harga', label: 'Harga Pangan' },
   { value: 'gizi_balita', label: 'Gizi Balita Kel' },
   { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
@@ -37,7 +36,7 @@ const DATA_TYPES = [
 
 export default function UploadPanel() {
   const [viewMode, setViewMode] = useState<ViewMode>('upload');
-  const [selectedType, setSelectedType] = useState<DataType>('harga');
+  const [selectedType, setSelectedType] = useState<DataType>('gizi_balita');
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -196,17 +195,17 @@ export default function UploadPanel() {
         ];
       } else if (type === 'skpg_matang') {
         filename = 'template_skpg.xlsx';
-        headers = ['nama_kelurahan', 'gizi_kurang', 'gizi_sangat_kurang', 'gizi_berlebih', 'gizi_normal', 'periode'];
+        headers = ['Tahun', 'Bulan', 'Kecamatan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
         sampleData = [
-          ['Bagendung', 462, 72, 8414, 338, 2025],
-          ['Banjar Negara', 122, 92, 7684, 165, 2025],
+          [2025, 1, 'Cilegon', 'Bagendung', 72, 462, 338, 8414],
+          [2025, 1, 'Ciwandan', 'Banjar Negara', 92, 122, 165, 7684],
         ];
       } else if (type === 'gizi_balita') {
         filename = 'template_gizi_balita.xlsx';
-        headers = ['Tahun', 'Bulan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
+        headers = ['Tahun', 'Bulan', 'Kecamatan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
         sampleData = [
-          [2026, 1, 'Bagendung', 10, 23, 673, 27],
-          [2026, 1, 'Banjar Negara', 17, 70, 553, 12],
+          [2026, 1, 'Cilegon', 'Bagendung', 10, 23, 673, 27],
+          [2026, 1, 'Ciwandan', 'Banjar Negara', 17, 70, 553, 12],
         ];
       } else if (type === 'intervensi_kelurahan') {
         filename = 'template_intervensi.xlsx';
@@ -406,12 +405,13 @@ export default function UploadPanel() {
 
           if (error) throw error;
         } else if (selectedType === 'skpg_matang') {
-          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
-          const gizi_kurang = parseInt(row['gizi_kurang']) || 0;
-          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang']) || 0;
-          const gizi_berlebih = parseInt(row['gizi_berlebih']) || 0;
-          const gizi_normal = parseInt(row['gizi_normal']) || 0;
-          const periode = parseInt(row['periode']) || 2025;
+          const nama_kelurahan = String(row['nama_kelurahan'] || row['Nama Kelurahan'] || '').trim();
+          const gizi_kurang = parseInt(row['gizi_kurang'] || row['Gizi Kurang']) || 0;
+          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang'] || row['Gizi Sangat Kurang']) || 0;
+          const gizi_berlebih = parseInt(row['gizi_berlebih'] || row['Gizi Berlebih'] || row['gizi_lebih']) || 0;
+          const gizi_normal = parseInt(row['gizi_normal'] || row['Gizi Normal']) || 0;
+          const periode = parseInt(row['Tahun'] || row['periode'] || row['Tahun']) || 2025;
+          const bulan = parseInt(row['Bulan'] || row['bulan'] || row['Bulan']) || 1;
 
           if (!nama_kelurahan) continue;
 
@@ -421,18 +421,19 @@ export default function UploadPanel() {
             gizi_sangat_kurang,
             gizi_berlebih,
             gizi_normal,
-            periode
+            periode,
+            bulan
           });
 
           if (error) throw error;
         } else if (selectedType === 'gizi_balita') {
-          const tahun = parseInt(row['Tahun']) || 2026;
-          const bulan = parseInt(row['Bulan']) || 1;
-          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
-          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang']) || 0;
-          const gizi_kurang = parseInt(row['gizi_kurang']) || 0;
-          const gizi_normal = parseInt(row['gizi_normal']) || 0;
-          const gizi_berlebih = parseInt(row['gizi_berlebih']) || 0;
+          const tahun = parseInt(row['Tahun'] || row['tahun'] || row['periode']) || 2026;
+          const bulan = parseInt(row['Bulan'] || row['bulan']) || 1;
+          const nama_kelurahan = String(row['nama_kelurahan'] || row['Nama Kelurahan'] || '').trim();
+          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang'] || row['Gizi Sangat Kurang']) || 0;
+          const gizi_kurang = parseInt(row['gizi_kurang'] || row['Gizi Kurang']) || 0;
+          const gizi_normal = parseInt(row['gizi_normal'] || row['Gizi Normal']) || 0;
+          const gizi_berlebih = parseInt(row['gizi_berlebih'] || row['Gizi Berlebih'] || row['gizi_lebih']) || 0;
 
           if (!nama_kelurahan) continue;
 

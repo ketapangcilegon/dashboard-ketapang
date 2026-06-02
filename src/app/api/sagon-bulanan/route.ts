@@ -131,13 +131,71 @@ export async function GET(request: Request) {
   const selectedMonth = monthParam ? parseInt(monthParam, 10) : 3;
   const selectedYear = yearParam ? parseInt(yearParam, 10) : 2026;
 
-  // Month Index: Jan = 0, Feb = 1, ..., Dec = 11
-  const monthIdx = Math.max(0, Math.min(11, selectedMonth - 1));
-  const prevYear = selectedYear - 1;
+  // Get current real month and year to check if request is in the future
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-indexed (Jan = 1)
+  const currentDate = now.getDate();
+  const lastDayOfCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-  console.log(`[Sagon Monthly] Fetching dynamic market prices for Month Index ${monthIdx} (Year: ${selectedYear} vs ${prevYear})`);
+  const isBeforeLastDay = currentDate < lastDayOfCurrentMonth;
+
+  // Check if selection is strictly in the future (relative to the current real world)
+  const isCurFuture = selectedYear > currentYear || (selectedYear === currentYear && selectedMonth > currentMonth);
+
+  // Return N/A immediately for future dates
+  if (isCurFuture) {
+    console.log(`[Sagon Monthly] Future month requested: ${selectedMonth}/${selectedYear}. Returning N/A.`);
+    const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
+    const emptyPrices: Record<string, { beras: number; minyak: number; telur: number }> = {};
+    for (const kec of KECAMATANS) {
+      emptyPrices[kec] = { beras: 0, minyak: 0, telur: 0 };
+    }
+    return NextResponse.json({
+      success: true,
+      month: selectedMonth,
+      year: selectedYear,
+      pricesCur: emptyPrices,
+      pricesPrev: emptyPrices
+    });
+  }
+
+  let effectiveMonth = selectedMonth;
+  let effectiveYear = selectedYear;
+
+  // Rule: If requested month is current real month and we haven't reached the end of it,
+  // display prices maximum from previous month
+  if (selectedYear === currentYear && selectedMonth === currentMonth && isBeforeLastDay) {
+    effectiveMonth = selectedMonth - 1;
+    if (effectiveMonth === 0) {
+      effectiveMonth = 12;
+      effectiveYear = selectedYear - 1;
+    }
+    console.log(`[Sagon API] Current month requested before end date. Adjusting effective month to ${effectiveMonth}/${effectiveYear}`);
+  }
+
+  // Month Index: Jan = 0, Feb = 1, ..., Dec = 11
+  const monthIdx = Math.max(0, Math.min(11, effectiveMonth - 1));
+  const prevYear = effectiveYear - 1;
+  const isPrevFuture = prevYear > currentYear || (prevYear === currentYear && effectiveMonth > currentMonth);
+
+  console.log(`[Sagon Monthly] Fetching dynamic market prices for Month Index ${monthIdx} (Effective: ${effectiveMonth}/${effectiveYear} vs ${prevYear}).`);
+
+  // Helper to normalize kecamatan name
+  const normalizeKecamatanName = (name: string): string => {
+    if (!name) return '';
+    const trimmed = name.trim().toLowerCase();
+    if (trimmed === 'pulo merak' || trimmed === 'pulomerak') {
+      return 'Pulomerak';
+    }
+    // Capitalize first letter of each word
+    return trimmed.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
 
   try {
+
     // Fetch all 3 markets concurrently
     const [market1, market2, market3] = await Promise.all([
       scrapeMarketInfografis('1'), // Kranggot
@@ -145,56 +203,66 @@ export async function GET(request: Request) {
       scrapeMarketInfografis('3')  // Merak
     ]);
 
-    // Extract values for requested month index
+    // Extract values for requested month index (return 0 if future)
     const pricesMarket = {
       '1': {
         cur: {
-          beras: market1.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].beras,
-          minyak: market1.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak,
-          telur: market1.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].telur,
+          beras: isCurFuture ? 0 : (market1.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].beras),
+          minyak: isCurFuture ? 0 : (market1.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak),
+          telur: isCurFuture ? 0 : (market1.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].telur),
         },
         prev: {
-          beras: market1.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
-          minyak: market1.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
-          telur: market1.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
+          beras: isPrevFuture ? 0 : (market1.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras),
+          minyak: isPrevFuture ? 0 : (market1.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak),
+          telur: isPrevFuture ? 0 : (market1.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur),
         }
       },
       '2': {
         cur: {
-          beras: market2.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].beras,
-          minyak: market2.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak,
-          telur: market2.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].telur,
+          beras: isCurFuture ? 0 : (market2.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].beras),
+          minyak: isCurFuture ? 0 : (market2.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak),
+          telur: isCurFuture ? 0 : (market2.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].telur),
         },
         prev: {
-          beras: market2.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
-          minyak: market2.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
-          telur: market2.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
+          beras: isPrevFuture ? 0 : (market2.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras),
+          minyak: isPrevFuture ? 0 : (market2.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak),
+          telur: isPrevFuture ? 0 : (market2.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur),
         }
       },
       '3': {
         cur: {
-          beras: market3.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras,
-          minyak: market3.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak,
-          telur: market3.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur,
+          beras: isCurFuture ? 0 : (market3.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras),
+          minyak: isCurFuture ? 0 : (market3.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak),
+          telur: isCurFuture ? 0 : (market3.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur),
         },
         prev: {
-          beras: market3.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
-          minyak: market3.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
-          telur: market3.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
+          beras: isPrevFuture ? 0 : (market3.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras),
+          minyak: isPrevFuture ? 0 : (market3.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak),
+          telur: isPrevFuture ? 0 : (market3.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur),
         }
       }
     };
 
     // Helper to calculate Citangkil balanced average of the 3 markets
     const getCitangkilAverage = (yearKey: 'cur' | 'prev') => {
-      const b = Math.round((pricesMarket['1'][yearKey].beras + pricesMarket['2'][yearKey].beras + pricesMarket['3'][yearKey].beras) / 3);
-      const m = Math.round((pricesMarket['1'][yearKey].minyak + pricesMarket['2'][yearKey].minyak + pricesMarket['3'][yearKey].minyak) / 3);
-      const t = Math.round((pricesMarket['1'][yearKey].telur + pricesMarket['2'][yearKey].telur + pricesMarket['3'][yearKey].telur) / 3);
+      const p1 = pricesMarket['1'][yearKey];
+      const p2 = pricesMarket['2'][yearKey];
+      const p3 = pricesMarket['3'][yearKey];
+
+      // If any commodity is 0 (N/A), the Citangkil average is also 0 (N/A)
+      if (p1.beras === 0 || p2.beras === 0 || p3.beras === 0 || 
+          p1.minyak === 0 || p2.minyak === 0 || p3.minyak === 0 ||
+          p1.telur === 0 || p2.telur === 0 || p3.telur === 0) {
+        return { beras: 0, minyak: 0, telur: 0 };
+      }
+
+      const b = Math.round((p1.beras + p2.beras + p3.beras) / 3);
+      const m = Math.round((p1.minyak + p2.minyak + p3.minyak) / 3);
+      const t = Math.round((p1.telur + p2.telur + p3.telur) / 3);
       return { beras: b, minyak: m, telur: t };
     };
 
-    // Apply official market mapping rules per Kecamatan
-    const mappedPricesCur = {
+    const scrapedCur = {
       Cibeber:    pricesMarket['2'].cur, // Blok F
       Cilegon:    pricesMarket['2'].cur, // Blok F
       Pulomerak:  pricesMarket['3'].cur, // Merak
@@ -205,7 +273,7 @@ export async function GET(request: Request) {
       Citangkil:  getCitangkilAverage('cur') // Balanced Average
     };
 
-    const mappedPricesPrev = {
+    const scrapedPrev = {
       Cibeber:    pricesMarket['2'].prev,
       Cilegon:    pricesMarket['2'].prev,
       Pulomerak:  pricesMarket['3'].prev,
@@ -220,8 +288,8 @@ export async function GET(request: Request) {
       success: true,
       month: selectedMonth,
       year: selectedYear,
-      pricesCur: mappedPricesCur,
-      pricesPrev: mappedPricesPrev
+      pricesCur: scrapedCur,
+      pricesPrev: scrapedPrev
     });
   } catch (err: any) {
     console.error('[Sagon Monthly API] Server error:', err);

@@ -369,54 +369,24 @@ export default function MapUnified({
           console.warn('fsva_matang fetch failed:', e);
         }
 
-        // Fetch Mature SKPG Dataset
+        // Fetch Mature SKPG Dataset (Purely from skpg_matang for all periods)
         try {
-          if (Number(selectedYear) === 2026) {
-            // Fetch from the new gizi_balita table for 2026
-            let { data: skpgM } = await supabase
-              .from('gizi_balita')
-              .select('*')
-              .eq('tahun', Number(selectedYear))
-              .eq('bulan', Number(selectedMonth));
-            
-            // Fallback to month 1 (January) if empty
-            if (!skpgM || skpgM.length === 0) {
-              const { data: fb } = await supabase
-                .from('gizi_balita')
-                .select('*')
-                .eq('tahun', Number(selectedYear))
-                .eq('bulan', 1);
-              skpgM = fb;
-            }
-            
-            // Format to match the skpg_matang column schema used in the map layer
-            const formatted = (skpgM || []).map(x => ({
-              nama_kelurahan: x.nama_kelurahan,
-              gizi_kurang: x.gizi_kurang,
-              gizi_sangat_kurang: x.gizi_sangat_kurang,
-              gizi_normal: x.gizi_normal,
-              gizi_berlebih: x.gizi_berlebih,
-              periode: x.tahun
-            }));
-            setSkpgMatangData(formatted);
+          // Fetch from pre-calculated skpg_matang table (with monthly filter support)
+          const { data: skpgM, error } = await supabase
+            .from('skpg_matang')
+            .select('*')
+            .eq('periode', Number(selectedYear))
+            .eq('bulan', Number(selectedMonth));
+             
+          if (!error && skpgM && skpgM.length > 0) {
+            setSkpgMatangData(skpgM);
           } else {
-            // Fetch from pre-calculated skpg_matang table (with monthly filter support)
-            const { data: skpgM, error } = await supabase
+            // Fallback to query only by year (periode)
+            const { data: skpgMFallback } = await supabase
               .from('skpg_matang')
               .select('*')
-              .eq('periode', Number(selectedYear))
-              .eq('bulan', Number(selectedMonth));
-              
-            if (!error && skpgM && skpgM.length > 0) {
-              setSkpgMatangData(skpgM);
-            } else {
-              // Fallback to query only by year (periode)
-              const { data: skpgMFallback } = await supabase
-                .from('skpg_matang')
-                .select('*')
-                .eq('periode', Number(selectedYear));
-              setSkpgMatangData(skpgMFallback || []);
-            }
+              .eq('periode', Number(selectedYear));
+            setSkpgMatangData(skpgMFallback || []);
           }
         } catch (e) {
           console.warn('skpg_matang fetch failed:', e);

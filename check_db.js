@@ -8,21 +8,35 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 async function checkColumns() {
   console.log('Querying table structures from Supabase...');
   
-  // We can query information_schema or try to fetch a non-existent row to see if it returns metadata
-  const tables = ['harga_pangan', 'ketersediaan_pangan', 'gizi_masyarakat', 'intervensi_pangan'];
+  const tables = [
+    'harga_pangan',
+    'balita_gizi',
+    'gizi_balita',
+    'intervensi_kelurahan',
+    'fsva_matang',
+    'skpg_matang',
+    'pou_data',
+    'cv_beras_data',
+    'pph_data',
+    'konsumsi_energi_data',
+    'konsumsi_protein_data',
+    'ketersediaan_energi_data',
+    'ketersediaan_protein_data',
+    'produksi_beras_data'
+  ];
   
   for (const table of tables) {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from(table)
-      .select('*')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
       
     if (error) {
-      console.error(`Error querying ${table}:`, error.message);
+      console.error(`❌ Table '${table}' ERROR:`, error.message);
     } else {
-      console.log(`Table ${table} columns:`, Object.keys(data[0] || {}));
+      console.log(`✅ Table '${table}' EXISTS (Rows: ${count})`);
     }
   }
 }
 
 checkColumns();
+

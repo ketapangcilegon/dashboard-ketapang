@@ -347,29 +347,79 @@ export default function DashboardPage() {
       try {
         const dateStr = `${selectedYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
         
-        // 1. Fetch Harga Pangan (Current Period)
-        let hargaQuery = supabase.from('harga_pangan').select('*');
-        if (selectedKecamatan !== 'ALL') {
-          hargaQuery = hargaQuery.eq('kecamatan', selectedKecamatan);
-        }
-        if (selectedKelurahan !== 'ALL') {
-          hargaQuery = hargaQuery.eq('kelurahan', selectedKelurahan);
-        }
-        const { data: currentHarga } = await hargaQuery.eq('tanggal', dateStr);
-        setHargaData(currentHarga || []);
+        // 1. Fetch Harga Pangan dynamically from Sagon API (no DB dependency)
+        let fetchMonth = selectedMonth;
+        let fetchYear = selectedYear;
 
-        // 1.1 Fetch Harga Pangan (Previous Year for YoY comparison)
-        const prevYear = selectedYear - 1;
-        const prevDateStr = `${prevYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
-        let prevHargaQuery = supabase.from('harga_pangan').select('*').eq('tanggal', prevDateStr);
-        if (selectedKecamatan !== 'ALL') {
-          prevHargaQuery = prevHargaQuery.eq('kecamatan', selectedKecamatan);
+        // Fallback for current incomplete month
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentDay = now.getDate();
+        const lastDayOfMonth = new Date(currentYear, currentMonth, 0).getDate();
+        const isBeforeLastDay = currentDay < lastDayOfMonth;
+
+        if (selectedYear === currentYear && selectedMonth === currentMonth && isBeforeLastDay) {
+          fetchMonth = selectedMonth - 1;
+          if (fetchMonth === 0) {
+            fetchMonth = 12;
+            fetchYear = selectedYear - 1;
+          }
         }
-        if (selectedKelurahan !== 'ALL') {
-          prevHargaQuery = prevHargaQuery.eq('kelurahan', selectedKelurahan);
+
+        try {
+          const sagonRes = await fetch(`/api/sagon-bulanan?month=${fetchMonth}&year=${fetchYear}`);
+          if (sagonRes.ok) {
+            const sagonJson = await sagonRes.json();
+            if (sagonJson && sagonJson.success) {
+              const pricesCur = sagonJson.pricesCur || {};
+              const pricesPrev = sagonJson.pricesPrev || {};
+
+              const normKec = (k: string) => k.toLowerCase().replace(/\s+/g, '');
+              const filteredKecsCur = Object.keys(pricesCur).filter(
+                kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
+              );
+              const filteredKecsPrev = Object.keys(pricesPrev).filter(
+                kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
+              );
+
+              const formattedHarga = filteredKecsCur.map(kec => ({
+                kecamatan: kec,
+                kelurahan: kec,
+                beras: pricesCur[kec].beras,
+                minyak_goreng: pricesCur[kec].minyak,
+                telur: pricesCur[kec].telur,
+                daging_ayam: 36000,
+                gula_pasir: 17000,
+                cabe_merah: 55000
+              }));
+
+              const formattedHargaPrev = filteredKecsPrev.map(kec => ({
+                kecamatan: kec,
+                kelurahan: kec,
+                beras: pricesPrev[kec].beras,
+                minyak_goreng: pricesPrev[kec].minyak,
+                telur: pricesPrev[kec].telur,
+                daging_ayam: 36000,
+                gula_pasir: 17000,
+                cabe_merah: 55000
+              }));
+
+              setHargaData(formattedHarga);
+              setPreviousHargaData(formattedHargaPrev);
+            } else {
+              setHargaData([]);
+              setPreviousHargaData([]);
+            }
+          } else {
+            setHargaData([]);
+            setPreviousHargaData([]);
+          }
+        } catch (sagonErr) {
+          console.error('[Homepage] Failed to fetch sagon prices:', sagonErr);
+          setHargaData([]);
+          setPreviousHargaData([]);
         }
-        const { data: prevHarga } = await prevHargaQuery;
-        setPreviousHargaData(prevHarga || []);
 
         // 2. Fetch Ketersediaan Pangan (Unfiltered by year to get full 5-year series!)
         const { data: ketersediaan } = await supabase
@@ -429,42 +479,22 @@ export default function DashboardPage() {
         }
 
         try {
-          if (Number(selectedYear) === 2026) {
-            let { data: skpgM } = await supabase.from('gizi_balita').select('*').eq('tahun', Number(selectedYear)).eq('bulan', Number(selectedMonth));
-            
-            // Fallback to month 1 (January) if empty
-            if (!skpgM || skpgM.length === 0) {
-              const { data: fb } = await supabase.from('gizi_balita').select('*').eq('tahun', Number(selectedYear)).eq('bulan', 1);
-              skpgM = fb;
-            }
-
-            const formatted = (skpgM || []).map(x => ({
-              nama_kelurahan: x.nama_kelurahan,
-              gizi_kurang: x.gizi_kurang,
-              gizi_sangat_kurang: x.gizi_sangat_kurang,
-              gizi_normal: x.gizi_normal,
-              gizi_berlebih: x.gizi_berlebih,
-              periode: x.tahun
-            }));
-            setSkpgMatangData(formatted);
+          // Fetch from pre-calculated skpg_matang table (with monthly filter support)
+          const { data: skpgM, error } = await supabase
+            .from('skpg_matang')
+            .select('*')
+            .eq('periode', Number(selectedYear))
+            .eq('bulan', Number(selectedMonth));
+             
+          if (!error && skpgM && skpgM.length > 0) {
+            setSkpgMatangData(skpgM);
           } else {
-            // Fetch from pre-calculated skpg_matang table (with monthly filter support)
-            const { data: skpgM, error } = await supabase
+            // Fallback to query only by year (periode)
+            const { data: skpgMFallback } = await supabase
               .from('skpg_matang')
               .select('*')
-              .eq('periode', Number(selectedYear))
-              .eq('bulan', Number(selectedMonth));
-              
-            if (!error && skpgM && skpgM.length > 0) {
-              setSkpgMatangData(skpgM);
-            } else {
-              // Fallback to query only by year (periode)
-              const { data: skpgMFallback } = await supabase
-                .from('skpg_matang')
-                .select('*')
-                .eq('periode', Number(selectedYear));
-              setSkpgMatangData(skpgMFallback || []);
-            }
+              .eq('periode', Number(selectedYear));
+            setSkpgMatangData(skpgMFallback || []);
           }
         } catch (e) {
           console.warn('skpg_matang query failed in page.tsx:', e);

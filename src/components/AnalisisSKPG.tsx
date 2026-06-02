@@ -113,6 +113,27 @@ export default function AnalisisSKPG() {
 
   // Fetch prices and stunting dynamically if user changes date
   useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-indexed (Jan = 1)
+    const currentDate = now.getDate();
+    const lastDayOfCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
+    const isBeforeLastDay = currentDate < lastDayOfCurrentMonth;
+
+    const isCurFuture = selectedYear > currentYear || (selectedYear === currentYear && selectedMonth > currentMonth);
+
+    // If strictly in the future, do not fetch anything, return N/A prices
+    if (isCurFuture) {
+      const emptyPrices: Record<string, { beras: number; minyak: number; telur: number }> = {};
+      KECAMATANS.forEach(k => {
+        emptyPrices[k] = { beras: 0, minyak: 0, telur: 0 };
+      });
+      setPricesCur(emptyPrices);
+      setPricesPrev(emptyPrices);
+      setNutrition(BASELINE_NUTRITION);
+      return;
+    }
+
     if (selectedYear === 2026 && selectedMonth === 3) {
       // Use exact high-fidelity Capture 1 baseline
       setPricesCur(BASELINE_PRICES_2026);
@@ -123,9 +144,23 @@ export default function AnalisisSKPG() {
 
     const fetchDynamicData = async () => {
       setLoading(true);
+
+      let fetchMonth = selectedMonth;
+      let fetchYear = selectedYear;
+
+      // Rule: If requested month is current real month and we haven't reached the end of it,
+      // fetch maximum previous month's data
+      if (selectedYear === currentYear && selectedMonth === currentMonth && isBeforeLastDay) {
+        fetchMonth = selectedMonth - 1;
+        if (fetchMonth === 0) {
+          fetchMonth = 12;
+          fetchYear = selectedYear - 1;
+        }
+      }
+
       try {
         // 1. Fetch live monthly market prices from SAGON API
-        const sagonRes = await fetch(`/api/sagon-bulanan?month=${selectedMonth}&year=${selectedYear}`);
+        const sagonRes = await fetch(`/api/sagon-bulanan?month=${fetchMonth}&year=${fetchYear}`);
         const sagonJson = await sagonRes.json();
 
         if (sagonJson && sagonJson.success) {
@@ -141,8 +176,8 @@ export default function AnalisisSKPG() {
         const { data: giziRows } = await supabase
           .from('gizi_balita')
           .select('*')
-          .eq('tahun', selectedYear)
-          .eq('bulan', selectedMonth);
+          .eq('tahun', fetchYear)
+          .eq('bulan', fetchMonth);
 
         // Fallback to January 2026 if empty
         let activeGizi = giziRows;
@@ -195,8 +230,28 @@ export default function AnalisisSKPG() {
 
   // Price Calculations (Keterjangkauan)
   const getKeterjangkauanRow = (kec: string) => {
-    const cur = pricesCur[kec] || { beras: 13500, minyak: 21000, telur: 30000 };
-    const prev = pricesPrev[kec] || BASELINE_PRICES_2025;
+    const cur = pricesCur[kec] || { beras: 0, minyak: 0, telur: 0 };
+    const prev = pricesPrev[kec] || { beras: 0, minyak: 0, telur: 0 };
+
+    const pricesAvailable = cur.beras > 0 && cur.minyak > 0 && cur.telur > 0 &&
+                            prev.beras > 0 && prev.minyak > 0 && prev.telur > 0;
+
+    if (!pricesAvailable) {
+      return {
+        cur,
+        prev,
+        rBeras: 0,
+        rMinyak: 0,
+        rTelur: 0,
+        bobotBeras: '-' as any,
+        bobotMinyak: '-' as any,
+        bobotTelur: '-' as any,
+        totalBobot: '-' as any,
+        index: '-' as any,
+        status: 'BELUM TERSEDIA',
+        available: false
+      };
+    }
 
     // Price diff percentage (r)
     const rBeras = parseFloat(((cur.beras - prev.beras) / prev.beras * 100).toFixed(1));
@@ -227,7 +282,8 @@ export default function AnalisisSKPG() {
       bobotTelur,
       totalBobot,
       index,
-      status
+      status,
+      available: true
     };
   };
 
@@ -285,6 +341,38 @@ export default function AnalisisSKPG() {
     const avgCurTelur = Math.round(sumCurTelur / num);
     const avgPrevTelur = Math.round(sumPrevTelur / num);
 
+    const pricesAvailable = avgCurBeras > 0 && avgCurMinyak > 0 && avgCurTelur > 0 &&
+                            avgPrevBeras > 0 && avgPrevMinyak > 0 && avgPrevTelur > 0;
+
+    const underweightTotal = totalSangatKurang + totalKurang;
+    const valueStunting = totalBalita > 0 ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
+    const bobotStunting = valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3;
+    const statusStunting = bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN';
+
+    if (!pricesAvailable) {
+      return {
+        beras: { cur: 0, prev: 0, r: 0, bobot: '-' as any },
+        minyak: { cur: 0, prev: 0, r: 0, bobot: '-' as any },
+        telur: { cur: 0, prev: 0, r: 0, bobot: '-' as any },
+        totalBobotAkses: '-',
+        indexAkses: '-' as any,
+        statusAkses: 'BELUM TERSEDIA',
+        availableAkses: false,
+
+        nutrition: {
+          sangatKurang: totalSangatKurang,
+          kurang: totalKurang,
+          normal: totalNormal,
+          lebih: totalLebih,
+          underweightTotal,
+          totalBalita,
+          value: valueStunting,
+          bobot: bobotStunting,
+          status: statusStunting
+        }
+      };
+    }
+
     // price differentials
     const rBeras = parseFloat(((avgCurBeras - avgPrevBeras) / avgPrevBeras * 100).toFixed(1));
     const rMinyak = parseFloat(((avgCurMinyak - avgPrevMinyak) / avgPrevMinyak * 100).toFixed(1));
@@ -297,11 +385,6 @@ export default function AnalisisSKPG() {
     const indexAkses = totalBobotAkses >= 8 ? 3 : totalBobotAkses >= 6 ? 2 : 1;
     const statusAkses = indexAkses === 3 ? 'AMAN' : indexAkses === 2 ? 'WASPADA' : 'RENTAN';
 
-    const underweightTotal = totalSangatKurang + totalKurang;
-    const valueStunting = totalBalita > 0 ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
-    const bobotStunting = valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3;
-    const statusStunting = bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN';
-
     return {
       beras: { cur: avgCurBeras, prev: avgPrevBeras, r: rBeras, bobot: bobotBeras },
       minyak: { cur: avgCurMinyak, prev: avgPrevMinyak, r: rMinyak, bobot: bobotMinyak },
@@ -309,6 +392,7 @@ export default function AnalisisSKPG() {
       totalBobotAkses,
       indexAkses,
       statusAkses,
+      availableAkses: true,
 
       nutrition: {
         sangatKurang: totalSangatKurang,
@@ -326,8 +410,28 @@ export default function AnalisisSKPG() {
 
   const kotaCilegon = getKotaCilegonAverages();
 
-  const labelCur = `${MONTH_NAMES_INDO[selectedMonth]?.toUpperCase()} ${selectedYear}`;
-  const labelPrev = `${MONTH_NAMES_INDO[selectedMonth]?.toUpperCase()} ${selectedYear - 1}`;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-indexed (Jan = 1)
+  const currentDate = now.getDate();
+  const lastDayOfCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const isBeforeLastDay = currentDate < lastDayOfCurrentMonth;
+
+  let displayMonth = selectedMonth;
+  let displayYear = selectedYear;
+
+  // Rule: If requested month is current real month and we haven't reached the end of it,
+  // display prices maximum from previous month
+  if (selectedYear === currentYear && selectedMonth === currentMonth && isBeforeLastDay) {
+    displayMonth = selectedMonth - 1;
+    if (displayMonth === 0) {
+      displayMonth = 12;
+      displayYear = selectedYear - 1;
+    }
+  }
+
+  const labelCur = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear}`;
+  const labelPrev = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear - 1}`;
 
   return (
     <div className="space-y-6">
@@ -353,21 +457,38 @@ export default function AnalisisSKPG() {
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
               className="bg-transparent text-xs font-black text-slate-800 outline-none cursor-pointer border-none"
             >
-              {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
-                <option key={i + 1} value={i + 1}>{m}</option>
-              ))}
+              {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => {
+                const monthVal = i + 1;
+                const isFutureMonth = selectedYear > currentYear || (selectedYear === currentYear && monthVal > currentMonth);
+                return (
+                  <option key={monthVal} value={monthVal} disabled={isFutureMonth}>
+                    {m}
+                  </option>
+                );
+              })}
             </select>
           </div>
           
           <div className="flex items-center gap-1.5 bg-white py-1 px-3 rounded-lg shadow-sm">
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              onChange={(e) => {
+                const nextYear = parseInt(e.target.value);
+                setSelectedYear(nextYear);
+                if (nextYear === currentYear && selectedMonth > currentMonth) {
+                  setSelectedMonth(currentMonth);
+                }
+              }}
               className="bg-transparent text-xs font-black text-slate-800 outline-none cursor-pointer border-none"
             >
-              {[2025, 2026].map(y => (
-                <option key={y} value={y}>Tahun {y}</option>
-              ))}
+              {[2025, 2026].map(y => {
+                const isFutureYear = y > currentYear;
+                return (
+                  <option key={y} value={y} disabled={isFutureYear}>
+                    Tahun {y}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -385,45 +506,50 @@ export default function AnalisisSKPG() {
             <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center gap-2.5 pb-3 border-b border-slate-100">
               <TrendingUp className="w-4.5 h-4.5 text-emerald-600" />
               I. Aspek Akses Pangan (Keterjangkauan)
+              {selectedMonth === currentMonth && selectedYear === currentYear && isBeforeLastDay && (
+                <span className="ml-3 text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-black tracking-normal normal-case animate-pulse">
+                  Menampilkan data {MONTH_NAMES_INDO[displayMonth]} {displayYear} (bulan berjalan belum berakhir)
+                </span>
+              )}
             </h3>
             
             <div className="overflow-x-auto select-none">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse table-auto lg:table-fixed">
                 <thead>
-                  <tr className="bg-emerald-800 text-white text-[9px] font-black uppercase tracking-wider text-center border-b border-emerald-900">
-                    <th className="py-3 px-3 text-left border-r border-emerald-900 rounded-tl-lg" rowSpan={2}>No</th>
-                    <th className="py-3 px-3 text-left border-r border-emerald-900" rowSpan={2}>Kecamatan</th>
-                    <th className="py-2 px-2 border-r border-emerald-900" colSpan={2}>Beras Medium (Rp/kg)</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-orange-850" colSpan={2}>Minyak Kemasan (Rp/Lt)</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-blue-850" colSpan={2}>Telur Ayam Ras (Rp/kg)</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-yellow-600" colSpan={2}>Beras</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-yellow-600" colSpan={2}>Minyak Goreng</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-yellow-600" colSpan={2}>Telur Ayam</th>
-                    <th className="py-2 px-3 bg-amber-600 rounded-tr-lg" colSpan={3}>Akses Pangan (Keterjangkauan)</th>
+                  <tr className="bg-emerald-800 text-white text-[8px] md:text-[8.5px] font-black uppercase tracking-wider text-center border-b border-emerald-900">
+                    <th className="py-2.5 px-1 text-left border-r border-emerald-900 rounded-tl-lg w-[3%]" rowSpan={2}>No</th>
+                    <th className="py-2.5 px-2 text-left border-r border-emerald-900 w-[11%]" rowSpan={2}>Kecamatan</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 w-[14%]" colSpan={2}>Beras Medium (Rp/kg)</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-orange-850 w-[14%]" colSpan={2}>Minyak Kemasan (Rp/Lt)</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-blue-850 w-[14%]" colSpan={2}>Telur Ayam Ras (Rp/kg)</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-yellow-600 w-[10%]" colSpan={2}>Beras</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-yellow-600 w-[10%]" colSpan={2}>Minyak Goreng</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-yellow-600 w-[10%]" colSpan={2}>Telur Ayam</th>
+                    <th className="py-1.5 px-2 bg-amber-600 rounded-tr-lg w-[14%]" colSpan={3}>Akses Pangan (Keterjangkauan)</th>
                   </tr>
-                  <tr className="bg-emerald-700/80 text-white text-[8px] font-black uppercase text-center border-b border-emerald-900">
-                    {/* Beras */}
-                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
-                    {/* Minyak */}
-                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
-                    {/* Telur */}
-                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
+                  <tr className="bg-emerald-700/80 text-white text-[7px] md:text-[7.5px] font-black uppercase text-center border-b border-emerald-900">
+                    {/* Beras Prices */}
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
+                    {/* Minyak Prices */}
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
+                    {/* Telur Prices */}
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Bobot Beras */}
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
                     {/* Bobot Minyak */}
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
                     {/* Bobot Telur */}
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
-                    <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
-                    {/* Keterjangkauan */}
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-amber-500/80 text-slate-900">Bobot</th>
-                    <th className="py-2 px-2 border-r border-emerald-900 bg-amber-500/80 text-slate-900">Status</th>
-                    <th className="py-2 px-2 bg-amber-500/80 text-slate-900">Indeks</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
+                    <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
+                    {/* Keterjangkauan Combined */}
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-amber-500/80 text-slate-900">Bobot</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 bg-amber-500/80 text-slate-900">Status</th>
+                    <th className="py-1.5 px-1 bg-amber-500/80 text-slate-900">Indeks</th>
                   </tr>
                 </thead>
                 <tbody className="text-[10px] font-semibold text-slate-700 divide-y divide-slate-100">
@@ -434,22 +560,40 @@ export default function AnalisisSKPG() {
                         <td className="py-2 px-3 border-r border-slate-100 text-left font-black text-slate-400">{i + 1}</td>
                         <td className="py-2 px-3 border-r border-slate-100 text-left font-black text-[#0B1E41]">{kec}</td>
                         {/* Beras prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">{row.prev.beras.toLocaleString('id-ID')}</td>
-                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">{row.cur.beras.toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                          {row.prev.beras > 0 ? row.prev.beras.toLocaleString('id-ID') : 'N/A'}
+                        </td>
+                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
+                          {row.cur.beras > 0 ? row.cur.beras.toLocaleString('id-ID') : 'N/A'}
+                        </td>
                         {/* Minyak prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">{row.prev.minyak.toLocaleString('id-ID')}</td>
-                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">{row.cur.minyak.toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                          {row.prev.minyak > 0 ? row.prev.minyak.toLocaleString('id-ID') : 'N/A'}
+                        </td>
+                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
+                          {row.cur.minyak > 0 ? row.cur.minyak.toLocaleString('id-ID') : 'N/A'}
+                        </td>
                         {/* Telur prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">{row.prev.telur.toLocaleString('id-ID')}</td>
-                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">{row.cur.telur.toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                          {row.prev.telur > 0 ? row.prev.telur.toLocaleString('id-ID') : 'N/A'}
+                        </td>
+                        <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
+                          {row.cur.telur > 0 ? row.cur.telur.toLocaleString('id-ID') : 'N/A'}
+                        </td>
                         {/* Beras values */}
-                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.rBeras > 5 ? 'text-amber-600' : 'text-slate-600'}`}>{row.rBeras}%</td>
+                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.available && row.rBeras > 5 ? 'text-amber-600' : 'text-slate-600'}`}>
+                          {row.available ? `${row.rBeras}%` : 'N/A'}
+                        </td>
                         <td className="py-2 px-1 border-r border-slate-100 font-black">{row.bobotBeras}</td>
                         {/* Minyak values */}
-                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.rMinyak > 15 ? 'text-rose-600' : row.rMinyak > 5 ? 'text-amber-600' : 'text-slate-600'}`}>{row.rMinyak}%</td>
+                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.available && row.rMinyak > 15 ? 'text-rose-600' : row.available && row.rMinyak > 5 ? 'text-amber-600' : 'text-slate-600'}`}>
+                          {row.available ? `${row.rMinyak}%` : 'N/A'}
+                        </td>
                         <td className="py-2 px-1 border-r border-slate-100 font-black">{row.bobotMinyak}</td>
                         {/* Telur values */}
-                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.rTelur > 15 ? 'text-rose-600' : row.rTelur > 5 ? 'text-amber-600' : 'text-slate-600'}`}>{row.rTelur}%</td>
+                        <td className={`py-2 px-1 border-r border-slate-100 font-extrabold ${row.available && row.rTelur > 15 ? 'text-rose-600' : row.available && row.rTelur > 5 ? 'text-amber-600' : 'text-slate-600'}`}>
+                          {row.available ? `${row.rTelur}%` : 'N/A'}
+                        </td>
                         <td className="py-2 px-1 border-r border-slate-100 font-black">{row.bobotTelur}</td>
                         {/* Keterjangkauan index */}
                         <td className="py-2 px-2 border-r border-slate-100 font-black text-slate-900 bg-amber-50/30">{row.totalBobot}</td>
@@ -457,6 +601,7 @@ export default function AnalisisSKPG() {
                           <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
                             row.status === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
                             row.status === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
+                            row.status === 'BELUM TERSEDIA' ? 'bg-slate-100 text-slate-500' :
                             'bg-rose-100 text-rose-800'
                           }`}>
                             {row.status}
@@ -465,7 +610,7 @@ export default function AnalisisSKPG() {
                         <td className={`py-2 px-2 font-black bg-amber-50/30 ${
                           row.index === 3 ? 'text-emerald-600' :
                           row.index === 2 ? 'text-amber-500' :
-                          'text-rose-600'
+                          row.index === 1 ? 'text-rose-600' : 'text-slate-400'
                         }`}>{row.index}</td>
                       </tr>
                     );
@@ -473,32 +618,51 @@ export default function AnalisisSKPG() {
                   {/* Kota Cilegon Average */}
                   <tr className="bg-slate-50/90 text-center font-black border-t-2 border-slate-200">
                     <td className="py-3 px-3 border-r border-slate-100" colSpan={2}>KOTA CILEGON</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">{kotaCilegon.beras.prev.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">{kotaCilegon.beras.cur.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">{kotaCilegon.minyak.prev.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">{kotaCilegon.minyak.cur.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">{kotaCilegon.telur.prev.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">{kotaCilegon.telur.cur.toLocaleString('id-ID')}</td>
-                    <td className="py-3 px-1 border-r border-slate-100 text-amber-600">{kotaCilegon.beras.r}%</td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                      {kotaCilegon.beras.prev > 0 ? kotaCilegon.beras.prev.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
+                      {kotaCilegon.beras.cur > 0 ? kotaCilegon.beras.cur.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                      {kotaCilegon.minyak.prev > 0 ? kotaCilegon.minyak.prev.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
+                      {kotaCilegon.minyak.cur > 0 ? kotaCilegon.minyak.cur.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                      {kotaCilegon.telur.prev > 0 ? kotaCilegon.telur.prev.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
+                      {kotaCilegon.telur.cur > 0 ? kotaCilegon.telur.cur.toLocaleString('id-ID') : 'N/A'}
+                    </td>
+                    <td className="py-3 px-1 border-r border-slate-100 text-amber-600">
+                      {kotaCilegon.availableAkses ? `${kotaCilegon.beras.r}%` : 'N/A'}
+                    </td>
                     <td className="py-3 px-1 border-r border-slate-100">{kotaCilegon.beras.bobot}</td>
-                    <td className="py-3 px-1 border-r border-slate-100 text-rose-600">{kotaCilegon.minyak.r}%</td>
+                    <td className="py-3 px-1 border-r border-slate-100 text-rose-600">
+                      {kotaCilegon.availableAkses ? `${kotaCilegon.minyak.r}%` : 'N/A'}
+                    </td>
                     <td className="py-3 px-1 border-r border-slate-100">{kotaCilegon.minyak.bobot}</td>
-                    <td className="py-3 px-1 border-r border-slate-100 text-slate-600">{kotaCilegon.telur.r}%</td>
+                    <td className="py-3 px-1 border-r border-slate-100 text-slate-600">
+                      {kotaCilegon.availableAkses ? `${kotaCilegon.telur.r}%` : 'N/A'}
+                    </td>
                     <td className="py-3 px-1 border-r border-slate-100">{kotaCilegon.telur.bobot}</td>
                     <td className="py-3 px-2 border-r border-slate-100 text-slate-900 bg-amber-100/40">{kotaCilegon.totalBobotAkses}</td>
                     <td className="py-3 px-2 border-r border-slate-100 bg-amber-100/40">
                       <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
                         kotaCilegon.statusAkses === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
                         kotaCilegon.statusAkses === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
+                        kotaCilegon.statusAkses === 'BELUM TERSEDIA' ? 'bg-slate-100 text-slate-500' :
                         'bg-rose-100 text-rose-800'
                       }`}>
                         {kotaCilegon.statusAkses}
                       </span>
                     </td>
-                    <td className={`py-3 px-2 bg-amber-100/40 ${
+                    <td className={`py-3 px-2 bg-amber-100/40 font-black ${
                       kotaCilegon.indexAkses === 3 ? 'text-emerald-600' :
                       kotaCilegon.indexAkses === 2 ? 'text-amber-500' :
-                      'text-rose-600'
+                      kotaCilegon.indexAkses === 1 ? 'text-rose-600' : 'text-slate-400'
                     }`}>{kotaCilegon.indexAkses}</td>
                   </tr>
                 </tbody>
@@ -614,15 +778,16 @@ export default function AnalisisSKPG() {
                             const akses = getKeterjangkauanRow(kec);
                             const nutr = getPemanfaatanRow(kec);
 
-                            const combinedScore = akses.index + nutr.bobot; // IA + IP
-                            const status = combinedScore === 6 ? 'AMAN' : combinedScore >= 4 ? 'WASPADA' : 'RENTAN';
-                            const finalIndex = combinedScore === 6 ? 3 : combinedScore >= 4 ? 2 : 1;
+                            const pricesAvailable = akses.available;
+                            const combinedScore = pricesAvailable ? (akses.index + nutr.bobot) : '-';
+                            const status = pricesAvailable ? (combinedScore === 6 ? 'AMAN' : combinedScore >= 4 ? 'WASPADA' : 'RENTAN') : 'BELUM TERSEDIA';
+                            const finalIndex = pricesAvailable ? (combinedScore === 6 ? 3 : combinedScore >= 4 ? 2 : 1) : '-';
 
                             return (
                               <tr key={kec} className="hover:bg-slate-50/80 transition-all">
                                 <td className="py-2.5 px-3 border-r border-slate-100 text-left font-black text-[#0B1E41]">{kec}</td>
                                 <td className={`py-2.5 px-2 border-r border-slate-100 font-bold bg-emerald-50/20 ${
-                                  akses.index === 3 ? 'text-emerald-600' : akses.index === 2 ? 'text-amber-500' : 'text-rose-600'
+                                  akses.index === 3 ? 'text-emerald-600' : akses.index === 2 ? 'text-amber-500' : akses.index === 1 ? 'text-rose-600' : 'text-slate-400'
                                 }`}>{akses.index}</td>
                                 <td className={`py-2.5 px-2 border-r border-slate-100 font-bold bg-blue-50/20 ${
                                   nutr.bobot === 3 ? 'text-emerald-600' : nutr.bobot === 2 ? 'text-amber-500' : 'text-rose-600'
@@ -633,6 +798,7 @@ export default function AnalisisSKPG() {
                                   <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
                                     status === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
                                     status === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
+                                    status === 'BELUM TERSEDIA' ? 'bg-slate-100 text-slate-500' :
                                     'bg-rose-100 text-rose-800 animate-pulse'
                                   }`}>
                                     {status}
@@ -641,7 +807,7 @@ export default function AnalisisSKPG() {
                                 <td className={`py-2.5 px-2 font-black bg-amber-50/30 ${
                                   finalIndex === 3 ? 'text-emerald-600' :
                                   finalIndex === 2 ? 'text-amber-500' :
-                                  'text-rose-600'
+                                  finalIndex === 1 ? 'text-rose-600' : 'text-slate-400'
                                 }`}>{finalIndex}</td>
                               </tr>
                             );
@@ -650,26 +816,28 @@ export default function AnalisisSKPG() {
                           <tr className="bg-slate-50/90 text-center font-black border-t-2 border-slate-200">
                             <td className="py-3 px-3 border-r border-slate-100 text-left">KOTA CILEGON</td>
                             <td className={`py-3 px-2 border-r border-slate-100 ${
-                              kotaCilegon.indexAkses === 3 ? 'text-emerald-600' : kotaCilegon.indexAkses === 2 ? 'text-amber-500' : 'text-rose-600'
+                              kotaCilegon.indexAkses === 3 ? 'text-emerald-600' : kotaCilegon.indexAkses === 2 ? 'text-amber-500' : kotaCilegon.indexAkses === 1 ? 'text-rose-600' : 'text-slate-400'
                             }`}>{kotaCilegon.indexAkses}</td>
                             <td className={`py-3 px-2 border-r border-slate-100 ${
                               kotaCilegon.nutrition.bobot === 3 ? 'text-emerald-600' : kotaCilegon.nutrition.bobot === 2 ? 'text-amber-500' : 'text-rose-600'
                             }`}>{kotaCilegon.nutrition.bobot}</td>
                             
                             <td className="py-3 px-2 border-r border-slate-100 text-slate-800 bg-amber-100/40">
-                              {kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot}
+                              {kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : '-'}
                             </td>
                             <td className="py-3 px-2 border-r border-slate-100 bg-amber-100/40">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
+                                !kotaCilegon.availableAkses ? 'bg-slate-100 text-slate-500' :
                                 (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                               }`}>
-                                {(kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 'AMAN' : 'WASPADA'}
+                                {!kotaCilegon.availableAkses ? 'BELUM TERSEDIA' : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 'AMAN' : 'WASPADA'}
                               </span>
                             </td>
                             <td className={`py-3 px-2 bg-amber-100/40 font-black ${
+                              !kotaCilegon.availableAkses ? 'text-slate-400' :
                               (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 'text-emerald-600' : 'text-amber-500'
                             }`}>
-                              {(kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 3 : 2}
+                              {!kotaCilegon.availableAkses ? '-' : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 3 : 2}
                             </td>
                           </tr>
                         </tbody>
@@ -745,7 +913,7 @@ export default function AnalisisSKPG() {
                 Data Balita BB/U (Status Gizi) Belum Tersedia
               </h3>
               <p className="text-xs text-slate-500 font-bold max-w-lg mb-4">
-                Aspek Akses Pangan (Harga Komoditas) untuk bulan <span className="text-emerald-600 font-black">{MONTH_NAMES_INDO[selectedMonth]} {selectedYear}</span> selalu terupdate secara real-time dari SAGON. Namun, analisis komposit SKPG memerlukan data status gizi balita yang harus diunggah secara manual oleh Admin Kota.
+                Aspek Akses Pangan (Harga Komoditas) untuk bulan <span className="text-emerald-600 font-black">{MONTH_NAMES_INDO[displayMonth]} {displayYear}</span> selalu terupdate secara real-time dari SAGON. Namun, analisis komposit SKPG memerlukan data status gizi balita yang harus diunggah secara manual oleh Admin Kota.
               </p>
               
               <div className="w-full border-t border-slate-200/60 pt-6 mt-4">

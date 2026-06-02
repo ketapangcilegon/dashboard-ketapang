@@ -47,7 +47,7 @@ export default function Navbar({
         </button>
         <div className="flex flex-col justify-center">
           <h1 className="text-[11px] sm:text-base lg:text-lg font-black text-white tracking-tight leading-tight drop-shadow-sm max-w-[180px] sm:max-w-md md:max-w-lg lg:max-w-xl break-words uppercase">
-            Food Security Intelligence & Decision Support System
+            Food Security Intelligence & DSS
           </h1>
           <p className="text-emerald-100 text-[9px] sm:text-[11px] font-black tracking-widest uppercase mt-0.5">
             KOTA CILEGON
@@ -58,10 +58,10 @@ export default function Navbar({
       <div className="flex items-center gap-4">
         {/* Timestamp & Update Data Info Block (Professional GovTech Style) */}
         <div className="hidden md:flex flex-col text-right text-[10px] font-black text-emerald-50/90 tracking-wide leading-tight whitespace-nowrap select-none">
-          <div>Harga Pangan Strategis: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
-          <div>Indikator Ketahanan Pangan: <span className="text-white">Tahun 2025</span></div>
-          <div>Peta FSVA: <span className="text-white">Tahun 2025</span></div>
-          <div>Peta SKPG: <span className="text-white">Februari 2026</span></div>
+          <div>Harga Pangan: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
+          <div>KPI: <span className="text-white">Tahun 2025</span></div>
+          <div>Baseline FSVA: <span className="text-white">Tahun 2025</span></div>
+          <div>Baseline SKPG: <span className="text-white">Februari 2026</span></div>
         </div>
 
         <div className="h-8 w-px bg-white/20 mx-2 hidden md:block"></div>
