@@ -109,7 +109,7 @@ export default function Sidebar({
           )}
         </div>
 
-        <nav className="space-y-1">
+        <nav className="space-y-0.5">
           {menuItems.map((item, i) => {
             const Icon = item.icon;
             const isActive = currentView === item.view;
@@ -121,7 +121,7 @@ export default function Sidebar({
                 target={item.url ? '_blank' : undefined}
                 rel={item.url ? 'noopener noreferrer' : undefined}
                 onClick={(e) => handleMenuClick(e, item)}
-                className={`sidebar-link flex items-center gap-3 px-6 py-2.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
+                className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
                   isActive ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
                 } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
                 title={isCollapsed ? item.label : undefined}
@@ -138,7 +138,7 @@ export default function Sidebar({
         </nav>
       </div>
 
-      <div className={`px-6 mt-8 space-y-4 ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
+      <div className={`px-6 mt-3 space-y-3 ${isMobile ? '-translate-y-5' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
         {!isCollapsed ? (
           <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 animate-in fade-in duration-300">
             <p>
