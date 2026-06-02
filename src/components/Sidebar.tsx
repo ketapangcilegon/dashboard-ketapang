@@ -70,6 +70,10 @@ export default function Sidebar({
       // External link: let default behavior open in new tab
       return;
     }
+    // If we are not on the main dashboard homepage, let standard link navigation take over
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      return;
+    }
     e.preventDefault();
     setCurrentView(item.view);
     if (isMobile) {
@@ -117,7 +121,7 @@ export default function Sidebar({
             return (
               <a 
                 key={i} 
-                href={item.url || '#'}
+                href={item.url ? item.url : `/?view=${item.view}`}
                 target={item.url ? '_blank' : undefined}
                 rel={item.url ? 'noopener noreferrer' : undefined}
                 onClick={(e) => handleMenuClick(e, item)}

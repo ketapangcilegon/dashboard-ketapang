@@ -262,6 +262,16 @@ export default function DashboardPage() {
     fetchLiveHarga();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      if (viewParam) {
+        setCurrentView(viewParam);
+      }
+    }
+  }, []);
+
   // Carousel Slider States for Top row
   const [sliderIndex, setSliderIndex] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState<number>(6);
