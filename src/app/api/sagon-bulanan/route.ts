@@ -72,8 +72,14 @@ async function scrapeMarketInfografis(marketId: string): Promise<CommodityData> 
 
       if (!matchedKey) return;
 
-      const cardBody = $(header).next('div.card-body');
-      const scriptText = cardBody.find('script').html() || '';
+      const parent = $(header).parent();
+      let scriptText = '';
+      parent.find('script').each((_, scr) => {
+        const htmlText = $(scr).html() || '';
+        if (htmlText.includes('series:')) {
+          scriptText = htmlText;
+        }
+      });
 
       if (!scriptText.includes('series:')) return;
 

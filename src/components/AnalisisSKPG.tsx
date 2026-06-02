@@ -326,6 +326,9 @@ export default function AnalisisSKPG() {
 
   const kotaCilegon = getKotaCilegonAverages();
 
+  const labelCur = `${MONTH_NAMES_INDO[selectedMonth]?.toUpperCase()} ${selectedYear}`;
+  const labelPrev = `${MONTH_NAMES_INDO[selectedMonth]?.toUpperCase()} ${selectedYear - 1}`;
+
   return (
     <div className="space-y-6">
       
@@ -400,14 +403,14 @@ export default function AnalisisSKPG() {
                   </tr>
                   <tr className="bg-emerald-700/80 text-white text-[8px] font-black uppercase text-center border-b border-emerald-900">
                     {/* Beras */}
-                    <th className="py-2 px-2 border-r border-emerald-900">Thn Lalu</th>
-                    <th className="py-2 px-2 border-r border-emerald-900">Berjalan</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Minyak */}
-                    <th className="py-2 px-2 border-r border-emerald-900">Thn Lalu</th>
-                    <th className="py-2 px-2 border-r border-emerald-900">Berjalan</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Telur */}
-                    <th className="py-2 px-2 border-r border-emerald-900">Thn Lalu</th>
-                    <th className="py-2 px-2 border-r border-emerald-900">Berjalan</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-2 px-2 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Bobot Beras */}
                     <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
                     <th className="py-2 px-1 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Skor</th>
