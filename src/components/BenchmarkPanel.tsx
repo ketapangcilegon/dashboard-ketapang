@@ -13,6 +13,7 @@ import {
 
 interface BenchmarkPanelProps {
   currentData?: Record<number, number>; // Maps indicator number to current value (2025/2026)
+  dbBenchmarkList?: any[]; // Array of database benchmark rows
 }
 
 interface CustomTooltipProps {
@@ -140,8 +141,42 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
   return bullets;
 }
 
-export default function BenchmarkPanel({ currentData = {} }: BenchmarkPanelProps) {
+export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] }: BenchmarkPanelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Get historical values for the active indicator, prioritizing dbBenchmarkList if available
+  const getHistoricalVal = (year: string, indicatorNo: number, hardcodedFallback: number) => {
+    if (dbBenchmarkList && dbBenchmarkList.length > 0) {
+      const yearNum = parseInt(year);
+      const row = dbBenchmarkList.find(x => x.tahun === yearNum);
+      if (row) {
+        switch (indicatorNo) {
+          case 1: return row.pph !== null && row.pph !== undefined ? parseFloat(row.pph) : hardcodedFallback;
+          case 2: {
+            const e = row.konsumsi_energi !== null && row.konsumsi_energi !== undefined ? parseFloat(row.konsumsi_energi) : 2021;
+            const p = row.konsumsi_protein !== null && row.konsumsi_protein !== undefined ? parseFloat(row.konsumsi_protein) : 59;
+            return parseFloat(((e / 2100 + p / 57) * 50).toFixed(2));
+          }
+          case 3: return row.konsumsi_energi !== null && row.konsumsi_energi !== undefined ? parseFloat(row.konsumsi_energi) : hardcodedFallback;
+          case 4: return row.konsumsi_protein !== null && row.konsumsi_protein !== undefined ? parseFloat(row.konsumsi_protein) : hardcodedFallback;
+          case 5: {
+            const e = row.ketersediaan_energi !== null && row.ketersediaan_energi !== undefined ? parseFloat(row.ketersediaan_energi) : 2582;
+            const p = row.ketersediaan_protein !== null && row.ketersediaan_protein !== undefined ? parseFloat(row.ketersediaan_protein) : 85;
+            return parseFloat(((e / 2400 + p / 63) * 50).toFixed(2));
+          }
+          case 6: return row.ketersediaan_energi !== null && row.ketersediaan_energi !== undefined ? parseFloat(row.ketersediaan_energi) : hardcodedFallback;
+          case 7: return row.ketersediaan_protein !== null && row.ketersediaan_protein !== undefined ? parseFloat(row.ketersediaan_protein) : hardcodedFallback;
+          case 8: return row.cadangan_pangan !== null && row.cadangan_pangan !== undefined ? parseFloat(row.cadangan_pangan) : hardcodedFallback;
+          case 9: return row.cv_beras !== null && row.cv_beras !== undefined ? parseFloat(row.cv_beras) : hardcodedFallback;
+          case 10: return row.wilayah_rawan_ditangani !== null && row.wilayah_rawan_ditangani !== undefined ? parseFloat(row.wilayah_rawan_ditangani) : hardcodedFallback;
+          case 11: return row.pengawasan_pangan_segar !== null && row.pengawasan_pangan_segar !== undefined ? parseFloat(row.pengawasan_pangan_segar) : hardcodedFallback;
+          case 12: return row.sampel_total !== null && row.sampel_total !== undefined ? parseFloat(row.sampel_total) : hardcodedFallback;
+          case 13: return row.sampel_aman !== null && row.sampel_aman !== undefined ? parseFloat(row.sampel_aman) : hardcodedFallback;
+        }
+      }
+    }
+    return hardcodedFallback;
+  };
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -163,11 +198,11 @@ export default function BenchmarkPanel({ currentData = {} }: BenchmarkPanelProps
 
   // Chart Data compilation (2021 to 2025)
   const chartData = [
-    { name: '2021', 'Capaian Cilegon': activeIndicator.history['2021'], 'Target Nasional': target },
-    { name: '2022', 'Capaian Cilegon': activeIndicator.history['2022'], 'Target Nasional': target },
-    { name: '2023', 'Capaian Cilegon': activeIndicator.history['2023'], 'Target Nasional': target },
-    { name: '2024', 'Capaian Cilegon': activeIndicator.history['2024'], 'Target Nasional': target },
-    { name: '2025', 'Capaian Cilegon': currentVal, 'Target Nasional': target },
+    { name: '2021', 'Capaian Cilegon': getHistoricalVal('2021', activeIndicator.no, activeIndicator.history['2021']), 'Target Nasional': target },
+    { name: '2022', 'Capaian Cilegon': getHistoricalVal('2022', activeIndicator.no, activeIndicator.history['2022']), 'Target Nasional': target },
+    { name: '2023', 'Capaian Cilegon': getHistoricalVal('2023', activeIndicator.no, activeIndicator.history['2023']), 'Target Nasional': target },
+    { name: '2024', 'Capaian Cilegon': getHistoricalVal('2024', activeIndicator.no, activeIndicator.history['2024']), 'Target Nasional': target },
+    { name: '2025', 'Capaian Cilegon': getHistoricalVal('2025', activeIndicator.no, currentVal), 'Target Nasional': target },
   ];
 
   // Dynamic Y-Axis Domain calculation to fit chart snugly

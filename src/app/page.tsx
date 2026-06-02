@@ -236,6 +236,7 @@ export default function DashboardPage() {
   const [ketersediaanEnergiList, setKetersediaanEnergiList] = useState<any[]>([]);
   const [ketersediaanProteinList, setKetersediaanProteinList] = useState<any[]>([]);
   const [produksiBerasList, setProduksiBerasList] = useState<any[]>([]);
+  const [benchmarkList, setBenchmarkList] = useState<any[]>([]);
 
   // Lifted SAGON Live Price States
   const [livePrices, setLivePrices] = useState<any>(null);
@@ -622,6 +623,14 @@ export default function DashboardPage() {
           setProduksiBerasList(data || []);
         } catch (e) {
           console.warn('produksi_beras_data failed:', e);
+        }
+
+        // 6.8 Fetch Benchmark Data
+        try {
+          const { data } = await supabase.from('benchmark_data').select('*').order('tahun', { ascending: true });
+          setBenchmarkList(data || []);
+        } catch (e) {
+          console.warn('benchmark_data failed:', e);
         }
 
       } catch (err) {
@@ -1028,7 +1037,7 @@ export default function DashboardPage() {
 
                   {/* BOTTOM ROW 2: Benchmark Panel (Full Width, directly below) */}
                   <div className="w-full print:hidden">
-                    <BenchmarkPanel currentData={getBenchmarkData()} />
+                    <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
                   </div>
                 </>
               )}
