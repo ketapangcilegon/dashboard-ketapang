@@ -626,37 +626,43 @@ export default function DashboardPage() {
 
   // Getter functions with dynamic database value retrieval and smart default fallbacks
   const getCVValue = () => {
-    const entry = cvBerasList.find(x => x.tahun === 2025);
+    let entry = cvBerasList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = cvBerasList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 3.65;
   };
 
   const getPPHValue = () => {
-    const entry = pphList.find(x => x.tahun === 2025);
+    let entry = pphList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = pphList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 90.9;
   };
 
   const getKonsumsiEnergiValue = () => {
-    const entry = konsumsiEnergiList.find(x => x.tahun === 2025);
+    let entry = konsumsiEnergiList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = konsumsiEnergiList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 2021;
   };
 
   const getKonsumsiProteinValue = () => {
-    const entry = konsumsiProteinList.find(x => x.tahun === 2025);
+    let entry = konsumsiProteinList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = konsumsiProteinList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 59;
   };
 
   const getKetersediaanEnergiValue = () => {
-    const entry = ketersediaanEnergiList.find(x => x.tahun === 2025);
+    let entry = ketersediaanEnergiList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = ketersediaanEnergiList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 2582;
   };
 
   const getKetersediaanProteinValue = () => {
-    const entry = ketersediaanProteinList.find(x => x.tahun === 2025);
+    let entry = ketersediaanProteinList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = ketersediaanProteinList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 85;
   };
