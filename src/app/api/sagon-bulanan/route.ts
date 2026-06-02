@@ -149,38 +149,38 @@ export async function GET(request: Request) {
     const pricesMarket = {
       '1': {
         cur: {
-          beras: market1.beras[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['1'].beras,
-          minyak: market1.minyak[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak,
-          telur: market1.telur[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['1'].telur,
+          beras: market1.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].beras,
+          minyak: market1.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak,
+          telur: market1.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].telur,
         },
         prev: {
-          beras: market1.beras[String(prevYear)][monthIdx] || FALLBACKS_2025.beras,
-          minyak: market1.minyak[String(prevYear)][monthIdx] || FALLBACKS_2025.minyak,
-          telur: market1.telur[String(prevYear)][monthIdx] || FALLBACKS_2025.telur,
+          beras: market1.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
+          minyak: market1.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
+          telur: market1.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
         }
       },
       '2': {
         cur: {
-          beras: market2.beras[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['2'].beras,
-          minyak: market2.minyak[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak,
-          telur: market2.telur[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['2'].telur,
+          beras: market2.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].beras,
+          minyak: market2.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak,
+          telur: market2.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].telur,
         },
         prev: {
-          beras: market2.beras[String(prevYear)][monthIdx] || FALLBACKS_2025.beras,
-          minyak: market2.minyak[String(prevYear)][monthIdx] || FALLBACKS_2025.minyak,
-          telur: market2.telur[String(prevYear)][monthIdx] || FALLBACKS_2025.telur,
+          beras: market2.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
+          minyak: market2.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
+          telur: market2.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
         }
       },
       '3': {
         cur: {
-          beras: market3.beras[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['3'].beras,
-          minyak: market3.minyak[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak,
-          telur: market3.telur[String(selectedYear)][monthIdx] || FALLBACKS_2026_MARKETS['3'].telur,
+          beras: market3.beras[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras,
+          minyak: market3.minyak[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak,
+          telur: market3.telur[String(selectedYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur,
         },
         prev: {
-          beras: market3.beras[String(prevYear)][monthIdx] || FALLBACKS_2025.beras,
-          minyak: market3.minyak[String(prevYear)][monthIdx] || FALLBACKS_2025.minyak,
-          telur: market3.telur[String(prevYear)][monthIdx] || FALLBACKS_2025.telur,
+          beras: market3.beras[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.beras,
+          minyak: market3.minyak[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.minyak,
+          telur: market3.telur[String(prevYear)]?.[monthIdx] || FALLBACKS_2025.telur,
         }
       }
     };
