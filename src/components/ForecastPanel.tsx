@@ -92,15 +92,15 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
   const warnings = forecasts.filter(f => f.isWarning);
 
   return (
-    <div className="mt-6 space-y-5">
     <div className="mt-8 space-y-5">
       <div className="flex items-center gap-4 mb-4">
         <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm">
           <TrendingUp className="w-8 h-8 text-emerald-600" />
         </div>
         <div>
-          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide">
+          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide flex items-center">
             AI FORECAST & EARLY WARNING SYSTEM (ML)
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-wider ml-3 border border-amber-200">DUMMY V1</span>
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-1">
             Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
@@ -173,6 +173,7 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
                 <Brain className="w-5 h-5" />
               </div>
               Interpretasi Algoritma ML
+              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[9px] font-black rounded-full uppercase tracking-wider ml-auto border border-amber-500/30">DUMMY V1</span>
             </h4>
             
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
