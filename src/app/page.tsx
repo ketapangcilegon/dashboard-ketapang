@@ -1055,7 +1055,6 @@ export default function DashboardPage() {
                     <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
                   </div>
 
-      </div>
                 </>
               )}
 
