@@ -1,6 +1,19 @@
 "use client";
 
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, ArrowRight, Minus } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, ArrowRight, Minus, Check } from 'lucide-react';
+
+const getIcon = (id: string) => {
+  if (id.includes('beras')) return '🌾';
+  if (id.includes('bawang_merah')) return '🧅';
+  if (id.includes('bawang_putih')) return '🧄';
+  if (id.includes('cabai')) return '🌶️';
+  if (id.includes('sapi')) return '🥩';
+  if (id.includes('ayam') && !id.includes('telur')) return '🐔';
+  if (id.includes('telur')) return '🥚';
+  if (id.includes('gula')) return '🍚';
+  if (id.includes('minyak')) return '🛢️';
+  return '📦';
+};
 
 interface ForecastPanelProps {
   livePrices?: Record<string, number>;
@@ -80,107 +93,138 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
 
   return (
     <div className="mt-6 space-y-5">
-      <div className="mb-2">
-        <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-2">
-          <Brain className="w-4 h-4 text-indigo-600" /> 
-          AI Forecast & Early Warning System (ML)
-        </h3>
-        <p className="text-[10px] text-slate-500 mt-1 font-semibold">
-          Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
-        </p>
+    <div className="mt-8 space-y-5">
+      <div className="flex items-center gap-4 mb-4">
+        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm">
+          <TrendingUp className="w-8 h-8 text-emerald-600" />
+        </div>
+        <div>
+          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide">
+            AI FORECAST & EARLY WARNING SYSTEM (ML)
+          </h3>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-white border-slate-200 p-0 overflow-hidden flex flex-col h-[400px]">
-          <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-            <h4 className="font-bold text-xs text-slate-700">Tabel Prediksi Harga</h4>
-            <span className="text-[9px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 Bulan</span>
+        <div className="lg:col-span-7 dashboard-card bg-white border border-emerald-100 rounded-3xl p-0 overflow-hidden flex flex-col h-[520px] shadow-sm">
+          <div className="p-5 border-b border-emerald-50 bg-white flex items-center justify-between shrink-0">
+            <h4 className="font-extrabold text-[13px] text-[#0B4D3C] uppercase tracking-wide flex items-center gap-2">
+              <div className="p-1.5 bg-[#0B4D3C] rounded-full text-white">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              Tabel Prediksi Harga
+            </h4>
+            <span className="text-[10px] bg-white border border-emerald-200 text-[#0B4D3C] px-4 py-1.5 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
           </div>
-          <div className="overflow-y-auto custom-scrollbar flex-1">
-            <table className="w-full text-left border-collapse text-[11px]">
-              <thead className="sticky top-0 bg-white shadow-sm z-10">
-                <tr className="text-slate-400 font-bold border-b border-slate-100 text-[9px] uppercase tracking-wider">
-                  <th className="p-3">Komoditas</th>
-                  <th className="p-3 text-right">Harga Kini</th>
-                  <th className="p-3 text-right text-indigo-600">+1 Bulan</th>
-                  <th className="p-3 text-right text-purple-600">+3 Bulan</th>
-                  <th className="p-3 text-center">Tren</th>
+          <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="sticky top-0 bg-white z-10">
+                <tr className="text-[#0B4D3C] font-extrabold border-b border-slate-100 text-[10px] uppercase tracking-wider">
+                  <th className="p-4 bg-emerald-50/20">Komoditas</th>
+                  <th className="p-4 bg-emerald-50/20 text-right">Harga Kini</th>
+                  <th className="p-4 bg-emerald-50/20 text-right">+1 Bulan</th>
+                  <th className="p-4 bg-emerald-50/20 text-right">+3 Bulan</th>
+                  <th className="p-4 bg-emerald-50/20 text-center">Tren</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 font-medium">
                 {forecasts.map(item => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3 font-bold text-slate-700 flex items-center gap-2">
-                      {item.isWarning && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                      {!item.isWarning && <span className="w-3.5 h-3.5 shrink-0 block rounded-full bg-slate-100" />}
+                    <td className="p-4 font-bold text-slate-800 flex items-center gap-3 text-[13px]">
+                      <span className="text-xl leading-none">{getIcon(item.id)}</span>
                       {item.name}
                     </td>
-                    <td className="p-3 text-right text-slate-600">
+                    <td className="p-4 text-right text-slate-500 font-semibold">
                       Rp{item.current.toLocaleString('id-ID')}
                     </td>
-                    <td className="p-3 text-right font-bold text-indigo-700 bg-indigo-50/30">
+                    <td className={`p-4 text-right font-bold ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-500'}`}>
                       Rp{item.month1.toLocaleString('id-ID')}
                     </td>
-                    <td className="p-3 text-right font-black text-purple-700 bg-purple-50/30">
+                    <td className={`p-4 text-right font-black ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-500'}`}>
                       Rp{item.month3.toLocaleString('id-ID')}
                     </td>
-                    <td className="p-3 text-center">
-                      {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-rose-500 mx-auto" />}
-                      {item.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500 mx-auto" />}
-                      {item.trend === 'stable' && <Minus className="w-4 h-4 text-slate-400 mx-auto" />}
+                    <td className="p-4 text-center">
+                      {item.trend === 'up' && <TrendingUp className="w-5 h-5 text-red-500 mx-auto" />}
+                      {item.trend === 'down' && <TrendingDown className="w-5 h-5 text-emerald-500 mx-auto" />}
+                      {item.trend === 'stable' && <Minus className="w-5 h-5 text-amber-500 mx-auto" />}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <div className="p-4 border-t border-slate-100 bg-white flex flex-wrap items-center gap-4 shrink-0 text-[10px] font-bold text-slate-500">
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Turun</div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Stabil</div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Naik</div>
+            <div className="ml-auto text-slate-400 font-medium hidden sm:block">Harga dalam Rupiah (Rp) / kg</div>
+          </div>
         </div>
 
         {/* Right Column: AI Interpretation */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="dashboard-card bg-gradient-to-br from-[#0f172a] to-[#312e81] p-5 md:p-6 text-white border-none shadow-xl flex-1 flex flex-col h-[400px] overflow-hidden">
-            <h4 className="font-extrabold text-xs uppercase tracking-wide flex items-center gap-2 mb-4 text-indigo-200">
-              <Brain className="w-4 h-4" /> Interpretasi Algoritma ML
+          <div className="dashboard-card bg-[#0B4D3C] rounded-3xl p-6 lg:p-8 text-white border-none shadow-xl flex-1 flex flex-col h-[520px] overflow-hidden">
+            <h4 className="font-extrabold text-[13px] uppercase tracking-wide flex items-center gap-3 mb-6 text-white">
+              <div className="p-1.5 bg-white rounded-full text-[#0B4D3C] shrink-0">
+                <Brain className="w-5 h-5" />
+              </div>
+              Interpretasi Algoritma ML
             </h4>
             
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              <p className="text-[11px] text-indigo-100/80 leading-relaxed text-justify">
+              <p className="text-xs text-white/90 leading-relaxed text-justify font-medium">
                 Model peramalan (V1 Baseline) mendeteksi adanya potensi fluktuasi pada beberapa komoditas strategis berdasarkan momentum pergerakan harga 10 tahun terakhir. Batas toleransi indeks variabilitas (CV) yang aman diatur pada level <strong>&lt; 9%</strong>, sementara khusus untuk beras diatur lebih ketat pada level <strong>&lt; 5%</strong>.
               </p>
 
               {warnings.length > 0 ? (
-                <div className="bg-rose-500/15 border border-rose-500/30 p-3.5 rounded-xl mt-4">
-                  <div className="flex items-center gap-2 text-rose-400 font-bold text-[10px] uppercase tracking-wider mb-3">
-                    <AlertTriangle className="w-3.5 h-3.5" /> 
+                <div className="bg-[#1c3a31]/60 border border-red-500/40 p-5 rounded-2xl mt-4">
+                  <div className="flex items-center gap-3 text-red-400 font-black text-xs uppercase tracking-wider mb-5">
+                    <div className="p-2 bg-red-500/20 rounded-full text-red-500">
+                      <AlertTriangle className="w-4 h-4 fill-red-500 text-[#1c3a31]" />
+                    </div>
                     EARLY WARNING SYSTEM (EWS) AKTIF
                   </div>
-                  <ul className="space-y-3.5">
+                  <ul className="space-y-5">
                     {warnings.map(w => (
-                      <li key={w.id} className="text-[11px] text-rose-100/90 flex items-start gap-2.5 leading-relaxed">
-                        <ArrowRight className="w-3.5 h-3.5 text-rose-400 mt-0.5 shrink-0" />
+                      <li key={w.id} className="text-[11px] text-white flex items-start gap-4 leading-relaxed">
+                        <span className="text-3xl leading-none mt-1 drop-shadow-md">{getIcon(w.id)}</span>
                         <div>
-                          <strong className="text-white font-bold">{w.name}</strong> diproyeksikan melonjak hingga <span className="text-rose-300 font-black">Rp{w.month3.toLocaleString('id-ID')}</span> dalam triwulan depan (CV: <span className="text-rose-300 font-black">{w.cv.toFixed(1)}%</span>). <br/><span className="text-[10px] text-rose-300/80 mt-1 block">Tindakan: Disarankan menyiapkan mitigasi operasi pasar dalam 30 hari.</span>
+                          <strong className="text-white font-bold text-xs">{w.name}</strong> diproyeksikan melonjak hingga <strong className="text-amber-400 text-xs">Rp{w.month3.toLocaleString('id-ID')}</strong> dalam triwulan depan (CV: <strong className="text-amber-400">{w.cv.toFixed(1)}%</strong>). <br/>
+                          <span className="text-[11px] text-white/70 mt-1 block italic">Tindakan: Disarankan menyiapkan mitigasi operasi pasar dalam 30 hari.</span>
                         </div>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl mt-4 flex items-center gap-3">
-                  <div className="p-2 bg-emerald-500/20 rounded-full text-emerald-400 shrink-0">
-                    <Info className="w-4 h-4" />
+                <div className="bg-[#1c3a31]/60 border border-emerald-500/40 p-5 rounded-2xl mt-4 flex items-center gap-4">
+                  <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400 shrink-0">
+                    <Info className="w-5 h-5" />
                   </div>
                   <div>
-                    <h5 className="text-[11px] font-bold text-emerald-400">Stabilitas Terjaga</h5>
-                    <p className="text-[10px] text-emerald-100/70 mt-1 leading-relaxed">Seluruh komoditas strategis diprediksi stabil (CV dalam batas aman) untuk rentang waktu 3 bulan ke depan.</p>
+                    <h5 className="text-[13px] font-bold text-emerald-400 mb-1">Stabilitas Terjaga</h5>
+                    <p className="text-xs text-emerald-100/80 leading-relaxed">Seluruh komoditas strategis diprediksi stabil (CV dalam batas aman) untuk rentang waktu 3 bulan ke depan.</p>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-indigo-500/30 text-[9px] text-indigo-300/50 font-medium leading-relaxed">
-              *Model V1 (Prophet Baseline) memproses data historis bulanan secara deterministik. Pembaruan algoritma ML ke V2 (XGBoost/LSTM) yang mengikutsertakan variabel iklim makro dan volatilitas inflasi dapat dipasang di tahap mendatang.
+            <div className="mt-4 pt-4 border-t border-white/10 shrink-0">
+              <div className="border border-white/20 rounded-xl p-4 flex items-start gap-3 bg-white/5">
+                <div className="p-1 bg-white rounded-full text-[#0B4D3C] shrink-0 mt-0.5">
+                  <Check className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div>
+                  <h5 className="text-[11px] font-bold text-white mb-1">Sumber Model</h5>
+                  <p className="text-[10px] text-white/70 font-medium leading-relaxed text-justify">
+                    Model V1 (Prophet Baseline) memproses data historis bulanan secara deterministik. Pembaruan algoritma ML ke V2 (XGBoost/LSTM) yang mengikutsertakan variabel iklim makro dan volatilitas inflasi dapat dipasang di tahap mendatang.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
