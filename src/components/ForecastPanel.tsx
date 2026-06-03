@@ -93,66 +93,61 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
 
   return (
     <div className="mt-8 mb-6">
-      {/* Header Section */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
-          <TrendingUp className="w-8 h-8 text-emerald-600" />
-        </div>
-        <div>
-          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide flex items-center flex-wrap gap-2">
-            AI FORECAST & EARLY WARNING SYSTEM (ML)
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-amber-200 shadow-sm">DUMMY V1</span>
-          </h3>
-          <p className="text-xs text-slate-500 font-medium mt-1">
-            Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch h-[550px]">
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-white border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-full">
-          <div className="p-5 border-b border-emerald-50 bg-white flex items-center justify-between shrink-0">
-            <h4 className="font-extrabold text-[13px] text-[#0B4D3C] uppercase tracking-wide flex items-center gap-3">
-              <div className="p-1.5 bg-[#0B4D3C] rounded-full text-white">
-                <TrendingUp className="w-4 h-4" />
+        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-full">
+          <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex items-start justify-between shrink-0">
+            <div className="flex gap-3">
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
+                <TrendingUp className="w-6 h-6 text-emerald-600" />
               </div>
-              Tabel Prediksi Harga
-            </h4>
-            <span className="text-[10px] bg-white border border-emerald-200 text-[#0B4D3C] px-4 py-1.5 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
+              <div>
+                <h4 className="font-black text-[#0f172a] text-[15px] uppercase tracking-wide flex items-center gap-3">
+                  AI FORECAST
+                </h4>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5 pr-4 leading-relaxed">
+                  Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shadow-sm">DUMMY V.1</span>
+              <span className="text-[9px] bg-white border border-emerald-200 text-[#0B4D3C] px-3 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
+            </div>
           </div>
           
-          <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
+          <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
             <table className="w-full text-left border-collapse text-xs">
-              <thead className="sticky top-0 bg-white z-10 shadow-sm">
-                <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100 text-[10px] uppercase tracking-wider">
-                  <th className="p-4 py-5 bg-emerald-50/30">Komoditas</th>
-                  <th className="p-4 py-5 bg-emerald-50/30 text-right">Harga Kini</th>
-                  <th className="p-4 py-5 bg-emerald-50/30 text-right">+1 Bulan</th>
-                  <th className="p-4 py-5 bg-emerald-50/30 text-right">+3 Bulan</th>
-                  <th className="p-4 py-5 bg-emerald-50/30 text-center">Tren</th>
+              <thead className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 shadow-sm">
+                <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
+                  <th className="p-2 py-3 bg-emerald-50/30">Komoditas</th>
+                  <th className="p-2 py-3 bg-emerald-50/30 text-right">Harga Kini</th>
+                  <th className="p-2 py-3 bg-emerald-50/30 text-right">+1 Bulan</th>
+                  <th className="p-2 py-3 bg-emerald-50/30 text-right">+3 Bulan</th>
+                  <th className="p-2 py-3 bg-emerald-50/30 text-center">Tren</th>
                 </tr>
               </thead>
               <tbody className="font-medium">
                 {forecasts.map((item, index) => (
-                  <tr key={item.id} className={`hover:bg-emerald-50/60 transition-colors border-b border-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                    <td className="p-4 py-5 font-bold text-slate-800 flex items-center gap-3 text-[13px]">
-                      <span className="text-2xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
+                  <tr key={item.id} className={`hover:bg-emerald-50/60 transition-colors border-b border-slate-100/50 ${index % 2 === 0 ? 'bg-white/60' : 'bg-transparent'}`}>
+                    <td className="p-2 py-2.5 font-bold text-slate-800 flex items-center gap-2.5 text-[11px]">
+                      <span className="text-xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
                       {item.name}
                     </td>
-                    <td className="p-4 text-right text-slate-500 font-semibold">
+                    <td className="p-2 text-right text-slate-500 font-semibold text-[11px]">
                       Rp{item.current.toLocaleString('id-ID')}
                     </td>
-                    <td className={`p-4 text-right font-bold ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <td className={`p-2 text-right font-bold text-[11px] ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
                       Rp{item.month1.toLocaleString('id-ID')}
                     </td>
-                    <td className={`p-4 text-right font-black ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <td className={`p-2 text-right font-black text-xs ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
                       Rp{item.month3.toLocaleString('id-ID')}
                     </td>
-                    <td className="p-4 text-center">
-                      {item.trend === 'up' && <TrendingUp className="w-5 h-5 text-red-500 mx-auto" />}
-                      {item.trend === 'down' && <TrendingDown className="w-5 h-5 text-emerald-500 mx-auto" />}
-                      {item.trend === 'stable' && <Minus className="w-5 h-5 text-amber-500 mx-auto" />}
+                    <td className="p-2 text-center">
+                      {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500 mx-auto" />}
+                      {item.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500 mx-auto" />}
+                      {item.trend === 'stable' && <Minus className="w-4 h-4 text-amber-500 mx-auto" />}
                     </td>
                   </tr>
                 ))}
@@ -169,19 +164,19 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
         </div>
 
         {/* Right Column: AI Interpretation */}
-        <div className="lg:col-span-5 dashboard-card bg-white border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-full">
+        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-full">
           
           {/* Right Header */}
           <div className="flex justify-between items-start gap-4 mb-5 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-1.5 bg-emerald-800 rounded-full text-white shrink-0">
-                <Brain className="w-5 h-5" />
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
+                <Brain className="w-6 h-6 text-emerald-600" />
               </div>
-              <h4 className="font-extrabold text-[13px] text-emerald-900 uppercase tracking-wide">
-                Interpretasi Algoritma ML
+              <h4 className="font-black text-[#0f172a] text-[15px] uppercase tracking-wide">
+                EARLY WARNING SYSTEM (ML)
               </h4>
             </div>
-            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shrink-0 shadow-sm">DUMMY V1</span>
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shrink-0 shadow-sm mt-1">DUMMY V.1</span>
           </div>
           
           <div className="flex-1 flex flex-col min-h-0">
