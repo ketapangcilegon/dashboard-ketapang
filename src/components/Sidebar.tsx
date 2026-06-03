@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight, Leaf } from 'lucide-react';
+import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight, Leaf, Info } from 'lucide-react';
 
 interface SidebarProps {
   currentView?: string;
@@ -142,7 +142,7 @@ export default function Sidebar({
         </nav>
       </div>
 
-      <div className={`px-6 mt-3 space-y-3 ${isMobile ? '-translate-y-5' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
+      <div className={`px-6 mt-3 space-y-2.5 ${isMobile ? '-translate-y-5' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
         {!isCollapsed ? (
           <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 animate-in fade-in duration-300">
             <p>
@@ -159,6 +159,34 @@ export default function Sidebar({
           <Download className="w-3.5 h-3.5 shrink-0" /> 
           {!isCollapsed && <span>Unduh Laporan</span>}
         </button>
+
+        <a 
+          href="/?view=sumber_data"
+          onClick={(e) => {
+            e.preventDefault();
+            setCurrentView('sumber_data');
+            if (isMobile) onCloseMobile();
+          }}
+          className={`w-full py-2 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${currentView === 'sumber_data' ? '!text-white bg-[#0f172a] border-emerald-500 shadow-inner' : ''} ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
+          title={isCollapsed ? "Sumber Data" : undefined}
+        >
+          <FileText className={`w-3.5 h-3.5 shrink-0 ${currentView === 'sumber_data' ? 'text-emerald-400' : 'text-slate-400'}`} /> 
+          {!isCollapsed && <span>Sumber Data</span>}
+        </a>
+
+        <a 
+          href="/?view=credit"
+          onClick={(e) => {
+            e.preventDefault();
+            setCurrentView('credit');
+            if (isMobile) onCloseMobile();
+          }}
+          className={`w-full py-2 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${currentView === 'credit' ? '!text-white bg-[#0f172a] border-emerald-500 shadow-inner' : ''} ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
+          title={isCollapsed ? "Credit Title" : undefined}
+        >
+          <Info className={`w-3.5 h-3.5 shrink-0 ${currentView === 'credit' ? 'text-emerald-400' : 'text-slate-400'}`} /> 
+          {!isCollapsed && <span>Credit Title</span>}
+        </a>
       </div>
     </div>
   );
