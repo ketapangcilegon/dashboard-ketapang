@@ -92,15 +92,16 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
   const warnings = forecasts.filter(f => f.isWarning);
 
   return (
-    <div className="mt-8 space-y-5">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm">
+    <div className="mt-8 mb-6">
+      {/* Header Section */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
           <TrendingUp className="w-8 h-8 text-emerald-600" />
         </div>
         <div>
-          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide flex items-center">
+          <h3 className="font-black text-[#0f172a] text-lg lg:text-xl uppercase tracking-wide flex items-center flex-wrap gap-2">
             AI FORECAST & EARLY WARNING SYSTEM (ML)
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-wider ml-3 border border-amber-200">DUMMY V1</span>
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-amber-200 shadow-sm">DUMMY V1</span>
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-1">
             Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
@@ -108,11 +109,11 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch h-[550px]">
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-white border border-emerald-100 rounded-3xl p-0 overflow-hidden flex flex-col h-[520px] shadow-sm">
+        <div className="lg:col-span-7 dashboard-card bg-white border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-full">
           <div className="p-5 border-b border-emerald-50 bg-white flex items-center justify-between shrink-0">
-            <h4 className="font-extrabold text-[13px] text-[#0B4D3C] uppercase tracking-wide flex items-center gap-2">
+            <h4 className="font-extrabold text-[13px] text-[#0B4D3C] uppercase tracking-wide flex items-center gap-3">
               <div className="p-1.5 bg-[#0B4D3C] rounded-full text-white">
                 <TrendingUp className="w-4 h-4" />
               </div>
@@ -120,22 +121,23 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
             </h4>
             <span className="text-[10px] bg-white border border-emerald-200 text-[#0B4D3C] px-4 py-1.5 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
           </div>
-          <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
+          
+          <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
             <table className="w-full text-left border-collapse text-xs">
-              <thead className="sticky top-0 bg-white z-10">
-                <tr className="text-[#0B4D3C] font-extrabold border-b border-slate-100 text-[10px] uppercase tracking-wider">
-                  <th className="p-4 bg-emerald-50/20">Komoditas</th>
-                  <th className="p-4 bg-emerald-50/20 text-right">Harga Kini</th>
-                  <th className="p-4 bg-emerald-50/20 text-right">+1 Bulan</th>
-                  <th className="p-4 bg-emerald-50/20 text-right">+3 Bulan</th>
-                  <th className="p-4 bg-emerald-50/20 text-center">Tren</th>
+              <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100 text-[10px] uppercase tracking-wider">
+                  <th className="p-4 py-5 bg-emerald-50/30">Komoditas</th>
+                  <th className="p-4 py-5 bg-emerald-50/30 text-right">Harga Kini</th>
+                  <th className="p-4 py-5 bg-emerald-50/30 text-right">+1 Bulan</th>
+                  <th className="p-4 py-5 bg-emerald-50/30 text-right">+3 Bulan</th>
+                  <th className="p-4 py-5 bg-emerald-50/30 text-center">Tren</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 font-medium">
-                {forecasts.map(item => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-4 font-bold text-slate-800 flex items-center gap-3 text-[13px]">
-                      <span className="text-xl leading-none">{getIcon(item.id)}</span>
+              <tbody className="font-medium">
+                {forecasts.map((item, index) => (
+                  <tr key={item.id} className={`hover:bg-emerald-50/60 transition-colors border-b border-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+                    <td className="p-4 py-5 font-bold text-slate-800 flex items-center gap-3 text-[13px]">
+                      <span className="text-2xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
                       {item.name}
                     </td>
                     <td className="p-4 text-right text-slate-500 font-semibold">
@@ -157,6 +159,7 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
               </tbody>
             </table>
           </div>
+          
           <div className="p-4 border-t border-slate-100 bg-white flex flex-wrap items-center gap-4 shrink-0 text-[10px] font-bold text-slate-500">
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Turun</div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Stabil</div>
@@ -166,68 +169,75 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
         </div>
 
         {/* Right Column: AI Interpretation */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="dashboard-card bg-[#0B4D3C] rounded-3xl p-6 lg:p-8 text-white border-none shadow-xl flex-1 flex flex-col h-[520px] overflow-hidden">
-            <h4 className="font-extrabold text-[13px] uppercase tracking-wide flex items-center gap-3 mb-6 text-white">
-              <div className="p-1.5 bg-white rounded-full text-[#0B4D3C] shrink-0">
+        <div className="lg:col-span-5 dashboard-card bg-white border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-full">
+          
+          {/* Right Header */}
+          <div className="flex justify-between items-start gap-4 mb-5 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-emerald-800 rounded-full text-white shrink-0">
                 <Brain className="w-5 h-5" />
               </div>
-              Interpretasi Algoritma ML
-              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[9px] font-black rounded-full uppercase tracking-wider ml-auto border border-amber-500/30">DUMMY V1</span>
-            </h4>
-            
-            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              <p className="text-xs text-white/90 leading-relaxed text-justify font-medium">
-                Model peramalan (V1 Baseline) mendeteksi adanya potensi fluktuasi pada beberapa komoditas strategis berdasarkan momentum pergerakan harga 10 tahun terakhir. Batas toleransi indeks variabilitas (CV) yang aman diatur pada level <strong>&lt; 9%</strong>, sementara khusus untuk beras diatur lebih ketat pada level <strong>&lt; 5%</strong>.
-              </p>
+              <h4 className="font-extrabold text-[13px] text-emerald-900 uppercase tracking-wide">
+                Interpretasi Algoritma ML
+              </h4>
+            </div>
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shrink-0 shadow-sm">DUMMY V1</span>
+          </div>
+          
+          <div className="flex-1 flex flex-col min-h-0">
+            <p className="text-xs text-slate-600 leading-relaxed text-justify font-medium mb-5 shrink-0">
+              Model peramalan (V1 Baseline) mendeteksi adanya potensi fluktuasi pada beberapa komoditas strategis berdasarkan momentum pergerakan harga 10 tahun terakhir. Batas toleransi indeks variabilitas (CV) yang aman diatur pada level <strong className="text-slate-800">&lt; 9%</strong>, sementara khusus untuk beras diatur lebih ketat pada level <strong className="text-slate-800">&lt; 5%</strong>.
+            </p>
 
+            {/* EWS Container */}
+            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 pr-2">
               {warnings.length > 0 ? (
-                <div className="bg-[#1c3a31]/60 border border-red-500/40 p-5 rounded-2xl mt-4">
-                  <div className="flex items-center gap-3 text-red-400 font-black text-xs uppercase tracking-wider mb-5">
-                    <div className="p-2 bg-red-500/20 rounded-full text-red-500">
-                      <AlertTriangle className="w-4 h-4 fill-red-500 text-[#1c3a31]" />
+                <div className="bg-[#6B7B73] bg-gradient-to-br from-[#718279] to-[#5a6b63] border-2 border-red-400/80 p-5 rounded-2xl shadow-inner min-h-full">
+                  <div className="flex items-center gap-3 text-red-300 font-black text-xs uppercase tracking-wider mb-5">
+                    <div className="p-1.5 bg-red-400/20 rounded-full text-red-300">
+                      <AlertTriangle className="w-4 h-4 fill-red-400 text-[#5a6b63]" />
                     </div>
                     EARLY WARNING SYSTEM (EWS) AKTIF
                   </div>
                   <ul className="space-y-5">
                     {warnings.map(w => (
                       <li key={w.id} className="text-[11px] text-white flex items-start gap-4 leading-relaxed">
-                        <span className="text-3xl leading-none mt-1 drop-shadow-md">{getIcon(w.id)}</span>
+                        <div className="p-2 bg-white/10 rounded-full border border-white/20 shrink-0">
+                          <span className="text-2xl leading-none drop-shadow-md block">{getIcon(w.id)}</span>
+                        </div>
                         <div>
-                          <strong className="text-white font-bold text-xs">{w.name}</strong> diproyeksikan melonjak hingga <strong className="text-amber-400 text-xs">Rp{w.month3.toLocaleString('id-ID')}</strong> dalam triwulan depan (CV: <strong className="text-amber-400">{w.cv.toFixed(1)}%</strong>). <br/>
-                          <span className="text-[11px] text-white/70 mt-1 block italic">Tindakan: Disarankan menyiapkan mitigasi operasi pasar dalam 30 hari.</span>
+                          <strong className="text-white font-bold text-xs">{w.name}</strong> diproyeksikan melonjak hingga <strong className="text-amber-300 text-xs">Rp{w.month3.toLocaleString('id-ID')}</strong> dalam triwulan depan (CV: <strong className="text-amber-300">{w.cv.toFixed(1)}%</strong>). <br/>
+                          <span className="text-[11px] text-white/80 mt-1 block italic">Tindakan: Disarankan menyiapkan mitigasi operasi pasar dalam 30 hari.</span>
                         </div>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <div className="bg-[#1c3a31]/60 border border-emerald-500/40 p-5 rounded-2xl mt-4 flex items-center gap-4">
-                  <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400 shrink-0">
+                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center gap-4 min-h-full">
+                  <div className="p-3 bg-emerald-200 rounded-full text-emerald-700 shrink-0">
                     <Info className="w-5 h-5" />
                   </div>
                   <div>
-                    <h5 className="text-[13px] font-bold text-emerald-400 mb-1">Stabilitas Terjaga</h5>
-                    <p className="text-xs text-emerald-100/80 leading-relaxed">Seluruh komoditas strategis diprediksi stabil (CV dalam batas aman) untuk rentang waktu 3 bulan ke depan.</p>
+                    <h5 className="text-[13px] font-bold text-emerald-800 mb-1">Stabilitas Terjaga</h5>
+                    <p className="text-xs text-emerald-700/80 leading-relaxed">Seluruh komoditas strategis diprediksi stabil (CV dalam batas aman) untuk rentang waktu 3 bulan ke depan.</p>
                   </div>
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="mt-4 pt-4 border-t border-white/10 shrink-0">
-              <div className="border border-white/20 rounded-xl p-4 flex items-start gap-3 bg-white/5">
-                <div className="p-1 bg-white rounded-full text-[#0B4D3C] shrink-0 mt-0.5">
-                  <Check className="w-3.5 h-3.5 font-bold" />
-                </div>
-                <div>
-                  <h5 className="text-[11px] font-bold text-white mb-1">Sumber Model</h5>
-                  <p className="text-[10px] text-white/70 font-medium leading-relaxed text-justify">
-                    Model V1 (Prophet Baseline) memproses data historis bulanan secara deterministik. Pembaruan algoritma ML ke V2 (XGBoost/LSTM) yang mengikutsertakan variabel iklim makro dan volatilitas inflasi dapat dipasang di tahap mendatang.
-                  </p>
-                </div>
-              </div>
+          <div className="mt-5 pt-4 flex items-start gap-3 shrink-0">
+            <div className="shrink-0 mt-0.5 text-emerald-600">
+              <Check className="w-4 h-4 font-bold" />
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed text-justify">
+                <strong className="text-emerald-800">Sumber Model:</strong> Model V1 (Prophet Baseline) memproses data historis bulanan secara deterministik. Pembaruan algoritma ML ke V2 (XGBoost/LSTM) yang mengikutsertakan variabel iklim makro dan volatilitas inflasi dapat dipasang di tahap mendatang.
+              </p>
             </div>
           </div>
+          
         </div>
       </div>
     </div>
