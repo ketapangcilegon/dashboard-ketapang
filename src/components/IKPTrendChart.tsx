@@ -72,10 +72,10 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
                 const latest = chartData[chartData.length - 1];
                 const first = chartData[0];
                 const diff = (latest.cilegon - first.cilegon).toFixed(2);
-                const isAboveNasional = latest.cilegon > latest.nasional;
+                const isAboveNasional = latest.nasional !== null ? latest.cilegon > latest.nasional : false;
                 const status = latest.cilegon >= 75 ? 'sangat tangguh' : 'memerlukan penguatan determinan spesifik';
                 
-                return `Indeks Ketahanan Pangan Kota Cilegon pada ${latest.name} mencapai angka ${latest.cilegon.toFixed(2)}. Selama periode ${first.name}-${latest.name}, terjadi ${parseFloat(diff) > 0 ? 'peningkatan' : 'penurunan'} sebesar ${Math.abs(parseFloat(diff))} poin. Posisi terkini ${isAboveNasional ? 'melampaui' : 'berada di bawah'} target Nasional (${latest.nasional.toFixed(2)}), yang merepresentasikan sistem pangan daerah yang ${status}.`;
+                return `Indeks Ketahanan Pangan Kota Cilegon pada ${latest.name} mencapai angka ${latest.cilegon.toFixed(2)}. Selama periode ${first.name}-${latest.name}, terjadi ${parseFloat(diff) > 0 ? 'peningkatan' : 'penurunan'} sebesar ${Math.abs(parseFloat(diff))} poin. Posisi terkini ${isAboveNasional ? 'melampaui' : 'berada di bawah'} target Nasional (${latest.nasional !== null ? latest.nasional.toFixed(2) : 'N/A'}), yang merepresentasikan sistem pangan daerah yang ${status}.`;
               })()}
             </p>
             <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 text-amber-900 shadow-sm text-[10px] font-bold">
