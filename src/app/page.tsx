@@ -13,6 +13,7 @@ import KerawananPanel from '@/components/KerawananPanel';
 import BalitaDoughnut from '@/components/BalitaDoughnut';
 import ProduksiLokalChart from '@/components/ProduksiLokalChart';
 import HargaPanel from '@/components/HargaPanel';
+import ForecastPanel from '@/components/ForecastPanel';
 import PoUTrendChart from '@/components/PoUTrendChart';
 import IKPTrendChart from '@/components/IKPTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
@@ -1009,6 +1010,9 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* ML Forecast Panel */}
+                  <ForecastPanel livePrices={livePrices} />
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
