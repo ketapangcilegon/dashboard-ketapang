@@ -1,6 +1,8 @@
 "use client";
 
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LabelList } from 'recharts';
+import { useState } from 'react';
+import { Brain, X } from 'lucide-react';
 
 interface PoUTrendChartProps {
   pouData: any[];
@@ -8,6 +10,7 @@ interface PoUTrendChartProps {
 }
 
 export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendChartProps) {
+  const [isAIOpen, setIsAIOpen] = useState(false);
   
   // Default fallback data matching the historic spreadsheet uploaded by the user
   const defaultChartData = [
@@ -30,8 +33,8 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
 
   return (
     <div className="dashboard-card border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between relative">
+        <div className="pr-8">
           <h3 className="font-extrabold text-[#7C3AED] text-sm leading-none flex items-center gap-1.5">
             <span>💜</span> Prevalence of Undernourishment (PoU) Lintas Tahun
           </h3>
@@ -39,7 +42,36 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
             Tren Perbandingan Angka Prevalensi Kerawanan Konsumsi Pangan (%)
           </p>
         </div>
+        <button 
+          onClick={() => setIsAIOpen(!isAIOpen)}
+          className={`absolute right-0 top-0 p-1.5 rounded-lg transition-all border ${isAIOpen ? 'bg-violet-600 text-white border-violet-700 shadow-inner' : 'bg-violet-50 text-violet-600 border-violet-100 hover:bg-violet-100 hover:scale-105 active:scale-95 shadow-sm'}`}
+          title="Tampilkan AI Insight"
+        >
+          <Brain className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* Pop-over AI Insight */}
+      {isAIOpen && (
+        <div className="absolute top-14 right-4 bottom-4 w-[60%] sm:w-[45%] bg-white/95 backdrop-blur-md border border-violet-200 shadow-2xl rounded-xl z-20 flex flex-col animate-in slide-in-from-right-8 duration-300 overflow-hidden">
+          <div className="flex items-center justify-between p-2.5 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white">
+            <h4 className="text-[11px] font-black text-violet-800 uppercase flex items-center gap-1.5">
+              <Brain className="w-3.5 h-3.5" /> AI Insight
+            </h4>
+            <button onClick={() => setIsAIOpen(false)} className="p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="p-3.5 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-2.5 bg-violet-100/50 rounded-lg border border-violet-200 text-violet-900 mb-3 shadow-sm text-[10px] font-bold">
+              💡 Rekomendasi
+            </div>
+            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+              Angka PoU Kota Cilegon secara konsisten berada jauh di bawah Prevalensi Provinsi Banten dan Target Maksimal Nasional (&lt; 5%). Hal ini mengindikasikan tingkat kecukupan konsumsi pangan masyarakat kota yang sangat baik dan melampaui rata-rata wilayah lain.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Area Chart with 3 comparative layers (National, Provincial, City) */}
       <div className="w-full h-[160px] mt-3">
@@ -80,17 +112,19 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
               iconType="circle" 
               wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', color: '#475569', top: -10 }} 
             />
-            <Area type="monotone" dataKey="nasional" name="nasional" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorNasional)" />
-            <Area type="monotone" dataKey="provinsi" name="provinsi" stroke="#06B6D4" strokeWidth={2} fillOpacity={1} fill="url(#colorProvinsi)" />
-            <Area type="monotone" dataKey="cilegon" name="cilegon" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCilegon)" />
+            <Area type="monotone" dataKey="nasional" name="nasional" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorNasional)">
+              <LabelList dataKey="nasional" position="top" style={{ fontSize: '8px', fill: '#D97706', fontWeight: 'bold' }} offset={5} />
+            </Area>
+            <Area type="monotone" dataKey="provinsi" name="provinsi" stroke="#06B6D4" strokeWidth={2} fillOpacity={1} fill="url(#colorProvinsi)">
+              <LabelList dataKey="provinsi" position="top" style={{ fontSize: '8px', fill: '#0891B2', fontWeight: 'bold' }} offset={5} />
+            </Area>
+            <Area type="monotone" dataKey="cilegon" name="cilegon" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCilegon)">
+              <LabelList dataKey="cilegon" position="bottom" style={{ fontSize: '8px', fill: '#6D28D9', fontWeight: 'bold' }} offset={8} />
+            </Area>
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Info Banner */}
-      <div className="mt-2.5 p-2.5 bg-violet-50 rounded-lg border border-violet-100 text-[10px] text-violet-850 font-bold leading-normal">
-        💡 **Rekomendasi**: Angka PoU Kota Cilegon secara konsisten berada jauh di bawah Prevalensi Provinsi Banten dan Target Maksimal Nasional (&lt; 5%). Hal ini mengindikasikan tingkat kecukupan konsumsi pangan masyarakat kota yang sangat baik dan melampaui rata-rata wilayah lain.
-      </div>
     </div>
   );
 }

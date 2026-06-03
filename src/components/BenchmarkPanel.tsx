@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { 
   ComposedChart, Line, Area, XAxis, YAxis, Tooltip, 
-  ResponsiveContainer, CartesianGrid, ReferenceLine 
+  ResponsiveContainer, CartesianGrid, ReferenceLine, LabelList
 } from 'recharts';
 
 interface BenchmarkPanelProps {
@@ -143,6 +143,32 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
 
 export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] }: BenchmarkPanelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Swipe Handlers for Mobile Carousel
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      handleNext();
+    } else if (isRightSwipe) {
+      handlePrev();
+    }
+  };
 
   // Get historical values for the active indicator, prioritizing dbBenchmarkList if available
   const getHistoricalVal = (year: string, indicatorNo: number, hardcodedFallback: number) => {
@@ -337,7 +363,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
             </div>
 
             {/* Custom Interactive Recharts Chart Container */}
-            <div className="w-full h-72">
+            <div className="w-full h-72" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
               <ResponsiveContainer width="99%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                   <defs>
@@ -408,7 +434,9 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                     strokeWidth={4} 
                     dot={{ r: 6, stroke: '#FFFFFF', strokeWidth: 2, fill: '#10B981' }} 
                     activeDot={{ r: 8, stroke: '#FFFFFF', strokeWidth: 3 }} 
-                  />
+                  >
+                    <LabelList dataKey="Capaian Cilegon" position="top" style={{ fontSize: '8px', fill: '#059669', fontWeight: 'bold' }} offset={10} />
+                  </Line>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

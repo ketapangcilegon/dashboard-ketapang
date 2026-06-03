@@ -24,7 +24,7 @@ import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
 import dynamic from 'next/dynamic';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
-import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
 interface MiniBenchmarkChartProps {
   indicatorNo: number;
@@ -128,7 +128,9 @@ function MiniBenchmarkChart({ indicatorNo, currentValue, unit, nationalStandard,
             strokeWidth={2.5} 
             dot={{ r: 4, fill: activeColor.dot, strokeWidth: 1.5, stroke: '#fff' }} 
             activeDot={{ r: 6 }} 
-          />
+          >
+            <LabelList dataKey="value" position="top" style={{ fontSize: '8px', fill: activeColor.stroke, fontWeight: 'bold' }} offset={8} />
+          </Line>
           {numericStandard && (
             <ReferenceLine 
               y={numericStandard} 
