@@ -82,7 +82,7 @@ export default function Sidebar({
   };
 
   return (
-    <div className="h-full flex flex-col justify-between pt-[1cm] pb-6 print:hidden relative transition-all duration-300">
+    <div className="h-full flex flex-col justify-between pt-[1cm] pb-6 print:hidden relative transition-all duration-300 overflow-y-auto custom-scrollbar">
       
       {/* Toggle Collapse Button (Desktop Only) */}
       {!isMobile && (
@@ -142,51 +142,69 @@ export default function Sidebar({
         </nav>
       </div>
 
-      <div className={`px-6 mt-3 space-y-2.5 ${isMobile ? '-translate-y-5' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
-        {!isCollapsed ? (
-          <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 animate-in fade-in duration-300">
-            <p>
-              <span className="font-extrabold text-amber-400 block mb-1">Disclaimer:</span> 
-              Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
-            </p>
-          </div>
-        ) : null}
-        <button 
-          onClick={() => typeof window !== 'undefined' && window.print()}
-          className={`w-full py-2.5 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
-          title={isCollapsed ? "Unduh Laporan" : undefined}
-        >
-          <Download className="w-3.5 h-3.5 shrink-0" /> 
-          {!isCollapsed && <span>Unduh Laporan</span>}
-        </button>
+      <div className="mt-auto space-y-3">
+        {/* Padded elements (Disclaimer & Unduh Laporan) */}
+        <div className={`px-6 space-y-2.5 ${isMobile ? '-translate-y-2' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
+          {!isCollapsed ? (
+            <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 animate-in fade-in duration-300">
+              <p>
+                <span className="font-extrabold text-amber-400 block mb-1">Disclaimer:</span> 
+                Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
+              </p>
+            </div>
+          ) : null}
+          <button 
+            onClick={() => typeof window !== 'undefined' && window.print()}
+            className={`w-full py-2.5 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
+            title={isCollapsed ? "Unduh Laporan" : undefined}
+          >
+            <Download className="w-3.5 h-3.5 shrink-0" /> 
+            {!isCollapsed && <span>Unduh Laporan</span>}
+          </button>
+        </div>
 
-        <a 
-          href="/?view=sumber_data"
-          onClick={(e) => {
-            e.preventDefault();
-            setCurrentView('sumber_data');
-            if (isMobile) onCloseMobile();
-          }}
-          className={`w-full py-2 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${currentView === 'sumber_data' ? '!text-white bg-[#0f172a] border-emerald-500 shadow-inner' : ''} ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
-          title={isCollapsed ? "Sumber Data" : undefined}
-        >
-          <FileText className={`w-3.5 h-3.5 shrink-0 ${currentView === 'sumber_data' ? 'text-emerald-400' : 'text-slate-400'}`} /> 
-          {!isCollapsed && <span>Sumber Data</span>}
-        </a>
+        {/* Unpadded menu items (Sumber Data & Credit Title) styled exactly like BERANDA */}
+        <div className="space-y-0.5">
+          <a 
+            href="/?view=sumber_data"
+            onClick={(e) => {
+              e.preventDefault();
+              setCurrentView('sumber_data');
+              if (isMobile) onCloseMobile();
+            }}
+            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
+              currentView === 'sumber_data' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+            } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
+            title={isCollapsed ? "Sumber Data" : undefined}
+          >
+            <FileText className={`w-4 h-4 shrink-0 ${currentView === 'sumber_data' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
+            {!isCollapsed && (
+              <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
+                Sumber Data
+              </span>
+            )}
+          </a>
 
-        <a 
-          href="/?view=credit"
-          onClick={(e) => {
-            e.preventDefault();
-            setCurrentView('credit');
-            if (isMobile) onCloseMobile();
-          }}
-          className={`w-full py-2 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${currentView === 'credit' ? '!text-white bg-[#0f172a] border-emerald-500 shadow-inner' : ''} ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
-          title={isCollapsed ? "Credit Title" : undefined}
-        >
-          <Info className={`w-3.5 h-3.5 shrink-0 ${currentView === 'credit' ? 'text-emerald-400' : 'text-slate-400'}`} /> 
-          {!isCollapsed && <span>Credit Title</span>}
-        </a>
+          <a 
+            href="/?view=credit"
+            onClick={(e) => {
+              e.preventDefault();
+              setCurrentView('credit');
+              if (isMobile) onCloseMobile();
+            }}
+            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
+              currentView === 'credit' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+            } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
+            title={isCollapsed ? "Credit Title" : undefined}
+          >
+            <Info className={`w-4 h-4 shrink-0 ${currentView === 'credit' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
+            {!isCollapsed && (
+              <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
+                Credit Title
+              </span>
+            )}
+          </a>
+        </div>
       </div>
     </div>
   );
