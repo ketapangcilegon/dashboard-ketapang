@@ -63,10 +63,7 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
             </button>
           </div>
           <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-gradient-to-b from-white to-violet-50/30">
-            <div className="p-3 bg-violet-50/70 rounded-lg border border-violet-100 text-violet-800 mb-4 flex items-center gap-2 text-xs font-bold">
-              <span className="text-sm">💡</span> Rekomendasi
-            </div>
-            <p className="text-xs text-slate-700 font-medium leading-relaxed text-justify">
+            <p className="text-xs text-slate-700 font-medium leading-relaxed text-justify mt-2">
               {(() => {
                 const latest = chartData[chartData.length - 1];
                 const first = chartData[0];

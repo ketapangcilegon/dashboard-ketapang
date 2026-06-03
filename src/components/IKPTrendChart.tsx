@@ -64,10 +64,7 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
             </button>
           </div>
           <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-gradient-to-b from-white to-emerald-50/30">
-            <div className="p-3 bg-emerald-50/70 rounded-lg border border-emerald-100 text-emerald-800 mb-4 flex items-center gap-2 text-xs font-bold">
-              <span className="text-sm">💡</span> Interpretasi Cerdas
-            </div>
-            <p className="text-xs text-slate-700 font-medium leading-relaxed text-justify mb-4">
+            <p className="text-xs text-slate-700 font-medium leading-relaxed text-justify mb-4 mt-2">
               {(() => {
                 const latest = chartData[chartData.length - 1];
                 const first = chartData[0];
