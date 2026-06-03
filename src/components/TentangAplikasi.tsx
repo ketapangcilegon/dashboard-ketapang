@@ -20,8 +20,8 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
         </button>
       )}
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase border-b-4 border-emerald-500 inline-block pb-2">
+      <div className="mb-6">
+        <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase border-b-4 border-emerald-500 inline-block pb-2">
           Tentang Aplikasi
         </h1>
       </div>
@@ -34,10 +34,10 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               <Info className="w-8 h-8" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-slate-800 uppercase tracking-wide mb-3">
+              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide mb-2.5">
                 Tentang Aplikasi
               </h2>
-              <div className="text-slate-600 space-y-4 text-sm md:text-base leading-relaxed">
+              <div className="text-slate-600 space-y-3.5 text-[13px] md:text-sm leading-relaxed">
                 <p>
                   Web App <strong className="text-slate-800">Food Security Intelligence & DSS</strong> merupakan platform informasi dan analisis yang dikembangkan untuk mendukung pemanfaatan data ketahanan pangan secara lebih efektif, terintegrasi, dan mudah diakses dalam mensupport pengambilan keputusan.
                 </p>
@@ -56,10 +56,10 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               <ShieldAlert className="w-8 h-8" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-slate-800 uppercase tracking-wide mb-3">
+              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide mb-2.5">
                 Status & Disclaimer
               </h2>
-              <div className="text-slate-600 space-y-4 text-sm md:text-base leading-relaxed">
+              <div className="text-slate-600 space-y-3.5 text-[13px] md:text-sm leading-relaxed">
                 <p>
                   Web app ini merupakan inisiatif pengembangan mandiri dan saat ini <strong className="text-amber-700">belum merupakan aplikasi resmi Pemerintah Kota Cilegon</strong> maupun representasi resmi dari kebijakan, sikap, keputusan, atau pernyataan institusi mana pun.
                 </p>
@@ -81,12 +81,12 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               <Code2 className="w-8 h-8" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-slate-800 uppercase tracking-wide mb-3">
+              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide mb-2.5">
                 Pengembang
               </h2>
-              <div className="text-slate-600 space-y-4 text-sm md:text-base leading-relaxed">
+              <div className="text-slate-600 space-y-3.5 text-[13px] md:text-sm leading-relaxed">
                 <p>
-                  Platform ini dikembangkan dan dikelola secara mandiri oleh seorang <strong className="text-slate-800">Analis Ketahanan Pangan Ahli Muda pada DKPP Kota Cilegon</strong> sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
+                  Platform ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan Ahli Muda pada DKPP Kota Cilegon sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
                 </p>
                 <p>
                   Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.
