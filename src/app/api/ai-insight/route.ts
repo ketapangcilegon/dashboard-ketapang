@@ -216,7 +216,7 @@ function generateFallbackInsight(data: any) {
   return `### **LAPORAN AI INSIGHT KETAHANAN PANGAN KOTA CILEGON (TAHUN ${year})**
 
 #### **1. Ringkasan Eksekutif**
-Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon (Filter: Kecamatan **${kecamatan}**, Kelurahan **${kelurahan}**) berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
+Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
 
 #### **2. Analisis Metodologis: Konsumsi vs Ketersediaan**
 Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi aktual masyarakat:

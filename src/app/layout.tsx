@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard Ketahanan Pangan",
+  title: "Food Security Intelligence & DSS",
   description: "Dashboard Ketahanan Pangan Tingkat Kota Multisektoral",
   icons: {
     icon: '/icon',

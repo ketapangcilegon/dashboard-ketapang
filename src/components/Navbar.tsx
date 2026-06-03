@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
+import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
 
 interface NavbarProps {
@@ -67,13 +67,7 @@ export default function Navbar({
         <div className="h-8 w-px bg-white/20 mx-2 hidden md:block"></div>
 
 
-        {/* Notifications */}
-        <button className="relative p-2.5 text-emerald-800 bg-white hover:bg-emerald-50 transition-all rounded-full shadow-md hover:scale-105 active:scale-95 flex items-center justify-center border border-emerald-100 cursor-pointer">
-          <Bell className="w-4.5 h-4.5" />
-          <span className="absolute top-0 right-0 w-4.5 h-4.5 bg-red-500 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center shadow-sm">
-            3
-          </span>
-        </button>
+
 
         {/* Profile (Clickable Admin Link) */}
         <a href="/entry" className="flex items-center gap-2.5 ml-1 cursor-pointer bg-white py-1 px-1 pr-4 rounded-full shadow-md border border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] transition-all">

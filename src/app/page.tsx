@@ -22,7 +22,7 @@ import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
 import dynamic from 'next/dynamic';
-import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 
 interface MiniBenchmarkChartProps {
@@ -1053,6 +1053,196 @@ export default function DashboardPage() {
                   {/* BOTTOM ROW 3: Benchmark Panel (Full Width, directly below) */}
                   <div className="w-full mt-6 print:hidden">
                     <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
+                  </div>
+
+                  {/* BOTTOM ROW 4: Sumber Data & Referensi (2/3) + Credit Title (1/3) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 print:hidden">
+                    {/* Sumber Data & Referensi - Span 8 */}
+                    <div className="lg:col-span-8 flex flex-col">
+                      <div className="dashboard-card flex-1 p-6 bg-white shadow-sm border border-slate-200">
+                        <h3 className="font-extrabold text-[#0B1E41] text-sm uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-emerald-600" />
+                          Sumber Data dan Referensi
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4 leading-relaxed font-semibold">
+                          Seluruh data dan informasi yang disajikan dalam web app ini berasal dari sumber resmi pemerintah serta hasil pengolahan data oleh pengelola aplikasi. Data digunakan untuk mendukung analisis, pemantauan, dan pengambilan keputusan di bidang ketahanan pangan dan gizi.
+                        </p>
+                        
+                        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mb-4">
+                          <table className="w-full text-left border-collapse table-fixed text-[11px]">
+                            <thead>
+                              <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-black uppercase tracking-wider">
+                                <th className="py-2.5 px-3 w-[6%] text-center border-r border-slate-600">No</th>
+                                <th className="py-2.5 px-3 w-[24%] border-r border-slate-600">Indikator / Metodologi</th>
+                                <th className="py-2.5 px-3 w-[25%] border-r border-slate-600">Sumber Data & Instansi</th>
+                                <th className="py-2.5 px-3 w-[45%]">Keterangan / Referensi</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 font-medium text-slate-600">
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">1</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Harga Pangan Strategis</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Sistem Aplikasi Harga Pangan Kota Cilegon (SAGON)</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data harga pangan harian hasil pengolahan dan visualisasi data harga pangan strategis dari sistem SAGON. <br/>
+                                  <a href="https://sagon.cilegon.go.id" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold text-[10px] inline-flex items-center gap-0.5 mt-1">sagon.cilegon.go.id</a>
+                                </td>
+                              </tr>
+                              <tr className="bg-[#E6F4EA]/25 hover:bg-[#E6F4EA]/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">2</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Pola Pangan Harapan (PPH) Konsumsi</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Survei Sosial Ekonomi Nasional (SUSENAS)</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">Badan Pusat Statistik (BPS)</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Nilai PPH konsumsi dihitung berdasarkan data konsumsi rumah tangga SUSENAS yang diolah menggunakan metodologi Pola Pangan Harapan sesuai pedoman pemerintah.
+                                </td>
+                              </tr>
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">3</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Ketersediaan Energi & Protein</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Neraca Bahan Makanan (NBM)</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data tingkat ketersediaan energi dan protein per kapita sebagai indikator ketersediaan pangan wilayah.
+                                </td>
+                              </tr>
+                              <tr className="bg-[#E6F4EA]/25 hover:bg-[#E6F4EA]/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">4</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Status Gizi Balita (BB/U)</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Rekapitulasi Status Gizi Balita</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">Dinas Kesehatan Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data pemantauan pertumbuhan dan status gizi balita berdasarkan indikator Berat Badan menurut Umur (BB/U).
+                                </td>
+                              </tr>
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">5</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Produksi Beras</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Laporan Realisasi Statistik Pertanian</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data kompilasi realisasi produksi tanaman pangan (Gabah Kering Giling) yang dilaporkan secara periodik.
+                                </td>
+                              </tr>
+                              <tr className="bg-[#E6F4EA]/25 hover:bg-[#E6F4EA]/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">6</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Peta FSVA dan SKPG</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Food Security and Vulnerability Atlas (FSVA) & SKPG</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data spasial dan analisis kerentanan pangan untuk mengidentifikasi wilayah prioritas penanganan kerawanan pangan di Cilegon.
+                                </td>
+                              </tr>
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">7</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Analisis Prioritas (Borda Count)</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Borda Count Method (Metodologi SPK)</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">Pengelola Aplikasi</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Metode pengambilan keputusan multikriteria untuk melakukan pemeringkatan prioritas kelurahan berdasarkan gabungan data IKP dan SKPG. <br/>
+                                  <a href="https://en.wikipedia.org/wiki/Borda_count" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold text-[10px] inline-flex items-center gap-0.5 mt-1">Wikipedia Reference</a>
+                                </td>
+                              </tr>
+                              <tr className="bg-[#E6F4EA]/25 hover:bg-[#E6F4EA]/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">8</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Indeks Ketahanan Pangan (IKP)</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Badan Pangan Nasional Republik Indonesia</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Indeks komposit tahunan pengukur kondisi ketahanan pangan wilayah aspek ketersediaan, keterjangkauan, dan pemanfaatan. <br/>
+                                  <a href="https://data.badanpangan.go.id/statisticpublications/pm" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold text-[10px] inline-flex items-center gap-0.5 mt-1">badanpangan.go.id</a>
+                                </td>
+                              </tr>
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">9</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Prevalence of Undernourishment (PoU)</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">BPS & Badan Pangan Nasional</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Persentase penduduk dengan konsumsi energi di bawah kebutuhan minimum untuk hidup sehat dan aktif. <br/>
+                                  <a href="https://www.bps.go.id/id/statistics-table/2/MTQ3MyMy/prevalence-of-undernourishment.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold text-[10px] inline-flex items-center gap-0.5 mt-1">BPS Reference</a>
+                                </td>
+                              </tr>
+                              <tr className="bg-[#E6F4EA]/25 hover:bg-[#E6F4EA]/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">10</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Cadangan Pangan Pemda (CPPD)</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Bidang Ketahanan Pangan</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data stok cadangan pangan pemerintah daerah untuk mendukung stabilisasi pasokan dan tanggap bencana darurat.
+                                </td>
+                              </tr>
+                              <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-black border-r border-slate-200 text-slate-400">11</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-200">Pengawasan Pangan Segar</td>
+                                <td className="py-2.5 px-3 border-r border-slate-200">
+                                  <span className="font-bold text-slate-700">Bidang Ketahanan Pangan</span><br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold">DKPP Kota Cilegon</span>
+                                </td>
+                                <td className="py-2.5 px-3 leading-relaxed">
+                                  Data pengawasan keamanan pangan segar asal tumbuhan (PSAT) se-Kota Cilegon secara berkala.
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-[10.5px] text-emerald-950 leading-relaxed font-bold shadow-sm mb-4">
+                          ⚠️ Penggunaan data dalam web app ini tetap mengacu pada prinsip Satu Data Indonesia serta tidak menggantikan publikasi resmi yang diterbitkan oleh instansi sumber data.
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100">
+                          <h4 className="font-extrabold text-[#0B1E41] text-[10px] uppercase tracking-wide mb-1.5">Referensi Utama</h4>
+                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[10px] text-slate-500 font-semibold list-disc pl-4 leading-normal">
+                            <li>Badan Pusat Statistik (BPS) – SUSENAS dan Statistik Ketahanan Pangan.</li>
+                            <li>Badan Pangan Nasional Republik Indonesia – Indeks Ketahanan Pangan (IKP).</li>
+                            <li>DKPP Kota Cilegon – Neraca Bahan Makanan (NBM), Statistik Pertanian, FSVA, SKPG, CPPD, dan Pengawasan Pangan Segar.</li>
+                            <li>Dinas Kesehatan Kota Cilegon – Rekapitulasi Status Gizi Balita.</li>
+                            <li>Sistem Aplikasi Harga Pangan Kota Cilegon (SAGON).</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Credit Title - Span 4 */}
+                    <div className="lg:col-span-4 flex flex-col">
+                      <div className="dashboard-card flex-1 p-6 bg-white shadow-sm border border-slate-200 flex flex-col">
+                        <h3 className="font-extrabold text-[#0B1E41] text-sm uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                          <Info className="w-5 h-5 text-emerald-600" />
+                          Credit Title
+                        </h3>
+                        <div className="flex-1 flex flex-col justify-start text-[11px] text-slate-500 leading-relaxed font-semibold space-y-4 text-justify">
+                          <p>
+                            Web app ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan Ahli Muda pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
+                          </p>
+                          <p>
+                            Saat ini, web app ini belum merupakan aplikasi resmi dan tidak mewakili kebijakan, sikap, maupun keputusan institusi atau organisasi mana pun. Seluruh konten dan pengembangannya dilakukan secara independen sebagai sarana pendukung analisis dan pengambilan keputusan.
+                          </p>
+                          <p>
+                            Web app ini ditujukan untuk membantu para pengambil kebijakan, pemangku kepentingan, akademisi, serta pihak terkait lainnya dalam memperoleh informasi yang lebih cepat, akurat, dan mudah diakses guna mendukung upaya peningkatan ketahanan pangan dan penanganan kerawanan pangan di Kota Cilegon.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
