@@ -32,8 +32,8 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
     : defaultChartData;
 
   return (
-    <div className="dashboard-card border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between relative">
+    <div className="dashboard-card relative border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="pr-8">
           <h3 className="font-extrabold text-[#7C3AED] text-sm leading-none flex items-center gap-1.5">
             <span>💜</span> Prevalence of Undernourishment (PoU) Lintas Tahun
@@ -53,21 +53,29 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
 
       {/* Pop-over AI Insight */}
       {isAIOpen && (
-        <div className="absolute top-14 right-4 bottom-4 w-[60%] sm:w-[45%] bg-white/95 backdrop-blur-md border border-violet-200 shadow-2xl rounded-xl z-20 flex flex-col animate-in slide-in-from-right-8 duration-300 overflow-hidden">
-          <div className="flex items-center justify-between p-2.5 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white">
-            <h4 className="text-[11px] font-black text-violet-800 uppercase flex items-center gap-1.5">
-              <Brain className="w-3.5 h-3.5" /> AI Insight
+        <div className="absolute top-12 right-4 bottom-4 w-[80%] sm:w-[55%] bg-white border border-violet-100 shadow-[0_10px_40px_-10px_rgba(109,40,217,0.2)] rounded-xl z-20 flex flex-col animate-in slide-in-from-right-8 duration-300 overflow-hidden">
+          <div className="flex items-center justify-between p-3 border-b border-slate-100">
+            <h4 className="text-xs font-black text-violet-700 uppercase flex items-center gap-2 tracking-wide">
+              <Brain className="w-4 h-4" /> AI Insight
             </h4>
             <button onClick={() => setIsAIOpen(false)} className="p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="p-3.5 overflow-y-auto custom-scrollbar flex-1">
-            <div className="p-2.5 bg-violet-100/50 rounded-lg border border-violet-200 text-violet-900 mb-3 shadow-sm text-[10px] font-bold">
-              💡 Rekomendasi
+          <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-gradient-to-b from-white to-violet-50/30">
+            <div className="p-3 bg-violet-50/70 rounded-lg border border-violet-100 text-violet-800 mb-4 flex items-center gap-2 text-xs font-bold">
+              <span className="text-sm">💡</span> Rekomendasi
             </div>
-            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-              Angka PoU Kota Cilegon secara konsisten berada jauh di bawah Prevalensi Provinsi Banten dan Target Maksimal Nasional (&lt; 5%). Hal ini mengindikasikan tingkat kecukupan konsumsi pangan masyarakat kota yang sangat baik dan melampaui rata-rata wilayah lain.
+            <p className="text-xs text-slate-700 font-medium leading-relaxed text-justify">
+              {(() => {
+                const latest = chartData[chartData.length - 1];
+                const first = chartData[0];
+                const isBelowNasional = latest.cilegon < latest.nasional;
+                const trendStr = latest.cilegon < first.cilegon ? 'penurunan (perbaikan)' : 'peningkatan';
+                const status = latest.cilegon < 5 ? 'sangat baik dan memenuhi standar FAO' : 'memerlukan perhatian untuk mitigasi kerawanan';
+                
+                return `Berdasarkan tren historis, angka PoU Kota Cilegon pada tahun ${latest.name} tercatat sebesar ${latest.cilegon}%. Angka ini ${isBelowNasional ? 'secara konsisten berada jauh di bawah' : 'berada di atas'} Prevalensi Nasional (${latest.nasional}%). Terdapat tren ${trendStr} sejak ${first.name}, yang mengindikasikan tingkat kecukupan konsumsi pangan masyarakat kota yang ${status}. Kapasitas daya beli masyarakat dan stabilisasi pasokan terbukti efektif meredam risiko kerawanan pangan absolut.`;
+              })()}
             </p>
           </div>
         </div>
