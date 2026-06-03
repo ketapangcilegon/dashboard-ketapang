@@ -62,6 +62,11 @@ export default function Sidebar({
       icon: FileText, 
       label: 'Analisis SKPG', 
       view: 'analisis_skpg'
+    },
+    {
+      icon: Info,
+      label: 'Tentang Aplikasi',
+      view: 'tentang'
     }
   ];
 

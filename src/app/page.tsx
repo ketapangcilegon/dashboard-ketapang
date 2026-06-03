@@ -18,6 +18,7 @@ import IKPTrendChart from '@/components/IKPTrendChart';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import AIInsightPanel from '@/components/AIInsightPanel';
 import AnalisisSKPG from '@/components/AnalisisSKPG';
+import TentangAplikasi from '@/components/TentangAplikasi';
 import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
@@ -1605,6 +1606,10 @@ export default function DashboardPage() {
 
               {currentView === 'analisis_skpg' && (
                 <AnalisisSKPG />
+              )}
+              
+              {currentView === 'tentang' && (
+                <TentangAplikasi onBack={() => setCurrentView('beranda')} />
               )}
               
             </div>
