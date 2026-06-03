@@ -62,11 +62,6 @@ export default function Sidebar({
       icon: FileText, 
       label: 'Analisis SKPG', 
       view: 'analisis_skpg'
-    },
-    {
-      icon: Info,
-      label: 'Tentang Aplikasi',
-      view: 'tentang'
     }
   ];
 
@@ -191,21 +186,21 @@ export default function Sidebar({
           </a>
 
           <a 
-            href="/?view=credit"
+            href="/?view=tentang"
             onClick={(e) => {
               e.preventDefault();
-              setCurrentView('credit');
+              setCurrentView('tentang');
               if (isMobile) onCloseMobile();
             }}
             className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
-              currentView === 'credit' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+              currentView === 'tentang' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
             } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
-            title={isCollapsed ? "Credit Title" : undefined}
+            title={isCollapsed ? "Tentang Aplikasi" : undefined}
           >
-            <Info className={`w-4 h-4 shrink-0 ${currentView === 'credit' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
+            <Info className={`w-4 h-4 shrink-0 ${currentView === 'tentang' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
             {!isCollapsed && (
               <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
-                Credit Title
+                Tentang Aplikasi
               </span>
             )}
           </a>
