@@ -31,6 +31,7 @@ interface AIInsightPanelProps {
     cabai: number;
   };
   loadingPrices: boolean;
+  isFullScreen?: boolean;
 }
 
 export default function AIInsightPanel({
@@ -47,7 +48,8 @@ export default function AIInsightPanel({
   produksiBeras,
   balitaStatus,
   hargaStrategis,
-  loadingPrices
+  loadingPrices,
+  isFullScreen = false
 }: AIInsightPanelProps) {
   const [insight, setInsight] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,7 +151,7 @@ export default function AIInsightPanel({
       if (line.startsWith('### ')) {
         const content = line.substring(4).replace(/\*\*/g, '');
         return (
-          <h3 key={idx} className="text-xs font-black text-blue-950 uppercase tracking-wider mt-4 mb-2 first:mt-0 border-b border-slate-100 pb-1 flex items-center gap-1.5">
+          <h3 key={idx} className={`${isFullScreen ? 'text-sm mt-5 mb-3' : 'text-xs mt-4 mb-2'} font-black text-blue-950 uppercase tracking-wider first:mt-0 border-b border-slate-100 pb-1 flex items-center gap-1.5`}>
             <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0" />
             {content}
           </h3>
@@ -158,13 +160,13 @@ export default function AIInsightPanel({
       // Header 4: #### **title**
       if (line.startsWith('#### ')) {
         const content = line.substring(5).replace(/\*\*/g, '');
-        return <h4 key={idx} className="text-[11px] font-extrabold text-blue-700 mt-3 mb-1">{content}</h4>;
+        return <h4 key={idx} className={`${isFullScreen ? 'text-xs' : 'text-[11px]'} font-extrabold text-blue-700 mt-3 mb-1`}>{content}</h4>;
       }
       // Bullet item: - **bold**: text
       if (line.trim().startsWith('- ')) {
         const content = line.trim().substring(2);
         return (
-          <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed ml-4 list-disc pl-1 mb-1.5">
+          <li key={idx} className={`${isFullScreen ? 'text-xs mb-2' : 'text-[11px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-4 list-disc pl-1`}>
             {parseBoldText(content)}
           </li>
         );
@@ -174,20 +176,20 @@ export default function AIInsightPanel({
       if (numMatch) {
         const content = numMatch[2];
         return (
-          <div key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed ml-2 pl-1 mb-1.5 flex gap-1.5">
+          <div key={idx} className={`${isFullScreen ? 'text-xs mb-2' : 'text-[11px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
             <span className="font-extrabold text-blue-600 shrink-0">{numMatch[1]}.</span>
             <span>{parseBoldText(content)}</span>
           </div>
         );
       }
       // Standard paragraph
-      if (line.trim() === '') return <div key={idx} className="h-1.5" />;
-      return <p key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed mb-2">{parseBoldText(line)}</p>;
+      if (line.trim() === '') return <div key={idx} className={isFullScreen ? 'h-2' : 'h-1.5'} />;
+      return <p key={idx} className={`${isFullScreen ? 'text-[13px] mb-3' : 'text-[11px] mb-2'} text-slate-600 font-semibold leading-relaxed`}>{parseBoldText(line)}</p>;
     });
   };
 
   return (
-    <div className="dashboard-card relative flex-1 min-h-[300px] flex flex-col bg-gradient-to-br from-white to-blue-50/20 overflow-hidden">
+    <div className={`dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 overflow-hidden ${isFullScreen ? 'min-h-0' : 'min-h-[300px]'}`}>
       {/* Background ambient light */}
       <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-blue-100/30 blur-2xl pointer-events-none z-0"></div>
 
@@ -229,7 +231,7 @@ export default function AIInsightPanel({
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
           </div>
         ) : (
-          <div className="w-full h-full overflow-y-auto pr-1 max-h-[240px] print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left">
+          <div className={`w-full h-full overflow-y-auto pr-1 ${isFullScreen ? 'max-h-none' : 'max-h-[240px]'} print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left`}>
             <div className="prose prose-sm max-w-none prose-slate">
               {renderMarkdown(insight)}
             </div>

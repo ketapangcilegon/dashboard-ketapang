@@ -1066,15 +1066,17 @@ export default function DashboardPage() {
               )}
 
               {currentView === 'insight' && (
-                <div className="space-y-4">
-                  <button
-                    onClick={() => setCurrentView('beranda')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
-                    Kembali ke Beranda
-                  </button>
-                  <div className="flex flex-col min-h-[500px]">
+                <div className="flex flex-col h-[85vh] space-y-4">
+                  <div>
+                    <button
+                      onClick={() => setCurrentView('beranda')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                      Kembali ke Beranda
+                    </button>
+                  </div>
+                  <div className="flex flex-col flex-1 pb-10">
                     <AIInsightPanel 
                       year={selectedYear}
                       month={selectedMonth}
@@ -1100,6 +1102,7 @@ export default function DashboardPage() {
                         cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
                       }}
                       loadingPrices={loadingLive}
+                      isFullScreen={true}
                     />
                   </div>
                 </div>
@@ -1610,10 +1613,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {currentView === 'analisis_skpg' && (
-                <AnalisisSKPG />
-              )}
-              
               {currentView === 'tentang' && (
                 <TentangAplikasi onBack={() => setCurrentView('beranda')} />
               )}
