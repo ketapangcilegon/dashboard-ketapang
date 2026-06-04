@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:pipeline": "node test_sagon_pipeline.js"
   },
   "dependencies": {
     "@mapbox/togeojson": "^0.16.2",
