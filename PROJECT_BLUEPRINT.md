@@ -207,6 +207,20 @@ dashboard-ketapang/
 * **`XGBoostRegressor`**: Gradient Boosted trees sequentially minimizing residuals.
 * **`ProphetRegressor`**: Additive model utilizing normalized feature parameters.
 
+### The Prophet-like Additive Forecasting Pipeline
+The `ProphetRegressor` class implements a custom additive forecasting pipeline in pure TypeScript:
+1. **Feature Standardization**: Standardizes all 25 input features (including historical lags, weather parameters, and calendar holiday indicators) using a Z-score `StandardScaler` calculation:
+   $$z = \frac{x - \mu}{\sigma}$$
+   The training mean ($\mu$) and standard deviation ($\sigma$) of each feature are calculated and stored in memory to ensure numerical stability during the least-squares solve.
+2. **Intercept Appending**: Automatically appends a constant `1.0` column to the normalized feature matrix representing the intercept term.
+3. **LU Decomposition & Solver**: Forms the ordinary least squares (OLS) normal equation:
+   $$(X^T X) \beta = X^T Y$$
+   It transposes and multiplies the matrices, then solves the systems of linear equations for the parameter weights vector $\beta$ using LU Decomposition and Gaussian Elimination with partial pivoting.
+4. **Prediction Inference**: Normalizes incoming prediction vector samples using the cached training means and standard deviations, appends the `1.0` intercept constant, and calculates the dot product against the coefficient vector $\beta$.
+5. **Recursive Multi-Step Forecasting**:
+   - **T+1 (1-Month Ahead)**: Uses the model directly with actual historical features.
+   - **T+2 & T+3 (3-Months Ahead)**: Recursively loops by inserting T+1 and T+2 predictions as historical lags to rebuild moving averages, trend offsets, and volatility variables, predicting sequential time steps.
+
 ### Input Features (25 Engineered Features)
 1. **Lags**: Price values at `T-1`, `T-2`, `T-3`.
 2. **Rollings**: 3-month moving average, 6-month moving average, 3-month rolling standard deviation.
