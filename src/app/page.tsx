@@ -9,21 +9,23 @@ import KetersediaanProteinGauge from '@/components/KetersediaanProteinGauge';
 import KetersediaanEnergiGauge from '@/components/KetersediaanEnergiGauge';
 import ProteinGauge from '@/components/ProteinGauge';
 import EnergiGauge from '@/components/EnergiGauge';
-import KerawananPanel from '@/components/KerawananPanel';
-import BalitaDoughnut from '@/components/BalitaDoughnut';
-import ProduksiLokalChart from '@/components/ProduksiLokalChart';
-import HargaPanel from '@/components/HargaPanel';
-import ForecastPanel from '@/components/ForecastPanel';
-import PoUTrendChart from '@/components/PoUTrendChart';
-import IKPTrendChart from '@/components/IKPTrendChart';
-import BenchmarkPanel from '@/components/BenchmarkPanel';
-import AIInsightPanel from '@/components/AIInsightPanel';
-import AnalisisSKPG from '@/components/AnalisisSKPG';
-import TentangAplikasi from '@/components/TentangAplikasi';
 import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
 import dynamic from 'next/dynamic';
+
+// Lazy-load heavier panels and view modules to optimize mobile bundle load time
+const KerawananPanel = dynamic(() => import('@/components/KerawananPanel'), { ssr: false });
+const BalitaDoughnut = dynamic(() => import('@/components/BalitaDoughnut'), { ssr: false });
+const ProduksiLokalChart = dynamic(() => import('@/components/ProduksiLokalChart'), { ssr: false });
+const HargaPanel = dynamic(() => import('@/components/HargaPanel'), { ssr: false });
+const ForecastPanel = dynamic(() => import('@/components/ForecastPanel'), { ssr: false });
+const PoUTrendChart = dynamic(() => import('@/components/PoUTrendChart'), { ssr: false });
+const IKPTrendChart = dynamic(() => import('@/components/IKPTrendChart'), { ssr: false });
+const BenchmarkPanel = dynamic(() => import('@/components/BenchmarkPanel'), { ssr: false });
+const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { ssr: false });
+const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: false });
+const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -210,6 +212,15 @@ const MapUnified = dynamic(() => import('@/components/MapUnified'), {
   ssr: false 
 });
 
+const loadingTips = [
+  "Menyelaraskan harga pangan real-time dari pasar tradisional...",
+  "Mengevaluasi indeks kerentanan pangan (FSVA) tingkat kelurahan...",
+  "Mengalkulasi parameter peramalan harga berbasis Machine Learning...",
+  "Menghitung ketersediaan energi dan protein konsumsi Kota Cilegon...",
+  "Menganalisis peta kerawanan pangan spasial Kota Cilegon...",
+  "Mengolah data gizi balita dari posyandu kelurahan..."
+];
+
 export default function DashboardPage() {
   // Navigation State
   const [currentView, setCurrentView] = useState<string>('beranda');
@@ -248,6 +259,16 @@ export default function DashboardPage() {
   const [livePrices, setLivePrices] = useState<any>(null);
   const [liveDate, setLiveDate] = useState<string | null>(null);
   const [loadingLive, setLoadingLive] = useState<boolean>(true);
+
+  const [activeTipIdx, setActiveTipIdx] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setActiveTipIdx(prev => (prev + 1) % loadingTips.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     async function fetchLiveHarga() {
@@ -362,8 +383,6 @@ export default function DashboardPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        const dateStr = `${selectedYear}-${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}-15`;
-        
         // 1. Fetch Harga Pangan dynamically from Sagon API (no DB dependency)
         let fetchMonth = selectedMonth;
         let fetchYear = selectedYear;
@@ -384,268 +403,357 @@ export default function DashboardPage() {
           }
         }
 
-        try {
-          const sagonRes = await fetch(`/api/sagon-bulanan?month=${fetchMonth}&year=${fetchYear}`);
-          if (sagonRes.ok) {
-            const sagonJson = await sagonRes.json();
-            if (sagonJson && sagonJson.success) {
-              const pricesCur = sagonJson.pricesCur || {};
-              const pricesPrev = sagonJson.pricesPrev || {};
-
-              const normKec = (k: string) => k.toLowerCase().replace(/\s+/g, '');
-              const filteredKecsCur = Object.keys(pricesCur).filter(
-                kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
-              );
-              const filteredKecsPrev = Object.keys(pricesPrev).filter(
-                kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
-              );
-
-              const formattedHarga = filteredKecsCur.map(kec => ({
-                kecamatan: kec,
-                kelurahan: kec,
-                beras: pricesCur[kec].beras,
-                minyak_goreng: pricesCur[kec].minyak,
-                telur: pricesCur[kec].telur,
-                daging_ayam: 36000,
-                gula_pasir: 17000,
-                cabe_merah: 55000
-              }));
-
-              const formattedHargaPrev = filteredKecsPrev.map(kec => ({
-                kecamatan: kec,
-                kelurahan: kec,
-                beras: pricesPrev[kec].beras,
-                minyak_goreng: pricesPrev[kec].minyak,
-                telur: pricesPrev[kec].telur,
-                daging_ayam: 36000,
-                gula_pasir: 17000,
-                cabe_merah: 55000
-              }));
-
-              setHargaData(formattedHarga);
-              setPreviousHargaData(formattedHargaPrev);
-            } else {
-              setHargaData([]);
-              setPreviousHargaData([]);
+        // Define all promises to run in parallel
+        const sagonPromise = (async () => {
+          try {
+            const sagonRes = await fetch(`/api/sagon-bulanan?month=${fetchMonth}&year=${fetchYear}`);
+            if (sagonRes.ok) {
+              const sagonJson = await sagonRes.json();
+              return sagonJson;
             }
-          } else {
-            setHargaData([]);
-            setPreviousHargaData([]);
+          } catch (err) {
+            console.error('[Homepage] Failed to fetch sagon prices:', err);
           }
-        } catch (sagonErr) {
-          console.error('[Homepage] Failed to fetch sagon prices:', sagonErr);
+          return null;
+        })();
+
+        const ketersediaanPromise = (async () => {
+          try {
+            const { data } = await supabase.from('ketersediaan_pangan').select('*');
+            return data || [];
+          } catch (e) {
+            console.warn('ketersediaan_pangan failed:', e);
+            return [];
+          }
+        })();
+
+        const intervensiPromise = (async () => {
+          try {
+            let intQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            if (selectedKelurahan !== 'ALL') {
+              intQuery = intQuery.eq('nama_kelurahan', selectedKelurahan);
+            } else if (selectedKecamatan !== 'ALL') {
+              intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
+            }
+            const { data: intervensi, error: intError } = await intQuery;
+
+            if (!intError && intervensi && intervensi.length > 0) {
+              return intervensi;
+            } else {
+              // Fallback 1: January of the selected year
+              let fbQuery1 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+              if (selectedKelurahan !== 'ALL') {
+                fbQuery1 = fbQuery1.eq('nama_kelurahan', selectedKelurahan);
+              } else if (selectedKecamatan !== 'ALL') {
+                fbQuery1 = fbQuery1.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
+              }
+              const { data: fb1 } = await fbQuery1;
+
+              if (fb1 && fb1.length > 0) {
+                return fb1;
+              } else {
+                // Fallback 2: Year 2026 Month 1 (January)
+                let fbQuery2 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', 2026).eq('bulan', 1);
+                if (selectedKelurahan !== 'ALL') {
+                  fbQuery2 = fbQuery2.eq('nama_kelurahan', selectedKelurahan);
+                } else if (selectedKecamatan !== 'ALL') {
+                  fbQuery2 = fbQuery2.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
+                }
+                const { data: fb2 } = await fbQuery2;
+                return fb2 || [];
+              }
+            }
+          } catch (e) {
+            console.warn('intervensi fetch failed:', e);
+            return [];
+          }
+        })();
+
+        const fsvaPromise = (async () => {
+          try {
+            const fsvaYear = Number(selectedYear) - 1;
+            const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
+            if (!error && fsvaM && fsvaM.length > 0) {
+              return fsvaM;
+            } else {
+              const { data: fsvaMFb } = await supabase.from('fsva_matang').select('*').eq('periode', 2025);
+              return fsvaMFb || [];
+            }
+          } catch (e) {
+            console.warn('fsva_matang query failed in page.tsx:', e);
+            return [];
+          }
+        })();
+
+        const skpgPromise = (async () => {
+          try {
+            const { data: skpgM, error } = await supabase
+              .from('skpg_matang')
+              .select('*')
+              .eq('periode', Number(selectedYear))
+              .eq('bulan', Number(selectedMonth));
+               
+            if (!error && skpgM && skpgM.length > 0) {
+              return skpgM;
+            } else {
+              const { data: skpgMFallback } = await supabase
+                .from('skpg_matang')
+                .select('*')
+                .eq('periode', Number(selectedYear));
+              return skpgMFallback || [];
+            }
+          } catch (e) {
+            console.warn('skpg_matang query failed in page.tsx:', e);
+            return [];
+          }
+        })();
+
+        const balitaPromise = (async () => {
+          try {
+            let balitaQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            
+            if (selectedKelurahan !== 'ALL') {
+              balitaQuery = balitaQuery.eq('nama_kelurahan', selectedKelurahan);
+            } else if (selectedKecamatan !== 'ALL') {
+              const kels = WILAYAH[selectedKecamatan] || [];
+              if (kels.length > 0) {
+                balitaQuery = balitaQuery.in('nama_kelurahan', kels);
+              }
+            }
+            
+            const { data, error } = await balitaQuery;
+            let balita = data;
+            
+            if ((!balita || balita.length === 0) && !error) {
+              let fbQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', 1);
+              if (selectedKelurahan !== 'ALL') {
+                fbQuery = fbQuery.eq('nama_kelurahan', selectedKelurahan);
+              } else if (selectedKecamatan !== 'ALL') {
+                const kels = WILAYAH[selectedKecamatan] || [];
+                if (kels.length > 0) {
+                  fbQuery = fbQuery.in('nama_kelurahan', kels);
+                }
+              }
+              const { data: fb } = await fbQuery;
+              balita = fb;
+            }
+
+            if (!error && balita && balita.length > 0) {
+              return balita;
+            }
+          } catch (e) {
+            console.warn('gizi_balita fetch failed, falling back to balita_gizi:', e);
+          }
+
+          // Fallback to old balita_gizi kecamatan table
+          try {
+            let balitaQuery = supabase.from('balita_gizi').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
+            if (selectedKecamatan !== 'ALL') {
+              balitaQuery = balitaQuery.eq('kecamatan', selectedKecamatan);
+            }
+            const { data: balita } = await balitaQuery;
+            return balita || [];
+          } catch (e) {
+            console.warn('balita_gizi fallback fetch failed:', e);
+            return [];
+          }
+        })();
+
+        const pouPromise = (async () => {
+          try {
+            const { data } = await supabase.from('pou_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('pou_data failed:', e);
+            return [];
+          }
+        })();
+
+        const ikpPromise = (async () => {
+          try {
+            const { data } = await supabase.from('ikp_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('ikp_data failed:', e);
+            return [];
+          }
+        })();
+
+        const cvBerasPromise = (async () => {
+          try {
+            const { data } = await supabase.from('cv_beras_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('cv_beras_data failed:', e);
+            return [];
+          }
+        })();
+
+        const pphPromise = (async () => {
+          try {
+            const { data } = await supabase.from('pph_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('pph_data failed:', e);
+            return [];
+          }
+        })();
+
+        const konsumsiEnergiPromise = (async () => {
+          try {
+            const { data } = await supabase.from('konsumsi_energi_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('konsumsi_energi_data failed:', e);
+            return [];
+          }
+        })();
+
+        const konsumsiProteinPromise = (async () => {
+          try {
+            const { data } = await supabase.from('konsumsi_protein_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('konsumsi_protein_data failed:', e);
+            return [];
+          }
+        })();
+
+        const ketersediaanEnergiPromise = (async () => {
+          try {
+            const { data } = await supabase.from('ketersediaan_energi_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('ketersediaan_energi_data failed:', e);
+            return [];
+          }
+        })();
+
+        const ketersediaanProteinPromise = (async () => {
+          try {
+            const { data } = await supabase.from('ketersediaan_protein_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('ketersediaan_protein_data failed:', e);
+            return [];
+          }
+        })();
+
+        const produksiBerasPromise = (async () => {
+          try {
+            const { data } = await supabase.from('produksi_beras_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('produksi_beras_data failed:', e);
+            return [];
+          }
+        })();
+
+        const benchmarkPromise = (async () => {
+          try {
+            const { data } = await supabase.from('benchmark_data').select('*').order('tahun', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('benchmark_data failed:', e);
+            return [];
+          }
+        })();
+
+        // Resolve all concurrently
+        const [
+          sagonJson,
+          ketersediaanResult,
+          intervensiResult,
+          fsvaResult,
+          skpgResult,
+          balitaResult,
+          pouResult,
+          ikpResult,
+          cvBerasResult,
+          pphResult,
+          konsumsiEnergiResult,
+          konsumsiProteinResult,
+          ketersediaanEnergiResult,
+          ketersediaanProteinResult,
+          produksiBerasResult,
+          benchmarkResult
+        ] = await Promise.all([
+          sagonPromise,
+          ketersediaanPromise,
+          intervensiPromise,
+          fsvaPromise,
+          skpgPromise,
+          balitaPromise,
+          pouPromise,
+          ikpPromise,
+          cvBerasPromise,
+          pphPromise,
+          konsumsiEnergiPromise,
+          konsumsiProteinPromise,
+          ketersediaanEnergiPromise,
+          ketersediaanProteinPromise,
+          produksiBerasPromise,
+          benchmarkPromise
+        ]);
+
+        // Process sagon price formatting
+        if (sagonJson && sagonJson.success) {
+          const pricesCur = sagonJson.pricesCur || {};
+          const pricesPrev = sagonJson.pricesPrev || {};
+
+          const normKec = (k: string) => k.toLowerCase().replace(/\s+/g, '');
+          const filteredKecsCur = Object.keys(pricesCur).filter(
+            kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
+          );
+          const filteredKecsPrev = Object.keys(pricesPrev).filter(
+            kec => selectedKecamatan === 'ALL' || normKec(kec) === normKec(selectedKecamatan)
+          );
+
+          const formattedHarga = filteredKecsCur.map(kec => ({
+            kecamatan: kec,
+            kelurahan: kec,
+            beras: pricesCur[kec].beras,
+            minyak_goreng: pricesCur[kec].minyak,
+            telur: pricesCur[kec].telur,
+            daging_ayam: 36000,
+            gula_pasir: 17000,
+            cabe_merah: 55000
+          }));
+
+          const formattedHargaPrev = filteredKecsPrev.map(kec => ({
+            kecamatan: kec,
+            kelurahan: kec,
+            beras: pricesPrev[kec].beras,
+            minyak_goreng: pricesPrev[kec].minyak,
+            telur: pricesPrev[kec].telur,
+            daging_ayam: 36000,
+            gula_pasir: 17000,
+            cabe_merah: 55000
+          }));
+
+          setHargaData(formattedHarga);
+          setPreviousHargaData(formattedHargaPrev);
+        } else {
           setHargaData([]);
           setPreviousHargaData([]);
         }
 
-        // 2. Fetch Ketersediaan Pangan (Unfiltered by year to get full 5-year series!)
-        const { data: ketersediaan } = await supabase
-          .from('ketersediaan_pangan')
-          .select('*');
-        setKetersediaanData(ketersediaan || []);
-
-        // 4. Fetch Intervensi Pangan (Always use intervensi_kelurahan with fallbacks)
-        let intQuery = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-        if (selectedKelurahan !== 'ALL') {
-          intQuery = intQuery.eq('nama_kelurahan', selectedKelurahan);
-        } else if (selectedKecamatan !== 'ALL') {
-          intQuery = intQuery.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
-        }
-        let { data: intervensi, error: intError } = await intQuery;
-
-        if (!intError && intervensi && intervensi.length > 0) {
-          setIntervensiData(intervensi);
-        } else {
-          // Fallback 1: January of the selected year
-          let fbQuery1 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', selectedYear).eq('bulan', 1);
-          if (selectedKelurahan !== 'ALL') {
-            fbQuery1 = fbQuery1.eq('nama_kelurahan', selectedKelurahan);
-          } else if (selectedKecamatan !== 'ALL') {
-            fbQuery1 = fbQuery1.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
-          }
-          const { data: fb1 } = await fbQuery1;
-
-          if (fb1 && fb1.length > 0) {
-            setIntervensiData(fb1);
-          } else {
-            // Fallback 2: Year 2026 Month 1 (January)
-            let fbQuery2 = supabase.from('intervensi_kelurahan').select('*').eq('tahun', 2026).eq('bulan', 1);
-            if (selectedKelurahan !== 'ALL') {
-              fbQuery2 = fbQuery2.eq('nama_kelurahan', selectedKelurahan);
-            } else if (selectedKecamatan !== 'ALL') {
-              fbQuery2 = fbQuery2.eq('nama_kecamatan', selectedKecamatan.toUpperCase());
-            }
-            const { data: fb2 } = await fbQuery2;
-            setIntervensiData(fb2 || []);
-          }
-        }
-
-        // Fetch Mature FSVA & SKPG for Borda Desil calculation
-        try {
-          // FSVA used in realtime year is FSVA year n-1 (realtime-1)
-          const fsvaYear = Number(selectedYear) - 1;
-          const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
-          if (!error && fsvaM && fsvaM.length > 0) {
-            setFsvaMatangData(fsvaM);
-          } else {
-            const { data: fsvaMFb } = await supabase.from('fsva_matang').select('*').eq('periode', 2025);
-            setFsvaMatangData(fsvaMFb || []);
-          }
-        } catch (e) {
-          console.warn('fsva_matang query failed in page.tsx:', e);
-        }
-
-        try {
-          // Fetch from pre-calculated skpg_matang table (with monthly filter support)
-          const { data: skpgM, error } = await supabase
-            .from('skpg_matang')
-            .select('*')
-            .eq('periode', Number(selectedYear))
-            .eq('bulan', Number(selectedMonth));
-             
-          if (!error && skpgM && skpgM.length > 0) {
-            setSkpgMatangData(skpgM);
-          } else {
-            // Fallback to query only by year (periode)
-            const { data: skpgMFallback } = await supabase
-              .from('skpg_matang')
-              .select('*')
-              .eq('periode', Number(selectedYear));
-            setSkpgMatangData(skpgMFallback || []);
-          }
-        } catch (e) {
-          console.warn('skpg_matang query failed in page.tsx:', e);
-        }
-
-
-        // 5. Fetch Balita Gizi (Try gizi_balita kelurahan level first, fallback to balita_gizi kecamatan level)
-        let balitaFetched = false;
-        try {
-          let balitaQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-          
-          if (selectedKelurahan !== 'ALL') {
-            balitaQuery = balitaQuery.eq('nama_kelurahan', selectedKelurahan);
-          } else if (selectedKecamatan !== 'ALL') {
-            const kels = WILAYAH[selectedKecamatan] || [];
-            if (kels.length > 0) {
-              balitaQuery = balitaQuery.in('nama_kelurahan', kels);
-            }
-          }
-          
-          let { data: balita, error } = await balitaQuery;
-          
-          // Fallback to month 1 (January) if empty
-          if ((!balita || balita.length === 0) && !error) {
-            let fbQuery = supabase.from('gizi_balita').select('*').eq('tahun', selectedYear).eq('bulan', 1);
-            if (selectedKelurahan !== 'ALL') {
-              fbQuery = fbQuery.eq('nama_kelurahan', selectedKelurahan);
-            } else if (selectedKecamatan !== 'ALL') {
-              const kels = WILAYAH[selectedKecamatan] || [];
-              if (kels.length > 0) {
-                fbQuery = fbQuery.in('nama_kelurahan', kels);
-              }
-            }
-            const { data: fb } = await fbQuery;
-            balita = fb;
-          }
-
-          if (!error && balita && balita.length > 0) {
-            setBalitaDataRaw(balita);
-            balitaFetched = true;
-          }
-        } catch (e) {
-          console.warn('gizi_balita fetch failed, falling back to balita_gizi:', e);
-        }
-
-        if (!balitaFetched) {
-          // Fallback to old balita_gizi kecamatan table
-          let balitaQuery = supabase.from('balita_gizi').select('*').eq('tahun', selectedYear).eq('bulan', selectedMonth);
-          if (selectedKecamatan !== 'ALL') {
-            balitaQuery = balitaQuery.eq('kecamatan', selectedKecamatan);
-          }
-          const { data: balita } = await balitaQuery;
-          setBalitaDataRaw(balita || []);
-        }
-
-        // 6. Fetch POU Lintas Tahun
-        try {
-          const { data: pou } = await supabase.from('pou_data').select('*').order('tahun', { ascending: true });
-          setPouData(pou || []);
-        } catch (pouErr) {
-          console.warn('Table pou_data might not exist yet:', pouErr);
-        }
-
-        // 6.0 Fetch IKP Lintas Tahun
-        try {
-          const { data: ikp } = await supabase.from('ikp_data').select('*').order('tahun', { ascending: true });
-          setIkpData(ikp || []);
-        } catch (ikpErr) {
-          console.warn('Table ikp_data might not exist yet:', ikpErr);
-        }
-
-        // 6.1 Fetch CV Beras
-        try {
-          const { data } = await supabase.from('cv_beras_data').select('*').order('tahun', { ascending: true });
-          setCvBerasList(data || []);
-        } catch (e) {
-          console.warn('cv_beras_data failed:', e);
-        }
-
-        // 6.2 Fetch PPH
-        try {
-          const { data } = await supabase.from('pph_data').select('*').order('tahun', { ascending: true });
-          setPphList(data || []);
-        } catch (e) {
-          console.warn('pph_data failed:', e);
-        }
-
-        // 6.3 Fetch Konsumsi Energi
-        try {
-          const { data } = await supabase.from('konsumsi_energi_data').select('*').order('tahun', { ascending: true });
-          setKonsumsiEnergiList(data || []);
-        } catch (e) {
-          console.warn('konsumsi_energi_data failed:', e);
-        }
-
-        // 6.4 Fetch Konsumsi Protein
-        try {
-          const { data } = await supabase.from('konsumsi_protein_data').select('*').order('tahun', { ascending: true });
-          setKonsumsiProteinList(data || []);
-        } catch (e) {
-          console.warn('konsumsi_protein_data failed:', e);
-        }
-
-        // 6.5 Fetch Ketersediaan Energi
-        try {
-          const { data } = await supabase.from('ketersediaan_energi_data').select('*').order('tahun', { ascending: true });
-          setKetersediaanEnergiList(data || []);
-        } catch (e) {
-          console.warn('ketersediaan_energi_data failed:', e);
-        }
-
-        // 6.6 Fetch Ketersediaan Protein
-        try {
-          const { data } = await supabase.from('ketersediaan_protein_data').select('*').order('tahun', { ascending: true });
-          setKetersediaanProteinList(data || []);
-        } catch (e) {
-          console.warn('ketersediaan_protein_data failed:', e);
-        }
-
-        // 6.7 Fetch Produksi Beras Lokal
-        try {
-          const { data } = await supabase.from('produksi_beras_data').select('*').order('tahun', { ascending: true });
-          setProduksiBerasList(data || []);
-        } catch (e) {
-          console.warn('produksi_beras_data failed:', e);
-        }
-
-        // 6.8 Fetch Benchmark Data
-        try {
-          const { data } = await supabase.from('benchmark_data').select('*').order('tahun', { ascending: true });
-          setBenchmarkList(data || []);
-        } catch (e) {
-          console.warn('benchmark_data failed:', e);
-        }
+        // Set state for other variables
+        setKetersediaanData(ketersediaanResult);
+        setIntervensiData(intervensiResult);
+        setFsvaMatangData(fsvaResult);
+        setSkpgMatangData(skpgResult);
+        setBalitaDataRaw(balitaResult);
+        setPouData(pouResult);
+        setIkpData(ikpResult);
+        setCvBerasList(cvBerasResult);
+        setPphList(pphResult);
+        setKonsumsiEnergiList(konsumsiEnergiResult);
+        setKonsumsiProteinList(konsumsiProteinResult);
+        setKetersediaanEnergiList(ketersediaanEnergiResult);
+        setKetersediaanProteinList(ketersediaanProteinResult);
+        setProduksiBerasList(produksiBerasResult);
+        setBenchmarkList(benchmarkResult);
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -823,9 +931,42 @@ export default function DashboardPage() {
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
           {loading ? (
-            <div className="w-full h-full flex flex-col items-center justify-center min-h-[500px]">
-              <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-              <p className="text-slate-500 font-semibold text-sm">Menghubungkan ke Supabase & Memuat Data Riil...</p>
+            <div className="w-full h-full flex flex-col items-center justify-center min-h-[500px] px-4">
+              <style>{`
+                @keyframes loadingBar {
+                  0% { background-position: 0% 50%; }
+                  50% { background-position: 100% 50%; }
+                  100% { background-position: 0% 50%; }
+                }
+              `}</style>
+              <div className="w-full max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl p-8 flex flex-col items-center text-center">
+                {/* Modern Pulse / Humanist animated icon */}
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse">
+                  <Leaf className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+
+                <h3 className="text-slate-800 dark:text-white font-bold text-lg mb-1 tracking-tight">Memuat Data</h3>
+                <p className="text-slate-400 text-xs mb-6 font-medium">Sistem Intelijen Ketahanan Pangan Kota Cilegon</p>
+
+                {/* Premium Gradient Progress Bar */}
+                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4 relative border border-slate-200/50 dark:border-slate-700/50">
+                  <div 
+                    className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-emerald-600 via-teal-400 to-emerald-500"
+                    style={{
+                      width: '100%',
+                      backgroundSize: '200% 200%',
+                      animation: 'loadingBar 2s ease infinite'
+                    }}
+                  />
+                </div>
+
+                {/* Rotating Educational Tips / Status */}
+                <div className="h-10 flex items-center justify-center">
+                  <p className="text-emerald-700 dark:text-emerald-300 text-sm font-medium transition-all duration-500 ease-in-out">
+                    {loadingTips[activeTipIdx]}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-6">
