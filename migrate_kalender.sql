@@ -16,13 +16,13 @@ CREATE TABLE IF NOT EXISTS kalender_ml (
   hari_ke_idul_adha INT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- 2. Create monthly aggregated calendar feature view
 DROP VIEW IF EXISTS kalender_feature CASCADE;
 CREATE OR REPLACE VIEW kalender_feature AS
 SELECT 
   tahun,
   bulan,
+  MAX(CASE WHEN is_hbkn THEN 1 ELSE 0 END) AS is_hbkn,
   MAX(CASE WHEN is_ramadhan THEN 1 ELSE 0 END) AS ramadhan,
   MAX(CASE WHEN is_idul_fitri THEN 1 ELSE 0 END) AS idul_fitri,
   MAX(CASE WHEN is_idul_adha THEN 1 ELSE 0 END) AS idul_adha,
@@ -57,6 +57,7 @@ SELECT
   c.kelembapan,
   c.hari_hujan,
   c.kecepatan_angin,
+  k.is_hbkn,
   k.ramadhan,
   k.idul_fitri,
   k.idul_adha,

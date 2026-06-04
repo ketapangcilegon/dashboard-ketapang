@@ -34,7 +34,7 @@ export default function Sidebar({
     },
     {
       icon: TrendingUp,
-      label: 'AI FORECASTING HARGA PANGAN',
+      label: 'Forecast Harga Pangan',
       view: 'forecasting',
       url: '/forecast'
     },

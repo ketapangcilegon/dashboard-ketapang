@@ -13,13 +13,12 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
     
-    // Fetch the latest 1-month-ahead forecast which has the explanation
+    // Fetch the single row for the commodity which contains all forecast, EWS and driver info
     const { data, error } = await supabase
       .from('forecast_result')
-      .select('komoditas, tanggal_prediksi, periode, prediksi_harga, mape, akurasi, faktor_utama, narasi')
+      .select('komoditas, harga_aktual, forecast_1m, forecast_3m, perubahan_pct, lower_bound, upper_bound, cv, growth_yoy, status_forecast, status_cv, status_skpg, confidence, drivers, narasi, rekomendasi, created_at')
       .eq('komoditas', commodity)
-      .order('tanggal_prediksi', { ascending: false })
-      .limit(2); // Get 1-month and 3-month if available
+      .maybeSingle();
       
     if (error) {
       throw error;
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      data: data || []
+      data: data || null
     });
     
   } catch (error: unknown) {

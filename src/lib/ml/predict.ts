@@ -9,7 +9,7 @@ export async function getLatestPredictions(commodity?: string) {
   let query = supabase
     .from('forecast_result')
     .select('*')
-    .order('tanggal_prediksi', { ascending: true });
+    .order('komoditas', { ascending: true });
     
   if (commodity) {
     query = query.eq('komoditas', commodity);

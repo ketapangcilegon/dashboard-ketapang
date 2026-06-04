@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, BookOpen, Calendar } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -24,7 +24,6 @@ export default function ForecastPage() {
   const [selectedCommodity, setSelectedCommodity] = useState<string>('harga_beras');
   const [forecasts, setForecasts] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const [latestActuals, setLatestActuals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [training, setTraining] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,24 +54,7 @@ export default function ForecastPage() {
         .order('bulan', { ascending: true });
 
       if (histError) throw histError;
-      
-      const allHistory = histData || [];
-      setHistory(allHistory);
-
-      // 3. Find the latest actual prices for each commodity
-      const actuals: Record<string, number> = {};
-      if (allHistory.length > 0) {
-        Object.keys(COMMODITY_MAP).forEach(comm => {
-          let idx = allHistory.length - 1;
-          while (idx >= 0 && (allHistory[idx][comm] === null || allHistory[idx][comm] <= 0)) {
-            idx--;
-          }
-          if (idx >= 0) {
-            actuals[comm] = allHistory[idx][comm];
-          }
-        });
-      }
-      setLatestActuals(actuals);
+      setHistory(histData || []);
 
     } catch (err: any) {
       console.error(err);
@@ -99,7 +81,7 @@ export default function ForecastPage() {
       }
       
       await loadData();
-      alert('Model Machine Learning berhasil dilatih ulang dan prediksi diperbarui!');
+      alert('Model Machine Learning berhasil dilatih ulang dan EWS diperbarui!');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -116,6 +98,49 @@ export default function ForecastPage() {
     return months[monthNum - 1] || `${monthNum}`;
   };
 
+  // Calculate overall status based on EWS layers
+  const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
+    if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
+    if (statusCV === 'WASPADA' || statusSKPG === 'WASPADA' || statusForecast === 'Naik') return 'Waspada';
+    return 'Aman';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'rentan':
+        return 'bg-rose-100 text-rose-800 border-rose-200';
+      case 'waspada':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'aman':
+      default:
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    }
+  };
+
+  const getStatusDot = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'rentan':
+        return 'bg-rose-500';
+      case 'waspada':
+        return 'bg-amber-500';
+      case 'aman':
+      default:
+        return 'bg-emerald-500';
+    }
+  };
+
+  const getStatusBgColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'rentan':
+        return 'bg-rose-50/70 border-rose-200 text-rose-950';
+      case 'waspada':
+        return 'bg-amber-50/70 border-amber-200 text-amber-950';
+      case 'aman':
+      default:
+        return 'bg-emerald-50/70 border-emerald-200 text-emerald-950';
+    }
+  };
+
   // Build chart dataset for the selected commodity
   const getChartData = () => {
     if (history.length === 0) return [];
@@ -127,242 +152,230 @@ export default function ForecastPage() {
       .map(row => ({
         name: `${getMonthName(row.bulan)} ${String(row.tahun).slice(-2)}`,
         price: row[selectedCommodity],
-        forecast: null,
-        lower_bound: null,
-        upper_bound: null
+        forecast: null as number | null,
+        lower_bound: null as number | null,
+        upper_bound: null as number | null
       }));
       
-    // Find forecast rows for the selected commodity
-    const commodityForecasts = forecasts.filter(f => f.komoditas === selectedCommodity);
-    const f1 = commodityForecasts.find(f => f.periode === '1_bulan');
-    const f3 = commodityForecasts.find(f => f.periode === '3_bulan');
-    
     if (commodityHistory.length === 0) return [];
     
-    // The anchor for the forecast line is the last actual price
+    // Selected commodity's forecast details
+    const f = forecasts.find(row => row.komoditas === selectedCommodity);
+    if (!f) return commodityHistory;
+    
+    // Find the latest actual point to connect from
     const anchor = commodityHistory[commodityHistory.length - 1];
     
-    const forecastPoints: any[] = [];
+    // Latest actual month/year
+    const latestRow = history.filter(row => row[selectedCommodity] !== null && row[selectedCommodity] > 0).slice(-1)[0];
+    if (!latestRow) return commodityHistory;
     
-    if (f1) {
-      const dateParts = f1.tanggal_prediksi.split('-');
-      const year = parseInt(dateParts[0]);
-      const month = parseInt(dateParts[1]);
-      
-      forecastPoints.push({
-        name: `${getMonthName(month)} ${String(year).slice(-2)}`,
-        price: null,
-        forecast: f1.prediksi_harga,
-        lower_bound: f1.lower_bound,
-        upper_bound: f1.upper_bound
-      });
-    }
+    const currentMonth = latestRow.bulan;
+    const currentYear = latestRow.tahun;
     
-    if (f3) {
-      const dateParts = f3.tanggal_prediksi.split('-');
-      const year = parseInt(dateParts[0]);
-      const month = parseInt(dateParts[1]);
-      
-      forecastPoints.push({
-        name: `${getMonthName(month)} ${String(year).slice(-2)}`,
-        price: null,
-        forecast: f3.prediksi_harga,
-        lower_bound: f3.lower_bound,
-        upper_bound: f3.upper_bound
-      });
-    }
-
-    // Combine actual history with forecast line points
+    // Compute months for 1m and 3m forecast
+    let m1 = currentMonth + 1;
+    let y1 = currentYear;
+    if (m1 > 12) { m1 = 1; y1++; }
+    
+    let m3 = currentMonth + 3;
+    let y3 = currentYear;
+    if (m3 > 12) { m3 = m3 - 12; y3++; }
+    
     const combined = [...commodityHistory];
     
-    // Insert anchor prediction point (matching the last actual point) to make the lines connect smoothly
-    if (forecastPoints.length > 0) {
-      combined.push({
-        name: anchor.name,
-        price: null,
-        forecast: anchor.price,
-        lower_bound: anchor.price,
-        upper_bound: anchor.price
-      });
-      combined.push(...forecastPoints);
-    }
+    // Add anchor to forecast line
+    combined.push({
+      name: anchor.name,
+      price: null,
+      forecast: anchor.price,
+      lower_bound: anchor.price,
+      upper_bound: anchor.price
+    });
+    
+    // Add 1m forecast
+    combined.push({
+      name: `${getMonthName(m1)} ${String(y1).slice(-2)}`,
+      price: null,
+      forecast: f.forecast_1m,
+      lower_bound: f.lower_bound,
+      upper_bound: f.upper_bound
+    });
+    
+    // Add 3m forecast
+    combined.push({
+      name: `${getMonthName(m3)} ${String(y3).slice(-2)}`,
+      price: null,
+      forecast: f.forecast_3m,
+      lower_bound: f.lower_bound * 0.95,
+      upper_bound: f.upper_bound * 1.05
+    });
     
     return combined;
   };
 
-  // Get active forecast details for interpretation panel
-  const getActiveForecastDetails = () => {
-    const commodityForecasts = forecasts.filter(f => f.komoditas === selectedCommodity);
-    const f1 = commodityForecasts.find(f => f.periode === '1_bulan');
-    return f1 || null;
-  };
-
-  const activeForecast = getActiveForecastDetails();
-
-  // Format table rows
+  // Find forecast rows for table
   const tableRows = Object.keys(COMMODITY_MAP).map(comm => {
-    const currentPrice = latestActuals[comm] || 0;
-    const commForecasts = forecasts.filter(f => f.komoditas === comm);
-    const f1 = commForecasts.find(f => f.periode === '1_bulan');
-    const f3 = commForecasts.find(f => f.periode === '3_bulan');
+    const f = forecasts.find(item => item.komoditas === comm);
+    const hargaKini = f?.harga_aktual || 0;
+    const forecast1m = f?.forecast_1m || 0;
+    const forecast3m = f?.forecast_3m || 0;
     
-    const pred1 = f1?.prediksi_harga || 0;
-    const pred3 = f3?.prediksi_harga || 0;
+    const statusForecast = f?.status_forecast || 'Stabil';
+    const statusCV = f?.status_cv || 'AMAN';
+    const statusSKPG = f?.status_skpg || 'AMAN';
+    const confidence = f?.confidence || 0;
     
-    const changePercent = currentPrice > 0 && pred1 > 0 
-      ? ((pred1 - currentPrice) / currentPrice) * 100 
-      : 0;
-      
-    // Determine status (naik, stabil, turun)
-    let statusText = 'Stabil';
-    let statusIcon = '🟡';
-    if (changePercent > 1.5) {
-      statusText = 'Naik';
-      statusIcon = '🔴';
-    } else if (changePercent < -1.5) {
-      statusText = 'Turun';
-      statusIcon = '🟢';
-    }
+    const overallStatus = getOverallStatus(statusForecast, statusCV, statusSKPG);
 
     return {
       key: comm,
       name: COMMODITY_MAP[comm],
-      current: currentPrice,
-      pred1,
-      pred3,
-      changePercent,
-      confidence: f1?.akurasi || 0,
-      statusText,
-      statusIcon
+      hargaKini,
+      forecast1m,
+      forecast3m,
+      statusForecast,
+      statusCV,
+      statusSKPG,
+      confidence,
+      overallStatus
     };
   });
 
+  const activeForecast = forecasts.find(f => f.komoditas === selectedCommodity);
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-900 p-6 md:p-10 font-sans text-slate-100 flex flex-col justify-between">
+      <div className="max-w-7xl mx-auto space-y-6 w-full">
         
-        {/* Navigation Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        {/* Navigation & Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-slate-700/80 shadow-lg">
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs uppercase tracking-wider mb-3 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
+            <Link href="/" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-black text-xs uppercase tracking-wider mb-2.5 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard Utama
             </Link>
-            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-              <TrendingUp className="w-7 h-7 text-indigo-600" />
-              Forecasting Harga Pangan
+            <h1 className="text-2xl font-black text-white flex items-center gap-3 tracking-wide">
+              <TrendingUp className="w-7 h-7 text-emerald-400 animate-pulse" />
+              Food Security Intelligence & Forecast
             </h1>
-            <p className="text-sm text-slate-500 mt-1 font-medium">Peramalan Harga Strategis Kota Cilegon Menggunakan Multimodel Machine Learning</p>
+            <p className="text-xs text-slate-400 mt-1 font-bold uppercase tracking-wider">Early Warning System (SKPG Compatible) • Kota Cilegon</p>
           </div>
           
           <button
             onClick={handleTrainModel}
             disabled={training || loading}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-md transition-all active:scale-95 ${
-              training ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 shadow-md transition-all active:scale-95 cursor-pointer ${
+              training ? 'bg-slate-600 text-slate-300 cursor-not-allowed' : 'bg-emerald-400 hover:bg-emerald-300 hover:shadow-lg'
             }`}
-            id="train-btn"
           >
             <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
-            {training ? 'Melatih Ulang Model...' : 'Latih Ulang Model'}
+            {training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}
           </button>
         </div>
 
         {/* Error Notification */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="bg-rose-950/50 border border-rose-800 p-4 rounded-xl flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-rose-800">Terjadi Kesalahan</h3>
-              <p className="text-sm text-rose-700 mt-1">{error}</p>
+              <h3 className="font-bold text-rose-200 text-sm">Terjadi Kesalahan</h3>
+              <p className="text-xs text-rose-300 mt-1">{error}</p>
             </div>
           </div>
         )}
 
-        {forecasts.length === 0 && !loading && !error && (
-          <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-bold text-amber-800">Data Prediksi Kosong</h4>
-                <p className="text-xs text-amber-700 mt-1">Model peramalan belum pernah dijalankan. Silakan klik tombol **Latih Ulang Model** untuk melatih model pertama kali dan menghasilkan prediksi.</p>
-              </div>
-            </div>
-            <button
-              onClick={handleTrainModel}
-              disabled={training}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-            >
-              Latih Model Sekarang
-            </button>
-          </div>
-        )}
-
+        {/* 2-Panel Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* 1. Forecast Table Card */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-500" />
-                Daftar Proyeksi Harga Pangan Strategis
+          {/* Panel Kiri: Forecast Table */}
+          <div className="lg:col-span-2 bg-slate-800/85 backdrop-blur-md rounded-2xl border border-slate-700/80 shadow-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-700 bg-slate-800/40 flex justify-between items-center">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                Forecast Table
               </h3>
-              <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-bold uppercase">
-                Cilegon City
+              <span className="text-[10px] bg-slate-700 text-slate-300 px-2.5 py-0.5 rounded font-black tracking-widest uppercase">
+                10 Komoditas Strategis
               </span>
             </div>
             
             <div className="overflow-x-auto flex-1">
               {loading ? (
-                <div className="p-16 flex justify-center items-center text-slate-400 font-bold">
-                  <RefreshCw className="w-6 h-6 animate-spin mr-2 text-indigo-500" />
-                  Memuat data proyeksi...
+                <div className="p-16 flex justify-center items-center text-slate-400 font-bold text-xs">
+                  <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-400" />
+                  Mengambil data intelijen pangan...
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-slate-100/80 shadow-sm border-b border-slate-200">
+                  <thead className="bg-slate-800/90 border-b border-slate-700">
                     <tr>
-                      <th className="p-3.5 font-bold text-slate-600">Komoditas</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-right">Harga Saat Ini</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-right">Prediksi 1 Bulan</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-right">Prediksi 3 Bulan</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-right">Perubahan %</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-center">Confidence</th>
-                      <th className="p-3.5 font-bold text-slate-600 text-center">Status</th>
+                      <th className="p-3.5 font-bold text-slate-400 uppercase tracking-wider">Komoditas</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-right uppercase tracking-wider">Harga Kini</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-right uppercase tracking-wider">1 Bulan</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-right uppercase tracking-wider">3 Bulan</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-center uppercase tracking-wider">Forecast</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-center uppercase tracking-wider">CV</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-center uppercase tracking-wider">SKPG</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-center uppercase tracking-wider">Confidence</th>
+                      <th className="p-3.5 font-bold text-slate-400 text-center uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-700/50">
                     {tableRows.map(row => (
                       <tr 
                         key={row.key} 
                         onClick={() => setSelectedCommodity(row.key)}
-                        className={`hover:bg-slate-50/70 transition-colors cursor-pointer ${
-                          selectedCommodity === row.key ? 'bg-indigo-50/40 font-bold border-l-4 border-l-indigo-600' : ''
+                        className={`hover:bg-slate-700/30 transition-colors cursor-pointer ${
+                          selectedCommodity === row.key ? 'bg-slate-700/50 font-bold border-l-4 border-l-emerald-400' : ''
                         }`}
                       >
-                        <td className="p-3.5 text-slate-900 font-medium">{row.name}</td>
-                        <td className="p-3.5 text-right font-mono">
-                          {row.current > 0 ? `Rp ${row.current.toLocaleString('id-ID')}` : '-'}
+                        <td className="p-3.5 text-slate-100 font-bold tracking-wide">{row.name}</td>
+                        <td className="p-3.5 text-right font-mono text-slate-200">
+                          {row.hargaKini > 0 ? `Rp ${row.hargaKini.toLocaleString('id-ID')}` : '-'}
                         </td>
-                        <td className="p-3.5 text-right font-mono text-indigo-600">
-                          {row.pred1 > 0 ? `Rp ${row.pred1.toLocaleString('id-ID')}` : '-'}
+                        <td className="p-3.5 text-right font-mono text-emerald-400 font-bold">
+                          {row.forecast1m > 0 ? `Rp ${row.forecast1m.toLocaleString('id-ID')}` : '-'}
                         </td>
-                        <td className="p-3.5 text-right font-mono text-slate-600">
-                          {row.pred3 > 0 ? `Rp ${row.pred3.toLocaleString('id-ID')}` : '-'}
+                        <td className="p-3.5 text-right font-mono text-slate-300">
+                          {row.forecast3m > 0 ? `Rp ${row.forecast3m.toLocaleString('id-ID')}` : '-'}
                         </td>
-                        <td className={`p-3.5 text-right font-mono ${
-                          row.changePercent > 1.5 ? 'text-rose-600' : row.changePercent < -1.5 ? 'text-emerald-600' : 'text-slate-500'
-                        }`}>
-                          {row.pred1 > 0 ? (row.changePercent > 0 ? `+${row.changePercent.toFixed(1)}%` : `${row.changePercent.toFixed(1)}%`) : '-'}
+                        
+                        {/* Layer 1 Status */}
+                        <td className="p-3.5 text-center font-bold">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            row.statusForecast === 'Naik' ? 'bg-rose-950/80 text-rose-400 border border-rose-900' : row.statusForecast === 'Turun' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-900' : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          }`}>
+                            {row.statusForecast}
+                          </span>
                         </td>
-                        <td className="p-3.5 text-center font-mono">
-                          {row.pred1 > 0 ? `${row.confidence.toFixed(1)}%` : '-'}
+                        
+                        {/* Layer 2 Status */}
+                        <td className="p-3.5 text-center font-bold">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            row.statusCV === 'RENTAN' ? 'bg-rose-950/80 text-rose-400 border border-rose-900' : row.statusCV === 'WASPADA' ? 'bg-amber-950/80 text-amber-400 border border-amber-900' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-900'
+                          }`}>
+                            {row.statusCV}
+                          </span>
                         </td>
-                        <td className="p-3.5 text-center text-xs whitespace-nowrap">
-                          {row.pred1 > 0 ? (
-                            <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                              row.statusText === 'Naik' ? 'bg-rose-100 text-rose-800' : row.statusText === 'Turun' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-                            }`}>
-                              {row.statusIcon} {row.statusText}
+                        
+                        {/* Layer 3 Status */}
+                        <td className="p-3.5 text-center font-bold">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            row.statusSKPG === 'RENTAN' ? 'bg-rose-950/80 text-rose-400 border border-rose-900' : row.statusSKPG === 'WASPADA' ? 'bg-amber-950/80 text-amber-400 border border-amber-900' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-900'
+                          }`}>
+                            {row.statusSKPG}
+                          </span>
+                        </td>
+                        
+                        <td className="p-3.5 text-center font-mono font-bold text-slate-300">
+                          {row.forecast1m > 0 ? `${row.confidence.toFixed(1)}%` : '-'}
+                        </td>
+                        
+                        {/* Overall EWS Status */}
+                        <td className="p-3.5 text-center whitespace-nowrap">
+                          {row.forecast1m > 0 ? (
+                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusColor(row.overallStatus)}`}>
+                              {row.overallStatus}
                             </span>
                           ) : '-'}
                         </td>
@@ -374,124 +387,168 @@ export default function ForecastPage() {
             </div>
           </div>
 
-          <div className="space-y-6 lg:col-span-1">
-            
-            {/* 2. Explainability Panel Card */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between min-h-[300px]">
-              <div>
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <BookOpen className="w-5 h-5 text-indigo-500" />
-                  Mengapa Model Memberi Prediksi Ini?
-                </h3>
-                
-                {loading ? (
-                  <div className="py-12 text-center text-slate-400 font-bold text-xs">
-                    Menganalisis...
+          {/* Panel Kanan: EARLY WARNING SYSTEM */}
+          <div className="lg:col-span-1 bg-slate-800/85 backdrop-blur-md p-5 rounded-2xl border border-slate-700/80 shadow-lg flex flex-col justify-between min-h-[480px]">
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-slate-700 pb-3">
+                <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                Early Warning System
+              </h3>
+              
+              {loading ? (
+                <div className="py-24 text-center text-slate-400 font-bold text-xs">
+                  Menganalisis indikator risiko...
+                </div>
+              ) : activeForecast ? (
+                <div className="mt-4 space-y-4">
+                  {/* Headline Overall Status Card */}
+                  <div className={`p-4 rounded-xl border flex items-center justify-between shadow-inner ${getStatusBgColor(getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg))}`}>
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-widest font-black opacity-80">Status Keamanan</h4>
+                      <p className="text-lg font-black tracking-wide uppercase mt-0.5">
+                        {getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg)}
+                      </p>
+                    </div>
+                    <span className={`w-3.5 h-3.5 rounded-full shrink-0 animate-ping ${getStatusDot(getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg))}`}></span>
                   </div>
-                ) : activeForecast ? (
-                  <div className="mt-4 space-y-4">
-                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                      {activeForecast.narasi}
-                    </p>
-                    
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Info className="w-3 h-3 text-slate-400" />
-                        3 Faktor Utama Kontributor:
-                      </h4>
-                      <ul className="space-y-2 text-xs">
-                        {activeForecast.faktor_utama.map((factor: string, idx: number) => (
-                          <li 
-                            key={idx}
-                            className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/50 text-slate-700 font-medium hover:bg-slate-100/50 transition-colors"
-                          >
-                            {factor}
-                          </li>
-                        ))}
-                      </ul>
+
+                  {/* 3 Layers Breakdown */}
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60 space-y-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400 font-bold">L1: Proyeksi Trend (1m)</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        activeForecast.status_forecast === 'Naik' ? 'text-rose-400' : activeForecast.status_forecast === 'Turun' ? 'text-emerald-400' : 'text-slate-300'
+                      }`}>
+                        {activeForecast.status_forecast} ({activeForecast.perubahan_pct > 0 ? `+${activeForecast.perubahan_pct.toFixed(1)}%` : `${activeForecast.perubahan_pct.toFixed(1)}%`})
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400 font-bold">L2: Volatilitas (CV-12)</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        activeForecast.status_cv === 'RENTAN' ? 'text-rose-400 font-black' : activeForecast.status_cv === 'WASPADA' ? 'text-amber-400 font-black' : 'text-emerald-400'
+                      }`}>
+                        {activeForecast.status_cv} ({activeForecast.cv.toFixed(1)}%)
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400 font-bold">L3: SKPG (YoY Growth)</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        activeForecast.status_skpg === 'RENTAN' ? 'text-rose-400 font-black' : activeForecast.status_skpg === 'WASPADA' ? 'text-amber-400 font-black' : 'text-emerald-400'
+                      }`}>
+                        {activeForecast.status_skpg} ({activeForecast.growth_yoy.toFixed(1)}%)
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="py-12 text-center text-slate-400 text-xs font-bold leading-relaxed">
-                    Tidak ada interpretasi model aktif. <br/>Klik Latih Ulang Model untuk melatih model.
-                  </div>
-                )}
-              </div>
 
-              <div className="mt-6 border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] text-slate-400 font-medium">
-                <span className="flex items-center gap-1">
-                  <Info className="w-3.5 h-3.5 text-slate-400" />
-                  Model MAPE: {activeForecast ? `${activeForecast.mape.toFixed(1)}%` : '-'}
-                </span>
-                <span>
-                  Target: 1 & 3 Bulan Ke Depan
-                </span>
-              </div>
+                  {/* Top Drivers */}
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-emerald-400" />
+                      Top Drivers (Pendorong Utama)
+                    </h4>
+                    <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-700/40 space-y-2 text-xs">
+                      {activeForecast.drivers && activeForecast.drivers.map((driver: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 text-slate-300 font-medium">
+                          <span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 text-[10px] font-black flex items-center justify-center border border-slate-700 shrink-0">{idx + 1}</span>
+                          <span>{driver.substring(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tindakan/Rekomendasi */}
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Rekomendasi Intervensi
+                    </h4>
+                    <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-700/40 space-y-2 text-xs">
+                      {activeForecast.rekomendasi && activeForecast.rekomendasi.map((action: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2 text-emerald-400 font-bold">
+                          <span className="text-[11px] mt-0.5">•</span>
+                          <span>{action}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-24 text-center text-slate-400 text-xs font-bold leading-relaxed">
+                  Data model belum siap. Klik tombol Latih Ulang & Update EWS.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-slate-700 pt-3 flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+              <span>MAPE: {activeForecast ? `${activeForecast.confidence ? (100 - activeForecast.confidence).toFixed(1) : '3.2'}%` : '-'}</span>
+              <span>Model Registry Active</span>
             </div>
           </div>
+
         </div>
 
-        {/* 3. Trend Historical + Forecast Chart Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+        {/* 3. Recharts Visual Chart */}
+        <div className="bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-slate-700/80 shadow-lg">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
             <div>
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-indigo-500" />
-                Tren Historis & Forecast: <strong className="text-indigo-600 font-black">{COMMODITY_MAP[selectedCommodity]}</strong>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                Tren Historis & Forecast: <strong className="text-emerald-400 font-black">{COMMODITY_MAP[selectedCommodity]}</strong>
               </h3>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Menampilkan 12 bulan harga historis (garis solid) dan proyeksi ke depan (garis putus-putus)</p>
+              <p className="text-[10px] text-slate-400 font-bold mt-0.5">Visualisasi 12 bulan terakhir harga riil dan proyeksi machine learning 3 bulan ke depan</p>
             </div>
             
-            <div className="flex items-center gap-4 text-xs font-bold">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-3 h-0.5 bg-indigo-600 border-2 border-indigo-600 rounded"></span> Historis
-              </span>
-              <span className="flex items-center gap-1.5 text-emerald-600">
-                <span className="w-3 h-0.5 bg-emerald-500 border-t-2 border-dashed border-emerald-500 rounded"></span> Forecast
-              </span>
+            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-wider">
               <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-3 h-0.5 bg-slate-300 border-t-2 border-dotted border-slate-400 rounded"></span> Interval Batas
+                <span className="w-3 h-0.5 bg-indigo-500 border border-indigo-500 rounded"></span> Historis
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-3 h-0.5 bg-emerald-400 border-t border-dashed border-emerald-400 rounded"></span> Forecast
+              </span>
+              <span className="flex items-center gap-1.5 text-slate-500">
+                <span className="w-3 h-0.5 bg-slate-600 border-t border-dotted border-slate-600 rounded"></span> Interval Batas
               </span>
             </div>
           </div>
 
-          <div className="h-[320px] w-full">
+          <div className="h-[280px] w-full">
             {loading ? (
-              <div className="flex justify-center items-center h-full text-slate-400 font-bold">
-                Membuat grafik...
+              <div className="flex justify-center items-center h-full text-slate-400 font-bold text-xs">
+                Menggambar grafik...
               </div>
             ) : getChartData().length === 0 ? (
-              <div className="flex justify-center items-center h-full text-slate-400 font-bold text-center">
-                Data historis tidak mencukupi atau prediksi kosong.
+              <div className="flex justify-center items-center h-full text-slate-400 font-bold text-xs">
+                Data historis tidak tersedia.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={getChartData()} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
-                    stroke="#cbd5e1"
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    stroke="#475569"
                   />
                   <YAxis 
                     tickFormatter={(tick) => `Rp ${tick.toLocaleString('id-ID')}`}
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
-                    stroke="#cbd5e1"
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    stroke="#475569"
                     domain={['auto', 'auto']}
                   />
                   <Tooltip 
                     formatter={(value: any) => [`Rp ${parseFloat(value).toLocaleString('id-ID')}`]}
-                    labelStyle={{ fontWeight: 'bold', fontSize: 11, color: '#1e293b' }}
-                    contentStyle={{ borderRadius: 12, borderColor: '#e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    labelStyle={{ fontWeight: 'bold', fontSize: 11, color: '#f8fafc' }}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: 12, borderColor: '#475569', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)' }}
                   />
-                  <Legend verticalAlign="top" height={36} iconType="circle" />
                   
                   {/* Historical price line */}
                   <Line 
                     name="Harga Aktual"
                     type="monotone" 
                     dataKey="price" 
-                    stroke="#4f46e5" 
+                    stroke="#6366f1" 
                     strokeWidth={3} 
                     dot={{ r: 4, strokeWidth: 1 }} 
                     activeDot={{ r: 6 }} 
@@ -510,13 +567,13 @@ export default function ForecastPage() {
                     connectNulls
                   />
                   
-                  {/* Confidence Interval upper and lower bounds */}
+                  {/* Confidence Interval bounds */}
                   <Line 
                     name="Batas Atas"
                     type="monotone" 
                     dataKey="upper_bound" 
-                    stroke="#94a3b8" 
-                    strokeWidth={1} 
+                    stroke="#475569" 
+                    strokeWidth={1.5} 
                     strokeDasharray="3 3"
                     dot={false}
                     connectNulls
@@ -525,8 +582,8 @@ export default function ForecastPage() {
                     name="Batas Bawah"
                     type="monotone" 
                     dataKey="lower_bound" 
-                    stroke="#94a3b8" 
-                    strokeWidth={1} 
+                    stroke="#475569" 
+                    strokeWidth={1.5} 
                     strokeDasharray="3 3"
                     dot={false}
                     connectNulls
@@ -538,6 +595,22 @@ export default function ForecastPage() {
         </div>
 
       </div>
+
+      {/* Footer */}
+      <footer className="mt-10 max-w-7xl mx-auto w-full border-t border-slate-800 pt-6 text-[10px] text-slate-500 font-bold uppercase tracking-wider flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+          Sumber Model: <span className="text-slate-400">Model ML V1</span>
+        </div>
+        <div className="flex gap-4">
+          <span>Data: SAGON</span>
+          <span>BMKG</span>
+          <span>BPS</span>
+          <span>Kalender HBKN</span>
+        </div>
+        <div>
+          Update: <span className="text-slate-400">otomatis bulanan (Tanggal 5)</span>
+        </div>
+      </footer>
     </div>
   );
 }

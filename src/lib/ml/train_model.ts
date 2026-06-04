@@ -43,6 +43,7 @@ interface RawDatasetRow {
   nataru: number | null;
   hari_menuju_idul_fitri: number | null;
   hari_menuju_idul_adha: number | null;
+  is_hbkn?: boolean;
 }
 
 interface EngineeredSample {
@@ -53,19 +54,84 @@ interface EngineeredSample {
   bulan: number;
 }
 
-// Convert month/year to date string for the first day of that month
-function getFirstDayOfMonth(year: number, month: number): string {
-  const m = String(month).padStart(2, '0');
-  return `${year}-${m}-01`;
-}
-
-// Helper to extract feature names list to keep indexing clean
 const FEATURE_NAMES = [
-  'lag_1', 'lag_2', 'lag_3', 'moving_avg_3', 'bulan', 'quarter',
+  'lag_1', 'lag_2', 'lag_3', 'moving_avg_3', 'moving_avg_6', 'rolling_std_3',
+  'bulan', 'quarter', 'is_hbkn', 'trend_3', 'growth_yoy', 'cv_12',
   'ihk', 'inflasi_mtm', 'inflasi_yoy', 'curah_hujan_mm', 'suhu_c',
   'kelembapan', 'hari_hujan', 'ramadhan', 'idul_fitri', 'idul_adha',
   'nataru', 'hari_menuju_idul_fitri', 'hari_menuju_idul_adha'
 ];
+
+// Helper to compute features for a given commodity at row index `t`
+function computeFeatures(rawRows: RawDatasetRow[], t: number, commodity: string): Record<string, number> | null {
+  const currentRow = rawRows[t];
+  
+  // We need actual price data from t-1 down to t-13
+  const prices: number[] = [];
+  for (let i = 1; i <= 13; i++) {
+    const val = rawRows[t - i]?.[commodity as keyof RawDatasetRow];
+    if (val === null || val === undefined || typeof val !== 'number' || val <= 0) {
+      return null; // incomplete lag history
+    }
+    prices.push(val);
+  }
+  
+  const lag_1 = prices[0];
+  const lag_2 = prices[1];
+  const lag_3 = prices[2];
+  const lag_4 = prices[3];
+  const lag_5 = prices[4];
+  const lag_6 = prices[5];
+  const lag_13 = prices[12];
+  
+  const moving_avg_3 = (lag_1 + lag_2 + lag_3) / 3;
+  const moving_avg_6 = (lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6) / 6;
+  
+  const mean3 = moving_avg_3;
+  const var3 = ((lag_1 - mean3)**2 + (lag_2 - mean3)**2 + (lag_3 - mean3)**2) / 3;
+  const rolling_std_3 = Math.sqrt(var3);
+  
+  const trend_3 = lag_1 - lag_3;
+  const growth_yoy = ((lag_1 - lag_13) / lag_13) * 100;
+  
+  const prices_12 = prices.slice(0, 12);
+  const mean12 = prices_12.reduce((s, p) => s + p, 0) / 12;
+  const var12 = prices_12.reduce((s, p) => s + (p - mean12)**2, 0) / 12;
+  const std12 = Math.sqrt(var12);
+  const cv_12 = mean12 > 0 ? (std12 / mean12) * 100 : 0;
+  
+  const bulan = currentRow.bulan;
+  const quarter = Math.ceil(bulan / 3);
+  const is_hbkn = currentRow.is_hbkn ? 1 : 0;
+  
+  return {
+    lag_1,
+    lag_2,
+    lag_3,
+    moving_avg_3,
+    moving_avg_6,
+    rolling_std_3,
+    bulan,
+    quarter,
+    is_hbkn,
+    trend_3,
+    growth_yoy,
+    cv_12,
+    ihk: currentRow.ihk || 115.0,
+    inflasi_mtm: currentRow.inflasi_mtm || 0.15,
+    inflasi_yoy: currentRow.inflasi_yoy || 2.1,
+    curah_hujan_mm: currentRow.curah_hujan_mm || 150,
+    suhu_c: currentRow.suhu_c || 27.5,
+    kelembapan: currentRow.kelembapan || 79,
+    hari_hujan: currentRow.hari_hujan || 10,
+    ramadhan: currentRow.ramadhan || 0,
+    idul_fitri: currentRow.idul_fitri || 0,
+    idul_adha: currentRow.idul_adha || 0,
+    nataru: currentRow.nataru || 0,
+    hari_menuju_idul_fitri: currentRow.hari_menuju_idul_fitri || 365,
+    hari_menuju_idul_adha: currentRow.hari_menuju_idul_adha || 365
+  };
+}
 
 export async function trainAndForecastAll() {
   console.log('[ML Train] Memulai pipeline training model ML...');
@@ -92,53 +158,22 @@ export async function trainAndForecastAll() {
   for (const commodity of COMMODITIES) {
     console.log(`[ML Train] Melatih model untuk komoditas: ${commodity}`);
     
-    // Construct engineered samples
     const samples: EngineeredSample[] = [];
     
-    for (let t = 3; t < rawRows.length; t++) {
+    // We start from index 13 since we need at least 13 months of past data for lag_13 (growth_yoy)
+    for (let t = 13; t < rawRows.length; t++) {
       const currentRow = rawRows[t];
-      const targetVal = currentRow[commodity as keyof RawDatasetRow];
+      const targetVal = currentRow[commodity as keyof RawDatasetRow] as number | null;
       
-      // We need valid historical actual prices to train
       if (targetVal === null || targetVal === undefined || targetVal <= 0) continue;
       
-      const p1 = rawRows[t - 1][commodity as keyof RawDatasetRow] as number;
-      const p2 = rawRows[t - 2][commodity as keyof RawDatasetRow] as number;
-      const p3 = rawRows[t - 3][commodity as keyof RawDatasetRow] as number;
+      const featureMap = computeFeatures(rawRows, t, commodity);
+      if (!featureMap) continue; // Skip if lags are incomplete
       
-      if (!p1 || !p2 || !p3) continue; // Skip if lags are incomplete
-      
-      const moving_avg_3 = (p1 + p2 + p3) / 3;
-      const bulan = currentRow.bulan;
-      const quarter = Math.ceil(bulan / 3);
-      
-      const featureMap: Record<string, number> = {
-        lag_1: p1,
-        lag_2: p2,
-        lag_3: p3,
-        moving_avg_3,
-        bulan,
-        quarter,
-        ihk: currentRow.ihk || 115.0,
-        inflasi_mtm: currentRow.inflasi_mtm || 0.15,
-        inflasi_yoy: currentRow.inflasi_yoy || 2.1,
-        curah_hujan_mm: currentRow.curah_hujan_mm || 150,
-        suhu_c: currentRow.suhu_c || 27.5,
-        kelembapan: currentRow.kelembapan || 79,
-        hari_hujan: currentRow.hari_hujan || 10,
-        ramadhan: currentRow.ramadhan || 0,
-        idul_fitri: currentRow.idul_fitri || 0,
-        idul_adha: currentRow.idul_adha || 0,
-        nataru: currentRow.nataru || 0,
-        hari_menuju_idul_fitri: currentRow.hari_menuju_idul_fitri || 365,
-        hari_menuju_idul_adha: currentRow.hari_menuju_idul_adha || 365
-      };
-      
-      // Order features exactly according to FEATURE_NAMES list
       const features = FEATURE_NAMES.map(name => featureMap[name]);
       
       samples.push({
-        y: targetVal,
+        y: targetVal as number,
         features,
         featureMap,
         tahun: currentRow.tahun,
@@ -146,18 +181,15 @@ export async function trainAndForecastAll() {
       });
     }
     
-    if (samples.length < 24) {
+    if (samples.length < 12) {
       console.warn(`[ML Train] Data sampel terlalu sedikit untuk ${commodity}. Dilewati.`);
       continue;
     }
 
-    // 3. Time Series Split:
-    // Training: 2022 - 2025
-    // Validation: 2026
+    // 3. Split: Train: 2022–2025, Validation: 2026
     const trainSamples = samples.filter(s => s.tahun <= 2025);
     const valSamples = samples.filter(s => s.tahun === 2026);
     
-    // Fallback: If 2026 validation data is empty, split 80% train / 20% validation
     const hasValidation = valSamples.length > 0;
     const finalTrain = hasValidation ? trainSamples : samples.slice(0, Math.floor(samples.length * 0.8));
     const finalVal = hasValidation ? valSamples : samples.slice(Math.floor(samples.length * 0.8));
@@ -167,45 +199,53 @@ export async function trainAndForecastAll() {
     const valX = finalVal.map(s => s.features);
     const valY = finalVal.map(s => s.y);
     
-    // Train and evaluate XGBoost
+    // Evaluate XGBoost
     const xgb = new XGBoostRegressor(12, 3, 0.1);
     xgb.fit(trainX, trainY);
     const xgbPreds = valX.map(x => xgb.predict(x));
     const xgbMetrics = evaluatePredictions(valY, xgbPreds);
     
-    // Train and evaluate Prophet-like model
+    // Evaluate Prophet
     const prophet = new ProphetRegressor();
     prophet.fit(trainX, trainY);
     const prophetPreds = valX.map(x => prophet.predict(x));
     const prophetMetrics = evaluatePredictions(valY, prophetPreds);
     
-    // Train and evaluate Random Forest
+    // Evaluate Random Forest
     const rf = new RandomForestRegressor(10, 4);
     rf.fit(trainX, trainY);
     const rfPreds = valX.map(x => rf.predict(x));
     const rfMetrics = evaluatePredictions(valY, rfPreds);
     
-    console.log(`[ML Train] Metrics for ${commodity}:`);
-    console.log(` - XGBoost Validation MAPE: ${xgbMetrics.mape}%`);
-    console.log(` - Prophet Validation MAPE: ${prophetMetrics.mape}%`);
-    console.log(` - Random Forest Validation MAPE: ${rfMetrics.mape}%`);
-    
-    // Choose model with lowest validation MAPE
+    // Select model with the lowest validation MAPE
     let bestModelType: 'xgboost' | 'prophet' | 'randomforest' = 'xgboost';
-    let bestMAPE = xgbMetrics.mape;
+    let bestMetrics = xgbMetrics;
     
-    if (prophetMetrics.mape < bestMAPE) {
+    if (prophetMetrics.mape < bestMetrics.mape) {
       bestModelType = 'prophet';
-      bestMAPE = prophetMetrics.mape;
+      bestMetrics = prophetMetrics;
     }
-    if (rfMetrics.mape < bestMAPE) {
+    if (rfMetrics.mape < bestMetrics.mape) {
       bestModelType = 'randomforest';
-      bestMAPE = rfMetrics.mape;
+      bestMetrics = rfMetrics;
     }
     
-    console.log(`[ML Train] Model terbaik untuk ${commodity}: ${bestModelType.toUpperCase()} (MAPE: ${bestMAPE}%)`);
+    console.log(`[ML Train] Model terbaik untuk ${commodity}: ${bestModelType.toUpperCase()} (MAPE: ${bestMetrics.mape}%)`);
     
-    // 4. Retrain the selected champion model on the entire dataset (train + validation)
+    // Save active champion model metrics to model_registry table
+    try {
+      await supabase.from('model_registry').insert([{
+        komoditas: commodity,
+        model_name: bestModelType,
+        mape: bestMetrics.mape,
+        rmse: bestMetrics.rmse,
+        mae: bestMetrics.mae
+      }]);
+    } catch (regError) {
+      console.warn(`[ML Train] Gagal menyimpan ke model_registry:`, regError);
+    }
+    
+    // Retrain the selected champion model on the entire dataset
     const allX = samples.map(s => s.features);
     const allY = samples.map(s => s.y);
     
@@ -221,14 +261,13 @@ export async function trainAndForecastAll() {
       championModel.fit(allX, allY);
     }
     
-    // 5. Predict 1 month and 3 months ahead recursively
-    // Find the latest record that contains actual price data
+    // Find the latest index having actual price
     let latestIdx = rawRows.length - 1;
     while (latestIdx >= 0 && (rawRows[latestIdx][commodity as keyof RawDatasetRow] === null || (rawRows[latestIdx][commodity as keyof RawDatasetRow] as number) <= 0)) {
       latestIdx--;
     }
     
-    if (latestIdx < 3) {
+    if (latestIdx < 13) {
       console.warn(`[ML Train] Tidak ada data harga terbaru untuk ${commodity}. Dilewati.`);
       continue;
     }
@@ -238,10 +277,8 @@ export async function trainAndForecastAll() {
     const currentYear = latestRow.tahun;
     const currentMonth = latestRow.bulan;
     
-    console.log(`[ML Train] Harga saat ini (${currentMonth}/${currentYear}) untuk ${commodity}: Rp ${currentPrice}`);
-    
-    // Projections target dates
-    // 1 month ahead
+    // Target projection dates
+    // 1 Month ahead
     let target1Month = currentMonth + 1;
     let target1Year = currentYear;
     if (target1Month > 12) {
@@ -249,7 +286,7 @@ export async function trainAndForecastAll() {
       target1Year++;
     }
     
-    // 3 months ahead
+    // 3 Months ahead
     let target3Month = currentMonth + 3;
     let target3Year = currentYear;
     if (target3Month > 12) {
@@ -257,7 +294,7 @@ export async function trainAndForecastAll() {
       target3Year++;
     }
     
-    // Find future feature rows in the rawRows dataset (populated by seeders)
+    // Find future feature rows in rawRows view
     const findFutureRow = (y: number, m: number) => {
       return rawRows.find(row => row.tahun === y && row.bulan === m);
     };
@@ -267,132 +304,174 @@ export async function trainAndForecastAll() {
     const rowT3 = findFutureRow(target3Year, target3Month);
     
     if (!rowT1 || !rowT3) {
-      console.warn(`[ML Train] Baris target masa depan di forecast_dataset tidak ditemukan untuk ${commodity}. Pastikan seeder sudah terisi hingga akhir 2026.`);
+      console.warn(`[ML Train] Baris target masa depan di forecast_dataset tidak ditemukan untuk ${commodity}.`);
       continue;
     }
     
-    // --- STEP A: Forecast 1 Month Ahead (t+1) ---
-    const featureMap1: Record<string, number> = {
-      lag_1: currentPrice,
-      lag_2: rawRows[latestIdx - 1][commodity as keyof RawDatasetRow] as number,
-      lag_3: rawRows[latestIdx - 2][commodity as keyof RawDatasetRow] as number,
-      moving_avg_3: (currentPrice + (rawRows[latestIdx - 1][commodity as keyof RawDatasetRow] as number) + (rawRows[latestIdx - 2][commodity as keyof RawDatasetRow] as number)) / 3,
-      bulan: target1Month,
-      quarter: Math.ceil(target1Month / 3),
-      ihk: rowT1.ihk || 120.0,
-      inflasi_mtm: rowT1.inflasi_mtm || 0.22,
-      inflasi_yoy: rowT1.inflasi_yoy || 1.7,
-      curah_hujan_mm: rowT1.curah_hujan_mm || 150,
-      suhu_c: rowT1.suhu_c || 27.5,
-      kelembapan: rowT1.kelembapan || 79,
-      hari_hujan: rowT1.hari_hujan || 10,
-      ramadhan: rowT1.ramadhan || 0,
-      idul_fitri: rowT1.idul_fitri || 0,
-      idul_adha: rowT1.idul_adha || 0,
-      nataru: rowT1.nataru || 0,
-      hari_menuju_idul_fitri: rowT1.hari_menuju_idul_fitri || 365,
-      hari_menuju_idul_adha: rowT1.hari_menuju_idul_adha || 365
+    // Extract actual price series from rawRows ending at latestIdx
+    const actualPrices: number[] = [];
+    for (let i = 0; i < 13; i++) {
+      actualPrices.push(rawRows[latestIdx - i][commodity as keyof RawDatasetRow] as number);
+    }
+    
+    // Helper to compute features using historical actuals and recursive predictions
+    const computeForecastFeatures = (tRow: RawDatasetRow, simulatedHistory: number[]) => {
+      const lag_1 = simulatedHistory[0];
+      const lag_2 = simulatedHistory[1];
+      const lag_3 = simulatedHistory[2];
+      const lag_4 = simulatedHistory[3];
+      const lag_5 = simulatedHistory[4];
+      const lag_6 = simulatedHistory[5];
+      const lag_13 = simulatedHistory[12];
+      
+      const moving_avg_3 = (lag_1 + lag_2 + lag_3) / 3;
+      const moving_avg_6 = (lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6) / 6;
+      
+      const mean3 = moving_avg_3;
+      const var3 = ((lag_1 - mean3)**2 + (lag_2 - mean3)**2 + (lag_3 - mean3)**2) / 3;
+      const rolling_std_3 = Math.sqrt(var3);
+      
+      const trend_3 = lag_1 - lag_3;
+      const growth_yoy = ((lag_1 - lag_13) / lag_13) * 100;
+      
+      const prices_12 = simulatedHistory.slice(0, 12);
+      const mean12 = prices_12.reduce((s, p) => s + p, 0) / 12;
+      const var12 = prices_12.reduce((s, p) => s + (p - mean12)**2, 0) / 12;
+      const std12 = Math.sqrt(var12);
+      const cv_12 = mean12 > 0 ? (std12 / mean12) * 100 : 0;
+      
+      const bulan = tRow.bulan;
+      const quarter = Math.ceil(bulan / 3);
+      const is_hbkn = tRow.is_hbkn ? 1 : 0;
+      
+      return {
+        lag_1,
+        lag_2,
+        lag_3,
+        moving_avg_3,
+        moving_avg_6,
+        rolling_std_3,
+        bulan,
+        quarter,
+        is_hbkn,
+        trend_3,
+        growth_yoy,
+        cv_12,
+        ihk: tRow.ihk || 120.0,
+        inflasi_mtm: tRow.inflasi_mtm || 0.22,
+        inflasi_yoy: tRow.inflasi_yoy || 1.7,
+        curah_hujan_mm: tRow.curah_hujan_mm || 150,
+        suhu_c: tRow.suhu_c || 27.5,
+        kelembapan: tRow.kelembapan || 79,
+        hari_hujan: tRow.hari_hujan || 10,
+        ramadhan: tRow.ramadhan || 0,
+        idul_fitri: tRow.idul_fitri || 0,
+        idul_adha: tRow.idul_adha || 0,
+        nataru: tRow.nataru || 0,
+        hari_menuju_idul_fitri: tRow.hari_menuju_idul_fitri || 365,
+        hari_menuju_idul_adha: tRow.hari_menuju_idul_adha || 365
+      };
     };
     
-    const vec1 = FEATURE_NAMES.map(name => featureMap1[name]);
+    // --- STEP A: Forecast 1 Month Ahead (t+1) ---
+    const history1 = [...actualPrices];
+    const featMap1 = computeForecastFeatures(rowT1, history1);
+    const vec1 = FEATURE_NAMES.map(name => (featMap1 as Record<string, number>)[name]);
     const pred1 = Math.round(championModel.predict(vec1));
     
-    // Attributing error bounds using MAPE
-    const boundDelta1 = pred1 * (bestMAPE / 100);
-    const lower1 = Math.max(0, Math.round(pred1 - boundDelta1));
-    const upper1 = Math.round(pred1 + boundDelta1);
-    
-    // Generate explainability for 1 Month
-    const explainResult1 = explainPrediction(currentPrice, pred1, featureMap1, commodity);
-    
-    resultsToUpsert.push({
-      tanggal_prediksi: getFirstDayOfMonth(target1Year, target1Month),
-      komoditas: commodity,
-      periode: '1_bulan',
-      prediksi_harga: pred1,
-      lower_bound: lower1,
-      upper_bound: upper1,
-      akurasi: Math.max(0, Math.min(100, 100 - bestMAPE)),
-      mape: bestMAPE,
-      faktor_utama: explainResult1.factors,
-      narasi: explainResult1.narasi
-    });
-    
     // --- STEP B: Recursive Forecast 3 Months Ahead (t+3) ---
-    // In order to predict t+3, we must recursively predict t+2 first
+    // Predict T+2 first
     let pred2 = pred1;
     if (rowT2) {
-      const featureMap2: Record<string, number> = {
-        lag_1: pred1, // recursive forecast lag
-        lag_2: currentPrice,
-        lag_3: rawRows[latestIdx - 1][commodity as keyof RawDatasetRow] as number,
-        moving_avg_3: (pred1 + currentPrice + (rawRows[latestIdx - 1][commodity as keyof RawDatasetRow] as number)) / 3,
-        bulan: rowT2.bulan,
-        quarter: Math.ceil(rowT2.bulan / 3),
-        ihk: rowT2.ihk || 120.0,
-        inflasi_mtm: rowT2.inflasi_mtm || 0.22,
-        inflasi_yoy: rowT2.inflasi_yoy || 1.7,
-        curah_hujan_mm: rowT2.curah_hujan_mm || 150,
-        suhu_c: rowT2.suhu_c || 27.5,
-        kelembapan: rowT2.kelembapan || 79,
-        hari_hujan: rowT2.hari_hujan || 10,
-        ramadhan: rowT2.ramadhan || 0,
-        idul_fitri: rowT2.idul_fitri || 0,
-        idul_adha: rowT2.idul_adha || 0,
-        nataru: rowT2.nataru || 0,
-        hari_menuju_idul_fitri: rowT2.hari_menuju_idul_fitri || 365,
-        hari_menuju_idul_adha: rowT2.hari_menuju_idul_adha || 365
-      };
-      const vec2 = FEATURE_NAMES.map(name => featureMap2[name]);
+      const history2 = [pred1, ...actualPrices.slice(0, 12)];
+      const featMap2 = computeForecastFeatures(rowT2, history2);
+      const vec2 = FEATURE_NAMES.map(name => (featMap2 as Record<string, number>)[name]);
       pred2 = Math.round(championModel.predict(vec2));
     }
     
-    // Now predict t+3 (3 months ahead)
-    const featureMap3: Record<string, number> = {
-      lag_1: pred2, // recursive forecast lag 1
-      lag_2: pred1, // recursive forecast lag 2
-      lag_3: currentPrice,
-      moving_avg_3: (pred2 + pred1 + currentPrice) / 3,
-      bulan: target3Month,
-      quarter: Math.ceil(target3Month / 3),
-      ihk: rowT3.ihk || 120.0,
-      inflasi_mtm: rowT3.inflasi_mtm || 0.22,
-      inflasi_yoy: rowT3.inflasi_yoy || 1.7,
-      curah_hujan_mm: rowT3.curah_hujan_mm || 150,
-      suhu_c: rowT3.suhu_c || 27.5,
-      kelembapan: rowT3.kelembapan || 79,
-      hari_hujan: rowT3.hari_hujan || 10,
-      ramadhan: rowT3.ramadhan || 0,
-      idul_fitri: rowT3.idul_fitri || 0,
-      idul_adha: rowT3.idul_adha || 0,
-      nataru: rowT3.nataru || 0,
-      hari_menuju_idul_fitri: rowT3.hari_menuju_idul_fitri || 365,
-      hari_menuju_idul_adha: rowT3.hari_menuju_idul_adha || 365
-    };
-    
-    const vec3 = FEATURE_NAMES.map(name => featureMap3[name]);
+    // Predict T+3
+    const history3 = [pred2, pred1, ...actualPrices.slice(0, 11)];
+    const featMap3 = computeForecastFeatures(rowT3, history3);
+    const vec3 = FEATURE_NAMES.map(name => (featMap3 as Record<string, number>)[name]);
     const pred3 = Math.round(championModel.predict(vec3));
     
-    // Add cumulative error variance penalty for 3 month forecast (multiply MAPE by 1.5)
-    const bestMAPE3 = bestMAPE * 1.5;
-    const boundDelta3 = pred3 * (bestMAPE3 / 100);
-    const lower3 = Math.max(0, Math.round(pred3 - boundDelta3));
-    const upper3 = Math.round(pred3 + boundDelta3);
+    // Calculate final metrics for the output table
+    const perubahan_pct = ((pred1 - currentPrice) / currentPrice) * 100;
     
-    // Generate explainability for 3 Month
-    const explainResult3 = explainPrediction(currentPrice, pred3, featureMap3, commodity);
+    const boundDelta = pred1 * (bestMetrics.mape / 100);
+    const lower = Math.max(0, Math.round(pred1 - boundDelta));
+    const upper = Math.round(pred1 + boundDelta);
+    
+    // Volatility CV (12-month) and YoY Growth Rate on actual data
+    const prices_12 = actualPrices.slice(0, 12);
+    const mean12 = prices_12.reduce((s, p) => s + p, 0) / 12;
+    const var12 = prices_12.reduce((s, p) => s + (p - mean12)**2, 0) / 12;
+    const std12 = Math.sqrt(var12);
+    const cv = mean12 > 0 ? (std12 / mean12) * 100 : 0;
+    
+    const lag_13 = actualPrices[12];
+    const growth_yoy = ((currentPrice - lag_13) / lag_13) * 100;
+    
+    // EWS Layer Classification
+    // Layer 1: Forecast Trend
+    let status_forecast = "Stabil";
+    if (perubahan_pct > 3) status_forecast = "Naik";
+    else if (perubahan_pct < -3) status_forecast = "Turun";
+    
+    // Layer 2: Volatilitas (CV)
+    let status_cv = "AMAN";
+    if (commodity === 'harga_beras') {
+      if (cv > 10) status_cv = "RENTAN";
+      else if (cv >= 5) status_cv = "WASPADA";
+    } else {
+      if (cv > 15) status_cv = "RENTAN";
+      else if (cv >= 9) status_cv = "WASPADA";
+    }
+    
+    // Layer 3: SKPG (YoY Growth)
+    let status_skpg = "AMAN";
+    if (commodity === 'harga_beras') {
+      if (growth_yoy > 10) status_skpg = "RENTAN";
+      else if (growth_yoy >= 5) status_skpg = "WASPADA";
+    } else if (commodity === 'harga_minyak_goreng' || commodity === 'harga_telur_ayam_ras') {
+      if (growth_yoy > 15) status_skpg = "RENTAN";
+      else if (growth_yoy >= 5) status_skpg = "WASPADA";
+    } else {
+      if (growth_yoy > 10) status_skpg = "RENTAN";
+      else if (growth_yoy >= 5) status_skpg = "WASPADA";
+    }
+    
+    const confidence = Math.max(0, Math.min(100, 100 - bestMetrics.mape));
+    
+    // Generate explanation details
+    const explanation = explainPrediction(
+      currentPrice,
+      pred1,
+      featMap1,
+      commodity,
+      cv,
+      growth_yoy,
+      status_cv,
+      status_skpg
+    );
     
     resultsToUpsert.push({
-      tanggal_prediksi: getFirstDayOfMonth(target3Year, target3Month),
       komoditas: commodity,
-      periode: '3_bulan',
-      prediksi_harga: pred3,
-      lower_bound: lower3,
-      upper_bound: upper3,
-      akurasi: Math.max(0, Math.min(100, 100 - bestMAPE3)),
-      mape: bestMAPE3,
-      faktor_utama: explainResult3.factors,
-      narasi: explainResult3.narasi
+      harga_aktual: currentPrice,
+      forecast_1m: pred1,
+      forecast_3m: pred3,
+      perubahan_pct,
+      lower_bound: lower,
+      upper_bound: upper,
+      cv,
+      growth_yoy,
+      status_forecast,
+      status_cv,
+      status_skpg,
+      confidence,
+      drivers: explanation.factors,
+      narasi: explanation.narasi,
+      rekomendasi: explanation.rekomendasi
     });
   }
   
@@ -404,7 +483,7 @@ export async function trainAndForecastAll() {
   
   const { error: upsertError } = await supabase
     .from('forecast_result')
-    .upsert(resultsToUpsert, { onConflict: 'komoditas, tanggal_prediksi, periode' });
+    .upsert(resultsToUpsert, { onConflict: 'komoditas' });
     
   if (upsertError) {
     console.error('[ML Train] Gagal menyimpan ke forecast_result:', upsertError.message);
