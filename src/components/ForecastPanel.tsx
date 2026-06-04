@@ -94,10 +94,10 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
   return (
     <div className="mt-8 mb-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch h-[550px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-[550px]">
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-full">
-          <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex items-start justify-between shrink-0">
+        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-[550px] lg:h-full">
+          <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex flex-col sm:flex-row items-start justify-between gap-4 shrink-0">
             <div className="flex gap-3">
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
                 <TrendingUp className="w-6 h-6 text-emerald-600" />
@@ -106,12 +106,12 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
                 <h4 className="font-black text-[#0f172a] text-[15px] uppercase tracking-wide flex items-center gap-3">
                   AI FORECAST
                 </h4>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5 pr-4 leading-relaxed">
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5 sm:pr-4 leading-relaxed">
                   Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning (V1).
                 </p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-emerald-100/50">
               <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shadow-sm">DUMMY V.1</span>
               <span className="text-[9px] bg-white border border-emerald-200 text-[#0B4D3C] px-3 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
             </div>
@@ -164,10 +164,10 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
         </div>
 
         {/* Right Column: AI Interpretation */}
-        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-full">
+        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-[600px] lg:h-full">
           
           {/* Right Header */}
-          <div className="flex justify-between items-start gap-4 mb-5 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 mb-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
                 <Brain className="w-6 h-6 text-emerald-600" />
@@ -176,7 +176,7 @@ export default function ForecastPanel({ livePrices = {} }: ForecastPanelProps) {
                 EARLY WARNING SYSTEM (ML)
               </h4>
             </div>
-            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shrink-0 shadow-sm mt-1">DUMMY V.1</span>
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-amber-200 shrink-0 shadow-sm sm:mt-1 self-start sm:self-auto">DUMMY V.1</span>
           </div>
           
           <div className="flex-1 flex flex-col min-h-0">
