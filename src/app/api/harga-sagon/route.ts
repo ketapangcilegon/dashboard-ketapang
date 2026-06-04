@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import { supabase } from '@/lib/supabase';
 
 // Disable TLS verification to bypass self-signed SSL issues on government websites
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-// Standard commodity mapping to extract values from SAGON HTML table
+// Standard commodity mapping to extract values from SAGON HTML table (10 commodities)
 const COMMODITY_MAPPING: Record<string, string> = {
   'Beras': 'beras',
   'Beras Medium (Cimanuk)': 'beras',
@@ -24,6 +25,14 @@ const COMMODITY_MAPPING: Record<string, string> = {
   'Cabe Merah Keriting': 'cabe_merah',
   'Cabe Merah Besar': 'cabe_merah',
   'Cabe Merah': 'cabe_merah',
+  // Extra 4 commodities for the 10-commodity forecast list
+  'Bawang Merah': 'bawang_merah',
+  'Bawang Putih Bonggol': 'bawang_putih',
+  'Bawang Putih': 'bawang_putih',
+  'Cabe Rawit Merah': 'cabe_rawit',
+  'Cabe Rawit': 'cabe_rawit',
+  'Daging Sapi Murni': 'daging_sapi',
+  'Daging Sapi': 'daging_sapi'
 };
 
 // Target date helpers
@@ -42,7 +51,11 @@ async function scrapeMarket(idPasar: string, tanggal: string): Promise<Record<st
     telur: [],
     daging_ayam: [],
     gula_pasir: [],
-    cabe_merah: []
+    cabe_merah: [],
+    bawang_merah: [],
+    bawang_putih: [],
+    cabe_rawit: [],
+    daging_sapi: []
   };
 
   try {
@@ -94,7 +107,7 @@ export async function GET(request: Request) {
   const requestedDate = searchParams.get('tanggal');
   
   // Default to today
-  let targetDate = requestedDate || formatDate(new Date());
+  const targetDate = requestedDate || formatDate(new Date());
   
   console.log(`[SAGON Scraper] Initializing dynamic 3-market average scrape for date: ${targetDate}`);
   
@@ -107,7 +120,11 @@ export async function GET(request: Request) {
     telur: [],
     daging_ayam: [],
     gula_pasir: [],
-    cabe_merah: []
+    cabe_merah: [],
+    bawang_merah: [],
+    bawang_putih: [],
+    cabe_rawit: [],
+    daging_sapi: []
   };
   
   // Try today, then yesterday, up to 7 days back to guarantee we get data
@@ -167,10 +184,50 @@ export async function GET(request: Request) {
     parsedDate = '2026-05-13';
   }
   
+  // If SAGON is completely offline/fails, we try to fall back to the latest archived data in Supabase
+  if (!success) {
+    console.log(`[SAGON Scraper] SAGON is entirely offline. Attempting fallback to Supabase archive...`);
+    try {
+      const { data, error } = await supabase
+        .from('harga_sagon_harian')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .limit(1);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const latestRecord = data[0];
+        console.log(`[SAGON Scraper] Fallback sukses! Menggunakan arsip dari tanggal: ${latestRecord.tanggal}`);
+        return NextResponse.json({
+          success: true,
+          source: 'Supabase Archive Fallback (SAGON Offline)',
+          pasar: 'Rata-rata 3 Pasar (Arsip Database)',
+          tanggal: latestRecord.tanggal,
+          prices: {
+            beras: latestRecord.beras || 13500,
+            minyak_goreng: latestRecord.minyak_goreng || 16000,
+            telur: latestRecord.telur || 29000,
+            daging_ayam: latestRecord.daging_ayam || 36000,
+            gula_pasir: latestRecord.gula_pasir || 17000,
+            cabe_merah: latestRecord.cabe_merah || 55000,
+            bawang_merah: latestRecord.bawang_merah || 38000,
+            bawang_putih: latestRecord.bawang_putih || 40000,
+            cabe_rawit: latestRecord.cabe_rawit || 60000,
+            daging_sapi: latestRecord.daging_sapi || 135000
+          }
+        });
+      }
+    } catch (dbErr: unknown) {
+      const err = dbErr as Error;
+      console.error('[SAGON Scraper] Gagal mengambil data fallback dari Supabase:', err.message);
+    }
+  }
+  
   if (!success) {
     return NextResponse.json({ 
       success: false, 
-      error: 'Failed to fetch price data from any market on sagon.cilegon.go.id' 
+      error: 'Failed to fetch price data from any market on sagon.cilegon.go.id and no database fallback available' 
     }, { status: 502 });
   }
   
@@ -188,13 +245,45 @@ export async function GET(request: Request) {
         telur: 29000,
         daging_ayam: 36000,
         gula_pasir: 17000,
-        cabe_merah: 55000
+        cabe_merah: 55000,
+        bawang_merah: 38000,
+        bawang_putih: 40000,
+        cabe_rawit: 60000,
+        daging_sapi: 135000
       };
       prices[key] = fallbacks[key];
     }
   });
   
-
+  // Archive/Upsert to Supabase
+  try {
+    const { error: upsertError } = await supabase.from('harga_sagon_harian').upsert({
+      tanggal: parsedDate,
+      beras: prices.beras,
+      minyak_goreng: prices.minyak_goreng,
+      telur: prices.telur,
+      daging_ayam: prices.daging_ayam,
+      gula_pasir: prices.gula_pasir,
+      cabe_merah: prices.cabe_merah,
+      bawang_merah: prices.bawang_merah,
+      bawang_putih: prices.bawang_putih,
+      cabe_rawit: prices.cabe_rawit,
+      daging_sapi: prices.daging_sapi
+    }, { onConflict: 'tanggal' });
+    
+    if (upsertError) {
+      if (upsertError.message.includes('does not exist')) {
+        console.warn('[SAGON Scraper] Tabel harga_sagon_harian belum dibuat di database. Harap jalankan migrate_harga_sagon_harian.sql.');
+      } else {
+        throw upsertError;
+      }
+    } else {
+      console.log(`[SAGON Scraper] Berhasil menyimpan arsip harian untuk tanggal: ${parsedDate}`);
+    }
+  } catch (dbErr: unknown) {
+    const err = dbErr as Error;
+    console.warn('[SAGON Scraper] Gagal menyimpan arsip ke database:', err.message);
+  }
   
   return NextResponse.json({
     success: true,
