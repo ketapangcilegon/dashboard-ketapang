@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 "use client";
 
 import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function Navbar({
   const activeKelurahans = selectedKecamatan !== 'ALL' ? WILAYAH[selectedKecamatan] : [];
 
   return (
-    <header className="h-auto pt-6 pb-6 bg-transparent flex items-center justify-between px-6 z-10 select-none">
+    <header className="h-auto pt-6 pb-6 bg-transparent flex items-center justify-between px-3 sm:px-6 z-10 select-none">
       <div className="flex items-center gap-3">
         {/* Mobile Menu Toggle Button */}
         <button
@@ -71,8 +72,8 @@ export default function Navbar({
 
         {/* Profile (Clickable Admin Link) */}
         <a href="/entry" className="flex items-center gap-2.5 ml-1 cursor-pointer bg-white py-1 px-1 pr-4 rounded-full shadow-md border border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] transition-all">
-          <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden shrink-0 border-2 border-emerald-300 shadow-sm">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" className="w-full h-full object-cover" />
+          <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-emerald-300 shadow-sm">
+            <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
           </div>
           <div className="hidden md:block text-left">
             <p className="text-xs font-black text-slate-800 leading-none mb-0.5">Admin Kota</p>
