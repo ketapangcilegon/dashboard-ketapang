@@ -107,7 +107,11 @@ export async function runETLPipeline() {
   const columnsSet = new Set(['tahun', 'bulan']);
 
   for (const [commodityRawName, yearData] of Object.entries(rawData)) {
-    let colName = COMMODITY_MAP[commodityRawName] || toSnakeCase(commodityRawName);
+    let colName = COMMODITY_MAP[commodityRawName];
+    
+    // Skip commodities not explicitly mapped to prevent Supabase schema errors
+    if (!colName) continue;
+    
     columnsSet.add(colName);
     
     for (const [yearStr, monthArray] of Object.entries(yearData)) {
