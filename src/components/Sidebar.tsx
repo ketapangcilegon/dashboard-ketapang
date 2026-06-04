@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight, Leaf, Info } from 'lucide-react';
@@ -30,6 +31,12 @@ export default function Sidebar({
       icon: Brain, 
       label: 'Insight Ketahanan Pangan', 
       view: 'insight' 
+    },
+    {
+      icon: TrendingUp,
+      label: 'Peramalan (Forecasting) ML',
+      view: 'forecasting',
+      url: '/forecast'
     },
     { 
       icon: Package, 
@@ -122,8 +129,8 @@ export default function Sidebar({
               <a 
                 key={i} 
                 href={item.url ? item.url : `/?view=${item.view}`}
-                target={item.url ? '_blank' : undefined}
-                rel={item.url ? 'noopener noreferrer' : undefined}
+                target={item.url && item.url.startsWith('http') ? '_blank' : undefined}
+                rel={item.url && item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
                 onClick={(e) => handleMenuClick(e, item)}
                 className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
                   isActive ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,12 +12,14 @@ export default function MLDatasetAdmin() {
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'prices' | 'forecast'>('prices');
 
-  const fetchDataset = async () => {
+  const fetchDataset = async (tab = activeTab) => {
     setLoading(true);
     try {
+      const tableName = tab === 'prices' ? 'harga_pangan_ml' : 'forecast_dataset';
       const { data: rows, error: fetchErr } = await supabase
-        .from('harga_pangan_ml')
+        .from(tableName)
         .select('*')
         .order('tahun', { ascending: false })
         .order('bulan', { ascending: false });
@@ -26,15 +29,17 @@ export default function MLDatasetAdmin() {
       setError(null);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Gagal memuat data dari Supabase. Pastikan tabel harga_pangan_ml sudah dibuat.');
+      setError(err.message || 'Gagal memuat data dari Supabase. Pastikan tabel harga_pangan_ml dan cuaca_ml serta view forecast_dataset sudah dibuat.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDataset();
-    
+    fetchDataset(activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
     // Attempt to load last sync time from localStorage
     const savedTime = localStorage.getItem('ml_last_sync');
     if (savedTime) setLastSync(savedTime);
@@ -56,7 +61,7 @@ export default function MLDatasetAdmin() {
       localStorage.setItem('ml_last_sync', now);
       
       // Reload table data
-      await fetchDataset();
+      await fetchDataset(activeTab);
       alert(`Sinkronisasi berhasil! Total data: ${json.totalRows} bulan`);
       
     } catch (err: any) {
@@ -84,11 +89,12 @@ export default function MLDatasetAdmin() {
       )
     ].join('\n');
     
+    const filename = activeTab === 'prices' ? 'ml_dataset_harga_pangan.csv' : 'forecast_dataset_pangan_cuaca.csv';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'ml_dataset_harga_pangan.csv');
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -186,8 +192,24 @@ export default function MLDatasetAdmin() {
 
           {/* Table Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 md:col-span-2 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800">Preview Data Tabel: <code className="text-xs bg-slate-200 px-2 py-1 rounded text-slate-700">harga_pangan_ml</code></h3>
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="font-bold text-slate-800">Preview Data: <code className="text-xs bg-slate-200 px-2 py-1 rounded text-slate-700">{activeTab === 'prices' ? 'harga_pangan_ml' : 'forecast_dataset'}</code></h3>
+              
+              {/* Tab Selector */}
+              <div className="flex bg-slate-200/60 p-1 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setActiveTab('prices')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'prices' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-950'}`}
+                >
+                  Harga Pangan
+                </button>
+                <button
+                  onClick={() => setActiveTab('forecast')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'forecast' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-950'}`}
+                >
+                  Harga + Cuaca (ML Format)
+                </button>
+              </div>
             </div>
             
             <div className="overflow-x-auto flex-1 max-h-[500px]">

@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/etl-ml",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/ml/train",
+      "schedule": "0 0 5 * *"
+    }
+  ]
+}
