@@ -86,7 +86,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               </h2>
               <div className="text-slate-600 space-y-3.5 text-[13px] md:text-sm leading-relaxed">
                 <p>
-                  Platform ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan Ahli Muda pada DKPP Kota Cilegon sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
+                  Platform ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan pada DKPP Kota Cilegon sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
                 </p>
                 <p>
                   Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.

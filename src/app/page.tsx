@@ -138,7 +138,7 @@ function MiniBenchmarkChart({ indicatorNo, currentValue, unit, nationalStandard,
               stroke="#EF4444" 
               strokeDasharray="4 4" 
               label={{ 
-                value: `Standar: ${numericStandard}`, 
+                value: indicatorNo === 8 ? `Target RPJMD: ${numericStandard}` : `Standar: ${numericStandard}`, 
                 position: 'top', 
                 fill: '#EF4444', 
                 fontSize: 9,
@@ -166,7 +166,7 @@ function getSubViewInsights(view: string, values: any) {
         `Rekomendasi: Dorong diversifikasi konsumsi protein lokal non-beras melalui kampanye pangan B2SA (Beragam, Bergizi Seimbang, dan Aman).`
       ],
       cppd: [
-        `Cadangan Pangan Pemerintah Daerah (CPPD) Kota Cilegon saat ini mencapai **${values.cppd} Ton**, melebihi target minimal nasional (100 Ton).`,
+        `Cadangan Pangan Pemerintah Daerah (CPPD) Kota Cilegon saat ini mencapai **${values.cppd} Ton**, melebihi Target RPJMD (115 Ton).`,
         `Cadangan ini disimpan secara aman di gudang Bulog dan siap dimobilisasi untuk penanganan darurat bencana serta intervensi kerawanan pangan.`,
         `Rekomendasi: Pemeliharaan kualitas fisik beras cadangan secara berkala guna meminimalkan penyusutan kadar nutrisi.`
       ]
@@ -738,7 +738,7 @@ export default function DashboardPage() {
       5: parseFloat(((tEnergiVal / 2400 + tProteinVal / 63) * 50).toFixed(2)),
       6: tEnergiVal,
       7: tProteinVal,
-      8: 132.7,
+      8: 174,
       9: cvVal,
       10: 100,
       11: 85.9,
@@ -1112,7 +1112,7 @@ export default function DashboardPage() {
                 const values = {
                   ketersediaanEnergi: getKetersediaanEnergiValue(),
                   ketersediaanProtein: getKetersediaanProteinValue(),
-                  cppd: 132.7
+                  cppd: 174
                 };
                 const insights = getSubViewInsights('ketersediaan', values) as { energi: string[]; protein: string[]; cppd: string[] };
                 
@@ -1220,7 +1220,7 @@ export default function DashboardPage() {
                             indicatorNo={8} 
                             currentValue={values.cppd} 
                             unit="Ton" 
-                            nationalStandard={100} 
+                            nationalStandard={115} 
                             colorTheme="purple"
                           />
                         </div>
@@ -1600,7 +1600,7 @@ export default function DashboardPage() {
                     </h3>
                     <div className="text-[11px] text-slate-650 leading-relaxed font-semibold space-y-4 text-justify max-w-3xl">
                       <p>
-                        Web app ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan Ahli Muda pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
+                        Web app ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
                       </p>
                       <p>
                         Saat ini, web app ini belum merupakan aplikasi resmi dan tidak mewakili kebijakan, sikap, maupun keputusan institusi atau organisasi mana pun. Seluruh konten dan pengembangannya dilakukan secara independen sebagai sarana pendukung analisis dan pengambilan keputusan.

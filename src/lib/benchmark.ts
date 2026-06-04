@@ -65,7 +65,7 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
     no: 8,
     indicator: 'Jumlah Cadangan Pangan Pemerintah Daerah',
     unit: 'Ton',
-    nationalStandard: 100,
+    nationalStandard: 115,
     history: { '2021': 94.9, '2022': 102.2, '2023': 100.5, '2024': 132.7 }
   },
   {

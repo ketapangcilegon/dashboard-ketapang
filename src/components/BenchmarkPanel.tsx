@@ -3,8 +3,8 @@
 import { useState, useRef } from 'react';
 import { BENCHMARKS, BenchmarkIndicator } from '@/lib/benchmark';
 import { 
-  Award, CheckCircle2, AlertCircle, HelpCircle, 
-  ChevronLeft, ChevronRight, TrendingUp, BarChart3, Sparkles
+  Award, CheckCircle2, AlertCircle, 
+  ChevronLeft, ChevronRight, TrendingUp, Sparkles
 } from 'lucide-react';
 import { 
   ComposedChart, Line, Area, XAxis, YAxis, Tooltip, 
@@ -28,7 +28,7 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label, unit, no }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const capaian = payload.find(p => p.name === 'Capaian Cilegon' || p.dataKey === 'Capaian Cilegon')?.value;
-    const targetVal = payload.find(p => p.name === 'Target Nasional' || p.dataKey === 'Target Nasional')?.value;
+    const targetVal = payload.find(p => p.name === 'Target Nasional' || p.dataKey === 'Target Nasional' || p.name === 'Target RPJMD' || p.dataKey === 'Target RPJMD')?.value;
     const target = no === 1 ? 80 : targetVal;
     
     return (
@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label, unit, no }: CustomTooltipProps)
           {target !== null && target !== undefined && (
             <div className="flex items-center gap-2 pt-1.5 border-t border-slate-100">
               <span className="w-3 h-3 border border-dashed border-orange-500 rounded-sm bg-orange-50"></span>
-              <span className="text-slate-500">Target Nasional:</span>
+              <span className="text-slate-500">{no === 8 ? 'Target RPJMD:' : 'Target Nasional:'}</span>
               <span className="font-extrabold text-slate-800 ml-auto">
                 {target.toLocaleString('id-ID')} {unit}
               </span>
@@ -105,10 +105,11 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
       bullets.push(`Cilegon **selalu melampaui** target nasional (80 poin) di seluruh periode, dengan surplus rata-rata sekitar **+8-10 poin**.`);
     } else {
       const pctDev = Math.abs(dev).toFixed(1);
+      const targetLabel = item.no === 8 ? 'Target RPJMD' : 'target nasional';
       if (isPassed) {
-        bullets.push(`Capaian Cilegon secara konsisten **melampaui target nasional** (${target} ${unit}) dengan surplus sebesar **+${pctDev} ${unit}** pada tahun terbaru.`);
+        bullets.push(`Capaian Cilegon secara konsisten **melampaui ${targetLabel}** (${target} ${unit}) dengan surplus sebesar **+${pctDev} ${unit}** pada tahun terbaru.`);
       } else {
-        bullets.push(`Capaian berada dekat dengan target nasional (${target} ${unit}), hanya terpaut **-${pctDev} ${unit}** dari pemenuhan standar penuh.`);
+        bullets.push(`Capaian berada dekat dengan ${targetLabel} (${target} ${unit}), hanya terpaut **-${pctDev} ${unit}** dari pemenuhan standar penuh.`);
       }
     }
   } else {
@@ -131,10 +132,11 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
   if (item.no === 1) {
     bullets.push(`Tren **menstabilkan** di ${latest.toFixed(1)} pada 2024-2025, menandakan capaian yang sudah matang.`);
   } else {
+    const targetLabel = item.no === 8 ? 'Target RPJMD' : 'target nasional';
     if (isPassed) {
       bullets.push(`Pada periode terbaru (2024-2025), angka stabil di **${latest.toLocaleString('id-ID', { maximumFractionDigits: 1 })} ${unit}**, mengukuhkan posisi Cilegon dalam kategori **${target !== null ? 'Sangat Aman & Kondusif' : 'Optimal'}**.`);
     } else {
-      bullets.push(`Diperlukan akselerasi intervensi lokal pada periode mendatang agar target nasional **${target} ${unit}** dapat segera terpenuhi secara merata.`);
+      bullets.push(`Diperlukan akselerasi intervensi lokal pada periode mendatang agar ${targetLabel} **${target} ${unit}** dapat segera terpenuhi secara merata.`);
     }
   }
   
@@ -217,18 +219,20 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
   // Get active indicator values
   const currentVal = currentData[activeIndicator.no] !== undefined 
     ? currentData[activeIndicator.no] 
-    : (activeIndicator.no === 8 ? 132.7 : activeIndicator.history['2024']);
+    : (activeIndicator.no === 8 ? 174 : activeIndicator.history['2024']);
   
   const target = activeIndicator.no === 1 ? 80 : (typeof activeIndicator.nationalStandard === 'number' ? activeIndicator.nationalStandard : (typeof activeIndicator.nationalStandard === 'string' ? parseFloat(activeIndicator.nationalStandard.replace(/[^\d.]/g, '')) : null));
   const unit = activeIndicator.unit;
 
+  const targetKey = activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional';
+
   // Chart Data compilation (2021 to 2025)
   const chartData = [
-    { name: '2021', 'Capaian Cilegon': getHistoricalVal('2021', activeIndicator.no, activeIndicator.history['2021']), 'Target Nasional': target },
-    { name: '2022', 'Capaian Cilegon': getHistoricalVal('2022', activeIndicator.no, activeIndicator.history['2022']), 'Target Nasional': target },
-    { name: '2023', 'Capaian Cilegon': getHistoricalVal('2023', activeIndicator.no, activeIndicator.history['2023']), 'Target Nasional': target },
-    { name: '2024', 'Capaian Cilegon': getHistoricalVal('2024', activeIndicator.no, activeIndicator.history['2024']), 'Target Nasional': target },
-    { name: '2025', 'Capaian Cilegon': getHistoricalVal('2025', activeIndicator.no, currentVal), 'Target Nasional': target },
+    { name: '2021', 'Capaian Cilegon': getHistoricalVal('2021', activeIndicator.no, activeIndicator.history['2021']), [targetKey]: target },
+    { name: '2022', 'Capaian Cilegon': getHistoricalVal('2022', activeIndicator.no, activeIndicator.history['2022']), [targetKey]: target },
+    { name: '2023', 'Capaian Cilegon': getHistoricalVal('2023', activeIndicator.no, activeIndicator.history['2023']), [targetKey]: target },
+    { name: '2024', 'Capaian Cilegon': getHistoricalVal('2024', activeIndicator.no, activeIndicator.history['2024']), [targetKey]: target },
+    { name: '2025', 'Capaian Cilegon': getHistoricalVal('2025', activeIndicator.no, currentVal), [targetKey]: target },
   ];
 
   // Dynamic Y-Axis Domain calculation to fit chart snugly
@@ -357,7 +361,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                   {activeIndicator.indicator}
                 </h3>
                 <p className="text-[10px] text-slate-500 font-semibold mt-1">
-                  Kota Cilegon vs. Target Nasional • 2021-2025
+                  Kota Cilegon vs. {activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional'} • 2021-2025
                 </p>
               </div>
             </div>
@@ -416,7 +420,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                       strokeWidth={1.5}
                       strokeDasharray="4 4" 
                       label={{ 
-                        value: `Target (${target} ${unit})`, 
+                        value: `${activeIndicator.no === 8 ? 'Target RPJMD' : 'Target'} (${target} ${unit})`, 
                         position: 'top', 
                         fill: '#D97706', 
                         fontSize: 10,
@@ -450,7 +454,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
               {target !== null && (
                 <div className="flex items-center gap-2">
                   <span className="w-5 border-t border-dashed border-[#F97316] inline-block"></span>
-                  <span>Target Nasional ({target} {unit})</span>
+                  <span>{activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional'} ({target} {unit})</span>
                 </div>
               )}
               {target !== null && (
@@ -471,7 +475,9 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
             
             {/* Stat 1: National Target */}
             <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100 text-center">
-              <span className="text-[10px] font-bold text-slate-400 block uppercase">Standar Target</span>
+              <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                {activeIndicator.no === 8 ? 'Target RPJMD' : 'Standar Target'}
+              </span>
               <span className="text-sm font-black text-slate-700 block mt-1">
                 {target !== null ? `${target} ${unit}` : '-'}
               </span>
