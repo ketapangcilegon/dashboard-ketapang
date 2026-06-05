@@ -29,11 +29,27 @@ export default function HargaPanel({
 
   // Date Navigation Mockup State
   const liveDateString = liveDate || '2026-05-31';
+
+  // Helper to subtract days from a date string dynamically
+  const subtractDays = (dateStr: string, days: number): string => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      d.setDate(d.getDate() - days);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const dates = [
-    '2026-05-27',
-    '2026-05-28',
-    '2026-05-29',
-    '2026-05-30',
+    subtractDays(liveDateString, 4),
+    subtractDays(liveDateString, 3),
+    subtractDays(liveDateString, 2),
+    subtractDays(liveDateString, 1),
     liveDateString
   ];
   const [dateIndex, setDateIndex] = useState(4); // Default to latest (index 4)
