@@ -1,0 +1,13 @@
+🚀 Cara Menggunakan Backup Ini di Akun Supabase Baru
+Jika sewaktu-waktu Anda ingin melakukan replikasi atau memindahkan database ke akun Supabase baru:
+
+Buat Database Baru: Buat project baru di dashboard Supabase Anda.
+Jalankan SQL Backup:
+Buka SQL Editor di dashboard Supabase baru Anda.
+Buka file supabase_backup.sql di dalam zip menggunakan aplikasi teks editor (seperti Notepad++ atau VS Code).
+Salin seluruh teksnya (Ctrl+A, Ctrl+C), tempelkan (Ctrl+V) ke SQL Editor Supabase, lalu jalankan (Run).
+Semua tabel, view (forecast_dataset & kalender_feature), indeks, dan konten datanya akan langsung terbuat secara instan.
+Hubungkan Web App:
+Ekstrak file dashboard-ketapang-backup.zip.
+Buka file .env.local, perbarui NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY dengan kredensial dari project Supabase baru Anda.
+Jalankan npm install untuk mengunduh ulang node_modules, lalu jalankan npm run dev untuk memulai aplikasi.
