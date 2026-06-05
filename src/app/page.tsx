@@ -26,6 +26,7 @@ const BenchmarkPanel = dynamic(() => import('@/components/BenchmarkPanel'), { ss
 const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { ssr: false });
 const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: false });
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
+const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -1547,6 +1548,10 @@ export default function DashboardPage() {
               
               {currentView === 'analisis_skpg' && (
                 <AnalisisSKPG />
+              )}
+
+              {currentView === 'forecasting' && (
+                <ForecastView onBack={() => setCurrentView('beranda')} />
               )}
 
               {currentView === 'sumber_data' && (

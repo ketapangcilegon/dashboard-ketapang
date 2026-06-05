@@ -35,8 +35,7 @@ export default function Sidebar({
     {
       icon: TrendingUp,
       label: 'Forecast Harga Pangan',
-      view: 'forecasting',
-      url: '/forecast'
+      view: 'forecasting'
     },
     { 
       icon: Package, 
