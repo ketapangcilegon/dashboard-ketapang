@@ -71,6 +71,7 @@ async function scrapeMarket(idPasar: string, tanggal: string): Promise<Record<st
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       body,
+      signal: AbortSignal.timeout(2000), // 2 seconds timeout to prevent long page hangs when SAGON is down
       next: { revalidate: 3600 } // Cache for 1 hour
     });
     
@@ -127,10 +128,10 @@ export async function GET(request: Request) {
     daging_sapi: []
   };
   
-  // Try today, then yesterday, up to 7 days back to guarantee we get data
+  // Try today, then yesterday, up to 3 days back to guarantee we get data quickly
   const dateObj = requestedDate ? new Date(requestedDate) : new Date();
   
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 3; i++) {
     const checkDateStr = formatDate(dateObj);
     console.log(`[SAGON Scraper] Trying date for 3 markets: ${checkDateStr}`);
     
@@ -164,29 +165,9 @@ export async function GET(request: Request) {
     dateObj.setDate(dateObj.getDate() - 1);
   }
   
-  // Final stable fallback to 2026-05-13 if everything else fails
+  // If SAGON is completely offline/fails, we try to fall back to the latest archived data in Supabase first
   if (!success) {
-    console.log(`[SAGON Scraper] Daily attempts failed. Using static fallback for 3 markets: 2026-05-13`);
-    const results = await Promise.all([
-      scrapeMarket('1', '2026-05-13'),
-      scrapeMarket('2', '2026-05-13'),
-      scrapeMarket('3', '2026-05-13')
-    ]);
-    
-    results.forEach(res => {
-      Object.keys(res).forEach(key => {
-        if (res[key].length > 0) {
-          success = true;
-          aggregatedPrices[key].push(...res[key]);
-        }
-      });
-    });
-    parsedDate = '2026-05-13';
-  }
-  
-  // If SAGON is completely offline/fails, we try to fall back to the latest archived data in Supabase
-  if (!success) {
-    console.log(`[SAGON Scraper] SAGON is entirely offline. Attempting fallback to Supabase archive...`);
+    console.log(`[SAGON Scraper] SAGON is entirely offline or daily attempts failed. Attempting fallback to Supabase archive...`);
     try {
       const { data, error } = await supabase
         .from('harga_sagon_harian')
@@ -221,6 +202,33 @@ export async function GET(request: Request) {
     } catch (dbErr: unknown) {
       const err = dbErr as Error;
       console.error('[SAGON Scraper] Gagal mengambil data fallback dari Supabase:', err.message);
+    }
+  }
+  
+  // Final stable fallback to 2026-05-13 if everything else fails and Supabase is empty
+  if (!success) {
+    console.log(`[SAGON Scraper] Supabase archive is empty. Trying static fallback on SAGON for 3 markets: 2026-05-13`);
+    try {
+      const results = await Promise.all([
+        scrapeMarket('1', '2026-05-13'),
+        scrapeMarket('2', '2026-05-13'),
+        scrapeMarket('3', '2026-05-13')
+      ]);
+      
+      results.forEach(res => {
+        Object.keys(res).forEach(key => {
+          if (res[key].length > 0) {
+            success = true;
+            aggregatedPrices[key].push(...res[key]);
+          }
+        });
+      });
+      if (success) {
+        parsedDate = '2026-05-13';
+      }
+    } catch (err: unknown) {
+      const err2 = err as Error;
+      console.error('[SAGON Scraper] Static fallback date scrape failed:', err2.message);
     }
   }
   
