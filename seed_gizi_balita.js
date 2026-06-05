@@ -32,8 +32,8 @@ Ketileng	5	19	441	19
 Kotabumi	2	17	285	9
 Kotasari	6	25	390	31
 Kubangsari	9	40	458	10
-Lebak Denok	1	44	711	15
-Lebakgede	2	21	701	23
+Lebak Denok	2	21	701	23
+Lebakgede	1	44	711	15
 Masigit	6	33	752	37
 Mekarsari	14	63	677	37
 Pabean	1	9	121	14
