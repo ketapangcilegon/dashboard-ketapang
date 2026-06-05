@@ -383,6 +383,9 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
               <ShieldAlert className="w-4 h-4 text-emerald-600" />
               Early Warning System
             </h3>
+            <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wider leading-relaxed">
+              * Pilih komoditas pada tabel untuk menampilkan status EWS
+            </p>
             
             {loading ? (
               <div className="py-24 text-center text-slate-400 font-bold text-xs">
