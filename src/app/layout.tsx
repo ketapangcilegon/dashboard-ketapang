@@ -84,8 +84,18 @@ export const metadata: Metadata = {
     'balita gizi kurang Cilegon',
     'intervensi pangan stunting Cilegon',
     'DKPP Kota Cilegon',
+    'dkpp kota cilegon',
     'Dinas Ketahanan Pangan Pertanian Cilegon',
+    'dinas ketahanan pangan dan pertanian kota cilegon',
     'kebijakan pangan daerah Cilegon',
+    'cara membuat peta fsva',
+    'cara membuat peta skpg',
+    'aplikasi analisis skpg',
+    'aplikasi skpg',
+    'aplikasi fsva',
+    'lahan sawah cilegon',
+    'luas lahan sawah kota cilegon',
+    'LBS kota cilegon',
 
     // Wilayah
     'Kota Cilegon Banten',

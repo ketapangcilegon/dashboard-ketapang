@@ -128,7 +128,7 @@ export default function SeoStructuredData() {
         temporalCoverage: '2021/2026',
         inLanguage: 'id',
         keywords:
-          'ketahanan pangan, FSVA, SKPG, IKP, harga pangan, Cilegon, Banten, kerawanan pangan, stunting',
+          'ketahanan pangan, FSVA, SKPG, IKP, harga pangan, Cilegon, Banten, kerawanan pangan, stunting, dinas ketahanan pangan dan pertanian kota cilegon, dkpp kota cilegon, cara membuat peta fsva, cara membuat peta skpg, aplikasi analisis skpg, aplikasi skpg, aplikasi fsva, lahan sawah cilegon, luas lahan sawah kota cilegon, LBS kota cilegon',
       },
     ],
   };
