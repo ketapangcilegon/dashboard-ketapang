@@ -71,8 +71,8 @@ export default function SeoStructuredData() {
         applicationCategory: 'GovernmentApplication',
         operatingSystem: 'Web Browser',
         url: 'https://pangancilegon.web.id',
-        version: '1.0',
-        datePublished: '2026-06-01',
+        version: '2.2.0',
+        datePublished: '2026-06-06',
         description:
           'Web app analitik ketahanan pangan Kota Cilegon dengan fitur: pemantauan harga 10 komoditas strategis real-time (SAGON), CV harga beras, peta FSVA/SKPG interaktif, forecast ML 1 & 3 bulan (XGBoost + Prophet + Random Forest), EWS kerawanan pangan, IKP, PPH, PoU, Borda Desil kerentanan kelurahan, dan AI insight per panel.',
         featureList: [

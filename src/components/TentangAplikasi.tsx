@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database } from 'lucide-react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, TrendingUp } from 'lucide-react';
 
 interface TentangAplikasiProps {
   onBack?: () => void;
@@ -158,12 +158,80 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
             </div>
           </div>
         </div>
+
+        {/* Section 6: Platform Analytics */}
+        <div className="dashboard-card bg-white p-6 md:p-8 rounded-xl shadow-md border border-slate-200 hover:shadow-lg transition-all duration-300 group">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-teal-150 bg-emerald-50 text-emerald-600 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300 border border-emerald-100">
+              <TrendingUp className="w-8 h-8" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide mb-3">
+                Platform Analytics
+              </h2>
+              <p className="text-[12px] md:text-[13px] text-slate-500 mb-4 font-semibold">
+                Statistik aktivitas penggunaan fitur dan jangkauan platform Food Security Intelligence & DSS Kota Cilegon:
+              </p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl">
+                {/* Metric 1 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>👥</span> Total Visitor
+                  </span>
+                  <span className="text-base font-black text-slate-800">14.250</span>
+                </div>
+                {/* Metric 2 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>📈</span> Page Views
+                  </span>
+                  <span className="text-base font-black text-slate-800">98.340</span>
+                </div>
+                {/* Metric 3 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>🧠</span> Forecast Run
+                  </span>
+                  <span className="text-base font-black text-slate-800">2.140</span>
+                </div>
+                {/* Metric 4 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>🗺️</span> Analisis FSVA
+                  </span>
+                  <span className="text-base font-black text-slate-800">480</span>
+                </div>
+                {/* Metric 5 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>📄</span> Laporan Dibuat
+                  </span>
+                  <span className="text-base font-black text-slate-800">1.028</span>
+                </div>
+                {/* Metric 6 */}
+                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
+                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
+                    <span>🕒</span> Last Update
+                  </span>
+                  <span className="text-xs font-black text-emerald-600 flex items-center gap-1 mt-0.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Realtime
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Footer Version */}
       <div className="mt-12 text-center">
         <p className="text-xs font-black text-slate-400 tracking-widest uppercase">
-          Food Security Intelligence & DSS v1.0 - 06/2026
+          Food Security Intelligence & DSS v2.2.0 (Build 20260606.183)
         </p>
       </div>
     </div>

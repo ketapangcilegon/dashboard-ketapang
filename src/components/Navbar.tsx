@@ -50,9 +50,13 @@ export default function Navbar({
           <h1 className="text-[11px] sm:text-base lg:text-lg font-black text-white tracking-tight leading-tight drop-shadow-sm max-w-[180px] sm:max-w-md md:max-w-lg lg:max-w-xl break-words uppercase">
             Food Security Intelligence & DSS
           </h1>
-          <p className="text-emerald-100 text-[9px] sm:text-[11px] font-black tracking-widest uppercase mt-0.5">
-            KOTA CILEGON
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2 mt-0.5 text-emerald-100 font-black tracking-widest uppercase text-[9px] sm:text-[11px] leading-none">
+            <span>KOTA CILEGON</span>
+            <span className="text-white/40 hidden sm:inline">|</span>
+            <span className="text-emerald-200/85 font-semibold tracking-normal normal-case text-[8.5px] sm:text-[9.5px]">
+              Versi: v2.2.0 (Build 20260606.183)
+            </span>
+          </div>
         </div>
       </div>
 
