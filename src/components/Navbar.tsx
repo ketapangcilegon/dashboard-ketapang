@@ -3,6 +3,7 @@
 
 import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
+import { FULL_VERSION } from '@/lib/version';
 
 interface NavbarProps {
   selectedKecamatan?: string;
@@ -54,7 +55,7 @@ export default function Navbar({
             <span>KOTA CILEGON</span>
             <span className="text-white/40 hidden sm:inline">|</span>
             <span className="text-emerald-200/85 font-semibold tracking-normal normal-case text-[8.5px] sm:text-[9.5px]">
-              Versi: v2.2.0 (Build 20260606.183)
+              Versi: {FULL_VERSION}
             </span>
           </div>
         </div>
