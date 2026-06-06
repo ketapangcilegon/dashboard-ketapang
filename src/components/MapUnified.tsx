@@ -45,12 +45,15 @@ function MapController({
   setOpacity,
   basemap,
   setBasemap,
+  fsvaMatangData,
+  skpgMatangData,
   intervensiData,
   isPrinting
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
   const [expandLegend, setExpandLegend] = useState(false);
+  const [expandPrioritas, setExpandPrioritas] = useState(false);
 
   // Dynamically inject zoom-dependent CSS classes to the Leaflet map container
   useEffect(() => {
@@ -93,13 +96,68 @@ function MapController({
     setBasemap(basemap === 'light' ? 'streets' : 'light');
   };
 
+  const toggleLayers = () => {
+    const nextVal = !expandLayers;
+    setExpandLayers(nextVal);
+    if (nextVal) {
+      setExpandLegend(false);
+      setExpandPrioritas(false);
+    }
+  };
+
+  const toggleLegend = () => {
+    const nextVal = !expandLegend;
+    setExpandLegend(nextVal);
+    if (nextVal) {
+      setExpandLayers(false);
+      setExpandPrioritas(false);
+    }
+  };
+
+  const togglePrioritas = () => {
+    const nextVal = !expandPrioritas;
+    setExpandPrioritas(nextVal);
+    if (nextVal) {
+      setExpandLayers(false);
+      setExpandLegend(false);
+    }
+  };
+
+  // Helper to calculate top 10 Kelurahans with lowest Borda Count
+  const getTop10Borda = () => {
+    if (!skpgMatangData || skpgMatangData.length === 0) return [];
+
+    const calculatedBorda = skpgMatangData.map(item => {
+      const fsvaRow = fsvaMatangData?.find(x => x.nama_kelurahan === item.nama_kelurahan || x.kelurahan === item.nama_kelurahan);
+      const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
+      const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
+      return {
+        kelurahan: item.nama_kelurahan || item.kelurahan,
+        ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
+        prevalensi: prev
+      };
+    });
+
+    const fsvaSorted = [...calculatedBorda].sort((a, b) => a.ikp - b.ikp);
+    const skpgSorted = [...calculatedBorda].sort((a, b) => b.prevalensi - a.prevalensi);
+
+    const allBordaSums = calculatedBorda.map(r => {
+      const fRank = fsvaSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
+      const sRank = skpgSorted.findIndex(x => x.kelurahan === r.kelurahan) + 1;
+      return { kelurahan: r.kelurahan, sum: fRank + sRank };
+    });
+
+    const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
+    return sortedSums.slice(0, 10);
+  };
+
   return (
     <>
       {/* 1. FLOATING CASCADE/COLLAPSE PANEL (TOP-LEFT) */}
       <div className="absolute top-4 left-4 z-[1000] pointer-events-auto print:hidden">
         <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-[185px] transition-all duration-300">
           <button
-            onClick={() => setExpandLayers(!expandLayers)}
+            onClick={toggleLayers}
             className="w-full px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-between text-xs font-black tracking-wider uppercase transition-colors"
           >
             <div className="flex items-center gap-1.5">
@@ -230,16 +288,19 @@ function MapController({
       </div>
 
       {/* 3. DYNAMIC COLLAPSABLE LEGEND (BOTTOM-RIGHT) */}
-      <div className="absolute bottom-4 right-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-48 transition-all duration-300">
+      <div className={`absolute bottom-4 right-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
+        expandLegend ? 'w-44 sm:w-48' : 'w-[105px] sm:w-48'
+      }`}>
         <button
-          onClick={() => setExpandLegend(!expandLegend)}
-          className="w-full px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[9px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
+          onClick={toggleLegend}
+          className="w-full px-2 py-2 sm:px-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[8.5px] sm:text-[9px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
         >
-          <div className="flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-blue-500" />
-            <span>Legenda {activeLayer.toUpperCase()}</span>
+          <div className="flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="hidden sm:inline">Legenda {activeLayer.toUpperCase()}</span>
+            <span className="inline sm:hidden">Legenda</span>
           </div>
-          {expandLegend ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+          {expandLegend ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronUp className="w-3 h-3 shrink-0" />}
         </button>
 
         {expandLegend && (
@@ -297,6 +358,45 @@ function MapController({
                   <span className="text-slate-600">Mandiri / Aman</span>
                 </div>
               </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
+      <div className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
+        expandPrioritas ? 'w-48 sm:w-56' : 'w-[125px] sm:w-48'
+      }`}>
+        <button
+          onClick={togglePrioritas}
+          className="w-full px-1.5 sm:px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[8px] sm:text-[9px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <span>Prioritas Lokus</span>
+          </div>
+          {expandPrioritas ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronUp className="w-3 h-3 shrink-0" />}
+        </button>
+
+        {expandPrioritas && (
+          <div className="p-3 space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
+            <div className="text-[10px] font-black text-slate-800 leading-tight uppercase mb-1">
+              Prioritas Intervensi <br />
+              <span className="text-[7.5px] text-amber-700 font-bold tracking-wider normal-case">Berdasarkan Borda Count</span>
+            </div>
+            
+            {getTop10Borda().length === 0 ? (
+              <div className="text-[9px] font-bold text-slate-400 p-2">
+                Tidak ada data.
+              </div>
+            ) : (
+              <ol className="list-decimal list-inside space-y-1 text-[9px] font-bold text-slate-700">
+                {getTop10Borda().map((item, idx) => (
+                  <li key={idx} className="border-b border-slate-100/50 pb-0.5 last:border-0 truncate">
+                    Kel. {item.kelurahan}
+                  </li>
+                ))}
+              </ol>
             )}
           </div>
         )}
