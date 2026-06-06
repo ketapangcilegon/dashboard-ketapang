@@ -21,22 +21,34 @@ export default function EntryPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Dynamic delay for real-world feel
-    setTimeout(() => {
-      if (email.toLowerCase() === 'ketapangcilegon@gmail.com' && password === 'cilegon2026') {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setIsLoggedIn(true);
         sessionStorage.setItem('adminSession', 'active');
-        setIsLoading(false);
       } else {
-        setError('Akses ditolak. Email atau kata sandi tidak valid atau tidak terdaftar.');
-        setIsLoading(false);
+        setError(data.error || 'Akses ditolak. Email atau kata sandi tidak valid atau tidak terdaftar.');
       }
-    }, 800);
+    } catch (err) {
+      console.error('[Login Error]', err);
+      setError('Terjadi kesalahan saat menghubungi server.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -134,7 +146,7 @@ export default function EntryPage() {
               
               <div className="mt-6 text-center">
                 <p className="text-[9px] text-slate-400 font-bold leading-normal">
-                  Hanya admin resmi terdaftar **`ketapangcilegon@gmail.com`**<br/>yang diizinkan menginput dan memodifikasi data.
+                  Hanya admin resmi terdaftar<br/>yang diizinkan menginput dan memodifikasi data.
                 </p>
               </div>
             </div>
