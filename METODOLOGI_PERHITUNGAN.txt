@@ -1,0 +1,166 @@
+================================================================================
+          DOKUMENTASI METODOLOGI PERHITUNGAN DAN AMBANG BATAS (THRESHOLD)
+           FOOD SECURITY INTELLIGENCE & DECISION SUPPORT SYSTEM (DSS)
+                          DKPP KOTA CILEGON - BANTEN
+================================================================================
+
+Dokumen ini disusun secara sistematis untuk keperluan audit, validasi, dan 
+verifikasi metode perhitungan indikator ketahanan pangan yang diimplementasikan 
+pada aplikasi WebGIS & Dashboard Ketahanan Pangan Kota Cilegon.
+
+--------------------------------------------------------------------------------
+I. PETA TEMATIK / LAYER FSVA (FOOD SECURITY AND VULNERABILITY ATLAS)
+--------------------------------------------------------------------------------
+Peta FSVA menyajikan tingkat kerentanan pangan kelurahan berdasarkan Indeks 
+Ketahanan Pangan (IKP) yang dihitung dari 3 pilar utama: Ketersediaan, Keterjangkauan,
+dan Pemanfaatan Pangan.
+
+1. Sumber Data:
+   Tabel Database: `fsva_matang`
+   Kolom Kunci: `ikp` (Indeks Ketahanan Pangan)
+
+2. Klasifikasi Prioritas Kerentanan (Skala 1 - 6):
+   Sesuai panduan Badan Pangan Nasional (BAPANAS), penentuan prioritas kelurahan 
+   berdasarkan skor IKP dibagi menjadi 6 kelas menggunakan ambang batas (cut-off) 
+   berikut:
+
+   * Prioritas 1 (Sangat Rentan) : IKP < 46.37
+   * Prioritas 2 (Rentan)        : 46.37 <= IKP < 53.95
+   * Prioritas 3 (Agak Rentan)   : 53.95 <= IKP < 61.83
+   * Prioritas 4 (Agak Tahan)    : 61.83 <= IKP < 69.71
+   * Prioritas 5 (Tahan)         : 69.71 <= IKP < 77.29
+   * Prioritas 6 (Sangat Tahan)  : IKP >= 77.29
+
+--------------------------------------------------------------------------------
+II. PETA TEMATIK / LAYER SKPG (SISTEM KEWASPADAAN PANGAN DAN GIZI)
+--------------------------------------------------------------------------------
+Peta SKPG menyajikan kerawanan gizi balita tingkat kelurahan yang diukur secara 
+bulanan melalui rasio kerawanan gizi (Underweight) menggunakan indikator Berat 
+Badan menurut Umur (BB/U).
+
+1. Sumber Data:
+   Tabel Database: `skpg_matang` / `gizi_balita`
+   Kolom Kunci: `gizi_kurang`, `gizi_sangat_kurang`, `gizi_normal`, `gizi_berlebih`
+
+2. Rumus Rasio Kerawanan Gizi (Prevalensi Underweight):
+   Rasio (%) = ( (Gizi Kurang + Gizi Sangat Kurang) / Total Balita Diukur ) * 100
+   
+   Di mana:
+   Total Balita Diukur = Gizi Kurang + Gizi Sangat Kurang + Gizi Normal + Gizi Berlebih
+
+3. Klasifikasi Status Kerawanan Gizi (Ambang Batas):
+   Mengacu pada standar ketetapan kewaspadaan pangan dan gizi nasional:
+
+   * RENTAN  (Merah)    : Rasio Kerawanan Gizi > 15.0%
+   * WASPADA (Kuning)   : 10.0% <= Rasio Kerawanan Gizi <= 15.0%
+   * AMAN    (Hijau)    : Rasio Kerawanan Gizi < 10.0%
+
+--------------------------------------------------------------------------------
+III. PANEL "ANALISIS KOMPOSIT SKPG BULANAN" (TINGKAT KECAMATAN)
+--------------------------------------------------------------------------------
+Panel ini menghitung Indeks Komposit bulanan di tingkat kecamatan yang 
+mengintegrasikan Aspek Akses Pangan (Keterjangkauan Harga) dan Aspek Pemanfaatan 
+Pangan (Gizi Balita).
+
+1. ASPEK AKSES PANGAN (KETERJANGKAUAN HARGA)
+   Akses Pangan dinilai dari kestabilan harga 3 komoditas strategis: Beras Medium, 
+   Minyak Goreng Kemasan, dan Telur Ayam Ras dibanding harga bulan yang sama pada 
+   tahun sebelumnya.
+
+   a. Rumus Kenaikan Harga (r):
+      r (%) = ( (Harga Bulan Ini - Harga Tahun Lalu) / Harga Tahun Lalu ) * 100
+
+   b. Scoring/Pembobotan Per Komoditas:
+      * Beras Medium:
+        - Jika r > 10%  : Skor = 1 (Rentan)
+        - Jika 5% <= r <= 10% : Skor = 2 (Waspada)
+        - Jika r < 5%   : Skor = 3 (Aman)
+      * Minyak Goreng Kemasan:
+        - Jika r > 15%  : Skor = 1 (Rentan)
+        - Jika 5% <= r <= 15% : Skor = 2 (Waspada)
+        - Jika r < 5%   : Skor = 3 (Aman)
+      * Telur Ayam Ras:
+        - Jika r > 15%  : Skor = 1 (Rentan)
+        - Jika 5% <= r <= 15% : Skor = 2 (Waspada)
+        - Jika r < 5%   : Skor = 3 (Aman)
+
+   c. Penghitungan Indeks Akses Pangan:
+      Total Bobot Akses = Skor Beras + Skor Minyak + Skor Telur
+      
+      Ketentuan Indeks Akses Pangan (Skala 1 - 3):
+      * Total Bobot Akses >= 8  : Indeks = 3, Status = AMAN
+      * Total Bobot Akses 6 - 7 : Indeks = 2, Status = WASPADA
+      * Total Bobot Akses <= 5  : Indeks = 1, Status = RENTAN
+
+2. ASPEK PEMANFAATAN PANGAN (GIZI BALITA)
+   Aspek pemanfaatan dinilai dari persentase balita underweight tingkat kecamatan 
+   yang diperoleh dari akumulasi data kelurahan di wilayah kecamatan tersebut.
+
+   a. Rumus Rasio Underweight Kecamatan:
+      Rasio (%) = ( (Kec. Sangat Kurang + Kec. Kurang) / Total Balita Kec. ) * 100
+
+   b. Ketentuan Indeks Gizi Pemanfaatan (Skala 1 - 3):
+      * Rasio Kecamatan < 10.0%        : Indeks = 3, Status = AMAN
+      * 10.0% <= Rasio Kecamatan <= 15.0%: Indeks = 2, Status = WASPADA
+      * Rasio Kecamatan > 15.0%        : Indeks = 1, Status = RENTAN
+
+3. INDEKS KOMPOSIT SKPG AKHIR
+   Indeks komposit akhir menggabungkan Indeks Akses dan Indeks Pemanfaatan untuk 
+   memperoleh potret kerawanan pangan kecamatan secara utuh.
+
+   a. Rumus Skor Komposit:
+      Skor Komposit = Indeks Akses Pangan + Indeks Pemanfaatan Pangan
+      
+      Skor minimum = 2 (sangat rentan), Skor maksimum = 6 (sangat aman).
+
+   b. Klasifikasi Indeks Komposit Akhir (Skala 1 - 3):
+      * Skor Komposit = 6       : Indeks Akhir = 3, Keterangan = AMAN
+      * Skor Komposit 4 - 5     : Indeks Akhir = 2, Keterangan = WASPADA
+      * Skor Komposit <= 3      : Indeks Akhir = 1, Keterangan = RENTAN
+
+--------------------------------------------------------------------------------
+IV. ALGORITME BORDA COUNT (PRIORITAS INTERVENSI KELURAHAN)
+--------------------------------------------------------------------------------
+Borda Count digunakan untuk menggabungkan pemeringkatan kerentanan dari dua 
+dimensi data yang berbeda (FSVA dan SKPG) menjadi satu peringkat prioritas tunggal
+guna efektivitas alokasi intervensi kelurahan.
+
+1. Langkah-Langkah Perhitungan Borda Count:
+   
+   Langkah 1: Menghitung Rasio Kerawanan Gizi (SKPG) untuk setiap Kelurahan:
+     prev = ( (gizi_kurang + gizi_sangat_kurang) / total_balita ) * 100
+
+   Langkah 2: Menentukan Nilai IKP (FSVA) untuk setiap Kelurahan (dari `fsva_matang`).
+
+   Langkah 3: Pemeringkatan Parsial IKP (Ascending):
+     Seluruh kelurahan diurutkan berdasarkan IKP dari terkecil ke terbesar.
+     Kelurahan dengan IKP terendah (paling rentan) mendapat Rank_FSVA = 1.
+
+   Langkah 4: Pemeringkatan Parsial Prevalensi Gizi (Descending):
+     Seluruh kelurahan diurutkan berdasarkan Prevalensi Gizi dari terbesar ke terkecil.
+     Kelurahan dengan prevalensi gizi buruk tertinggi mendapat Rank_SKPG = 1.
+
+   Langkah 5: Penjumlahan Skor Borda (Borda Sum):
+     Untuk setiap kelurahan, jumlahkan peringkat parsialnya:
+     Borda_Sum = Rank_FSVA + Rank_SKPG
+     
+     Skor Borda yang lebih rendah mengindikasikan kelurahan tersebut berada di posisi 
+     kerentanan tinggi pada kedua aspek sekaligus.
+
+   Langkah 6: Urutan Prioritas Akhir (Ascending Borda Sum):
+     Kelurahan diurutkan berdasarkan Borda_Sum dari terkecil ke terbesar.
+     Kelurahan di peringkat teratas (Rank 1 dst.) merupakan lokus prioritas utama 
+     yang memerlukan intervensi segera.
+
+2. Pembagian Desil Borda (Skala D1 - D10):
+   Desil Borda membagi peringkat akhir kelurahan menjadi 10 bagian sama rata:
+     Desil = Min( 10, Ceil( (Rank_Akhir / Total_Kelurahan) * 10 ) )
+     
+     Klasifikasi Desil:
+     * Desil D1 s.d D5   : PRIORITAS INTERVENSI (Merah/Oranye)
+     * Desil D6 s.d D10  : TAHAN PANGAN (Hijau)
+
+================================================================================
+Dibuat Oleh: Tim Pengembang Aplikasi & Analis Ketahanan Pangan DKPP Kota Cilegon
+Tanggal Rilis Audit: 06 Juni 2026
+================================================================================

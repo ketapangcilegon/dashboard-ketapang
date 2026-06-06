@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, TrendingUp } from 'lucide-react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
 
 interface TentangAplikasiProps {
@@ -9,26 +8,6 @@ interface TentangAplikasiProps {
 }
 
 export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
-  const [visitorCount, setVisitorCount] = useState(14250);
-  const [pageViews, setPageViews] = useState(98340);
-  const [forecastRuns, setForecastRuns] = useState(2140);
-  const [fsvaAnalyses, setFsvaAnalyses] = useState(480);
-  const [reportsCreated, setReportsCreated] = useState(1028);
-
-  useEffect(() => {
-    const baseTime = new Date('2026-06-01T00:00:00Z').getTime();
-    const now = Date.now();
-    const diffHours = (now - baseTime) / (1000 * 60 * 60);
-    const diffDays = diffHours / 24;
-
-    // Dynamically calculate realistic growing counts since base date
-    setVisitorCount(Math.floor(14250 + diffHours * 1.25)); // ~30 visitors per day
-    setPageViews(Math.floor(98340 + diffHours * 8.4));      // ~200 page views per day
-    setForecastRuns(Math.floor(2140 + diffDays * 12.3));    // ~12 forecast runs per day
-    setFsvaAnalyses(Math.floor(480 + diffDays * 1.15));     // ~1.15 FSVA runs per day
-    setReportsCreated(Math.floor(1028 + diffDays * 3.4));   // ~3.4 reports generated per day
-  }, []);
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10 animate-in fade-in zoom-in-95 duration-500">
       {/* Header / Navigation */}
@@ -176,74 +155,6 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                 <p>
                   Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.
                 </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 6: Platform Analytics */}
-        <div className="dashboard-card bg-white p-6 md:p-8 rounded-xl shadow-md border border-slate-200 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-teal-150 bg-emerald-50 text-emerald-600 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300 border border-emerald-100">
-              <TrendingUp className="w-8 h-8" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide mb-3">
-                Platform Analytics
-              </h2>
-              <p className="text-[12px] md:text-[13px] text-slate-500 mb-4 font-semibold">
-                Statistik aktivitas penggunaan fitur dan jangkauan platform Food Security Intelligence & DSS Kota Cilegon:
-              </p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl">
-                {/* Metric 1 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>👥</span> Total Visitor
-                  </span>
-                  <span className="text-base font-black text-slate-800">{visitorCount.toLocaleString('id-ID')}</span>
-                </div>
-                {/* Metric 2 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>📈</span> Page Views
-                  </span>
-                  <span className="text-base font-black text-slate-800">{pageViews.toLocaleString('id-ID')}</span>
-                </div>
-                {/* Metric 3 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>🧠</span> Forecast Run
-                  </span>
-                  <span className="text-base font-black text-slate-800">{forecastRuns.toLocaleString('id-ID')}</span>
-                </div>
-                {/* Metric 4 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>🗺️</span> Analisis FSVA
-                  </span>
-                  <span className="text-base font-black text-slate-800">{fsvaAnalyses.toLocaleString('id-ID')}</span>
-                </div>
-                {/* Metric 5 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>📄</span> Laporan Dibuat
-                  </span>
-                  <span className="text-base font-black text-slate-800">{reportsCreated.toLocaleString('id-ID')}</span>
-                </div>
-                {/* Metric 6 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3 rounded-lg flex flex-col hover:bg-slate-50 transition-colors">
-                  <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1.5 select-none">
-                    <span>🕒</span> Last Update
-                  </span>
-                  <span className="text-xs font-black text-emerald-600 flex items-center gap-1 mt-0.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Realtime
-                  </span>
-                </div>
               </div>
             </div>
           </div>
