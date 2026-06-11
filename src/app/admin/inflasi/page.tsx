@@ -58,7 +58,15 @@ export default function InflationAdmin() {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch('/api/etl-ml', { method: 'POST' });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+
+      const res = await fetch('/api/etl-ml', { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const json = await res.json();
       
       if (!res.ok || !json.success) {
@@ -81,7 +89,15 @@ export default function InflationAdmin() {
     setRetraining(true);
     setError(null);
     try {
-      const res = await fetch('/api/ml/retrain', { method: 'POST' });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+
+      const res = await fetch('/api/ml/retrain', { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const json = await res.json();
       
       if (!res.ok || !json.success) {

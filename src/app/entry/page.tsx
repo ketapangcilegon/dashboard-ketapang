@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -5,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import UploadPanel from '@/components/UploadPanel';
 import { Lock, Mail, AlertCircle, LogOut } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -27,21 +29,16 @@ export default function EntryPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (!authError && data.user) {
         setIsLoggedIn(true);
         sessionStorage.setItem('adminSession', 'active');
       } else {
-        setError(data.error || 'Akses ditolak. Email atau kata sandi tidak valid atau tidak terdaftar.');
+        setError(authError ? 'Akses ditolak: ' + authError.message : 'Akses ditolak. Email atau kata sandi tidak valid atau tidak terdaftar.');
       }
     } catch (err) {
       console.error('[Login Error]', err);
@@ -51,11 +48,16 @@ export default function EntryPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggedIn(false);
     sessionStorage.removeItem('adminSession');
     setEmail('');
     setPassword('');
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[Logout Error]', err);
+    }
   };
 
   return (
