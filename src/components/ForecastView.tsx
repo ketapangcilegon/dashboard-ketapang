@@ -73,7 +73,15 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
     setTraining(true);
     setError(null);
     try {
-      const res = await fetch('/api/ml/train', { method: 'POST' });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+
+      const res = await fetch('/api/ml/train', { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const json = await res.json();
       
       if (!res.ok || !json.success) {

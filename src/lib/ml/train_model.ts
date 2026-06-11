@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { XGBoostRegressor, RandomForestRegressor, ProphetRegressor } from './algorithms';
 import { evaluatePredictions } from './evaluate';
 import { explainPrediction } from './explain';
+import { createClient } from '@supabase/supabase-js';
 
 const COMMODITIES = [
   'harga_beras',
@@ -133,11 +134,19 @@ function computeFeatures(rawRows: RawDatasetRow[], t: number, commodity: string)
   };
 }
 
-export async function trainAndForecastAll() {
+export async function trainAndForecastAll(token?: string) {
   console.log('[ML Train] Memulai pipeline training model ML...');
   
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const dbClient = createClient(supabaseUrl, supabaseKey);
+  
+  if (token && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    await dbClient.auth.setSession({ access_token: token, refresh_token: '' });
+  }
+
   // 1. Fetch entire historical dataset from forecast_dataset view
-  const { data, error } = await supabase
+  const { data, error } = await dbClient
     .from('forecast_dataset')
     .select('*')
     .order('tahun', { ascending: true })
@@ -234,7 +243,7 @@ export async function trainAndForecastAll() {
     
     // Save active champion model metrics to model_registry table
     try {
-      await supabase.from('model_registry').insert([{
+      await dbClient.from('model_registry').insert([{
         komoditas: commodity,
         model_name: bestModelType,
         mape: bestMetrics.mape,
@@ -481,7 +490,7 @@ export async function trainAndForecastAll() {
   
   console.log(`[ML Train] Menyimpan ${resultsToUpsert.length} data peramalan ke Supabase (forecast_result)...`);
   
-  const { error: upsertError } = await supabase
+  const { error: upsertError } = await dbClient
     .from('forecast_result')
     .upsert(resultsToUpsert, { onConflict: 'komoditas' });
     
