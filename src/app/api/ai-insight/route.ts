@@ -113,9 +113,9 @@ export async function POST(request: Request) {
           parts: [{
             text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
 Tugas Anda adalah membaca data indikator ketahanan pangan real-time yang sedang ditampilkan di dashboard Ketapang berikut ini, lalu berikan laporan analisis/insight eksekutif yang tajam, solutif, profesional, dan kaya akan insight metodologis (tuliskan dalam Bahasa Indonesia yang formal dan terstruktur dengan rapi menggunakan Markdown).
-Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 200-250 kata) agar hemat biaya token dan langsung tepat sasaran untuk Dinas Ketahanan Pangan Kota Cilegon.
+Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 280-320 kata) agar tetap ringkas namun mencakup semua instruksi penting.
 
-DATA REAL-TIME KOTA CILEGON (Tahun ${year}, Bulan ${month}, Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan ${kelurahan}):
+DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan ${kelurahan}):
 1. Skor PPH Konsumsi (Pola Pangan Harapan): ${pphScore} (Target Nasional: 90)
 2. Konsumsi Energi: ${konsumsiEnergi} kkal/kapita/hari (Target Nasional: 2100 kkal)
 3. Konsumsi Protein: ${konsumsiProtein} gram/kapita/hari (Target Nasional: 57 g)
@@ -129,17 +129,23 @@ DATA REAL-TIME KOTA CILEGON (Tahun ${year}, Bulan ${month}, Filter Wilayah: Keca
    - Beras: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg, Minyak Goreng: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter, Telur Ayam: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg, Gula Pasir: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg, Cabai Merah: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN HARUS TERDIRI DARI:
+- **Header Judul**: Wajib menggunakan tulisan "ANALISIS INTELIJEN & EARLY WARNING SYSTEM KETAHANAN PANGAN KOTA CILEGON" (Tanpa menuliskan tahun di judul utama).
+- **Metadata Basis Data**: Tuliskan dengan jelas di bagian paling atas (tepat setelah judul) kalimat berikut:
+  "*Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator FSVA/SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada *date stamp* terbaru data balita BB/U dan data harga komoditas diperbarui secara *real-time* dari panel harga harian.*"
 - **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
 - **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras (CV: ${cvBeras}%) dan harga pangan strategis lainnya.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
-- **Rekomendasi Kebijakan & Intervensi**: Berikan 3 poin rekomendasi taktis secara singkat untuk menjaga pasokan, stabilisasi harga, dan intervensi gizi kurang.
+- **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
+  1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.
+  2. Gerakan Pangan Murah (GPM) & kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan tinggi berdasarkan peta FSVA, yang terbukti secara komparatif lebih tepat sasaran bagi masyarakat berpenghasilan rendah.
+  3. Kerja Sama Antar Daerah (KAD) dengan produsen utama pangan strategis untuk menjamin pasokan pangan jangka menengah dan menghindari gejolak spekulasi pasar.
 
 Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Jangan gunakan placeholder.`
           }]
         }],
         generationConfig: {
-          maxOutputTokens: 350 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
+          maxOutputTokens: 500 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
         }
       })
     });
@@ -213,7 +219,9 @@ function generateFallbackInsight(data: any) {
   const isCvGood = cvBeras < 10;
   const isBalitaAman = balitaStatus.status === 'AMAN';
 
-  return `### **LAPORAN AI INSIGHT KETAHANAN PANGAN KOTA CILEGON (TAHUN ${year})**
+  return `### **ANALISIS INTELIJEN & EARLY WARNING SYSTEM KETAHANAN PANGAN KOTA CILEGON**
+
+*Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator FSVA/SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada *date stamp* terbaru data balita BB/U dan data harga komoditas diperbarui secara *real-time* dari panel harga harian.*
 
 #### **1. Ringkasan Eksekutif**
 Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
@@ -242,7 +250,7 @@ Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.s
 Meskipun klasifikasi umum adalah **AMAN**, keberadaan ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita dengan indikasi gizi kurang/buruk memerlukan intervensi gizi terarah pada lokus-lokus prioritas kerawanan pangan.
 
 #### **5. Rekomendasi Kebijakan Dinas Ketahanan Pangan**
-1. **Optimalisasi Kegiatan GPM**: Terus laksanakan Gerakan Pangan Murah (GPM) secara berkelanjutan di kelurahan dengan prioritas FSVA rendah untuk menjaga daya beli kelompok rentan.
-2. **Diversifikasi Konsumsi non-Beras**: Kembangkan kampanye diversifikasi pangan lokal berbasis protein non-beras guna mempertahankan tingginya skor PPH Konsumsi (${pphScore}).
-3. **Intervensi Lokus Gizi Spesifik**: Kolaborasikan program bantuan pangan Bapanas dengan Dinas Kesehatan untuk penyaluran suplemen PMT (Pemberian Makanan Tambahan) tinggi protein di kelurahan dengan populasi balita gizi kurang tertinggi.`;
+1. **Fasilitasi Distribusi Pangan (FDP)**: Salurkan subsidi ongkos angkut untuk mobilisasi bahan pangan strategis (seperti cabai dan bawang) dari daerah surplus mitra langsung ke pasar Kota Cilegon. Secara komparatif, program FDP terbukti lebih efisien menekan harga konsumen dan menstabilkan pasokan daripada subsidi harga tunai.
+2. **Gerakan Pangan Murah (GPM) Terarah**: Gencarkan pelaksanaan pasar murah dan perluas kemitraan kios pangan SPHP Bulog dengan fokus di kelurahan rentan pangan berdasarkan peta FSVA, yang secara komparatif terbukti lebih tepat sasaran bagi masyarakat rentan.
+3. **Kerja Sama Antar Daerah (KAD)**: Aktifkan kontrak pasokan pangan langsung jangka menengah dengan daerah produsen (seperti Brebes untuk bawang merah, Sleman untuk cabai) guna menghindari rantai spekulan dan menjamin kelancaran jalur distribusi.`;
 }
