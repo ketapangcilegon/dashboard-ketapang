@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 "use client";
 
+import { useState, useEffect } from 'react';
 import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
 import { FULL_VERSION } from '@/lib/version';
@@ -28,6 +29,17 @@ export default function Navbar({
   setSelectedMonth = () => {},
   onMenuClick = () => {},
 }: NavbarProps) {
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      setIsAdminLoggedIn(sessionActive);
+    };
+    checkAuth();
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
+  }, []);
   
   const handleKecamatanChange = (kec: string) => {
     setSelectedKecamatan(kec);
@@ -78,16 +90,25 @@ export default function Navbar({
 
 
 
-        {/* Profile (Clickable Admin Link) */}
-        <a href="/entry" className="flex items-center gap-2.5 ml-1 cursor-pointer bg-white py-1 px-1 pr-4 rounded-full shadow-md border border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] transition-all">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-emerald-300 shadow-sm">
-            <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
-          </div>
-          <div className="hidden md:block text-left">
-            <p className="text-xs font-black text-slate-800 leading-none mb-0.5">Admin Kota</p>
-            <p className="text-[9px] font-bold text-slate-400 leading-none">Administrator</p>
-          </div>
-        </a>
+        {/* Profile (Clickable Admin Link with Mode status below it) */}
+        <div className="flex flex-col items-end gap-1">
+          <a href="/entry" className="flex items-center gap-2.5 ml-1 cursor-pointer bg-white py-1 px-1 pr-4 rounded-full shadow-md border border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] transition-all">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-emerald-300 shadow-sm">
+              <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-xs font-black text-slate-800 leading-none mb-0.5">Admin Kota</p>
+              <p className="text-[9px] font-bold text-slate-400 leading-none">Administrator</p>
+            </div>
+          </a>
+          <span className={`text-[8px] font-black tracking-wider uppercase px-2 py-0.5 rounded shadow-sm mr-2 border transition-all duration-300 ${
+            isAdminLoggedIn 
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}>
+            {isAdminLoggedIn ? 'MODE ADMIN' : 'MODE TAMU'}
+          </span>
+        </div>
       </div>
     </header>
   );

@@ -72,9 +72,11 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
   const handleTrainModel = async () => {
     setError(null);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+
+    if (!session?.user || !sessionActive) {
       const confirmLogin = window.confirm(
-        "Akses Terbatas: Fitur latih ulang model hanya tersedia untuk Administrator. Apakah Anda ingin diarahkan ke halaman login Admin?"
+        "Akses Terbatas: Fitur latih ulang model hanya tersedia untuk Administrator yang sudah login masuk. Apakah Anda ingin diarahkan ke halaman login Admin?"
       );
       if (confirmLogin) {
         window.location.href = '/entry';
@@ -84,7 +86,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
 
     setTraining(true);
     try {
-      const token = session.access_token || '';
+      const token = session?.access_token || '';
       const res = await fetch('/api/ml/train', { 
         method: 'POST',
         headers: {
