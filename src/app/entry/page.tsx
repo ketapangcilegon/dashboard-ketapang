@@ -14,6 +14,7 @@ export default function EntryPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Load session from sessionStorage to persist state on refresh
   useEffect(() => {
@@ -62,6 +63,45 @@ export default function EntryPage() {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
+      {/* Mobile Sidebar Drawer Overlay (Slide in from left) */}
+      {isLoggedIn && (
+        <div 
+          className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
+            isMobileSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          {/* Drawer Content */}
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`absolute left-0 top-0 bottom-0 w-64 max-w-[280px] bg-gradient-to-b from-[#2d6a4f] via-[#1b4332] to-[#081c15] shadow-2xl transition-transform duration-300 ease-out transform ${
+              isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            {/* Close button inside mobile sidebar drawer */}
+            <div className="absolute right-4 top-6 z-50">
+              <button 
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center"
+                aria-label="Close Sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <Sidebar 
+              isMobile={true} 
+              onCloseMobile={() => setIsMobileSidebarOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
+
       {/* Sidebar - Visible only after login for better focus during login */}
       {isLoggedIn && (
         <div className="hidden lg:block w-64 shrink-0 bg-gradient-to-b from-[#2d6a4f] via-[#1b4332] to-[#081c15] text-white shadow-xl z-20">
@@ -76,14 +116,14 @@ export default function EntryPage() {
         
         {isLoggedIn && (
           <div className="bg-gradient-to-r from-[#03593b] via-[#047857] to-[#10b981] text-white print:hidden pb-1 shadow-md relative z-10 border-b border-emerald-800/10">
-            <Navbar />
+            <Navbar onMenuClick={() => setIsMobileSidebarOpen(true)} />
           </div>
         )}
         
         <main className={`flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10 flex ${
           !isLoggedIn 
             ? 'items-center justify-center' 
-            : 'flex-col items-center justify-start pt-20 pb-16'
+            : 'flex-col items-center justify-start pb-16'
         }`}>
           {!isLoggedIn ? (
             /* GLASSMORPHISM PREMIUM LOGIN CARD */

@@ -174,6 +174,9 @@ export default function Sidebar({
           <a 
             href="/?view=sumber_data"
             onClick={(e) => {
+              if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+                return;
+              }
               e.preventDefault();
               setCurrentView('sumber_data');
               if (isMobile) onCloseMobile();
@@ -194,6 +197,9 @@ export default function Sidebar({
           <a 
             href="/?view=tentang"
             onClick={(e) => {
+              if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+                return;
+              }
               e.preventDefault();
               setCurrentView('tentang');
               if (isMobile) onCloseMobile();
