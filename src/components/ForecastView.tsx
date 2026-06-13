@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const COMMODITY_MAP: Record<string, string> = {
@@ -413,16 +413,69 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
               </div>
             ) : activeForecast ? (
               <div className="mt-4 space-y-4">
-                {/* Headline Overall Status Card */}
-                <div className={`p-4 rounded-xl border flex items-center justify-between shadow-inner ${getStatusBgColor(getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg))}`}>
-                  <div>
-                    <h4 className="text-[10px] uppercase tracking-widest font-black opacity-80">Status Keamanan</h4>
-                    <p className="text-lg font-black tracking-wide uppercase mt-0.5">
-                      {(COMMODITY_MAP[selectedCommodity] || 'KOMODITAS').toUpperCase()}: {getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg).toUpperCase()}
-                    </p>
-                  </div>
-                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 animate-pulse ${getStatusDot(getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg))}`}></span>
-                </div>
+                {/* Headline Overall Status Card (Carousel Redesign) */}
+                {(() => {
+                  const commodityKeys = Object.keys(COMMODITY_MAP);
+                  const activeIdx = commodityKeys.indexOf(selectedCommodity);
+                  const overallStatus = getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg);
+                  
+                  return (
+                    <div className={`p-5 rounded-2xl border flex flex-col justify-between shadow-inner min-h-[120px] transition-all duration-300 ${getStatusBgColor(overallStatus)}`}>
+                      <div className="flex items-center justify-between w-full">
+                        <div>
+                          <h4 className="text-[10px] uppercase tracking-widest font-black opacity-80">Status Keamanan</h4>
+                          <p className="text-[16px] sm:text-[18px] font-black tracking-wide uppercase mt-0.5">
+                            {(COMMODITY_MAP[selectedCommodity] || 'KOMODITAS').toUpperCase()}: {overallStatus.toUpperCase()}
+                          </p>
+                        </div>
+                        <span className={`w-3.5 h-3.5 rounded-full shrink-0 animate-pulse ${getStatusDot(overallStatus)}`}></span>
+                      </div>
+
+                      {/* Carousel Arrow Controls & Dots */}
+                      <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-black/5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const prevIdx = (activeIdx - 1 + commodityKeys.length) % commodityKeys.length;
+                            setSelectedCommodity(commodityKeys[prevIdx]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 active:scale-95 transition-all"
+                          title="Sebelumnya"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        
+                        {/* Progress Dots */}
+                        <div className="flex items-center gap-1.5">
+                          {commodityKeys.map((key) => {
+                            const isCurrent = key === selectedCommodity;
+                            return (
+                              <span
+                                key={key}
+                                onClick={() => setSelectedCommodity(key)}
+                                className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${
+                                  isCurrent ? 'w-5 bg-emerald-600' : 'w-1.5 bg-slate-300 hover:bg-slate-400'
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const nextIdx = (activeIdx + 1) % commodityKeys.length;
+                            setSelectedCommodity(commodityKeys[nextIdx]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 active:scale-95 transition-all"
+                          title="Berikutnya"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 3 Layers Breakdown */}
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Brain } from 'lucide-react';
 
 interface ProteinGaugeProps {
@@ -9,6 +9,15 @@ interface ProteinGaugeProps {
 
 export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
+  const [animatedValue, setAnimatedValue] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedValue(value);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [value]);
+
   const target = 57;
 
   // Determine indicator text and style
@@ -24,7 +33,7 @@ export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
   }
 
   // Trigonometry to position the needle (range 0 to 100)
-  const clampedValue = Math.min(Math.max(value, 0), 100);
+  const clampedValue = Math.min(Math.max(animatedValue, 0), 100);
   const angleRad = (clampedValue / 100) * Math.PI; // 0 to Math.PI
   const needleAngleRad = Math.PI - angleRad;
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
@@ -63,7 +72,7 @@ export default function ProteinGauge({ value = 63.4 }: ProteinGaugeProps) {
             <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
             {/* Purple Progress Arc */}
-            <path d={getArcPath(value)} fill="none" stroke="#6D28D9" strokeWidth="8" strokeLinecap="round" />
+            <path d={getArcPath(animatedValue)} fill="none" stroke="#6D28D9" strokeWidth="8" strokeLinecap="round" />
             
             {/* Jarum Penunjuk (Needle) */}
             <line 

@@ -1,7 +1,7 @@
 "use client";
 
 import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LabelList } from 'recharts';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, X } from 'lucide-react';
 
 interface IKPTrendChartProps {
@@ -31,6 +31,25 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
         nasional: x.ikp_nasional !== null && x.ikp_nasional !== undefined ? parseFloat(x.ikp_nasional) : null
       })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
     : defaultChartData;
+
+  const [visibleData, setVisibleData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (chartData.length === 0) return;
+    setVisibleData([chartData[0]]);
+    
+    let currentIndex = 1;
+    const interval = setInterval(() => {
+      if (currentIndex < chartData.length) {
+        setVisibleData(prev => [...prev, chartData[currentIndex]]);
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 150);
+    
+    return () => clearInterval(interval);
+  }, [ikpData]);
 
   return (
     <div className="dashboard-card relative border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
@@ -85,10 +104,9 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
         </div>
       )}
 
-      {/* Main Composed Chart (Area for Cilegon, Line for Provinsi & Nasional target) */}
       <div className="w-full h-[160px] mt-3">
         <ResponsiveContainer width="99%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+          <ComposedChart data={visibleData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
             <defs>
               <linearGradient id="colorIKPCilegon" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
@@ -121,10 +139,8 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
               <LabelList dataKey="cilegon" position="top" style={{ fontSize: '8px', fill: '#059669', fontWeight: 'bold' }} offset={8} />
             </Area>
             <Line type="monotone" dataKey="provinsi" name="provinsi" stroke="#3B82F6" strokeWidth={2.2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls={true}>
-              <LabelList dataKey="provinsi" position="bottom" style={{ fontSize: '8px', fill: '#2563EB', fontWeight: 'bold' }} offset={8} />
             </Line>
             <Line type="monotone" dataKey="nasional" name="nasional" stroke="#F59E0B" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls={true}>
-              <LabelList dataKey="nasional" position="top" style={{ fontSize: '8px', fill: '#D97706', fontWeight: 'bold' }} offset={8} />
             </Line>
           </ComposedChart>
         </ResponsiveContainer>

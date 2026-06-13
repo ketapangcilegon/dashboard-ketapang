@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Brain } from 'lucide-react';
 
 interface KetersediaanEnergiGaugeProps {
@@ -9,6 +9,15 @@ interface KetersediaanEnergiGaugeProps {
 
 export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEnergiGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
+  const [animatedValue, setAnimatedValue] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedValue(value);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [value]);
+
   const target = 2400;
   const maxScale = 3500;
 
@@ -25,7 +34,7 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
   }
 
   // Convert scale (0-3500 kkal) to percentage (0-100) for drawing
-  const percentValue = (value / maxScale) * 100;
+  const percentValue = (animatedValue / maxScale) * 100;
 
   // Trigonometry to position the needle (range 0 to 100)
   const clampedPercent = Math.min(Math.max(percentValue, 0), 100);

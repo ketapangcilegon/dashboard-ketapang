@@ -1,10 +1,19 @@
-"use client";
+import { useState, useEffect } from 'react';
 
 interface NBMGaugeProps {
   value: number;
 }
 
 export default function NBMGauge({ value = 94.2 }: NBMGaugeProps) {
+  const [animatedValue, setAnimatedValue] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedValue(value);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [value]);
+
   const target = 90;
 
   // Determine indicator text and style
@@ -23,7 +32,7 @@ export default function NBMGauge({ value = 94.2 }: NBMGaugeProps) {
   }
 
   // Trigonometry to position the needle (range 0 to 100)
-  const clampedValue = Math.min(Math.max(value, 0), 100);
+  const clampedValue = Math.min(Math.max(animatedValue, 0), 100);
   const angleRad = (clampedValue / 100) * Math.PI; // 0 to Math.PI
   const needleAngleRad = Math.PI - angleRad;
   const needleX = 50 + 32 * Math.cos(needleAngleRad);
@@ -59,7 +68,7 @@ export default function NBMGauge({ value = 94.2 }: NBMGaugeProps) {
             <path d={getArcPath(target)} fill="none" stroke="#A7F3D0" strokeWidth="8" />
             
             {/* 3. Achieved City Track - Overlaps from 0 to value */}
-            <path d={getArcPath(value)} fill="none" stroke={progressColor} strokeWidth="8" />
+            <path d={getArcPath(animatedValue)} fill="none" stroke={progressColor} strokeWidth="8" />
             
             {/* 4. Jarum Penunjuk (Needle) */}
             <line 

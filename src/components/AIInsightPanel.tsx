@@ -233,10 +233,17 @@ export default function AIInsightPanel({
         ) : (
           <div className={`w-full h-full overflow-y-auto pr-1 ${isFullScreen ? 'max-h-none' : 'max-h-[240px]'} print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left`}>
             <div className="prose prose-sm max-w-none prose-slate">
-              {renderMarkdown(insight)}
+              {renderMarkdown(
+                insight.replace(/\*?Catatan:\s*Indikator FSVA, KPI, IKP, dan POU.*?(panel harga harian\.\*?|harian\.)/gi, '').trim()
+              )}
             </div>
           </div>
         )}
+      </div>
+
+      {/* Static Footer Note */}
+      <div className="mt-3 pt-2.5 border-t border-slate-100 z-10 text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-relaxed text-justify">
+        Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada date stamp data balita BB/U dan data harga komoditas diperbarui secara real-time dari panel harga harian.
       </div>
     </div>
   );

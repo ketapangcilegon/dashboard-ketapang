@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Brain } from 'lucide-react';
 
 interface CVGaugeProps {
@@ -9,6 +9,14 @@ interface CVGaugeProps {
 
 export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
+  const [animatedValue, setAnimatedValue] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedValue(value);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [value]);
 
   // Determine status and style based on requested CV thresholds:
   // < 10%: Aman / Stabil
@@ -26,7 +34,7 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   }
 
   // Trigonometry to position the needle (range 0 to 30)
-  const clampedCV = Math.min(Math.max(value, 0), 30);
+  const clampedCV = Math.min(Math.max(animatedValue, 0), 30);
   const angleRad = (clampedCV / 30) * Math.PI; // 0 (left) to Math.PI (right)
   const needleAngleRad = Math.PI - angleRad;
   const needleX = 50 + 32 * Math.cos(needleAngleRad);

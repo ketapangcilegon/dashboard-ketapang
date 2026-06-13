@@ -129,8 +129,7 @@ DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan $
    - Beras: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg, Minyak Goreng: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter, Telur Ayam: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg, Gula Pasir: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg, Cabai Merah: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN HARUS TERDIRI DARI:
-- **Metadata Basis Data**: Wajib tuliskan dengan jelas di bagian paling atas (sebagai baris pertama laporan, tanpa didahului judul utama/header judul apa pun) kalimat berikut:
-  "*Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator FSVA/SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada *date stamp* terbaru data balita BB/U dan data harga komoditas diperbarui secara *real-time* dari panel harga harian.*"
+- **Catatan Basis Data**: Catatan metodologi tidak perlu dimasukkan ke dalam laporan karena sudah ditangani secara statis oleh antarmuka sistem.
 - **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
 - **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras (CV: ${cvBeras}%) dan harga pangan strategis lainnya.
@@ -218,9 +217,7 @@ function generateFallbackInsight(data: any) {
   const isCvGood = cvBeras < 10;
   const isBalitaAman = balitaStatus.status === 'AMAN';
 
-  return `*Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator FSVA/SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada *date stamp* terbaru data balita BB/U dan data harga komoditas diperbarui secara *real-time* dari panel harga harian.*
-
-#### **1. Ringkasan Eksekutif**
+  return `#### **1. Ringkasan Eksekutif**
 Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
 
 #### **2. Analisis Metodologis: Konsumsi vs Ketersediaan**

@@ -1,7 +1,7 @@
 "use client";
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LabelList } from 'recharts';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, X } from 'lucide-react';
 
 interface PoUTrendChartProps {
@@ -30,6 +30,25 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
         cilegon: parseFloat(x.pou_cilegon) || 0
       }))
     : defaultChartData;
+
+  const [visibleData, setVisibleData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (chartData.length === 0) return;
+    setVisibleData([chartData[0]]);
+    
+    let currentIndex = 1;
+    const interval = setInterval(() => {
+      if (currentIndex < chartData.length) {
+        setVisibleData(prev => [...prev, chartData[currentIndex]]);
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 150);
+    
+    return () => clearInterval(interval);
+  }, [pouData]);
 
   return (
     <div className="dashboard-card relative border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
@@ -81,7 +100,7 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
       {/* Main Area Chart with 3 comparative layers (National, Provincial, City) */}
       <div className="w-full h-[160px] mt-3">
         <ResponsiveContainer width="99%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+          <AreaChart data={visibleData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
             <defs>
               <linearGradient id="colorCilegon" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.25}/>
