@@ -11,9 +11,35 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
+
+
+  const [isVisible, setIsVisible] = useState(false);
+  const [elementRef, setElementRef] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
+    if (!elementRef) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false); // Reset so it runs again when scrolled/carousel shifts into view
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(elementRef);
+    return () => observer.disconnect();
+  }, [elementRef]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setAnimatedValue(0);
+      return;
+    }
+
     let startTimestamp: number | null = null;
-    const duration = 2000; // 2 seconds
+    const duration = 1000; // 1 second duration
     const startValue = 0;
 
     let animationFrameId: number;
@@ -41,7 +67,7 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
         window.cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [value]);
+  }, [isVisible, value]);
 
   const target = 2400;
   const maxScale = 3500;
@@ -77,7 +103,7 @@ export default function KetersediaanEnergiGauge({ value = 2582 }: KetersediaanEn
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#DC2626] via-[#FCA5A5]/45 to-white/95 p-4 rounded-xl shadow-md border border-red-200/50 items-center justify-between group select-none">
+    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#DC2626] via-[#FCA5A5]/45 to-white/95 p-4 rounded-xl shadow-md border border-red-200/50 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 

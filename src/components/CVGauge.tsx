@@ -11,9 +11,33 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
+  const [isVisible, setIsVisible] = useState(false);
+  const [elementRef, setElementRef] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
+    if (!elementRef) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false); // Reset so it runs again when scrolled/carousel shifts into view
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(elementRef);
+    return () => observer.disconnect();
+  }, [elementRef]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setAnimatedValue(0);
+      return;
+    }
+
     let startTimestamp: number | null = null;
-    const duration = 2000; // 2 seconds
+    const duration = 1000; // 1 second duration
     const startValue = 0;
 
     let animationFrameId: number;
@@ -41,7 +65,7 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
         window.cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [value]);
+  }, [isVisible, value]);
 
   // Determine status and style based on requested CV thresholds:
   // < 10%: Aman / Stabil
@@ -66,7 +90,7 @@ export default function CVGauge({ value = 3.65 }: CVGaugeProps) {
   const needleY = 50 - 32 * Math.sin(needleAngleRad);
 
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-[#2563EB] via-[#93C5FD]/45 to-white/95 p-4 rounded-xl shadow-md border border-blue-200/50 items-center justify-between group select-none">
+    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#2563EB] via-[#93C5FD]/45 to-white/95 p-4 rounded-xl shadow-md border border-blue-200/50 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
