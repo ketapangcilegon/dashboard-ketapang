@@ -283,7 +283,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
           disabled={training || loading || !isAdmin}
           className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
             training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 
-            !isAdmin ? 'bg-slate-350 text-slate-500 border border-slate-300 shadow-none cursor-not-allowed opacity-75' :
+            !isAdmin ? 'bg-slate-200 text-slate-500 border border-slate-300 shadow-none cursor-not-allowed opacity-75' :
             'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg cursor-pointer'
           }`}
           title={!isAdmin ? 'Fitur ini hanya dapat diakses oleh Administrator' : 'Latih Ulang & Update EWS'}
