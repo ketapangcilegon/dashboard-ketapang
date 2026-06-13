@@ -30,6 +30,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [training, setTraining] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // Fetch forecast results and historical data
   const loadData = async () => {
@@ -67,20 +68,28 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
 
   useEffect(() => {
     loadData();
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      setIsAdmin(!!session?.user && sessionActive);
+    };
+    checkAuth();
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleTrainModel = async () => {
+    const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+    if (!sessionActive) {
+      alert("Akses Terbatas: Mode tamu tidak memiliki izin untuk melatih ulang model EWS.");
+      return;
+    }
+
     setError(null);
     const { data: { session } } = await supabase.auth.getSession();
-    const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
-
-    if (!session?.user || !sessionActive) {
-      const confirmLogin = window.confirm(
-        "Akses Terbatas: Fitur latih ulang model hanya tersedia untuk Administrator yang sudah login masuk. Apakah Anda ingin diarahkan ke halaman login Admin?"
-      );
-      if (confirmLogin) {
-        window.location.href = '/entry';
-      }
+    if (!session?.user) {
+      alert("Sesi Admin Supabase tidak ditemukan. Silakan login kembali di portal admin.");
+      window.location.href = '/entry';
       return;
     }
 
@@ -271,16 +280,27 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
         
         <button
           onClick={handleTrainModel}
-          disabled={training || loading}
-          className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 cursor-pointer ${
-            training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg'
+          disabled={training || loading || !isAdmin}
+          className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
+            training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 
+            !isAdmin ? 'bg-slate-350 text-slate-500 border border-slate-300 shadow-none cursor-not-allowed opacity-75' :
+            'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg cursor-pointer'
           }`}
+          title={!isAdmin ? 'Fitur ini hanya dapat diakses oleh Administrator' : 'Latih Ulang & Update EWS'}
         >
           <div className="flex items-center gap-2">
-            <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
+            {isAdmin ? (
+              <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
+            ) : (
+              <ShieldAlert className="w-4 h-4 text-slate-400" />
+            )}
             <span>{training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}</span>
           </div>
-          {!training && <span className="text-[9px] font-normal tracking-wide opacity-80">(HANYA ADMIN)</span>}
+          {!training && (
+            <span className="text-[9px] font-normal tracking-wide opacity-80">
+              {isAdmin ? '(HANYA ADMIN)' : '(TERKUNCI - MODE TAMU)'}
+            </span>
+          )}
         </button>
       </div>
 
