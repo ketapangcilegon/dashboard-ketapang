@@ -33,9 +33,31 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
     : defaultChartData;
 
   const [visibleData, setVisibleData] = useState<any[]>([]);
+  const [isVisible, setIsVisible] = useState(false);
+  const [elementRef, setElementRef] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (chartData.length === 0) return;
+    if (!elementRef) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false); // Reset so it runs again when scrolled back into view
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(elementRef);
+    return () => observer.disconnect();
+  }, [elementRef]);
+
+  useEffect(() => {
+    if (!isVisible || chartData.length === 0) {
+      setVisibleData([]);
+      return;
+    }
+    
     setVisibleData([chartData[0]]);
     
     let currentIndex = 1;
@@ -46,13 +68,13 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
       } else {
         clearInterval(interval);
       }
-    }, 150);
+    }, 500); // 0.5s per data point
     
     return () => clearInterval(interval);
-  }, [ikpData]);
+  }, [isVisible, ikpData]);
 
   return (
-    <div className="dashboard-card relative border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
+    <div ref={setElementRef} className="dashboard-card relative border-none shadow-sm bg-white p-4 rounded-xl flex flex-col h-full min-h-[260px] justify-between">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="pr-8">
           <h3 className="font-extrabold text-[#10B981] text-sm leading-none flex items-center gap-1.5">

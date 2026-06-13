@@ -12,10 +12,35 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
   const [animatedValue, setAnimatedValue] = useState(0);
 
   useEffect(() => {
+    let startTimestamp: number | null = null;
+    const duration = 2000; // 2 seconds
+    const startValue = 0;
+
+    let animationFrameId: number;
+
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const elapsed = timestamp - startTimestamp;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      const easeOutQuad = 1 - (1 - progress) * (1 - progress);
+      setAnimatedValue(startValue + easeOutQuad * (value - startValue));
+
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(step);
+      }
+    };
+
     const timer = setTimeout(() => {
-      setAnimatedValue(value);
+      animationFrameId = window.requestAnimationFrame(step);
     }, 150);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [value]);
 
   const target = 63;
@@ -63,9 +88,9 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
       </button>
 
       {/* Header */}
-      <div className="w-full text-left">
+      <div className="w-full text-left h-[42px] flex flex-col justify-start">
         <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Ketersediaan Protein</h4>
-        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">(gram/kapita/hari)</h3>
+        <h3 className="text-xs font-bold text-white mt-1 leading-tight">(gram/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -87,7 +112,7 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
               stroke="#1E293B" 
               strokeWidth="2.5" 
               strokeLinecap="round"
-              className="transition-all duration-700 ease-out" 
+              className="transition-none" 
             />
             
             {/* Center Anchor Pin */}

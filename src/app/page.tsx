@@ -1002,25 +1002,25 @@ export default function DashboardPage() {
                           transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                         }}
                       >
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <CVGauge value={getCVValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <PPHGauge value={getPPHValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <ProteinGauge value={getKonsumsiProteinValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <EnergiGauge value={getKonsumsiEnergiValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
                           <KerawananPanel 
                             intervensiData={intervensiData} 
                             selectedKecamatan={selectedKecamatan} 
@@ -1028,10 +1028,10 @@ export default function DashboardPage() {
                             skpgMatangData={skpgMatangData}
                           />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
                           <BalitaDoughnut balitaData={getBalitaData()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[235px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
                           <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                         </div>
                       </div>
