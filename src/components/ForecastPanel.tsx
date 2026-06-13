@@ -131,7 +131,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-[550px]">
         
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-sm overflow-hidden h-[550px] lg:h-full">
+        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[550px] lg:h-full">
           <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex flex-col sm:flex-row items-start justify-between gap-4 shrink-0">
             <div className="flex gap-3">
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
@@ -206,7 +206,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
         </div>
 
         {/* Right Column: AI Interpretation */}
-        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-sm overflow-hidden h-[600px] lg:h-full">
+        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-full">
           
           <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 mb-5 shrink-0">
             <div className="flex items-center gap-3">
@@ -231,22 +231,30 @@ export default function ForecastPanel({}: ForecastPanelProps) {
                   Mengevaluasi status kerentanan pangan...
                 </div>
               ) : warnings.length > 0 ? (
-                <div className="bg-[#6B7B73] bg-gradient-to-br from-[#718279] to-[#5a6b63] border-2 border-red-400/80 p-5 rounded-2xl shadow-inner min-h-full">
-                  <div className="flex items-center gap-3 text-red-300 font-black text-xs uppercase tracking-wider mb-5">
-                    <div className="p-1.5 bg-red-400/20 rounded-full text-red-300">
-                      <AlertTriangle className="w-4 h-4 fill-red-400 text-[#5a6b63]" />
+                <div className="bg-amber-50/70 border border-amber-200/60 p-5 rounded-2xl relative border-r-[6px] border-r-amber-500 shadow-inner min-h-full">
+                  <div className="flex items-center gap-3 text-amber-750 font-black text-xs uppercase tracking-wider mb-5">
+                    <div className="p-1.5 bg-amber-200/50 rounded-full text-amber-700 shrink-0">
+                      <AlertTriangle className="w-4 h-4 fill-amber-600 text-[#fffbeb]" />
                     </div>
                     EARLY WARNING SYSTEM (EWS) AKTIF
                   </div>
-                  <ul className="space-y-5">
+                  <ul className="space-y-4">
                     {warnings.map(w => (
-                      <li key={w.id} className="text-[11px] text-white flex items-start gap-4 leading-relaxed animate-in fade-in duration-300">
-                        <div className="p-2 bg-white/10 rounded-full border border-white/20 shrink-0">
-                          <span className="text-2xl leading-none drop-shadow-md block">{getIcon(w.id)}</span>
+                      <li key={w.id} className="bg-white p-3.5 rounded-xl border border-amber-200/40 shadow-sm flex items-start gap-4 leading-relaxed animate-in fade-in duration-300">
+                        <div className="p-2 bg-amber-50 rounded-full border border-amber-100 shrink-0 flex items-center justify-center">
+                          <span className="text-2xl leading-none drop-shadow-sm block">{getIcon(w.id)}</span>
                         </div>
                         <div>
-                          <strong className="text-white font-bold text-xs">{w.name}</strong> terdeteksi memiliki peningkatan risiko. Proyeksi harga 3 bulan: <strong className="text-amber-300 text-xs">Rp{w.month3.toLocaleString('id-ID')}</strong> (CV: <strong className="text-amber-300">{w.cv.toFixed(1)}%</strong>). <br/>
-                          <span className="text-[11px] text-white/90 mt-1 block italic font-bold">Rekomendasi: {w.rekomendasi.join(', ')}.</span>
+                          <strong className="text-slate-800 font-bold text-xs">{w.name}</strong>{' '}
+                          <span className="text-slate-600">terdeteksi memiliki peningkatan risiko. Proyeksi harga 3 bulan: </span>
+                          <strong className="text-amber-705 font-bold">Rp{w.month3.toLocaleString('id-ID')}</strong>{' '}
+                          <span className="text-slate-500">(CV: </span>
+                          <strong className="text-amber-705 font-bold">{w.cv.toFixed(1)}%</strong>
+                          <span className="text-slate-500">).</span>
+                          <br />
+                          <span className="text-[11px] text-slate-500 mt-1 block italic font-bold">
+                            Rekomendasi: {w.rekomendasi.join(', ')}.
+                          </span>
                         </div>
                       </li>
                     ))}

@@ -877,7 +877,7 @@ export default function DashboardPage() {
         />
         {/* Drawer Content */}
         <div 
-          className={`absolute left-0 top-0 bottom-0 w-64 max-w-[280px] bg-[#0B1E41] shadow-2xl transition-transform duration-300 ease-out transform ${
+          className={`absolute left-0 top-0 bottom-0 w-64 max-w-[280px] bg-gradient-to-b from-[#2d6a4f] via-[#1b4332] to-[#081c15] shadow-2xl transition-transform duration-300 ease-out transform ${
             isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -885,7 +885,7 @@ export default function DashboardPage() {
           <div className="absolute right-4 top-6 z-50">
             <button 
               onClick={() => setIsMobileSidebarOpen(false)}
-              className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-slate-800 transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center"
+              className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center"
               aria-label="Close Sidebar"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -903,7 +903,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Sidebar (Desktop) */}
-      <div className={`hidden lg:block shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+      <div className={`hidden lg:block shrink-0 bg-gradient-to-b from-[#2d6a4f] via-[#1b4332] to-[#081c15] text-white shadow-xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <Sidebar 
           currentView={currentView} 
           setCurrentView={setCurrentView} 

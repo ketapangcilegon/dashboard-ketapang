@@ -131,8 +131,8 @@ export default function Sidebar({
                 target={item.url && item.url.startsWith('http') ? '_blank' : undefined}
                 rel={item.url && item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
                 onClick={(e) => handleMenuClick(e, item)}
-                className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
-                  isActive ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+                className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
+                  isActive ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
                 } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
                 title={isCollapsed ? item.label : undefined}
               >
@@ -152,7 +152,7 @@ export default function Sidebar({
         {/* Padded elements (Disclaimer & Unduh Laporan) */}
         <div className={`px-6 space-y-2.5 ${isMobile ? '-translate-y-2' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
           {!isCollapsed ? (
-            <div className="text-[9px] text-slate-400 leading-normal font-medium bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 animate-in fade-in duration-300">
+            <div className="text-[9px] text-slate-200/90 leading-normal font-medium bg-emerald-950/20 p-3 rounded-xl border-2 border-emerald-500/40 animate-in fade-in duration-300">
               <p>
                 <span className="font-extrabold text-amber-400 block mb-1">Disclaimer:</span> 
                 Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
@@ -161,7 +161,7 @@ export default function Sidebar({
           ) : null}
           <button 
             onClick={() => typeof window !== 'undefined' && window.print()}
-            className={`w-full py-2.5 rounded-lg border border-slate-600 hover:border-emerald-500 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-600/10 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
+            className={`w-full py-2.5 rounded-lg border border-emerald-600/50 hover:border-emerald-450 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-700/20 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
             title={isCollapsed ? "Unduh Laporan" : undefined}
           >
             <Download className="w-3.5 h-3.5 shrink-0" /> 
@@ -178,8 +178,8 @@ export default function Sidebar({
               setCurrentView('sumber_data');
               if (isMobile) onCloseMobile();
             }}
-            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
-              currentView === 'sumber_data' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
+              currentView === 'sumber_data' ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
             } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
             title={isCollapsed ? "Sumber Data" : undefined}
           >
@@ -198,8 +198,8 @@ export default function Sidebar({
               setCurrentView('tentang');
               if (isMobile) onCloseMobile();
             }}
-            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-slate-800/50 ${
-              currentView === 'tentang' ? '!text-white bg-[#0f172a] border-l-4 border-emerald-500 pl-5 font-bold shadow-inner' : ''
+            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
+              currentView === 'tentang' ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
             } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
             title={isCollapsed ? "Tentang Aplikasi" : undefined}
           >

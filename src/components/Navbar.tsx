@@ -58,6 +58,9 @@ export default function Navbar({
               Versi: {FULL_VERSION}
             </span>
           </div>
+          <div className="text-amber-300 font-black text-[11px] sm:text-[13.5px] tracking-wide mt-1 select-all hover:opacity-90 transition-opacity leading-none">
+            PanganCilegon.web.id
+          </div>
         </div>
       </div>
 

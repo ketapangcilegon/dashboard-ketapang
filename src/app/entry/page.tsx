@@ -64,7 +64,7 @@ export default function EntryPage() {
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans">
       {/* Sidebar - Visible only after login for better focus during login */}
       {isLoggedIn && (
-        <div className="hidden lg:block w-64 shrink-0 bg-[var(--color-sidebar)] text-white shadow-xl z-20">
+        <div className="hidden lg:block w-64 shrink-0 bg-gradient-to-b from-[#2d6a4f] via-[#1b4332] to-[#081c15] text-white shadow-xl z-20">
           <Sidebar />
         </div>
       )}

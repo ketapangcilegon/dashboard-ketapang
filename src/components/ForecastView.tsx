@@ -70,12 +70,21 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
   }, []);
 
   const handleTrainModel = async () => {
-    setTraining(true);
     setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || '';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      const confirmLogin = window.confirm(
+        "Akses Terbatas: Fitur latih ulang model hanya tersedia untuk Administrator. Apakah Anda ingin diarahkan ke halaman login Admin?"
+      );
+      if (confirmLogin) {
+        window.location.href = '/entry';
+      }
+      return;
+    }
 
+    setTraining(true);
+    try {
+      const token = session.access_token || '';
       const res = await fetch('/api/ml/train', { 
         method: 'POST',
         headers: {
@@ -261,12 +270,15 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
         <button
           onClick={handleTrainModel}
           disabled={training || loading}
-          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 cursor-pointer ${
+          className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 cursor-pointer ${
             training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg'
           }`}
         >
-          <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
-          {training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}
+          <div className="flex items-center gap-2">
+            <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
+            <span>{training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}</span>
+          </div>
+          {!training && <span className="text-[9px] font-normal tracking-wide opacity-80">(HANYA ADMIN)</span>}
         </button>
       </div>
 
@@ -406,7 +418,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
                   <div>
                     <h4 className="text-[10px] uppercase tracking-widest font-black opacity-80">Status Keamanan</h4>
                     <p className="text-lg font-black tracking-wide uppercase mt-0.5">
-                      {getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg)}
+                      {(COMMODITY_MAP[selectedCommodity] || 'KOMODITAS').toUpperCase()}: {getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg).toUpperCase()}
                     </p>
                   </div>
                   <span className={`w-3.5 h-3.5 rounded-full shrink-0 animate-pulse ${getStatusDot(getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg))}`}></span>
