@@ -60,6 +60,7 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
     setVisibleData([chartData[0]]);
     
     let currentIndex = 1;
+    const intervalDuration = Math.round(1000 / (chartData.length - 1 || 1));
     const interval = setInterval(() => {
       if (currentIndex < chartData.length) {
         setVisibleData(prev => [...prev, chartData[currentIndex]]);
@@ -67,7 +68,7 @@ export default function PoUTrendChart({ pouData = [], selectedYear }: PoUTrendCh
       } else {
         clearInterval(interval);
       }
-    }, 500); // 0.5s per data point
+    }, intervalDuration);
     
     return () => clearInterval(interval);
   }, [isVisible, pouData]);

@@ -61,6 +61,7 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
     setVisibleData([chartData[0]]);
     
     let currentIndex = 1;
+    const intervalDuration = Math.round(1000 / (chartData.length - 1 || 1));
     const interval = setInterval(() => {
       if (currentIndex < chartData.length) {
         setVisibleData(prev => [...prev, chartData[currentIndex]]);
@@ -68,7 +69,7 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
       } else {
         clearInterval(interval);
       }
-    }, 500); // 0.5s per data point
+    }, intervalDuration);
     
     return () => clearInterval(interval);
   }, [isVisible, ikpData]);

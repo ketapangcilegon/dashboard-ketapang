@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const COMMODITY_MAP: Record<string, string> = {
@@ -49,6 +49,14 @@ interface ForecastPanelProps {
 export default function ForecastPanel({}: ForecastPanelProps) {
   const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
     if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
@@ -238,26 +246,46 @@ export default function ForecastPanel({}: ForecastPanelProps) {
                     </div>
                     EARLY WARNING SYSTEM (EWS) AKTIF
                   </div>
-                  <ul className="space-y-4">
-                    {warnings.map(w => (
-                      <li key={w.id} className="bg-white p-3.5 rounded-xl border border-amber-200/40 shadow-sm flex items-start gap-4 leading-relaxed animate-in fade-in duration-300">
-                        <div className="p-2 bg-amber-50 rounded-full border border-amber-100 shrink-0 flex items-center justify-center">
-                          <span className="text-2xl leading-none drop-shadow-sm block">{getIcon(w.id)}</span>
-                        </div>
-                        <div>
-                          <strong className="text-slate-800 font-bold text-xs">{w.name}</strong>{' '}
-                          <span className="text-slate-600">terdeteksi memiliki peningkatan risiko. Proyeksi harga 3 bulan: </span>
-                          <strong className="text-amber-705 font-bold">Rp{w.month3.toLocaleString('id-ID')}</strong>{' '}
-                          <span className="text-slate-500">(CV: </span>
-                          <strong className="text-amber-705 font-bold">{w.cv.toFixed(1)}%</strong>
-                          <span className="text-slate-500">).</span>
-                          <br />
-                          <span className="text-[11px] text-slate-500 mt-1 block italic font-bold">
-                            Rekomendasi: {w.rekomendasi.join(', ')}.
-                          </span>
-                        </div>
-                      </li>
-                    ))}
+                  <ul className="space-y-3">
+                    {warnings.map(w => {
+                      const isExpanded = !!expandedIds[w.id];
+                      return (
+                        <li key={w.id} className="bg-white rounded-xl border border-amber-200/40 shadow-sm overflow-hidden animate-in fade-in duration-300">
+                          <button
+                            onClick={() => toggleExpand(w.id)}
+                            className="w-full flex items-center justify-between p-3.5 hover:bg-amber-50/25 transition-colors cursor-pointer text-left focus:outline-none group text-xs font-black uppercase tracking-wider"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 bg-amber-50 rounded-full border border-amber-100 shrink-0 flex items-center justify-center">
+                                <span className="text-2xl leading-none drop-shadow-sm block">{getIcon(w.id)}</span>
+                              </div>
+                              <span className="text-slate-800 font-extrabold text-xs uppercase tracking-wider">{w.name}</span>
+                            </div>
+                            <div className="p-1 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200/50 transition-colors shrink-0 flex items-center justify-center">
+                              {isExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5 text-amber-700" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5 text-amber-700" />
+                              )}
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="px-4 pb-4 pt-2 border-t border-amber-100/50 text-slate-700 bg-amber-50/5 leading-relaxed text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                              <span className="text-slate-650">terdeteksi memiliki peningkatan risiko. Proyeksi harga 3 bulan: </span>
+                              <strong className="text-amber-705 font-bold">Rp{w.month3.toLocaleString('id-ID')}</strong>{' '}
+                              <span className="text-slate-500">(CV: </span>
+                              <strong className="text-amber-705 font-bold">{w.cv.toFixed(1)}%</strong>
+                              <span className="text-slate-500">).</span>
+                              <br />
+                              <span className="text-[11px] text-slate-550 mt-2 block italic font-bold">
+                                Rekomendasi: {w.rekomendasi.join(', ')}.
+                              </span>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (

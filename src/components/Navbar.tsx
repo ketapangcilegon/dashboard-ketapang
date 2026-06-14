@@ -97,8 +97,7 @@ export default function Navbar({
               <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
             </div>
             <div className="hidden md:block text-left">
-              <p className="text-xs font-black text-slate-800 leading-none mb-0.5">Admin Kota</p>
-              <p className="text-[9px] font-bold text-slate-400 leading-none">Administrator</p>
+              <p className="text-xs font-black text-slate-800 leading-none">ADMIN</p>
             </div>
           </a>
           <span className={`text-[8px] font-black tracking-wider uppercase px-2 py-0.5 rounded shadow-sm mr-2 border transition-all duration-300 ${

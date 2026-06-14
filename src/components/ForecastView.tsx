@@ -277,13 +277,12 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-bold uppercase tracking-wider">Early Warning System (SKPG Compatible) • Kota Cilegon</p>
         </div>
-        
-        <button
+               <button
           onClick={handleTrainModel}
           disabled={training || loading || !isAdmin}
           className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
             training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 
-            !isAdmin ? 'bg-slate-200 text-slate-500 border border-slate-300 shadow-none cursor-not-allowed opacity-75' :
+            !isAdmin ? 'bg-slate-500 text-white border border-slate-600 shadow-none cursor-not-allowed opacity-85' :
             'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg cursor-pointer'
           }`}
           title={!isAdmin ? 'Fitur ini hanya dapat diakses oleh Administrator' : 'Latih Ulang & Update EWS'}
@@ -292,7 +291,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
             {isAdmin ? (
               <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
             ) : (
-              <ShieldAlert className="w-4 h-4 text-slate-400" />
+              <ShieldAlert className="w-4 h-4 text-slate-200" />
             )}
             <span>{training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}</span>
           </div>
