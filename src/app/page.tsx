@@ -1290,7 +1290,7 @@ export default function DashboardPage() {
                         <div className="dashboard-card">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-emerald-600" />
-                            6. Jumlah Ketersediaan Energi (kkal/kapita/hari)
+                            Tingkat Ketersediaan Energi (kkal/kapita/hari)
                           </h3>
                           <MiniBenchmarkChart 
                             indicatorNo={6} 
@@ -1323,7 +1323,7 @@ export default function DashboardPage() {
                         <div className="dashboard-card">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-blue-600" />
-                            7. Jumlah Ketersediaan Protein (gram/kapita/hari)
+                            Tingkat Ketersediaan Protein (gram/kapita/hari)
                           </h3>
                           <MiniBenchmarkChart 
                             indicatorNo={7} 
@@ -1356,7 +1356,7 @@ export default function DashboardPage() {
                         <div className="dashboard-card">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-purple-600" />
-                            8. Jumlah Cadangan Pangan Pemerintah Daerah (Ton)
+                            Jumlah Cadangan Pangan Pemerintah Daerah (Ton)
                           </h3>
                           <MiniBenchmarkChart 
                             indicatorNo={8} 
@@ -1482,7 +1482,7 @@ export default function DashboardPage() {
                         <div className="dashboard-card">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-emerald-600" />
-                            3. Tingkat Konsumsi Energi (kkal/kapita/hari)
+                            Tingkat Konsumsi Energi (kkal/kapita/hari)
                           </h3>
                           <MiniBenchmarkChart 
                             indicatorNo={3} 
@@ -1515,7 +1515,7 @@ export default function DashboardPage() {
                         <div className="dashboard-card">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-blue-600" />
-                            4. Tingkat Konsumsi Protein (gram/kapita/hari)
+                            Tingkat Konsumsi Protein (gram/kapita/hari)
                           </h3>
                           <MiniBenchmarkChart 
                             indicatorNo={4} 

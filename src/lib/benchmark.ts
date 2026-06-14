@@ -36,7 +36,7 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
   {
     no: 4,
     indicator: 'Tingkat Konsumsi Protein',
-    unit: 'gram/kapita/hari',
+    unit: 'g/kap/hari',
     nationalStandard: 57,
     history: { '2021': 67, '2022': 65, '2023': 71, '2024': 59 }
   },
@@ -57,7 +57,7 @@ export const BENCHMARKS: BenchmarkIndicator[] = [
   {
     no: 7,
     indicator: 'Tingkat Ketersediaan Protein',
-    unit: 'gram/kapita/hari',
+    unit: 'g/kap/hari',
     nationalStandard: 63,
     history: { '2021': 92, '2022': 81, '2023': 85, '2024': 85 }
   },

@@ -478,7 +478,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
               <span className="text-[10px] font-bold text-slate-400 block uppercase">
                 {activeIndicator.no === 8 ? 'Target RPJMD' : 'Standar Target'}
               </span>
-              <span className="text-sm font-black text-slate-700 block mt-1">
+              <span className="text-xs sm:text-sm font-black text-slate-700 block mt-1">
                 {target !== null ? `${target} ${unit}` : '-'}
               </span>
             </div>
@@ -486,7 +486,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
             {/* Stat 2: Realtime Capaian */}
             <div className="bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-center">
               <span className="text-[10px] font-bold text-blue-500 block uppercase">Capaian Kini</span>
-              <span className="text-sm font-black text-blue-900 block mt-1">
+              <span className="text-xs sm:text-sm font-black text-blue-900 block mt-1">
                 {currentVal.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} {unit}
               </span>
             </div>
@@ -498,7 +498,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                 : 'bg-amber-50/50 border-amber-100 text-amber-800'
             }`}>
               <span className="text-[10px] font-bold block uppercase opacity-80">Status Capaian</span>
-              <span className="text-xs font-black flex items-center gap-1 mt-1 justify-center">
+              <span className="text-[11px] sm:text-xs font-black flex items-center gap-1 mt-1 justify-center">
                 {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
                 {isPassed ? 'Tercapai' : 'Belum'}
               </span>
