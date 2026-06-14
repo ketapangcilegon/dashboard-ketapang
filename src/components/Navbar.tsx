@@ -60,7 +60,7 @@ export default function Navbar({
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex flex-col justify-center">
-          <h1 className="text-[11px] sm:text-base lg:text-lg font-black text-white tracking-tight leading-tight drop-shadow-sm max-w-[180px] sm:max-w-md md:max-w-lg lg:max-w-xl break-words uppercase">
+          <h1 className="text-[9.5px] min-[360px]:text-[11px] min-[390px]:text-[12px] sm:text-base lg:text-lg font-black text-white tracking-tight leading-tight drop-shadow-sm max-w-none sm:max-w-md md:max-w-lg lg:max-w-xl whitespace-nowrap uppercase">
             Food Security Intelligence & DSS
           </h1>
           <div className="flex flex-wrap items-center gap-x-2 mt-0.5 text-emerald-100 font-black tracking-widest uppercase text-[9px] sm:text-[11px] leading-none">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BENCHMARKS, BenchmarkIndicator } from '@/lib/benchmark';
 import { 
   Award, CheckCircle2, AlertCircle, 
@@ -145,6 +145,16 @@ function getBenchmarkInsights(item: BenchmarkIndicator, data: any[], currentVal:
 
 export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] }: BenchmarkPanelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Swipe Handlers for Mobile Carousel
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -223,6 +233,9 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
   
   const target = activeIndicator.no === 1 ? 80 : (typeof activeIndicator.nationalStandard === 'number' ? activeIndicator.nationalStandard : (typeof activeIndicator.nationalStandard === 'string' ? parseFloat(activeIndicator.nationalStandard.replace(/[^\d.]/g, '')) : null));
   const unit = activeIndicator.unit;
+  const displayUnit = (isMobile && (activeIndicator.no === 3 || activeIndicator.no === 6))
+    ? 'kkal/kap/hr'
+    : unit;
 
   const targetKey = activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional';
 
@@ -256,7 +269,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
 
   const devVal = target !== null ? currentVal - target : 0;
   const devText = target !== null 
-    ? `${devVal >= 0 ? '+' : ''}${devVal.toFixed(1)} ${unit} (${devVal >= 0 ? 'Surplus' : 'Defisit'})` 
+    ? `${devVal >= 0 ? '+' : ''}${devVal.toFixed(1)} ${displayUnit} (${devVal >= 0 ? 'Surplus' : 'Defisit'})` 
     : 'N/A';
 
   const insights = getBenchmarkInsights(activeIndicator, chartData, currentVal);
@@ -394,13 +407,13 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 11, fill: '#64748B', fontWeight: 'bold' }} 
+                    tick={{ fontSize: isMobile ? 9 : 11, fill: '#64748B', fontWeight: 'bold' }} 
                     domain={[yMin, yMax]}
-                    unit={` ${unit}`}
+                    unit={` ${displayUnit}`}
                   />
                   
                   <Tooltip 
-                    content={<CustomTooltip unit={unit} no={activeIndicator.no} />}
+                    content={<CustomTooltip unit={displayUnit} no={activeIndicator.no} />}
                   />
 
                   {/* Shaded Area for Surplus relative to baseline target */}
@@ -420,10 +433,10 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                       strokeWidth={1.5}
                       strokeDasharray="4 4" 
                       label={{ 
-                        value: `${activeIndicator.no === 8 ? 'Target RPJMD' : 'Target'} (${target} ${unit})`, 
+                        value: `${activeIndicator.no === 8 ? 'Target RPJMD' : 'Target'} (${target} ${displayUnit})`, 
                         position: 'top', 
                         fill: '#D97706', 
-                        fontSize: 10,
+                        fontSize: isMobile ? 8.5 : 10,
                         fontWeight: 'bold'
                       }} 
                     />
@@ -454,7 +467,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
               {target !== null && (
                 <div className="flex items-center gap-2">
                   <span className="w-5 border-t border-dashed border-[#F97316] inline-block"></span>
-                  <span>{activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional'} ({target} {unit})</span>
+                  <span>{activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional'} ({target} {displayUnit})</span>
                 </div>
               )}
               {target !== null && (
@@ -478,16 +491,24 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
               <span className="text-[10px] font-bold text-slate-400 block uppercase">
                 {activeIndicator.no === 8 ? 'Target RPJMD' : 'Standar Target'}
               </span>
-              <span className="text-xs sm:text-sm font-black text-slate-700 block mt-1">
-                {target !== null ? `${target} ${unit}` : '-'}
+              <span className={`font-black text-slate-700 block mt-1 ${
+                (activeIndicator.no === 3 || activeIndicator.no === 6)
+                  ? 'text-[9.5px] min-[360px]:text-[11px] sm:text-sm'
+                  : 'text-xs sm:text-sm'
+              }`}>
+                {target !== null ? `${target} ${displayUnit}` : '-'}
               </span>
             </div>
 
             {/* Stat 2: Realtime Capaian */}
             <div className="bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-center">
               <span className="text-[10px] font-bold text-blue-500 block uppercase">Capaian Kini</span>
-              <span className="text-xs sm:text-sm font-black text-blue-900 block mt-1">
-                {currentVal.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} {unit}
+              <span className={`font-black text-blue-900 block mt-1 ${
+                (activeIndicator.no === 3 || activeIndicator.no === 6)
+                  ? 'text-[9.5px] min-[360px]:text-[11px] sm:text-sm'
+                  : 'text-xs sm:text-sm'
+              }`}>
+                {currentVal.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} {displayUnit}
               </span>
             </div>
 
@@ -498,8 +519,12 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                 : 'bg-amber-50/50 border-amber-100 text-amber-800'
             }`}>
               <span className="text-[10px] font-bold block uppercase opacity-80">Status Capaian</span>
-              <span className="text-[11px] sm:text-xs font-black flex items-center gap-1 mt-1 justify-center">
-                {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+              <span className={`font-black flex items-center gap-1 mt-1 justify-center whitespace-nowrap ${
+                (activeIndicator.no === 3 || activeIndicator.no === 6)
+                  ? 'text-[10px] min-[360px]:text-[11px] sm:text-xs'
+                  : 'text-[11px] sm:text-xs'
+              }`}>
+                {isPassed ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
                 {isPassed ? 'Tercapai' : 'Belum'}
               </span>
             </div>
