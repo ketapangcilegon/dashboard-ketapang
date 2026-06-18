@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp } from 'lucide-react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
 
 interface TentangAplikasiProps {
@@ -199,8 +199,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
             </div>
           )}
         </div>
-
-        {/* Section 5: Pengembang */}
+        {/* Section 5: Pengembang */}
         <div className="dashboard-card bg-white p-0 rounded-xl shadow-md border border-slate-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
           <button 
             onClick={() => toggleSection('pengembang')}
@@ -231,6 +230,184 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               <p>
                 Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.
               </p>
+              <div className="pt-3 border-t border-slate-100 text-[13px] md:text-sm">
+                <span className="font-extrabold text-slate-800">Kontak pengembang:</span>{' '}
+                <a 
+                  href="mailto:ketapangcilegon@gmail.com" 
+                  className="text-emerald-600 hover:text-emerald-700 font-semibold underline transition-colors"
+                >
+                  ketapangcilegon@gmail.com
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section 6: Kontributor & Lisensi */}
+        <div className="dashboard-card bg-white p-0 rounded-xl shadow-md border border-slate-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <button 
+            onClick={() => toggleSection('kontributor')}
+            className="w-full flex items-center justify-between p-6 md:p-8 cursor-pointer hover:bg-slate-50/50 transition-colors text-left focus:outline-none group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-indigo-100 text-indigo-600 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shrink-0">
+                <Award className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">
+                Kontributor & Lisensi
+              </h2>
+            </div>
+            <div className="p-1.5 bg-slate-50 group-hover:bg-slate-100 rounded-xl border border-slate-200/50 transition-colors shrink-0 flex items-center justify-center">
+              {expandedSections['kontributor'] ? (
+                <ChevronUp className="w-5 h-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-500" />
+              )}
+            </div>
+          </button>
+          
+          {expandedSections['kontributor'] && (
+            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-6 text-[13px] md:text-sm leading-relaxed animate-in fade-in slide-in-from-top-2 duration-350">
+              {/* Part 1: Penghargaan kepada Sumber Data */}
+              <div className="mt-4">
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 border-l-4 border-indigo-500 pl-2">
+                  Penghargaan kepada Sumber Data
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Bapanas */}
+                  <a 
+                    href="https://badanpangan.go.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Logo_Badan_Pangan_Nasional_-_NFA_%282022%29.png" 
+                        alt="Bapanas Logo" 
+                        className="max-h-full max-w-[120px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
+                      Badan Pangan Nasional (Bapanas)
+                    </span>
+                  </a>
+
+                  {/* Pemkot Cilegon */}
+                  <a 
+                    href="https://cilegon.go.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Lambang_Kota_Cilegon.png" 
+                        alt="Pemkot Cilegon Logo" 
+                        className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
+                      Pemerintah Kota Cilegon
+                    </span>
+                  </a>
+
+                  {/* BMKG */}
+                  <a 
+                    href="https://www.bmkg.go.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Logo_BMKG_%282010%29.png" 
+                        alt="BMKG Logo" 
+                        className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
+                      Badan Meteorologi, Klimatologi, dan Geofisika (BMKG)
+                    </span>
+                  </a>
+
+                  {/* BPS */}
+                  <a 
+                    href="https://www.bps.go.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png" 
+                        alt="BPS Logo" 
+                        className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
+                      Badan Pusat Statistik (BPS)
+                    </span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Part 2: Infrastruktur, Layanan Cloud, Lisensi & Open Source */}
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3 border-l-4 border-indigo-500 pl-2">
+                  Infrastruktur, Layanan Cloud, Lisensi & Open Source
+                </h3>
+                <p className="text-slate-650 mb-4">
+                  Aplikasi ini memanfaatkan berbagai perangkat lunak dan teknologi open source yang memungkinkan pengembangan, distribusi, dan peningkatan layanan secara berkelanjutan:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* GitHub */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <svg className="w-8 h-8 text-slate-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase">GitHub</h4>
+                      <p className="text-[10px] text-slate-500">Repository & CI/CD</p>
+                    </div>
+                  </div>
+
+                  {/* Supabase */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <svg className="w-8 h-8 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M13.35 2.05a1.2 1.2 0 00-1.78.26L5.32 12.2a1.2 1.2 0 001 1.8h5.33l-1 7.95a1.2 1.2 0 001.78-.26l6.25-9.89a1.2 1.2 0 00-1-1.8H12.35l1-7.95z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase">Supabase</h4>
+                      <p className="text-[10px] text-slate-500">Database & Auth</p>
+                    </div>
+                  </div>
+
+                  {/* Vercel */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <svg className="w-7 h-7 text-black shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2L2 22h20L12 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase">Vercel</h4>
+                      <p className="text-[10px] text-slate-500">Cloud Hosting</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-3.5 italic">
+                  * Dan berbagai framework serta pustaka open source lainnya sesuai dengan ketentuan lisensi masing-masing.
+                </p>
+              </div>
+
+              {/* Part 3: Ketentuan Lisensi */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                  Ketentuan Lisensi
+                </h3>
+                <p className="text-xs text-slate-650 text-justify leading-relaxed">
+                  Seluruh merek dagang, logo, dan hak cipta pihak ketiga tetap menjadi milik pemegang hak masing-masing. Penggunaan perangkat lunak open source dalam aplikasi ini mengikuti ketentuan lisensi yang ditetapkan oleh masing-masing pengembang.
+                </p>
+              </div>
             </div>
           )}
         </div>
