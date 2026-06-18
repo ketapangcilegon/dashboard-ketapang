@@ -283,9 +283,15 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Logo_Badan_Pangan_Nasional_-_NFA_%282022%29.png" 
+                        src="/logo-bapanas.jpg" 
                         alt="Bapanas Logo" 
                         className="max-h-full max-w-[120px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.jpg')) {
+                            target.src = '/logo-bapanas.png';
+                          }
+                        }}
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
@@ -302,9 +308,15 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Lambang_Kota_Cilegon.png" 
+                        src="/logo-cilegon.jpg" 
                         alt="Pemkot Cilegon Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.jpg')) {
+                            target.src = '/logo-cilegon.png';
+                          }
+                        }}
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
@@ -321,9 +333,15 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Logo_BMKG_%282010%29.png" 
+                        src="/logo-bmkg.jpg" 
                         alt="BMKG Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.jpg')) {
+                            target.src = '/logo-bmkg.png';
+                          }
+                        }}
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
@@ -340,9 +358,15 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png" 
+                        src="/logo-bps.jpg" 
                         alt="BPS Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.jpg')) {
+                            target.src = '/logo-bps.png';
+                          }
+                        }}
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
