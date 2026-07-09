@@ -953,24 +953,52 @@ export default function AnalisisSKPG() {
               </p>
               
               <div className="w-full border-t border-slate-200/60 pt-6 mt-4">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-4 text-center">
                   Pilihan Data Analisis SKPG yang Tersedia Yaitu:
                 </h4>
-                <div className="flex flex-wrap justify-center gap-2.5">
-                  {availablePeriods.map((p, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setSelectedMonth(p.bulan);
-                        setSelectedYear(p.tahun);
-                      }}
-                      className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-xs rounded-xl transition-all border border-emerald-200/50 shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 hover:scale-105"
-                    >
-                      <Calendar className="w-3.5 h-3.5 shrink-0" />
-                      {MONTH_NAMES_INDO[p.bulan]} {p.tahun}
-                    </button>
-                  ))}
-                </div>
+                {(() => {
+                  const mid = Math.ceil(availablePeriods.length / 2);
+                  const col1 = availablePeriods.slice(0, mid);
+                  const col2 = availablePeriods.slice(mid);
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-w-xl mx-auto text-left">
+                      {/* Kolom 1 (Terbaru -> Tengah) */}
+                      <div className="flex flex-col gap-2">
+                        {col1.map((p, idx) => (
+                          <button
+                            key={`col1-${idx}`}
+                            onClick={() => {
+                              setSelectedMonth(p.bulan);
+                              setSelectedYear(p.tahun);
+                            }}
+                            className="w-full px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-xs rounded-xl transition-all border border-emerald-200/50 shadow-sm flex items-center gap-2 cursor-pointer active:scale-[0.98] hover:translate-x-1"
+                          >
+                            <Calendar className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                            <span>{MONTH_NAMES_INDO[p.bulan]} {p.tahun}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Kolom 2 (Tengah -> Terlama) */}
+                      <div className="flex flex-col gap-2">
+                        {col2.map((p, idx) => (
+                          <button
+                            key={`col2-${idx}`}
+                            onClick={() => {
+                              setSelectedMonth(p.bulan);
+                              setSelectedYear(p.tahun);
+                            }}
+                            className="w-full px-4 py-2.5 bg-emerald-50/60 hover:bg-emerald-100/80 text-emerald-800/90 font-extrabold text-xs rounded-xl transition-all border border-emerald-200/30 shadow-sm flex items-center gap-2 cursor-pointer active:scale-[0.98] hover:translate-x-1"
+                          >
+                            <Calendar className="w-3.5 h-3.5 shrink-0 text-emerald-600/80" />
+                            <span>{MONTH_NAMES_INDO[p.bulan]} {p.tahun}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
