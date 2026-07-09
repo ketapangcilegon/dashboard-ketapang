@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles } from 'lucide-react';
+import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import MapSKPGMini from './MapSKPGMini';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 // Standard Kecamatan
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
@@ -78,6 +80,58 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
   const [nutrition, setNutrition] = useState<Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }>>(BASELINE_NUTRITION);
 
   const [availablePeriods, setAvailablePeriods] = useState<{ tahun: number; bulan: number }[]>([]);
+  const [aiInsight, setAiInsight] = useState<string>('');
+  const [loadingAi, setLoadingAi] = useState<boolean>(false);
+
+  const fetchAiInsight = async (year: number, month: number, totals: any) => {
+    setLoadingAi(true);
+    setAiInsight('');
+    try {
+      const res = await fetch('/api/ai-insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year,
+          month,
+          kecamatan: 'ALL',
+          kelurahan: 'ALL',
+          cvBeras: totals.beras.r,
+          konsumsiEnergi: 2021,
+          konsumsiProtein: 59,
+          ketersediaanEnergi: 2450,
+          ketersediaanProtein: 65,
+          pphScore: 90.9,
+          produksiBeras: 8708,
+          balitaStatus: {
+            sangatKurang: totals.nutrition.sangatKurang,
+            kurang: totals.nutrition.kurang,
+            normal: totals.nutrition.normal,
+            lebih: totals.nutrition.lebih,
+            total: totals.nutrition.totalBalita,
+            status: totals.nutrition.status
+          },
+          hargaStrategis: {
+            beras: totals.beras.cur,
+            minyak: totals.minyak.cur,
+            telur: totals.telur.cur,
+            gula: 16500,
+            cabai: 45000
+          }
+        })
+      });
+      const json = await res.json();
+      if (json && json.success) {
+        setAiInsight(json.insight);
+      } else {
+        setAiInsight('Gagal memuat evaluasi AI.');
+      }
+    } catch (err) {
+      console.error('Error fetching AI insight:', err);
+      setAiInsight('Koneksi terputus. Gagal memanggil Gemini.');
+    } finally {
+      setLoadingAi(false);
+    }
+  };
 
   // Fetch available periods on mount
   useEffect(() => {
@@ -268,6 +322,13 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
     fetchDynamicData();
   }, [selectedYear, selectedMonth]);
 
+  // Trigger AI insight generation automatically on date or data changes
+  useEffect(() => {
+    if (loading || !isPeriodAvailable) return;
+    const totals = getKotaCilegonAverages();
+    fetchAiInsight(selectedYear, selectedMonth, totals);
+  }, [selectedYear, selectedMonth, loading, isPeriodAvailable]);
+
   // Price Calculations (Keterjangkauan)
   const getKeterjangkauanRow = (kec: string) => {
     const cur = pricesCur[kec] || { beras: 0, minyak: 0, telur: 0 };
@@ -450,6 +511,76 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
 
   const kotaCilegon = getKotaCilegonAverages();
 
+  const getAksesStatusMap = () => {
+    const map: Record<string, 'aman' | 'waspada' | 'rentan'> = {};
+    KECAMATANS.forEach(kec => {
+      const row = getKeterjangkauanRow(kec);
+      map[kec] = (row.status || 'AMAN').toLowerCase() as 'aman' | 'waspada' | 'rentan';
+    });
+    return map;
+  };
+
+  const getAksesChartData = () => {
+    return [
+      { name: 'Beras Medium', 'Bulan Berjalan': kotaCilegon.beras.cur, '1 Tahun Sebelumnya': kotaCilegon.beras.prev },
+      { name: 'Minyak Kemasan', 'Bulan Berjalan': kotaCilegon.minyak.cur, '1 Tahun Sebelumnya': kotaCilegon.minyak.prev },
+      { name: 'Telur Ayam', 'Bulan Berjalan': kotaCilegon.telur.cur, '1 Tahun Sebelumnya': kotaCilegon.telur.prev }
+    ];
+  };
+
+  const getGiziStatusMap = () => {
+    const map: Record<string, 'aman' | 'waspada' | 'rentan'> = {};
+    KECAMATANS.forEach(kec => {
+      const row = getPemanfaatanRow(kec);
+      map[kec] = (row.status || 'AMAN').toLowerCase() as 'aman' | 'waspada' | 'rentan';
+    });
+    return map;
+  };
+
+  const getGiziPieData = () => {
+    const normalVal = kotaCilegon.nutrition.totalBalita > 0 
+      ? Math.round((kotaCilegon.nutrition.normal / kotaCilegon.nutrition.totalBalita) * 100) 
+      : 90;
+    const kurangVal = kotaCilegon.nutrition.totalBalita > 0 
+      ? Math.round((kotaCilegon.nutrition.kurang / kotaCilegon.nutrition.totalBalita) * 100) 
+      : 5;
+    const sangatKurangVal = kotaCilegon.nutrition.totalBalita > 0 
+      ? Math.round((kotaCilegon.nutrition.sangatKurang / kotaCilegon.nutrition.totalBalita) * 100) 
+      : 1;
+    const lebihVal = kotaCilegon.nutrition.totalBalita > 0 
+      ? Math.round((kotaCilegon.nutrition.lebih / kotaCilegon.nutrition.totalBalita) * 100) 
+      : 4;
+
+    return [
+      { name: 'Normal', value: kotaCilegon.nutrition.normal, percent: normalVal, color: '#10B981' },
+      { name: 'Kurang', value: kotaCilegon.nutrition.kurang, percent: kurangVal, color: '#F59E0B' },
+      { name: 'Sangat Kurang', value: kotaCilegon.nutrition.sangatKurang, percent: sangatKurangVal, color: '#EF4444' },
+      { name: 'Lebih', value: kotaCilegon.nutrition.lebih, percent: lebihVal, color: '#3B82F6' }
+    ];
+  };
+
+  const getKompositStatusMap = () => {
+    const map: Record<string, 'aman' | 'waspada' | 'rentan'> = {};
+    KECAMATANS.forEach(kec => {
+      const akses = getKeterjangkauanRow(kec);
+      const nutr = getPemanfaatanRow(kec);
+      const score = akses.available ? (akses.index + nutr.bobot) : 0;
+      const index = score === 6 ? 3 : score >= 4 ? 2 : 1;
+      const status = index === 3 ? 'aman' : index === 2 ? 'waspada' : 'rentan';
+      map[kec] = status;
+    });
+    return map;
+  };
+
+  const getKompositChartData = () => {
+    return KECAMATANS.map(kec => {
+      const akses = getKeterjangkauanRow(kec);
+      const nutr = getPemanfaatanRow(kec);
+      const score = akses.available ? (akses.index + nutr.bobot) : 0;
+      return { name: kec, 'Skor Komposit': score };
+    });
+  };
+
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1; // 1-indexed (Jan = 1)
@@ -577,6 +708,75 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                 </span>
               )}
             </h3>
+
+            {/* Visual 3-Panel Grid (Akses) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
+              {/* Kolom 1: Peta (Span 4) */}
+              <div className="lg:col-span-4 flex flex-col justify-between">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Akses Pangan</h4>
+                <MapSKPGMini level="kecamatan" dataStatus={getAksesStatusMap()} height="230px" />
+              </div>
+              
+              {/* Kolom 2: Grafik (Span 5) */}
+              <div className="lg:col-span-5 flex flex-col justify-between">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
+                <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 5 }}>
+                      <XAxis type="number" stroke="#94A3B8" fontSize={9} />
+                      <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={90} />
+                      <Tooltip formatter={(value) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} contentStyle={{ fontSize: '10px' }} />
+                      <Legend wrapperStyle={{ fontSize: '9px' }} />
+                      <Bar dataKey="1 Tahun Sebelumnya" fill="#94A3B8" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Kolom 3: Interpretasi (Span 3) */}
+              <div className="lg:col-span-3 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Interpretasi Akses</h4>
+                <div className="space-y-3.5 text-xs text-slate-650 font-bold flex-1 flex flex-col justify-center">
+                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                    <span className="text-slate-600">Beras Medium:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      kotaCilegon.beras.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
+                      kotaCilegon.beras.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {kotaCilegon.beras.r}% ({kotaCilegon.beras.bobot === 3 ? 'AMAN' : kotaCilegon.beras.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                    <span className="text-slate-600">Minyak Goreng:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      kotaCilegon.minyak.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
+                      kotaCilegon.minyak.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {kotaCilegon.minyak.r}% ({kotaCilegon.minyak.bobot === 3 ? 'AMAN' : kotaCilegon.minyak.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                    <span className="text-slate-600">Telur Ayam:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      kotaCilegon.telur.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
+                      kotaCilegon.telur.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {kotaCilegon.telur.r}% ({kotaCilegon.telur.bobot === 3 ? 'AMAN' : kotaCilegon.telur.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                    </span>
+                  </div>
+                  <div className="pt-2">
+                    <span className="text-[10px] text-slate-400 block mb-1">STATUS AKSES KOTA:</span>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider ${
+                      kotaCilegon.statusAkses === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
+                      kotaCilegon.statusAkses === 'WASPADA' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {kotaCilegon.statusAkses}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <div className="overflow-x-auto select-none">
               <table className="w-full text-left border-collapse table-auto lg:table-fixed">
@@ -745,6 +945,76 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                   II. Aspek Pemanfaatan Pangan (Nutrition/Gizi Balita)
                 </h3>
 
+                {/* Visual 3-Panel Grid (Gizi) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
+                  {/* Kolom 1: Peta (Span 4) */}
+                  <div className="lg:col-span-4 flex flex-col justify-between">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan</h4>
+                    <MapSKPGMini level="kecamatan" dataStatus={getGiziStatusMap()} height="230px" />
+                  </div>
+                  
+                  {/* Kolom 2: Grafik (Span 5) */}
+                  <div className="lg:col-span-5 flex flex-col justify-between">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
+                    <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2 flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={getGiziPieData()}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={50}
+                            outerRadius={75}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {getGiziPieData().map((entry, idx) => (
+                              <Cell key={`cell-${idx}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                           <Tooltip formatter={(value) => value ? `${Number(value).toLocaleString('id-ID')} balita` : ''} contentStyle={{ fontSize: '10px' }} />
+                          <Legend wrapperStyle={{ fontSize: '9px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Kolom 3: Interpretasi (Span 3) */}
+                  <div className="lg:col-span-3 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Interpretasi Gizi</h4>
+                    <div className="space-y-3.5 text-xs text-slate-650 font-bold flex-1 flex flex-col justify-center">
+                      {(() => {
+                        const pie = getGiziPieData();
+                        return (
+                          <>
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">BB Normal:</span>
+                              <span className="text-emerald-600 font-extrabold">{pie[0].percent}%</span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">BB Kurang & Sgt Kurang:</span>
+                              <span className="text-amber-600 font-extrabold">{(pie[1].percent + pie[2].percent)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">BB Berlebih:</span>
+                              <span className="text-blue-600 font-extrabold">{pie[3].percent}%</span>
+                            </div>
+                            <div className="pt-2">
+                              <span className="text-[10px] text-slate-400 block mb-1">STATUS PEMANFAATAN KOTA:</span>
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider ${
+                                kotaCilegon.nutrition.status === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
+                                kotaCilegon.nutrition.status === 'WASPADA' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                              }`}>
+                                {kotaCilegon.nutrition.status}
+                              </span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto select-none">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -812,6 +1082,81 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                       </tr>
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Visual 3-Panel Grid (Komposit) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
+                {/* Kolom 1: Peta (Span 4) */}
+                <div className="lg:col-span-4 flex flex-col justify-between">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit SKPG</h4>
+                  <MapSKPGMini level="kecamatan" dataStatus={getKompositStatusMap()} height="240px" />
+                </div>
+                
+                {/* Kolom 2: Grafik (Span 4) */}
+                <div className="lg:col-span-4 flex flex-col justify-between">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Perbandingan Skor Komposit Antar Kecamatan</h4>
+                  <div className="h-[240px] w-full bg-white rounded-xl border border-slate-150 p-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={getKompositChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                        <XAxis dataKey="name" stroke="#94A3B8" fontSize={8} tickLine={false} />
+                        <YAxis stroke="#94A3B8" fontSize={9} domain={[0, 6]} tickCount={7} />
+                        <Tooltip contentStyle={{ fontSize: '10px' }} />
+                        <Bar dataKey="Skor Komposit" fill="#10B981" radius={[4, 4, 0, 0]}>
+                          {getKompositChartData().map((entry, idx) => {
+                            const colors = ['#EF4444', '#F59E0B', '#10B981']; // Rentan, Waspada, Aman
+                            const idxCol = entry['Skor Komposit'] === 6 ? 2 : entry['Skor Komposit'] >= 4 ? 1 : 0;
+                            return <Cell key={`cell-${idx}`} fill={colors[idxCol]} />;
+                          })}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Kolom 3: AI Gemini (Span 4) */}
+                <div className="lg:col-span-4 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm max-h-[250px] overflow-y-auto custom-scrollbar">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                    <h4 className="text-[10px] font-black text-[#0B1E41] uppercase tracking-wider flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                      Gemini AI Interpretasi
+                    </h4>
+                    <button
+                      onClick={() => fetchAiInsight(selectedYear, selectedMonth, kotaCilegon)}
+                      disabled={loadingAi}
+                      className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-[#0B1E41] transition-all cursor-pointer disabled:opacity-50"
+                      title="Hasilkan Ulang Insight"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingAi ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col justify-center text-left">
+                    {loadingAi ? (
+                      <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin mb-1.5" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Memikirkan Analisis...</span>
+                      </div>
+                    ) : aiInsight ? (
+                      <div className="text-[10px] text-slate-650 font-bold leading-normal prose prose-sm max-w-none">
+                        {aiInsight.split('\n').map((line, idx) => {
+                          if (line.trim().startsWith('*') || line.trim().startsWith('-')) {
+                            return <p key={idx} className="my-0.5 pl-2 border-l border-emerald-500">• {line.replace(/^[*-\s]+/, '')}</p>;
+                          }
+                          return <p key={idx} className="my-1">{line}</p>;
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <button
+                          onClick={() => fetchAiInsight(selectedYear, selectedMonth, kotaCilegon)}
+                          className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] rounded-lg tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                        >
+                          Mulai Analisis AI
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
