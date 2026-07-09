@@ -41,8 +41,8 @@ export default function MapSKPGMini({ level, dataStatus, height = '240px' }: Map
   const activeFeatures = level === 'kecamatan' ? layers.kecamatan : layers.kelurahan;
 
   // Cilegon center coordinates and zoom settings
-  const center: [number, number] = [-6.012, 106.015];
-  const zoom = 10.6;
+  const center: [number, number] = [-6.015, 106.024];
+  const zoom = 11.0;
 
   const styleFeature = (feature: any) => {
     const name = String(feature.properties?.name || feature.properties?.Name || '').trim();

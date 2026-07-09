@@ -622,13 +622,13 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
               {/* Kolom 1: Peta (Span 4) */}
               <div className="lg:col-span-4 flex flex-col justify-between">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Akses Pangan Kelurahan</h4>
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Akses Pangan Kelurahan</h4>
                 <MapSKPGMini level="kelurahan" dataStatus={getAksesStatusMap()} height="230px" />
               </div>
               
               {/* Kolom 2: Grafik (Span 5) */}
               <div className="lg:col-span-5 flex flex-col justify-between">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
                 <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 5 }}>
@@ -636,7 +636,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={90} />
                       <Tooltip formatter={(value) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} contentStyle={{ fontSize: '10px' }} />
                       <Legend wrapperStyle={{ fontSize: '9px' }} />
-                      <Bar dataKey="1 Tahun Sebelumnya" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="1 Tahun Sebelumnya" fill="#F97316" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -645,7 +645,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
 
               {/* Kolom 3: Interpretasi (Span 3) */}
               <div className="lg:col-span-3 flex flex-col justify-between">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Akses Pangan</h4>
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Akses Pangan</h4>
                 <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
                   <div className="space-y-3.5 text-xs text-slate-650 font-bold">
                     <div className="flex items-center justify-between border-b border-slate-50 pb-2">
@@ -825,13 +825,13 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
                   {/* Kolom 1: Peta (Span 4) */}
                   <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan Kelurahan</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan Kelurahan</h4>
                     <MapSKPGMini level="kelurahan" dataStatus={getGiziStatusMap()} height="230px" />
                   </div>
                   
                   {/* Kolom 2: Grafik (Span 5) */}
                   <div className="lg:col-span-5 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
                     <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2 flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -857,7 +857,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
 
                   {/* Kolom 3: Interpretasi (Span 3) */}
                   <div className="lg:col-span-3 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Pemanfaatan Pangan</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Pemanfaatan Pangan</h4>
                     <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
                       <div className="space-y-3.5 text-xs text-slate-650 font-bold">
                         {(() => {
@@ -974,13 +974,13 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
                   {/* Kolom 1: Peta (Span 4) */}
                   <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit Kelurahan</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit Kelurahan</h4>
                     <MapSKPGMini level="kelurahan" dataStatus={getKompositStatusMap()} height="240px" />
                   </div>
                   
                   {/* Kolom 2: Grafik 10 Kelurahan Terendah (Span 4) */}
                   <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left">10 Kelurahan Dengan Skor Komposit Terendah</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">10 Kelurahan Dengan Skor Komposit Terendah</h4>
                     <div className="h-[240px] w-full bg-white rounded-xl border border-slate-150 p-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={getKompositChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
@@ -1001,7 +1001,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
 
                   {/* Kolom 3: Status Komposit (Span 4) */}
                   <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Status Komposit Kota</h4>
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Status Komposit Kota</h4>
                     <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
                       {(() => {
                         const score = kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : 0;
