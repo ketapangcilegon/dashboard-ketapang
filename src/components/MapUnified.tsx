@@ -418,7 +418,7 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
-        expandPrioritas ? 'w-48 sm:w-56' : 'w-[125px] sm:w-48'
+        expandPrioritas ? 'w-[300px] sm:w-[420px]' : 'w-[125px] sm:w-48'
       }`}>
         <button
           onClick={togglePrioritas}
@@ -432,25 +432,64 @@ function MapController({
         </button>
 
         {expandPrioritas && (
-          <div className="p-3 space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
-            <div className="text-[10px] font-black text-slate-800 leading-tight uppercase mb-1">
-              Prioritas Intervensi <br />
-              <span className="text-[7.5px] text-amber-700 font-bold tracking-wider normal-case">Berdasarkan Borda Count</span>
+          <div className="p-3 max-h-72 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
+            <div className="text-[10px] font-black text-slate-800 leading-tight uppercase mb-2 text-center">
+              Prioritas Intervensi
             </div>
             
-            {getTop10Borda().length === 0 ? (
-              <div className="text-[9px] font-bold text-slate-400 p-2">
-                Tidak ada data.
+            <div className="grid grid-cols-2 gap-3">
+              {/* Kolom Kiri: Borda Count FSVA & SKPG */}
+              <div>
+                <div className="text-[7.5px] text-amber-700 font-bold tracking-wider mb-1.5 leading-tight">Berdasarkan Borda Count <span className="text-amber-600">FSVA & SKPG</span></div>
+                {getTop10Borda().length === 0 ? (
+                  <div className="text-[8px] font-bold text-slate-400 py-1">Tidak ada data.</div>
+                ) : (
+                  <ol className="list-decimal list-inside space-y-0.5 text-[8.5px] font-bold text-slate-700">
+                    {getTop10Borda().map((item, idx) => (
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
+                        Kel. {item.kelurahan}
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
-            ) : (
-              <ol className="list-decimal list-inside space-y-1 text-[9px] font-bold text-slate-700">
-                {getTop10Borda().map((item, idx) => (
-                  <li key={idx} className="border-b border-slate-100/50 pb-0.5 last:border-0 truncate">
-                    Kel. {item.kelurahan}
-                  </li>
-                ))}
-              </ol>
-            )}
+
+              {/* Kolom Kanan: Gizi Buruk SKPG */}
+              <div>
+                <div className="text-[7.5px] text-rose-700 font-bold tracking-wider mb-1.5 leading-tight">Berdasarkan Gizi Buruk <span className="text-rose-600">SKPG</span></div>
+                {(() => {
+                  if (!skpgMatangData || skpgMatangData.length === 0) {
+                    return <div className="text-[8px] font-bold text-slate-400 py-1">Tidak ada data.</div>;
+                  }
+                  const ranked = skpgMatangData
+                    .map(item => {
+                      const sk = item.gizi_sangat_kurang || 0;
+                      const k = item.gizi_kurang || 0;
+                      const n = item.gizi_normal || 0;
+                      const l = item.gizi_berlebih || 0;
+                      const total = sk + k + n + l;
+                      const prevalensi = total > 0 ? ((sk + k) / total) * 100 : 0;
+                      return { kelurahan: item.nama_kelurahan || item.kelurahan, prevalensi };
+                    })
+                    .filter(x => x.prevalensi > 0)
+                    .sort((a, b) => b.prevalensi - a.prevalensi)
+                    .slice(0, 10);
+
+                  if (ranked.length === 0) {
+                    return <div className="text-[8px] font-bold text-slate-400 py-1">Tidak ada data.</div>;
+                  }
+                  return (
+                    <ol className="list-decimal list-inside space-y-0.5 text-[8.5px] font-bold text-slate-700">
+                      {ranked.map((item, idx) => (
+                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Prevalensi: ${item.prevalensi.toFixed(1)}%`}>
+                          Kel. {item.kelurahan}
+                        </li>
+                      ))}
+                    </ol>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
       </div>
