@@ -38,6 +38,11 @@ export default function Sidebar({
       view: 'forecasting'
     },
     { 
+      icon: FileText, 
+      label: 'Analisis SKPG', 
+      view: 'analisis_skpg'
+    },
+    { 
       icon: Package, 
       label: 'Ketersediaan', 
       view: 'ketersediaan' 
@@ -54,20 +59,15 @@ export default function Sidebar({
     },
     { 
       icon: ExternalLink, 
-      label: 'Serumpun Padi : Dashboard Pertanian dan Kelautan', 
+      label: 'Serumpumpadi.web.id', 
       view: 'serumpun',
       url: 'https://serumpunpadi.web.id/'
     },
     { 
       icon: FileText, 
-      label: 'DSS FSVA : Otomasi Peta', 
+      label: 'FSVA.my.id', 
       view: 'dss_fsva',
       url: 'https://dss-fsva.vercel.app/'
-    },
-    { 
-      icon: FileText, 
-      label: 'Analisis SKPG', 
-      view: 'analisis_skpg'
     }
   ];
 

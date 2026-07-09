@@ -25,6 +25,7 @@ const IKPTrendChart = dynamic(() => import('@/components/IKPTrendChart'), { ssr:
 const BenchmarkPanel = dynamic(() => import('@/components/BenchmarkPanel'), { ssr: false });
 const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { ssr: false });
 const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: false });
+const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKelurahan'), { ssr: false });
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
@@ -1547,7 +1548,11 @@ export default function DashboardPage() {
               })()}
               
               {currentView === 'analisis_skpg' && (
-                <AnalisisSKPG />
+                <AnalisisSKPG onSwitchView={(view: string) => setCurrentView(view)} />
+              )}
+
+              {currentView === 'analisis_skpg_kelurahan' && (
+                <AnalisisSKPGKelurahan onSwitchView={(view: string) => setCurrentView(view)} />
               )}
 
               {currentView === 'forecasting' && (

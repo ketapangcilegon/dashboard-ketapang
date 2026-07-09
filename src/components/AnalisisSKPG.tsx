@@ -60,7 +60,11 @@ const MONTH_NAMES_INDO = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-export default function AnalisisSKPG() {
+interface AnalisisSKPGProps {
+  onSwitchView?: (view: string) => void;
+}
+
+export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGProps) {
   const [selectedYear, setSelectedYear] = useState(2025);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -528,6 +532,31 @@ export default function AnalisisSKPG() {
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Sub-Menu Navigation: SKPG Tingkat Kecamatan vs SKPG Tingkat Kelurahan */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          onClick={() => onSwitchView('analisis_skpg')}
+          className="p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 text-left transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+        >
+          <div>
+            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-wider">SKPG Tingkat Kecamatan</h3>
+            <p className="text-xs text-emerald-700/80 font-bold mt-1">Menampilkan analisis ketahanan pangan bulanan agregasi 8 Kecamatan</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md">Kec</div>
+        </button>
+
+        <button
+          onClick={() => onSwitchView('analisis_skpg_kelurahan')}
+          className="p-5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50/80 hover:border-slate-350 text-left transition-all shadow-sm flex items-center justify-between group cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+        >
+          <div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider group-hover:text-emerald-700">SKPG Tingkat Kelurahan</h3>
+            <p className="text-xs text-slate-500 font-bold mt-1">Menampilkan analisis ketahanan pangan bulanan agregasi 43 Kelurahan</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">Kel</div>
+        </button>
       </div>
 
       {loading ? (
