@@ -825,19 +825,6 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     <Utensils className="w-4.5 h-4.5 text-emerald-600" />
                     II. Aspek Pemanfaatan Pangan (Nutrition/Gizi Balita) - Tingkat Kelurahan
                   </span>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSortBy(sortBy === 'gizi-buruk' ? 'default' : 'gizi-buruk')}
-                      className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
-                        sortBy === 'gizi-buruk'
-                          ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
-                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {sortBy === 'gizi-buruk' ? '✓ Urutan: Gizi Terburuk' : '⚠ Urut Gizi Terburuk'}
-                    </button>
-                  </div>
                 </h3>
 
                 {/* Visual 3-Panel Grid (Gizi) */}
@@ -941,6 +928,19 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                   </div>
                 )}
                 
+                <div className="mb-4 flex justify-start">
+                  <button
+                    onClick={() => setSortBy(sortBy === 'gizi-buruk' ? 'default' : 'gizi-buruk')}
+                    className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                      sortBy === 'gizi-buruk'
+                        ? 'bg-rose-500 text-white border-rose-600'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {sortBy === 'gizi-buruk' ? '✓ Urutan: Gizi Terburuk' : '⚠ Urut Gizi Terburuk'}
+                  </button>
+                </div>
+
                 <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse table-auto">
                     <thead className="sticky top-0 z-10">
@@ -1004,19 +1004,6 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
                     III. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan
                   </span>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSortBy(sortBy === 'komposit-terburuk' ? 'default' : 'komposit-terburuk')}
-                      className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
-                        sortBy === 'komposit-terburuk'
-                          ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
-                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {sortBy === 'komposit-terburuk' ? '✓ Urutan: Komposit Terburuk' : '⚠ Urut Komposit Terburuk'}
-                    </button>
-                  </div>
                 </h3>
 
                 {/* Visual 3-Panel Grid (Komposit Kelurahan) */}
@@ -1123,6 +1110,19 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     </div>
                   </div>
                 )}
+
+                <div className="mb-4 flex justify-start">
+                  <button
+                    onClick={() => setSortBy(sortBy === 'komposit-terburuk' ? 'default' : 'komposit-terburuk')}
+                    className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                      sortBy === 'komposit-terburuk'
+                        ? 'bg-rose-500 text-white border-rose-600'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {sortBy === 'komposit-terburuk' ? '✓ Urutan: Komposit Terburuk' : '⚠ Urut Komposit Terburuk'}
+                  </button>
+                </div>
 
                 <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse table-auto">

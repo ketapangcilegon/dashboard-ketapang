@@ -79,8 +79,8 @@ const kelNorm = {
   'PABEAN': 'Pabean',
   'TEGAL BUNDER': 'Tegal Bunder',
   'TEGALBUNDER': 'Tegal Bunder',
-  'PURWAKARTA': 'Purwakarta',
   'KOTABUMI': 'Kotabumi',
+  'KOTA BUMI': 'Kotabumi',
   'KEBON DALEM': 'Kebon Dalem',
   'KEBONDALEM': 'Kebon Dalem',
   'RAMANUJU': 'Ramanuju',
@@ -281,7 +281,8 @@ monthlyFiles.forEach(f => {
 
     const sangatKurang = toInt(row[3]);
     const kurang       = toInt(row[4]);
-    const normal       = toInt(row[5]);
+    const outlier      = toInt(row[7]);
+    const normal       = toInt(row[5]) + outlier;
     const lebih        = toInt(row[6]);
     const totalKurang  = sangatKurang + kurang;
     const totalBalita  = sangatKurang + kurang + normal + lebih;
