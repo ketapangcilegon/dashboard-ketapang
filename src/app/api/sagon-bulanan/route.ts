@@ -149,7 +149,11 @@ export async function GET(request: Request) {
     const pricesCur: Record<string, { beras: number; minyak: number; telur: number }> = {};
     const pricesPrev: Record<string, { beras: number; minyak: number; telur: number }> = {};
 
-    if (effectiveYear <= 2025) {
+    if (effectiveYear <= 2024) {
+      // Tahun 2024 ke bawah: harga komoditas 6 (data historis)
+      // prevPrices = rata-rata 3 bulan sebelumnya
+      console.log(`[Sagon API] Year ${effectiveYear} <= 2024: fetching from DB with 3-month prior average.`);
+
       const { data: dbRows, error: dbError } = await supabase
         .from('harga_komoditas_skpg')
         .select('*')
@@ -181,7 +185,36 @@ export async function GET(request: Request) {
         }
         pricesPrev[kec] = { beras: cB > 0 ? Math.round(sumBeras / cB) : FALLBACKS_2025.beras, minyak: cM > 0 ? Math.round(sumMinyak / cM) : FALLBACKS_2025.minyak, telur: cT > 0 ? Math.round(sumTelur / cT) : FALLBACKS_2025.telur };
       }
+
+    } else if (effectiveYear === 2025) {
+      // Tahun 2025: 3 komoditas, prevPrices = YoY (bulan yang sama tahun 2024) dari DB
+      console.log(`[Sagon API] Year 2025: fetching current from DB + YoY (2024 same month) as prev.`);
+
+      const { data: dbCur, error: e1 } = await supabase
+        .from('harga_komoditas_skpg')
+        .select('*')
+        .eq('tahun', 2025)
+        .eq('bulan', effectiveMonth);
+
+      const { data: dbPrev, error: e2 } = await supabase
+        .from('harga_komoditas_skpg')
+        .select('*')
+        .eq('tahun', 2024)
+        .eq('bulan', effectiveMonth);
+
+      if (e1) throw new Error(`Failed to fetch 2025 prices: ${e1.message}`);
+
+      for (const kec of KECAMATANS) {
+        const curRow = dbCur?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
+        const prevRow = dbPrev?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
+        pricesCur[kec] = { beras: curRow ? Number(curRow.beras) : FALLBACKS_2025.beras, minyak: curRow ? Number(curRow.minyak) : FALLBACKS_2025.minyak, telur: curRow ? Number(curRow.telur) : FALLBACKS_2025.telur };
+        pricesPrev[kec] = { beras: prevRow ? Number(prevRow.beras) : FALLBACKS_2025.beras, minyak: prevRow ? Number(prevRow.minyak) : FALLBACKS_2025.minyak, telur: prevRow ? Number(prevRow.telur) : FALLBACKS_2025.telur };
+      }
+
     } else {
+      // Tahun 2026 ke atas: 3 komoditas, curPrices = scraping SAGON live, prevPrices = YoY dari DB (tahun-1, bulan sama)
+      console.log(`[Sagon API] Year ${effectiveYear} >= 2026: scraping Sagon + YoY from DB (${effectiveYear - 1}/${effectiveMonth}).`);
+
       const [market1, market2, market3] = await Promise.all([scrapeMarketInfografis('1'), scrapeMarketInfografis('2'), scrapeMarketInfografis('3')]);
       const monthIdx = Math.max(0, Math.min(11, effectiveMonth - 1));
 
@@ -199,7 +232,7 @@ export async function GET(request: Request) {
 
       Object.assign(pricesCur, { Cibeber: pricesMarket['2'], Cilegon: pricesMarket['2'], Pulomerak: pricesMarket['3'], Gerogol: pricesMarket['3'], Ciwandan: pricesMarket['1'], Jombang: pricesMarket['1'], Purwakarta: pricesMarket['1'], Citangkil: getCitangkilAverage() });
 
-      const { data: dbRows, error: dbError } = await supabase.from('harga_komoditas_skpg').select('*').eq('tahun', effectiveYear - 1).eq('bulan', effectiveMonth);
+      const { data: dbRows } = await supabase.from('harga_komoditas_skpg').select('*').eq('tahun', effectiveYear - 1).eq('bulan', effectiveMonth);
       for (const kec of KECAMATANS) {
         const dbRow = dbRows?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
         pricesPrev[kec] = { beras: dbRow ? Number(dbRow.beras) : FALLBACKS_2025.beras, minyak: dbRow ? Number(dbRow.minyak) : FALLBACKS_2025.minyak, telur: dbRow ? Number(dbRow.telur) : FALLBACKS_2025.telur };
