@@ -36,7 +36,11 @@ interface MapControllerProps {
   skpgMatangData?: any[];
   intervensiData: any[];
   isPrinting?: boolean;
-  latestSkpgPeriod?: { tahun: number; bulan: number };
+  activeSkpgPeriod?: { tahun: number; bulan: number };
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
+  hasPrevMonth?: boolean;
+  hasNextMonth?: boolean;
 }
 
 function MapController({
@@ -50,7 +54,11 @@ function MapController({
   skpgMatangData,
   intervensiData,
   isPrinting,
-  latestSkpgPeriod
+  activeSkpgPeriod,
+  onPrevMonth,
+  onNextMonth,
+  hasPrevMonth,
+  hasNextMonth
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -193,12 +201,48 @@ function MapController({
                     <span className="text-[10px] font-extrabold text-slate-800 leading-none">
                       SKPG {(() => {
                         const MONTHS_INDO = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                        const m = latestSkpgPeriod?.bulan || 6;
-                        const y = latestSkpgPeriod?.tahun || 2026;
+                        const m = activeSkpgPeriod?.bulan || 6;
+                        const y = activeSkpgPeriod?.tahun || 2026;
                         return `${MONTHS_INDO[m - 1]} ${y}`;
                       })()}
                     </span>
-                    <span className="text-[8px] text-slate-400 font-bold mt-0.5">Gizi Balita</span>
+                    <div className="flex items-center gap-1 mt-1 select-none">
+                      <span className="text-[8px] text-slate-400 font-bold mr-0.5">Gizi Balita</span>
+                      
+                      {/* Tombol Kiri (n-1) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onPrevMonth) onPrevMonth();
+                        }}
+                        disabled={!hasPrevMonth}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          hasPrevMonth 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Bulan Sebelumnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&lt;</span>
+                      </button>
+
+                      {/* Tombol Kanan (n+1) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onNextMonth) onNextMonth();
+                        }}
+                        disabled={!hasNextMonth}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          hasNextMonth 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Bulan Berikutnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&gt;</span>
+                      </button>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setActiveLayer('skpg')}
@@ -445,37 +489,55 @@ export default function MapUnified({
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
-  const [latestSkpgPeriod, setLatestSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
+  const [validPeriods, setValidPeriods] = useState<{ tahun: number; bulan: number }[]>([]);
+  const [activeSkpgPeriod, setActiveSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
 
   useEffect(() => {
     setMounted(true);
     loadFromURL();
   }, [loadFromURL]);
 
-  // Fetch the latest period available with real data
+  // Fetch all valid periods available with real stunting data
   useEffect(() => {
     if (!mounted) return;
-    const fetchLatestSkpgPeriod = async () => {
+    const fetchValidPeriods = async () => {
       try {
         const { data, error } = await supabase
           .from('gizi_balita_skpg_kelurahan')
-          .select('tahun, bulan')
-          .gt('total_balita', 0)
+          .select('tahun, bulan, total_balita')
           .order('tahun', { ascending: false })
-          .order('bulan', { ascending: false })
-          .limit(1);
+          .order('bulan', { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          setLatestSkpgPeriod({ tahun: data[0].tahun, bulan: data[0].bulan });
+        if (!error && data) {
+          const list: { tahun: number; bulan: number }[] = [];
+          // Selalu masukkan Januari 2026 sebagai backup
+          list.push({ tahun: 2026, bulan: 1 });
+
+          data.forEach(r => {
+            if (r.total_balita > 0) {
+              if (!list.some(p => p.tahun === r.tahun && p.bulan === r.bulan)) {
+                list.push({ tahun: r.tahun, bulan: r.bulan });
+              }
+            }
+          });
+
+          // Urutkan ascending agar mudah navigasi step
+          list.sort((a, b) => a.tahun - b.tahun || a.bulan - b.bulan);
+          setValidPeriods(list);
+
+          // Default set ke periode terbaru
+          if (list.length > 0) {
+            setActiveSkpgPeriod(list[list.length - 1]);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch latest stunting period:', err);
+        console.error('Failed to fetch valid stunting periods:', err);
       }
     };
-    fetchLatestSkpgPeriod();
+    fetchValidPeriods();
   }, [mounted]);
 
-  // Fetch Supabase Data dynamically on year/month change
+  // Fetch Supabase Data dynamically on year/month/activeSkpgPeriod change
   useEffect(() => {
     if (!mounted) return;
 
@@ -502,13 +564,13 @@ export default function MapUnified({
           console.warn('fsva_matang fetch failed:', e);
         }
 
-        // Fetch Mature SKPG Dataset (Dinamis: prioritas gizi_balita_skpg_kelurahan terbaru)
+        // Fetch Mature SKPG Dataset (Dinamis: mengikuti activeSkpgPeriod)
         try {
           const { data: skpgRows, error } = await supabase
             .from('gizi_balita_skpg_kelurahan')
             .select('*')
-            .eq('tahun', latestSkpgPeriod.tahun)
-            .eq('bulan', latestSkpgPeriod.bulan);
+            .eq('tahun', activeSkpgPeriod.tahun)
+            .eq('bulan', activeSkpgPeriod.bulan);
           
           if (!error && skpgRows && skpgRows.length > 0) {
             // Map gizi_balita_skpg_kelurahan to expected MapLayers layout
@@ -573,7 +635,7 @@ export default function MapUnified({
     }
 
     fetchMapData();
-  }, [mounted, selectedYear, selectedMonth]);
+  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod]);
 
   if (!mounted || kmzLoading) {
     return (
@@ -677,19 +739,38 @@ export default function MapUnified({
           />
 
           {/* Inject controller inside the Leaflet context */}
-          <MapController 
-            activeLayer={activeLayer}
-            setActiveLayer={setActiveLayer}
-            opacity={opacity}
-            setOpacity={setOpacity}
-            basemap={basemap}
-            setBasemap={setBasemap}
-            fsvaMatangData={fsvaMatangData}
-            skpgMatangData={skpgMatangData}
-            intervensiData={intervensiData}
-            isPrinting={isPrinting}
-            latestSkpgPeriod={latestSkpgPeriod}
-          />
+          {(() => {
+            const idx = validPeriods.findIndex(p => p.tahun === activeSkpgPeriod.tahun && p.bulan === activeSkpgPeriod.bulan);
+            const hasPrev = idx > 0;
+            const hasNext = idx !== -1 && idx < validPeriods.length - 1;
+
+            const handlePrev = () => {
+              if (hasPrev) setActiveSkpgPeriod(validPeriods[idx - 1]);
+            };
+            const handleNext = () => {
+              if (hasNext) setActiveSkpgPeriod(validPeriods[idx + 1]);
+            };
+
+            return (
+              <MapController 
+                activeLayer={activeLayer}
+                setActiveLayer={setActiveLayer}
+                opacity={opacity}
+                setOpacity={setOpacity}
+                basemap={basemap}
+                setBasemap={setBasemap}
+                fsvaMatangData={fsvaMatangData}
+                skpgMatangData={skpgMatangData}
+                intervensiData={intervensiData}
+                isPrinting={isPrinting}
+                activeSkpgPeriod={activeSkpgPeriod}
+                onPrevMonth={handlePrev}
+                onNextMonth={handleNext}
+                hasPrevMonth={hasPrev}
+                hasNextMonth={hasNext}
+              />
+            );
+          })()}
         </MapContainer>
       </div>
       
