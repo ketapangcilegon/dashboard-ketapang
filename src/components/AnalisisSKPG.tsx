@@ -61,8 +61,8 @@ const MONTH_NAMES_INDO = [
 ];
 
 export default function AnalisisSKPG() {
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [selectedMonth, setSelectedMonth] = useState(3); // March (to match Capture 1 baseline)
+  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedMonth, setSelectedMonth] = useState(1);
   const [loading, setLoading] = useState(false);
 
   // Dynamic state computed from database
@@ -79,7 +79,15 @@ export default function AnalisisSKPG() {
   useEffect(() => {
     const fetchPeriods = async () => {
       try {
-        const { data } = await supabase
+        // Fetch periods from gizi_balita_skpg (2024-2025 SKPG monthly data)
+        const { data: skpgData } = await supabase
+          .from('gizi_balita_skpg')
+          .select('tahun, bulan')
+          .order('tahun', { ascending: false })
+          .order('bulan', { ascending: false });
+
+        // Also fetch from gizi_balita (2026+ kelurahan data)
+        const { data: giziData } = await supabase
           .from('gizi_balita')
           .select('tahun, bulan')
           .order('tahun', { ascending: false })
@@ -90,20 +98,21 @@ export default function AnalisisSKPG() {
         // Always include March 2026 baseline
         uniquePeriods.push({ tahun: 2026, bulan: 3 });
 
-        if (data) {
-          data.forEach(item => {
-            if (!uniquePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
-              uniquePeriods.push({ tahun: item.tahun, bulan: item.bulan });
-            }
-          });
-        }
+        const addPeriod = (item: { tahun: number; bulan: number }) => {
+          if (!uniquePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
+            uniquePeriods.push({ tahun: item.tahun, bulan: item.bulan });
+          }
+        };
+
+        if (giziData) giziData.forEach(addPeriod);
+        if (skpgData) skpgData.forEach(addPeriod);
         
-        // Sort periods
+        // Sort periods newest first
         uniquePeriods.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
         setAvailablePeriods(uniquePeriods);
       } catch (err) {
         console.error('Error fetching stunting periods:', err);
-        setAvailablePeriods([{ tahun: 2026, bulan: 3 }, { tahun: 2026, bulan: 1 }]);
+        setAvailablePeriods([{ tahun: 2026, bulan: 3 }, { tahun: 2025, bulan: 1 }]);
       }
     };
     fetchPeriods();
@@ -172,51 +181,78 @@ export default function AnalisisSKPG() {
           setPricesPrev(Object.keys(BASELINE_PRICES_2026).reduce((acc, k) => ({ ...acc, [k]: BASELINE_PRICES_2025 }), {}));
         }
 
-        // 2. Fetch live stunting from gizi_balita table
-        const { data: giziRows } = await supabase
-          .from('gizi_balita')
-          .select('*')
-          .eq('tahun', fetchYear)
-          .eq('bulan', fetchMonth);
+        // 2. Fetch nutrition (gizi balita)
+        // For 2024 & 2025: read from gizi_balita_skpg (kecamatan-level SKPG monthly data)
+        // For 2026+: read from gizi_balita (kelurahan-level aggregated data)
+        if (fetchYear <= 2025) {
+          // --- SKPG kecamatan-level table ---
+          const { data: skpgGiziRows } = await supabase
+            .from('gizi_balita_skpg')
+            .select('kecamatan, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih, total_balita')
+            .eq('tahun', fetchYear)
+            .eq('bulan', fetchMonth);
 
-        // Fallback to January 2026 if empty
-        let activeGizi = giziRows;
-        if (!activeGizi || activeGizi.length === 0) {
-          const { data: fb } = await supabase
+          if (skpgGiziRows && skpgGiziRows.length > 0) {
+            const kecNutr: Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }> = {};
+            KECAMATANS.forEach(k => { kecNutr[k] = { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 }; });
+
+            skpgGiziRows.forEach(r => {
+              if (kecNutr[r.kecamatan] !== undefined) {
+                kecNutr[r.kecamatan] = {
+                  sangatKurang: r.bb_sangat_kurang || 0,
+                  kurang:       r.bb_kurang || 0,
+                  normal:       r.bb_normal || 0,
+                  lebih:        r.bb_lebih || 0,
+                  total:        r.total_balita || 0,
+                };
+              }
+            });
+            setNutrition(kecNutr);
+          } else {
+            setNutrition(BASELINE_NUTRITION);
+          }
+        } else {
+          // --- 2026+: gizi_balita table (kelurahan-level) ---
+          const { data: giziRows } = await supabase
             .from('gizi_balita')
             .select('*')
-            .eq('tahun', 2026)
-            .eq('bulan', 1);
-          activeGizi = fb;
-        }
+            .eq('tahun', fetchYear)
+            .eq('bulan', fetchMonth);
 
-        if (activeGizi && activeGizi.length > 0) {
-          const kecNutr: Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }> = {};
-          KECAMATANS.forEach(k => {
-            kecNutr[k] = { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
-          });
+          let activeGizi = giziRows;
+          if (!activeGizi || activeGizi.length === 0) {
+            const { data: fb } = await supabase
+              .from('gizi_balita')
+              .select('*')
+              .eq('tahun', 2026)
+              .eq('bulan', 1);
+            activeGizi = fb;
+          }
 
-          activeGizi.forEach(r => {
-            let foundKec = KECAMATANS.find(k => 
-              (WILAYAH_KELURAHAN[k] || []).some(kel => kel.toLowerCase() === r.nama_kelurahan.toLowerCase())
-            );
-            if (foundKec) {
-              const sk = r.gizi_sangat_kurang || 0;
-              const kr = r.gizi_kurang || 0;
-              const nm = r.gizi_normal || 0;
-              const lb = r.gizi_berlebih || 0;
-              
-              kecNutr[foundKec].sangatKurang += sk;
-              kecNutr[foundKec].kurang += kr;
-              kecNutr[foundKec].normal += nm;
-              kecNutr[foundKec].lebih += lb;
-              kecNutr[foundKec].total += (sk + kr + nm + lb);
-            }
-          });
+          if (activeGizi && activeGizi.length > 0) {
+            const kecNutr: Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }> = {};
+            KECAMATANS.forEach(k => { kecNutr[k] = { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 }; });
 
-          setNutrition(kecNutr);
-        } else {
-          setNutrition(BASELINE_NUTRITION);
+            activeGizi.forEach(r => {
+              let foundKec = KECAMATANS.find(k => 
+                (WILAYAH_KELURAHAN[k] || []).some(kel => kel.toLowerCase() === r.nama_kelurahan.toLowerCase())
+              );
+              if (foundKec) {
+                const sk = r.gizi_sangat_kurang || 0;
+                const kr = r.gizi_kurang || 0;
+                const nm = r.gizi_normal || 0;
+                const lb = r.gizi_berlebih || 0;
+                kecNutr[foundKec].sangatKurang += sk;
+                kecNutr[foundKec].kurang += kr;
+                kecNutr[foundKec].normal += nm;
+                kecNutr[foundKec].lebih += lb;
+                kecNutr[foundKec].total += (sk + kr + nm + lb);
+              }
+            });
+            setNutrition(kecNutr);
+          } else {
+            setNutrition(BASELINE_NUTRITION);
+          }
         }
       } catch (err) {
         console.error('Error fetching dynamic SKPG analysis data:', err);
@@ -481,7 +517,7 @@ export default function AnalisisSKPG() {
               }}
               className="bg-transparent text-xs font-black text-slate-800 outline-none cursor-pointer border-none"
             >
-              {[2025, 2026].map(y => {
+              {[2024, 2025, 2026].map(y => {
                 const isFutureYear = y > currentYear;
                 return (
                   <option key={y} value={y} disabled={isFutureYear}>
