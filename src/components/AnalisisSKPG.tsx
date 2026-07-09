@@ -529,13 +529,13 @@ export default function AnalisisSKPG() {
                   </tr>
                   <tr className="bg-emerald-700/80 text-white text-[7px] md:text-[7.5px] font-black uppercase text-center border-b border-emerald-900">
                     {/* Beras Prices */}
-                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-orange-300 font-black">{labelPrev}</th>
                     <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Minyak Prices */}
-                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-orange-300 font-black">{labelPrev}</th>
                     <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Telur Prices */}
-                    <th className="py-1.5 px-1 border-r border-emerald-900 text-emerald-200/90 font-black">{labelPrev}</th>
+                    <th className="py-1.5 px-1 border-r border-emerald-900 text-orange-300 font-black">{labelPrev}</th>
                     <th className="py-1.5 px-1 border-r border-emerald-900 font-black">{labelCur}</th>
                     {/* Bobot Beras */}
                     <th className="py-1.5 px-0.5 border-r border-emerald-900 bg-yellow-500/80 text-slate-900">Diff %</th>
@@ -560,21 +560,21 @@ export default function AnalisisSKPG() {
                         <td className="py-2 px-3 border-r border-slate-100 text-left font-black text-slate-400">{i + 1}</td>
                         <td className="py-2 px-3 border-r border-slate-100 text-left font-black text-[#0B1E41]">{kec}</td>
                         {/* Beras prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                        <td className="py-2 px-2 border-r border-slate-100 text-orange-500 font-bold">
                           {row.prev.beras > 0 ? row.prev.beras.toLocaleString('id-ID') : 'N/A'}
                         </td>
                         <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
                           {row.cur.beras > 0 ? row.cur.beras.toLocaleString('id-ID') : 'N/A'}
                         </td>
                         {/* Minyak prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                        <td className="py-2 px-2 border-r border-slate-100 text-orange-500 font-bold">
                           {row.prev.minyak > 0 ? row.prev.minyak.toLocaleString('id-ID') : 'N/A'}
                         </td>
                         <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
                           {row.cur.minyak > 0 ? row.cur.minyak.toLocaleString('id-ID') : 'N/A'}
                         </td>
                         {/* Telur prices */}
-                        <td className="py-2 px-2 border-r border-slate-100 text-slate-400">
+                        <td className="py-2 px-2 border-r border-slate-100 text-orange-500 font-bold">
                           {row.prev.telur > 0 ? row.prev.telur.toLocaleString('id-ID') : 'N/A'}
                         </td>
                         <td className="py-2 px-2 border-r border-slate-100 font-bold text-slate-800">
@@ -618,19 +618,19 @@ export default function AnalisisSKPG() {
                   {/* Kota Cilegon Average */}
                   <tr className="bg-slate-50/90 text-center font-black border-t-2 border-slate-200">
                     <td className="py-3 px-3 border-r border-slate-100" colSpan={2}>KOTA CILEGON</td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                    <td className="py-3 px-2 border-r border-slate-100 text-orange-500 font-bold">
                       {kotaCilegon.beras.prev > 0 ? kotaCilegon.beras.prev.toLocaleString('id-ID') : 'N/A'}
                     </td>
                     <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
                       {kotaCilegon.beras.cur > 0 ? kotaCilegon.beras.cur.toLocaleString('id-ID') : 'N/A'}
                     </td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                    <td className="py-3 px-2 border-r border-slate-100 text-orange-500 font-bold">
                       {kotaCilegon.minyak.prev > 0 ? kotaCilegon.minyak.prev.toLocaleString('id-ID') : 'N/A'}
                     </td>
                     <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
                       {kotaCilegon.minyak.cur > 0 ? kotaCilegon.minyak.cur.toLocaleString('id-ID') : 'N/A'}
                     </td>
-                    <td className="py-3 px-2 border-r border-slate-100 text-slate-400">
+                    <td className="py-3 px-2 border-r border-slate-100 text-orange-500 font-bold">
                       {kotaCilegon.telur.prev > 0 ? kotaCilegon.telur.prev.toLocaleString('id-ID') : 'N/A'}
                     </td>
                     <td className="py-3 px-2 border-r border-slate-100 text-slate-800">
