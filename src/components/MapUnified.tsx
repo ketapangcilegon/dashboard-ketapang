@@ -36,6 +36,7 @@ interface MapControllerProps {
   skpgMatangData?: any[];
   intervensiData: any[];
   isPrinting?: boolean;
+  latestSkpgPeriod?: { tahun: number; bulan: number };
 }
 
 function MapController({
@@ -48,7 +49,8 @@ function MapController({
   fsvaMatangData,
   skpgMatangData,
   intervensiData,
-  isPrinting
+  isPrinting,
+  latestSkpgPeriod
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -174,7 +176,7 @@ function MapController({
                 {/* FSVA Switch */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA</span>
+                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA 2025</span>
                     <span className="text-[8px] text-slate-400 font-bold mt-0.5">Indeks Ketahanan Pangan</span>
                   </div>
                   <button 
@@ -188,7 +190,14 @@ function MapController({
                 {/* SKPG Switch */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">SKPG</span>
+                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">
+                      SKPG {(() => {
+                        const MONTHS_INDO = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                        const m = latestSkpgPeriod?.bulan || 6;
+                        const y = latestSkpgPeriod?.tahun || 2026;
+                        return `${MONTHS_INDO[m - 1]} ${y}`;
+                      })()}
+                    </span>
                     <span className="text-[8px] text-slate-400 font-bold mt-0.5">Gizi Balita</span>
                   </div>
                   <button 
@@ -436,11 +445,35 @@ export default function MapUnified({
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [latestSkpgPeriod, setLatestSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
 
   useEffect(() => {
     setMounted(true);
     loadFromURL();
   }, [loadFromURL]);
+
+  // Fetch the latest period available with real data
+  useEffect(() => {
+    if (!mounted) return;
+    const fetchLatestSkpgPeriod = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gizi_balita_skpg_kelurahan')
+          .select('tahun, bulan')
+          .gt('total_balita', 0)
+          .order('tahun', { ascending: false })
+          .order('bulan', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setLatestSkpgPeriod({ tahun: data[0].tahun, bulan: data[0].bulan });
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest stunting period:', err);
+      }
+    };
+    fetchLatestSkpgPeriod();
+  }, [mounted]);
 
   // Fetch Supabase Data dynamically on year/month change
   useEffect(() => {
@@ -469,19 +502,28 @@ export default function MapUnified({
           console.warn('fsva_matang fetch failed:', e);
         }
 
-        // Fetch Mature SKPG Dataset (Purely from skpg_matang for all periods)
+        // Fetch Mature SKPG Dataset (Dinamis: prioritas gizi_balita_skpg_kelurahan terbaru)
         try {
-          // Fetch from pre-calculated skpg_matang table (with monthly filter support)
-          const { data: skpgM, error } = await supabase
-            .from('skpg_matang')
+          const { data: skpgRows, error } = await supabase
+            .from('gizi_balita_skpg_kelurahan')
             .select('*')
-            .eq('periode', Number(selectedYear))
-            .eq('bulan', Number(selectedMonth));
-             
-          if (!error && skpgM && skpgM.length > 0) {
-            setSkpgMatangData(skpgM);
+            .eq('tahun', latestSkpgPeriod.tahun)
+            .eq('bulan', latestSkpgPeriod.bulan);
+          
+          if (!error && skpgRows && skpgRows.length > 0) {
+            // Map gizi_balita_skpg_kelurahan to expected MapLayers layout
+            const mappedSkpg = skpgRows.map(r => ({
+              nama_kelurahan: r.kelurahan,
+              gizi_sangat_kurang: r.bb_sangat_kurang,
+              gizi_kurang: r.bb_kurang,
+              gizi_normal: r.bb_normal,
+              gizi_berlebih: r.bb_lebih,
+              periode: r.tahun,
+              bulan: r.bulan
+            }));
+            setSkpgMatangData(mappedSkpg);
           } else {
-            // Fallback to query only by year (periode)
+            // Fallback to skpg_matang table
             const { data: skpgMFallback } = await supabase
               .from('skpg_matang')
               .select('*')
@@ -489,7 +531,7 @@ export default function MapUnified({
             setSkpgMatangData(skpgMFallback || []);
           }
         } catch (e) {
-          console.warn('skpg_matang fetch failed:', e);
+          console.warn('gizi_balita_skpg_kelurahan fetch failed:', e);
         }
 
 
@@ -611,7 +653,7 @@ export default function MapUnified({
       {/* Leaflet Map Container */}
       <div className="flex-1 w-full h-full relative">
         <MapContainer
-          center={[-6.015, 106.012]}
+          center={[-6.015, 106.024]}
           zoom={11.0}
           zoomControl={false}
           className="w-full h-full z-0"
@@ -646,6 +688,7 @@ export default function MapUnified({
             skpgMatangData={skpgMatangData}
             intervensiData={intervensiData}
             isPrinting={isPrinting}
+            latestSkpgPeriod={latestSkpgPeriod}
           />
         </MapContainer>
       </div>

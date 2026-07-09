@@ -105,6 +105,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   
   const [nutrition, setNutrition] = useState<Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }>>(BASELINE_NUTRITION);
   const [availablePeriods, setAvailablePeriods] = useState<{ tahun: number; bulan: number }[]>([]);
+  const [completePeriods, setCompletePeriods] = useState<{ tahun: number; bulan: number }[]>([]);
 
   // Sorting method to arrange kelurahan from worst to best
   const getSortedKelurahans = () => {
@@ -191,27 +192,38 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
       try {
         const { data: skpgData } = await supabase
           .from('gizi_balita_skpg_kelurahan')
-          .select('tahun, bulan')
+          .select('tahun, bulan, total_balita')
           .order('tahun', { ascending: false })
           .order('bulan', { ascending: false });
 
         const uniquePeriods: { tahun: number; bulan: number }[] = [];
+        const completeList: { tahun: number; bulan: number }[] = [];
         
         // Always include January 2026
         uniquePeriods.push({ tahun: 2026, bulan: 1 });
+        completeList.push({ tahun: 2026, bulan: 1 });
 
-        const addPeriod = (item: { tahun: number; bulan: number }) => {
-          if (!uniquePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
-            uniquePeriods.push({ tahun: item.tahun, bulan: item.bulan });
-          }
-        };
-
-        if (skpgData) skpgData.forEach(addPeriod);
+        if (skpgData) {
+          skpgData.forEach(item => {
+            if (!uniquePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
+              uniquePeriods.push({ tahun: item.tahun, bulan: item.bulan });
+            }
+            if (item.total_balita > 0) {
+              if (!completeList.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
+                completeList.push({ tahun: item.tahun, bulan: item.bulan });
+              }
+            }
+          });
+        }
+        
         uniquePeriods.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
+        completeList.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
         setAvailablePeriods(uniquePeriods);
+        setCompletePeriods(completeList);
       } catch (err) {
         console.error('Error fetching Kelurahan stunting periods:', err);
         setAvailablePeriods([{ tahun: 2025, bulan: 1 }]);
+        setCompletePeriods([{ tahun: 2025, bulan: 1 }]);
       }
     };
     fetchPeriods();
@@ -302,6 +314,8 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
     fetchDynamicData();
   }, [selectedMonth, selectedYear]);
 
+  const isGiziDataAvailable = Object.values(nutrition).some(n => n.total > 0);
+
   // Trigger AI insight generation automatically on date or data changes
   useEffect(() => {
     if (loading || !isPeriodAvailable) return;
@@ -339,8 +353,12 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   const getPemanfaatanRow = (kelNama: string) => {
     const nutr = nutrition[kelNama] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
     const underweightTotal = nutr.sangatKurang + nutr.kurang;
-    const value = nutr.total > 0 ? parseFloat((underweightTotal / nutr.total * 100).toFixed(1)) : 0;
+    
+    if (nutr.total === 0) {
+      return { nutr, underweightTotal, value: 0, bobot: 0, status: 'N/A' };
+    }
 
+    const value = parseFloat((underweightTotal / nutr.total * 100).toFixed(1));
     const bobot = value > 15 ? 1 : value >= 10 ? 2 : 3;
     const status = bobot === 3 ? 'AMAN' : bobot === 2 ? 'WASPADA' : 'RENTAN';
 
@@ -386,9 +404,10 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                             avgPrevBeras > 0 && avgPrevMinyak > 0 && avgPrevTelur > 0;
 
     const underweightTotal = totalSangatKurang + totalKurang;
-    const valueStunting = totalBalita > 0 ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
-    const bobotStunting = valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3;
-    const statusStunting = bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN';
+    const isStuntingAvailable = totalBalita > 0;
+    const valueStunting = isStuntingAvailable ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
+    const bobotStunting = isStuntingAvailable ? (valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3) : 0;
+    const statusStunting = isStuntingAvailable ? (bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN') : 'N/A';
 
     const rBeras = parseFloat(((avgCurBeras - avgPrevBeras) / avgPrevBeras * 100).toFixed(1));
     const rMinyak = parseFloat(((avgCurMinyak - avgPrevMinyak) / avgPrevMinyak * 100).toFixed(1));
@@ -822,76 +841,105 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 </h3>
 
                 {/* Visual 3-Panel Grid (Gizi) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
-                  {/* Kolom 1: Peta (Span 4) */}
-                  <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan Kelurahan</h4>
-                    <MapSKPGMini level="kelurahan" dataStatus={getGiziStatusMap()} height="230px" />
-                  </div>
-                  
-                  {/* Kolom 2: Grafik (Span 5) */}
-                  <div className="lg:col-span-5 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
-                    <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2 flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={getGiziPieData()}
-                            cx="50%"
-                            cy="45%"
-                            innerRadius={50}
-                            outerRadius={75}
-                            paddingAngle={3}
-                            dataKey="value"
-                          >
-                            {getGiziPieData().map((entry, idx) => (
-                              <Cell key={`cell-${idx}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value) => value ? `${Number(value).toLocaleString('id-ID')} balita` : ''} contentStyle={{ fontSize: '10px' }} />
-                          <Legend wrapperStyle={{ fontSize: '9px' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                {!isGiziDataAvailable ? (
+                  <div className="bg-amber-50/50 border border-amber-200/80 rounded-2xl p-6 text-center shadow-sm select-none my-4">
+                    <div className="w-12 h-12 bg-amber-100/80 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                      <ShieldAlert className="w-6 h-6 text-amber-600 animate-pulse" />
                     </div>
-                  </div>
-
-                  {/* Kolom 3: Interpretasi (Span 3) */}
-                  <div className="lg:col-span-3 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Pemanfaatan Pangan</h4>
-                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
-                      <div className="space-y-3.5 text-xs text-slate-650 font-bold">
-                        {(() => {
-                          const pie = getGiziPieData();
-                          return (
-                            <>
-                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                                <span className="text-slate-600">BB Normal:</span>
-                                <span className="text-[#6ABD45] font-extrabold">{pie[0].percent}%</span>
-                              </div>
-                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                                <span className="text-slate-600">BB Kurang & Sgt Kurang:</span>
-                                <span className="text-amber-600 font-extrabold">{(pie[1].percent + pie[2].percent)}%</span>
-                              </div>
-                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                                <span className="text-slate-600">BB Berlebih:</span>
-                                <span className="text-blue-600 font-extrabold">{pie[3].percent}%</span>
-                              </div>
-                              <div className="pt-2">
-                                <span className="text-[10px] text-slate-400 block mb-1">STATUS PEMANFAATAN KOTA:</span>
-                                <span className="px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider" style={{
-                                  backgroundColor: kotaCilegon.nutrition.status === 'AMAN' ? '#6ABD45' : kotaCilegon.nutrition.status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
-                                  color: kotaCilegon.nutrition.status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
-                                }}>
-                                  {kotaCilegon.nutrition.status}
-                                </span>
-                              </div>
-                            </>
-                          );
-                        })()}
+                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">Data Pemanfaatan Pangan Belum Tersedia</h4>
+                    <p className="text-xs text-slate-500 mt-1.5 max-w-lg mx-auto leading-relaxed">
+                      Status pemanfaatan pangan (Gizi Balita BB/U) untuk periode <span className="font-extrabold text-slate-700">{MONTH_NAMES_INDO[selectedMonth]} {selectedYear}</span> belum diinput atau tidak tersedia di database.
+                    </p>
+                    <div className="mt-4 pt-4 border-t border-amber-200/40">
+                      <span className="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-widest">Pilih Periode dengan Data Lengkap:</span>
+                      <div className="flex flex-wrap gap-2 justify-center max-w-xl mx-auto">
+                        {completePeriods.map(p => (
+                          <button
+                            key={`${p.tahun}-${p.bulan}`}
+                            onClick={() => {
+                              setSelectedYear(p.tahun);
+                              setSelectedMonth(p.bulan);
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-[9px] font-black shadow-sm transition-all cursor-pointer"
+                          >
+                            {MONTH_NAMES_INDO[p.bulan]} {p.tahun}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
+                    {/* Kolom 1: Peta (Span 4) */}
+                    <div className="lg:col-span-4 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan Kelurahan</h4>
+                      <MapSKPGMini level="kelurahan" dataStatus={getGiziStatusMap()} height="230px" />
+                    </div>
+                    
+                    {/* Kolom 2: Grafik (Span 5) */}
+                    <div className="lg:col-span-5 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
+                      <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={getGiziPieData()}
+                              cx="50%"
+                              cy="45%"
+                              innerRadius={50}
+                              outerRadius={75}
+                              paddingAngle={3}
+                              dataKey="value"
+                            >
+                              {getGiziPieData().map((entry, idx) => (
+                                <Cell key={`cell-${idx}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => value ? `${Number(value).toLocaleString('id-ID')} balita` : ''} contentStyle={{ fontSize: '10px' }} />
+                            <Legend wrapperStyle={{ fontSize: '9px' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Kolom 3: Interpretasi (Span 3) */}
+                    <div className="lg:col-span-3 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Pemanfaatan Pangan</h4>
+                      <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
+                        <div className="space-y-3.5 text-xs text-slate-650 font-bold">
+                          {(() => {
+                            const pie = getGiziPieData();
+                            return (
+                              <>
+                                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                  <span className="text-slate-600">BB Normal:</span>
+                                  <span className="text-[#6ABD45] font-extrabold">{pie[0].percent}%</span>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                  <span className="text-slate-600">BB Kurang & Sgt Kurang:</span>
+                                  <span className="text-amber-600 font-extrabold">{(pie[1].percent + pie[2].percent)}%</span>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                  <span className="text-slate-600">BB Berlebih:</span>
+                                  <span className="text-blue-600 font-extrabold">{pie[3].percent}%</span>
+                                </div>
+                                <div className="pt-2">
+                                  <span className="text-[10px] text-slate-400 block mb-1">STATUS PEMANFAATAN KOTA:</span>
+                                  <span className="px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider" style={{
+                                    backgroundColor: kotaCilegon.nutrition.status === 'AMAN' ? '#6ABD45' : kotaCilegon.nutrition.status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
+                                    color: kotaCilegon.nutrition.status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
+                                  }}>
+                                    {kotaCilegon.nutrition.status}
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse table-auto">
@@ -923,19 +971,20 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                             <td className="py-2 px-2 border-r border-slate-100 text-left font-black text-slate-400">{i + 1}</td>
                             <td className="py-2 px-3 border-r border-slate-100 text-left font-black text-[#0B1E41]">{kel.nama}</td>
                             <td className="py-2 px-3 border-r border-slate-100 text-left text-slate-500">{kel.kecamatan}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 text-rose-600 font-bold">{row.nutr.sangatKurang}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 text-amber-500 font-bold">{row.nutr.kurang}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 text-slate-600">{row.nutr.normal}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 text-slate-400">{row.nutr.lebih}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 font-black text-slate-900 bg-slate-50/50">{row.underweightTotal}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 font-black text-slate-500 bg-slate-50/50">{row.nutr.total}</td>
-                            <td className="py-2 px-2 border-r border-slate-100 bg-amber-50/30 font-black text-slate-900">{row.value}%</td>
-                            <td className="py-2 px-2 border-r border-slate-100 bg-amber-50/30 font-black text-emerald-600">{row.bobot}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 text-rose-600 font-bold">{row.status === 'N/A' ? 'N/A' : row.nutr.sangatKurang}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 text-amber-500 font-bold">{row.status === 'N/A' ? 'N/A' : row.nutr.kurang}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 text-slate-600">{row.status === 'N/A' ? 'N/A' : row.nutr.normal}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 text-slate-400">{row.status === 'N/A' ? 'N/A' : row.nutr.lebih}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 font-black text-slate-900 bg-slate-50/50">{row.status === 'N/A' ? 'N/A' : row.underweightTotal}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 font-black text-slate-500 bg-slate-50/50">{row.status === 'N/A' ? 'N/A' : row.nutr.total}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 bg-amber-50/30 font-black text-slate-900">{row.status === 'N/A' ? 'N/A' : `${row.value}%`}</td>
+                            <td className="py-2 px-2 border-r border-slate-100 bg-amber-50/30 font-black text-emerald-600">{row.status === 'N/A' ? 'N/A' : row.bobot}</td>
                             <td className="py-2 px-2 bg-amber-50/30">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
                                 row.status === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
                                 row.status === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
-                                'bg-rose-100 text-rose-800'
+                                row.status === 'RENTAN' ? 'bg-rose-100 text-rose-800' :
+                                'bg-slate-100 text-slate-550'
                               }`}>
                                 {row.status}
                               </span>
@@ -971,80 +1020,109 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 </h3>
 
                 {/* Visual 3-Panel Grid (Komposit Kelurahan) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
-                  {/* Kolom 1: Peta (Span 4) */}
-                  <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit Kelurahan</h4>
-                    <MapSKPGMini level="kelurahan" dataStatus={getKompositStatusMap()} height="240px" />
-                  </div>
-                  
-                  {/* Kolom 2: Grafik 10 Kelurahan Terendah (Span 4) */}
-                  <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">10 Kelurahan Dengan Skor Komposit Terendah</h4>
-                    <div className="h-[240px] w-full bg-white rounded-xl border border-slate-150 p-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={getKompositChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                          <XAxis dataKey="name" stroke="#94A3B8" fontSize={8} tickLine={false} />
-                          <YAxis stroke="#94A3B8" fontSize={9} domain={[0, 6]} tickCount={7} />
-                          <Tooltip contentStyle={{ fontSize: '10px' }} />
-                          <Bar dataKey="Skor Komposit" fill="#EF4444" radius={[4, 4, 0, 0]}>
-                            {getKompositChartData().map((entry, idx) => {
-                              const colors = ['#EF4444', '#F59E0B', '#10B981']; // Rentan, Waspada, Aman
-                              const idxCol = entry['Skor Komposit'] === 6 ? 2 : entry['Skor Komposit'] >= 4 ? 1 : 0;
-                              return <Cell key={`cell-${idx}`} fill={colors[idxCol]} />;
-                            })}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                {!isGiziDataAvailable ? (
+                  <div className="bg-amber-50/50 border border-amber-200/80 rounded-2xl p-6 text-center shadow-sm select-none my-4">
+                    <div className="w-12 h-12 bg-amber-100/80 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                      <Sparkles className="w-6 h-6 text-amber-600 animate-pulse" />
+                    </div>
+                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">Analisis Komposit Tertunda</h4>
+                    <p className="text-xs text-slate-500 mt-1.5 max-w-lg mx-auto leading-relaxed">
+                      Analisis komposit memerlukan penggabungan Aspek Akses Pangan dan Aspek Pemanfaatan Pangan. Data pemanfaatan pangan untuk periode <span className="font-extrabold text-slate-700">{MONTH_NAMES_INDO[selectedMonth]} {selectedYear}</span> belum tersedia.
+                    </p>
+                    <div className="mt-4 pt-4 border-t border-amber-200/40">
+                      <span className="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-widest">Pilih Periode dengan Data Lengkap:</span>
+                      <div className="flex flex-wrap gap-2 justify-center max-w-xl mx-auto">
+                        {completePeriods.map(p => (
+                          <button
+                            key={`${p.tahun}-${p.bulan}`}
+                            onClick={() => {
+                              setSelectedYear(p.tahun);
+                              setSelectedMonth(p.bulan);
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-[9px] font-black shadow-sm transition-all cursor-pointer"
+                          >
+                            {MONTH_NAMES_INDO[p.bulan]} {p.tahun}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
+                    {/* Kolom 1: Peta (Span 4) */}
+                    <div className="lg:col-span-4 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit Kelurahan</h4>
+                      <MapSKPGMini level="kelurahan" dataStatus={getKompositStatusMap()} height="240px" />
+                    </div>
+                    
+                    {/* Kolom 2: Grafik 10 Kelurahan Terendah (Span 4) */}
+                    <div className="lg:col-span-4 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">10 Kelurahan Dengan Skor Komposit Terendah</h4>
+                      <div className="h-[240px] w-full bg-white rounded-xl border border-slate-150 p-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={getKompositChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                            <XAxis dataKey="name" stroke="#94A3B8" fontSize={8} tickLine={false} />
+                            <YAxis stroke="#94A3B8" fontSize={9} domain={[0, 6]} tickCount={7} />
+                            <Tooltip contentStyle={{ fontSize: '10px' }} />
+                            <Bar dataKey="Skor Komposit" fill="#EF4444" radius={[4, 4, 0, 0]}>
+                              {getKompositChartData().map((entry, idx) => {
+                                const colors = ['#EF4444', '#F59E0B', '#10B981']; // Rentan, Waspada, Aman
+                                const idxCol = entry['Skor Komposit'] === 6 ? 2 : entry['Skor Komposit'] >= 4 ? 1 : 0;
+                                return <Cell key={`cell-${idx}`} fill={colors[idxCol]} />;
+                              })}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
 
-                  {/* Kolom 3: Status Komposit (Span 4) */}
-                  <div className="lg:col-span-4 flex flex-col justify-between">
-                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Status Komposit Kota</h4>
-                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
-                      {(() => {
-                        const score = kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : 0;
-                        const status = score === 6 ? 'AMAN' : score >= 4 ? 'WASPADA' : 'RENTAN';
-                        return (
-                          <div className="space-y-3.5 text-xs text-slate-650 font-bold">
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">IA (Index Akses) Kota:</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
-                                backgroundColor: kotaCilegon.indexAkses === 3 ? '#6ABD45' : kotaCilegon.indexAkses === 2 ? '#F7EC13' : '#ED1E24',
-                                color: kotaCilegon.indexAkses === 2 ? '#1E293B' : '#FFFFFF'
-                              }}>
-                                {kotaCilegon.indexAkses} ({kotaCilegon.statusAkses})
-                              </span>
+                    {/* Kolom 3: Status Komposit (Span 4) */}
+                    <div className="lg:col-span-4 flex flex-col justify-between">
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Status Komposit Kota</h4>
+                      <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
+                        {(() => {
+                          const score = kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : 0;
+                          const status = score === 6 ? 'AMAN' : score >= 4 ? 'WASPADA' : 'RENTAN';
+                          return (
+                            <div className="space-y-3.5 text-xs text-slate-650 font-bold">
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">IA (Index Akses) Kota:</span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                                  backgroundColor: kotaCilegon.indexAkses === 3 ? '#6ABD45' : kotaCilegon.indexAkses === 2 ? '#F7EC13' : '#ED1E24',
+                                  color: kotaCilegon.indexAkses === 2 ? '#1E293B' : '#FFFFFF'
+                                }}>
+                                  {kotaCilegon.indexAkses} ({kotaCilegon.statusAkses})
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">IP (Index Pemanfaatan) Kota:</span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                                  backgroundColor: kotaCilegon.nutrition.bobot === 3 ? '#6ABD45' : kotaCilegon.nutrition.bobot === 2 ? '#F7EC13' : '#ED1E24',
+                                  color: kotaCilegon.nutrition.bobot === 2 ? '#1E293B' : '#FFFFFF'
+                                }}>
+                                  {kotaCilegon.nutrition.bobot} ({kotaCilegon.nutrition.status})
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">Skor Komposit (IA + IP):</span>
+                                <span className="text-slate-800 font-extrabold text-sm">{score}</span>
+                              </div>
+                              <div className="pt-2">
+                                <span className="text-[10px] text-slate-400 block mb-1">STATUS KOMPOSIT KOTA:</span>
+                                <span className="px-3.5 py-1.5 rounded-lg text-sm font-black inline-block tracking-wider" style={{
+                                  backgroundColor: status === 'AMAN' ? '#6ABD45' : status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
+                                  color: status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
+                                }}>
+                                  {status}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">IP (Index Pemanfaatan) Kota:</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
-                                backgroundColor: kotaCilegon.nutrition.bobot === 3 ? '#6ABD45' : kotaCilegon.nutrition.bobot === 2 ? '#F7EC13' : '#ED1E24',
-                                color: kotaCilegon.nutrition.bobot === 2 ? '#1E293B' : '#FFFFFF'
-                              }}>
-                                {kotaCilegon.nutrition.bobot} ({kotaCilegon.nutrition.status})
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">Skor Komposit (IA + IP):</span>
-                              <span className="text-slate-800 font-extrabold text-sm">{score}</span>
-                            </div>
-                            <div className="pt-2">
-                              <span className="text-[10px] text-slate-400 block mb-1">STATUS KOMPOSIT KOTA:</span>
-                              <span className="px-3.5 py-1.5 rounded-lg text-sm font-black inline-block tracking-wider" style={{
-                                backgroundColor: status === 'AMAN' ? '#6ABD45' : status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
-                                color: status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
-                              }}>
-                                {status}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse table-auto">
@@ -1064,10 +1142,12 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       {getSortedKelurahans().map((kel, i) => {
                         const rowAkses = getKeterjangkauanRow(kel.nama, kel.kecamatan);
                         const rowGizi = getPemanfaatanRow(kel.nama);
-                        
-                        const score = rowAkses.index + rowGizi.bobot;
-                        const compositeIndex = score === 6 ? 3 : score >= 4 ? 2 : 1;
-                        const compositeStatus = compositeIndex === 3 ? 'AMAN' : compositeIndex === 2 ? 'WASPADA' : 'RENTAN';
+                        const isGiziAvailable = rowGizi.bobot > 0;
+                        const score = isGiziAvailable ? (rowAkses.index + rowGizi.bobot) : 0;
+                        const compositeIndex = isGiziAvailable ? (score === 6 ? 3 : score >= 4 ? 2 : 1) : 0;
+                        const compositeStatus = isGiziAvailable 
+                          ? (compositeIndex === 3 ? 'AMAN' : compositeIndex === 2 ? 'WASPADA' : 'RENTAN')
+                          : 'N/A';
 
                         return (
                           <tr key={`composite-${kel.nama}`} className="hover:bg-slate-50/80 transition-all text-center">
@@ -1075,22 +1155,24 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                             <td className="py-2.5 px-3 text-left font-black text-[#0B1E41]">{kel.nama}</td>
                             <td className="py-2.5 px-3 text-left text-slate-500">{kel.kecamatan}</td>
                             <td className="py-2.5 px-2 bg-emerald-50/40 text-emerald-700 font-extrabold">{rowAkses.index}</td>
-                            <td className="py-2.5 px-2 bg-blue-50/40 text-blue-700 font-extrabold">{rowGizi.bobot}</td>
-                            <td className="py-2.5 px-2 bg-slate-50/40 font-black text-slate-800">{score}</td>
+                            <td className="py-2.5 px-2 bg-blue-50/40 text-blue-700 font-extrabold">{isGiziAvailable ? rowGizi.bobot : 'N/A'}</td>
+                            <td className="py-2.5 px-2 bg-slate-50/40 font-black text-slate-800">{isGiziAvailable ? score : 'N/A'}</td>
                             <td className="py-2.5 px-2">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
                                 compositeStatus === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
                                 compositeStatus === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
-                                'bg-rose-100 text-rose-800'
+                                compositeStatus === 'RENTAN' ? 'bg-rose-100 text-rose-800' :
+                                'bg-slate-100 text-slate-550'
                               }`}>
                                 {compositeStatus}
                               </span>
                             </td>
                             <td className={`py-2.5 px-2 font-black ${
+                              !isGiziAvailable ? 'text-slate-550' :
                               compositeIndex === 3 ? 'text-emerald-600' :
                               compositeIndex === 2 ? 'text-amber-500' :
                               'text-rose-600'
-                            }`}>{compositeIndex}</td>
+                            }`}>{isGiziAvailable ? compositeIndex : 'N/A'}</td>
                           </tr>
                         );
                       })}
@@ -1110,20 +1192,31 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                   <div className="space-y-4">
                     <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl">
                       <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Total Balita Kota Cilegon</h4>
-                      <p className="text-2xl font-black text-[#0B1E41]">{kotaCilegon.nutrition.totalBalita.toLocaleString('id-ID')}</p>
+                      <p className="text-2xl font-black text-[#0B1E41]">
+                        {isGiziDataAvailable ? kotaCilegon.nutrition.totalBalita.toLocaleString('id-ID') : 'N/A'}
+                      </p>
                     </div>
                     <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl">
                       <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Rata-rata Prevalensi Gizi Kurang</h4>
-                      <p className="text-2xl font-black text-emerald-600">{kotaCilegon.nutrition.value}%</p>
+                      <p className="text-2xl font-black text-emerald-600">
+                        {isGiziDataAvailable ? `${kotaCilegon.nutrition.value}%` : 'N/A'}
+                      </p>
                     </div>
                   </div>
 
                   {/* Recommendation Alerts */}
                   <div className="space-y-4">
-                    <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-xl">
-                      <h4 className="font-black text-emerald-800 uppercase tracking-wider mb-2">Aspek Pemanfaatan (Gizi): AMAN</h4>
-                      <p className="text-slate-700 text-xs">Seluruh 43 kelurahan di Kota Cilegon mencatatkan prevalensi balita underweight rata-rata **{kotaCilegon.nutrition.value}%**.</p>
-                    </div>
+                    {isGiziDataAvailable ? (
+                      <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-xl">
+                        <h4 className="font-black text-emerald-800 uppercase tracking-wider mb-2">Aspek Pemanfaatan (Gizi): AMAN</h4>
+                        <p className="text-slate-700 text-xs">Seluruh 43 kelurahan di Kota Cilegon mencatatkan prevalensi balita underweight rata-rata **{kotaCilegon.nutrition.value}%**.</p>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        <h4 className="font-black text-slate-400 uppercase tracking-wider mb-2">Aspek Pemanfaatan (Gizi): DATA N/A</h4>
+                        <p className="text-slate-500 text-xs">Data stunting belum tersedia pada periode terpilih untuk dievaluasi.</p>
+                      </div>
+                    )}
                     <div className="p-4 bg-amber-50/80 border border-amber-100 rounded-xl">
                       <h4 className="font-black text-amber-800 uppercase tracking-wider mb-2">Aspek Akses (Harga): WASPADA</h4>
                       <p className="text-slate-700 text-xs">Didorong oleh kenaikan harga minyak goreng yang signifikan dibanding tahun sebelumnya.</p>
