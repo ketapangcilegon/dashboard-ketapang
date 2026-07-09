@@ -79,6 +79,7 @@ const kelNorm = {
   'PABEAN': 'Pabean',
   'TEGAL BUNDER': 'Tegal Bunder',
   'TEGALBUNDER': 'Tegal Bunder',
+  'PURWAKARTA': 'Purwakarta',
   'KOTABUMI': 'Kotabumi',
   'KOTA BUMI': 'Kotabumi',
   'KEBON DALEM': 'Kebon Dalem',
@@ -140,7 +141,7 @@ const KELURAHANS = [
   { nama: 'Kotabumi', kecamatan: 'Purwakarta' },
   { nama: 'Kebon Dalem', kecamatan: 'Purwakarta' },
   { nama: 'Ramanuju', kecamatan: 'Purwakarta' },
-  { nama: 'Kotasari', kecamatan: 'Purwakarta' },
+  { nama: 'Kotasari', kecamatan: 'Gerogol' },
   { nama: 'Gerogol', kecamatan: 'Gerogol' },
   { nama: 'Rawa Arum', kecamatan: 'Gerogol' },
   { nama: 'Gerem', kecamatan: 'Gerogol' },
@@ -197,9 +198,10 @@ if (fs.existsSync(filePathJan)) {
       const kelRaw = String(row[2] || '').trim();
 
       if (kecRaw && kelRaw && kelRaw !== 'KELURAHAN' && kecRaw !== 'KECAMATAN' && !kecRaw.toUpperCase().includes('TOTAL') && !kelRaw.toUpperCase().includes('TOTAL')) {
-        const kec = kecNorm[kecRaw] || kecRaw;
         const kelUpper = kelRaw.toUpperCase();
         const kel = kelNorm[kelUpper] || kelRaw;
+        const targetKec = kelToKecMapping[kel.toLowerCase()];
+        const kec = targetKec || kecNorm[kecRaw] || kecRaw;
 
         const sangatKurang = toInt(row[3]);
         const kurang       = toInt(row[4]);
@@ -275,9 +277,10 @@ monthlyFiles.forEach(f => {
     const kelRaw = String(row[2] || '').trim();
     if (!kecRaw || !kelRaw) continue;
 
-    const kec = kecNorm[kecRaw] || kecRaw;
     const kelUpper = kelRaw.replace(/\s+/g, ' ').toUpperCase();
     const kel = kelNorm[kelUpper] || kelRaw;
+    const targetKec = kelToKecMapping[kel.toLowerCase()];
+    const kec = targetKec || kecNorm[kecRaw] || kecRaw;
 
     const sangatKurang = toInt(row[3]);
     const kurang       = toInt(row[4]);
