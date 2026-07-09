@@ -94,6 +94,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   const [selectedYear, setSelectedYear] = useState(2025);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'default' | 'gizi-buruk' | 'komposit-terburuk'>('default');
 
   const [pricesCur, setPricesCur] = useState<Record<string, { beras: number; minyak: number; telur: number }>>(BASELINE_PRICES_2026);
   const [pricesPrev, setPricesPrev] = useState<Record<string, { beras: number; minyak: number; telur: number }>>(
@@ -102,6 +103,33 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   
   const [nutrition, setNutrition] = useState<Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }>>(BASELINE_NUTRITION);
   const [availablePeriods, setAvailablePeriods] = useState<{ tahun: number; bulan: number }[]>([]);
+
+  // Sorting method to arrange kelurahan from worst to best
+  const getSortedKelurahans = () => {
+    const list = [...KELURAHANS];
+    if (sortBy === 'gizi-buruk') {
+      return list.sort((a, b) => {
+        const valA = getPemanfaatanRow(a.nama).value;
+        const valB = getPemanfaatanRow(b.nama).value;
+        // Worst (highest percentage underweight) to best (lowest)
+        return valB - valA;
+      });
+    } else if (sortBy === 'komposit-terburuk') {
+      return list.sort((a, b) => {
+        const rowA = getKeterjangkauanRow(a.nama, a.kecamatan);
+        const rowB = getPemanfaatanRow(a.nama);
+        const scoreA = rowA.index + rowB.bobot;
+
+        const rowC = getKeterjangkauanRow(b.nama, b.kecamatan);
+        const rowD = getPemanfaatanRow(b.nama);
+        const scoreB = rowC.index + rowD.bobot;
+
+        // Worst (lowest composite score IA+IP) to best (highest)
+        return scoreA - scoreB;
+      });
+    }
+    return list;
+  };
 
   useEffect(() => {
     const fetchPeriods = async () => {
@@ -568,9 +596,24 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
           {isPeriodAvailable ? (
             <>
               <div className="dashboard-card overflow-hidden">
-                <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                  <Utensils className="w-4.5 h-4.5 text-emerald-600" />
-                  II. Aspek Pemanfaatan Pangan (Nutrition/Gizi Balita) - Tingkat Kelurahan
+                <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
+                  <span className="flex items-center gap-2.5">
+                    <Utensils className="w-4.5 h-4.5 text-emerald-600" />
+                    II. Aspek Pemanfaatan Pangan (Nutrition/Gizi Balita) - Tingkat Kelurahan
+                  </span>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortBy(sortBy === 'gizi-buruk' ? 'default' : 'gizi-buruk')}
+                      className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
+                        sortBy === 'gizi-buruk'
+                          ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
+                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {sortBy === 'gizi-buruk' ? '✓ Urutan: Gizi Terburuk' : '⚠ Urut Gizi Terburuk'}
+                    </button>
+                  </div>
                 </h3>
                 
                 <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
@@ -596,7 +639,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       </tr>
                     </thead>
                     <tbody className="text-[10px] font-semibold text-slate-700 divide-y divide-slate-100">
-                      {KELURAHANS.map((kel, i) => {
+                      {getSortedKelurahans().map((kel, i) => {
                         const row = getPemanfaatanRow(kel.nama);
                         return (
                           <tr key={kel.nama} className="hover:bg-slate-50/80 transition-all text-center">
@@ -628,11 +671,86 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 </div>
               </div>
 
+              {/* 3. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan */}
+              <div className="dashboard-card overflow-hidden">
+                <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
+                  <span className="flex items-center gap-2.5">
+                    <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
+                    III. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan
+                  </span>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortBy(sortBy === 'komposit-terburuk' ? 'default' : 'komposit-terburuk')}
+                      className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
+                        sortBy === 'komposit-terburuk'
+                          ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
+                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {sortBy === 'komposit-terburuk' ? '✓ Urutan: Komposit Terburuk' : '⚠ Urut Komposit Terburuk'}
+                    </button>
+                  </div>
+                </h3>
+
+                <div className="overflow-x-auto select-none max-h-[500px] overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse table-auto">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-[#0B1E41] text-white text-[8px] md:text-[9px] font-black uppercase tracking-wider text-center border-b border-slate-950">
+                        <th className="py-3 px-2 text-left rounded-tl-lg w-[5%]">No</th>
+                        <th className="py-3 px-3 text-left w-[20%]">Kelurahan</th>
+                        <th className="py-3 px-3 text-left w-[15%]">Kecamatan</th>
+                        <th className="py-3 px-2 bg-emerald-850 border-r border-emerald-900 w-[15%]">IA (Index Akses)</th>
+                        <th className="py-3 px-2 bg-blue-850 border-r border-blue-900 w-[15%]">IP (Index Pemanfaatan)</th>
+                        <th className="py-3 px-2 bg-slate-850 border-r border-slate-900 w-[15%]">Skor Komposit (IA + IP)</th>
+                        <th className="py-3 px-2 bg-amber-700 w-[15%]">Keterangan</th>
+                        <th className="py-3 px-2 bg-amber-800 rounded-tr-lg w-[10%]">Indeks</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] font-semibold text-slate-700 divide-y divide-slate-100">
+                      {getSortedKelurahans().map((kel, i) => {
+                        const rowAkses = getKeterjangkauanRow(kel.nama, kel.kecamatan);
+                        const rowGizi = getPemanfaatanRow(kel.nama);
+                        
+                        const score = rowAkses.index + rowGizi.bobot;
+                        const compositeIndex = score === 6 ? 3 : score >= 4 ? 2 : 1;
+                        const compositeStatus = compositeIndex === 3 ? 'AMAN' : compositeIndex === 2 ? 'WASPADA' : 'RENTAN';
+
+                        return (
+                          <tr key={`composite-${kel.nama}`} className="hover:bg-slate-50/80 transition-all text-center">
+                            <td className="py-2.5 px-2 text-left font-black text-slate-400">{i + 1}</td>
+                            <td className="py-2.5 px-3 text-left font-black text-[#0B1E41]">{kel.nama}</td>
+                            <td className="py-2.5 px-3 text-left text-slate-500">{kel.kecamatan}</td>
+                            <td className="py-2.5 px-2 bg-emerald-50/40 text-emerald-700 font-extrabold">{rowAkses.index}</td>
+                            <td className="py-2.5 px-2 bg-blue-50/40 text-blue-700 font-extrabold">{rowGizi.bobot}</td>
+                            <td className="py-2.5 px-2 bg-slate-50/40 font-black text-slate-800">{score}</td>
+                            <td className="py-2.5 px-2">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black inline-block tracking-wider ${
+                                compositeStatus === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
+                                compositeStatus === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
+                                'bg-rose-100 text-rose-800'
+                              }`}>
+                                {compositeStatus}
+                              </span>
+                            </td>
+                            <td className={`py-2.5 px-2 font-black ${
+                              compositeIndex === 3 ? 'text-emerald-600' :
+                              compositeIndex === 2 ? 'text-amber-500' :
+                              'text-rose-600'
+                            }`}>{compositeIndex}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               {/* 4. Peta / Hasil Ringkasan Komposit Kelurahan */}
               <div className="dashboard-card p-6 bg-white shadow-sm border border-slate-200">
                 <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center gap-2.5 pb-3 border-b border-slate-100">
                   <ShieldAlert className="w-4.5 h-4.5 text-emerald-600" />
-                  III. Ringkasan Evaluasi Komposit SKPG - Kota Cilegon
+                  IV. Ringkasan Evaluasi Komposit SKPG - Kota Cilegon
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Bobot Score Board */}
