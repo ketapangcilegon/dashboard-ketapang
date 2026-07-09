@@ -636,7 +636,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={90} />
                       <Tooltip formatter={(value) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} contentStyle={{ fontSize: '10px' }} />
                       <Legend wrapperStyle={{ fontSize: '9px' }} />
-                      <Bar dataKey="1 Tahun Sebelumnya" fill="#94A3B8" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="1 Tahun Sebelumnya" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -644,44 +644,46 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
               </div>
 
               {/* Kolom 3: Interpretasi (Span 3) */}
-              <div className="lg:col-span-3 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Interpretasi Akses</h4>
-                <div className="space-y-3.5 text-xs text-slate-650 font-bold flex-1 flex flex-col justify-center">
-                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                    <span className="text-slate-600">Beras Medium:</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      kotaCilegon.beras.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
-                      kotaCilegon.beras.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {kotaCilegon.beras.r}% ({kotaCilegon.beras.bobot === 3 ? 'AMAN' : kotaCilegon.beras.bobot === 2 ? 'WASPADA' : 'RENTAN'})
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                    <span className="text-slate-600">Minyak Goreng:</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      kotaCilegon.minyak.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
-                      kotaCilegon.minyak.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {kotaCilegon.minyak.r}% ({kotaCilegon.minyak.bobot === 3 ? 'AMAN' : kotaCilegon.minyak.bobot === 2 ? 'WASPADA' : 'RENTAN'})
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                    <span className="text-slate-600">Telur Ayam:</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      kotaCilegon.telur.bobot === 3 ? 'bg-emerald-100 text-emerald-800' :
-                      kotaCilegon.telur.bobot === 2 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {kotaCilegon.telur.r}% ({kotaCilegon.telur.bobot === 3 ? 'AMAN' : kotaCilegon.telur.bobot === 2 ? 'WASPADA' : 'RENTAN'})
-                    </span>
-                  </div>
-                  <div className="pt-2">
-                    <span className="text-[10px] text-slate-400 block mb-1">STATUS AKSES KOTA:</span>
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider ${
-                      kotaCilegon.statusAkses === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
-                      kotaCilegon.statusAkses === 'WASPADA' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {kotaCilegon.statusAkses}
-                    </span>
+              <div className="lg:col-span-3 flex flex-col justify-between">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Akses Pangan</h4>
+                <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
+                  <div className="space-y-3.5 text-xs text-slate-650 font-bold">
+                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                      <span className="text-slate-600">Beras Medium:</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                        backgroundColor: kotaCilegon.beras.bobot === 3 ? '#6ABD45' : kotaCilegon.beras.bobot === 2 ? '#F7EC13' : '#ED1E24',
+                        color: kotaCilegon.beras.bobot === 2 ? '#1E293B' : '#FFFFFF'
+                      }}>
+                        {kotaCilegon.beras.r}% ({kotaCilegon.beras.bobot === 3 ? 'AMAN' : kotaCilegon.beras.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                      <span className="text-slate-600">Minyak Goreng:</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                        backgroundColor: kotaCilegon.minyak.bobot === 3 ? '#6ABD45' : kotaCilegon.minyak.bobot === 2 ? '#F7EC13' : '#ED1E24',
+                        color: kotaCilegon.minyak.bobot === 2 ? '#1E293B' : '#FFFFFF'
+                      }}>
+                        {kotaCilegon.minyak.r}% ({kotaCilegon.minyak.bobot === 3 ? 'AMAN' : kotaCilegon.minyak.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                      <span className="text-slate-600">Telur Ayam:</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                        backgroundColor: kotaCilegon.telur.bobot === 3 ? '#6ABD45' : kotaCilegon.telur.bobot === 2 ? '#F7EC13' : '#ED1E24',
+                        color: kotaCilegon.telur.bobot === 2 ? '#1E293B' : '#FFFFFF'
+                      }}>
+                        {kotaCilegon.telur.r}% ({kotaCilegon.telur.bobot === 3 ? 'AMAN' : kotaCilegon.telur.bobot === 2 ? 'WASPADA' : 'RENTAN'})
+                      </span>
+                    </div>
+                    <div className="pt-2">
+                      <span className="text-[10px] text-slate-400 block mb-1">STATUS AKSES PANGAN KOTA:</span>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider" style={{
+                        backgroundColor: kotaCilegon.statusAkses === 'AMAN' ? '#6ABD45' : kotaCilegon.statusAkses === 'WASPADA' ? '#F7EC13' : '#ED1E24',
+                        color: kotaCilegon.statusAkses === 'WASPADA' ? '#1E293B' : '#FFFFFF'
+                      }}>
+                        {kotaCilegon.statusAkses}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -854,37 +856,39 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                   </div>
 
                   {/* Kolom 3: Interpretasi (Span 3) */}
-                  <div className="lg:col-span-3 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Interpretasi Gizi</h4>
-                    <div className="space-y-3.5 text-xs text-slate-650 font-bold flex-1 flex flex-col justify-center">
-                      {(() => {
-                        const pie = getGiziPieData();
-                        return (
-                          <>
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">BB Normal:</span>
-                              <span className="text-emerald-600 font-extrabold">{pie[0].percent}%</span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">BB Kurang & Sgt Kurang:</span>
-                              <span className="text-amber-600 font-extrabold">{(pie[1].percent + pie[2].percent)}%</span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                              <span className="text-slate-600">BB Berlebih:</span>
-                              <span className="text-blue-600 font-extrabold">{pie[3].percent}%</span>
-                            </div>
-                            <div className="pt-2">
-                              <span className="text-[10px] text-slate-400 block mb-1">STATUS PEMANFAATAN KOTA:</span>
-                              <span className={`px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider ${
-                                kotaCilegon.nutrition.status === 'AMAN' ? 'bg-emerald-100 text-emerald-800' :
-                                kotaCilegon.nutrition.status === 'WASPADA' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                              }`}>
-                                {kotaCilegon.nutrition.status}
-                              </span>
-                            </div>
-                          </>
-                        );
-                      })()}
+                  <div className="lg:col-span-3 flex flex-col justify-between">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Interpretasi Pemanfaatan Pangan</h4>
+                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
+                      <div className="space-y-3.5 text-xs text-slate-650 font-bold">
+                        {(() => {
+                          const pie = getGiziPieData();
+                          return (
+                            <>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">BB Normal:</span>
+                                <span className="text-[#6ABD45] font-extrabold">{pie[0].percent}%</span>
+                              </div>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">BB Kurang & Sgt Kurang:</span>
+                                <span className="text-amber-600 font-extrabold">{(pie[1].percent + pie[2].percent)}%</span>
+                              </div>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                <span className="text-slate-600">BB Berlebih:</span>
+                                <span className="text-blue-600 font-extrabold">{pie[3].percent}%</span>
+                              </div>
+                              <div className="pt-2">
+                                <span className="text-[10px] text-slate-400 block mb-1">STATUS PEMANFAATAN KOTA:</span>
+                                <span className="px-2.5 py-1 rounded-lg text-xs font-black inline-block tracking-wider" style={{
+                                  backgroundColor: kotaCilegon.nutrition.status === 'AMAN' ? '#6ABD45' : kotaCilegon.nutrition.status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
+                                  color: kotaCilegon.nutrition.status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
+                                }}>
+                                  {kotaCilegon.nutrition.status}
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -995,48 +999,49 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     </div>
                   </div>
 
-                  {/* Kolom 3: AI Gemini Kelurahan (Span 4) */}
-                  <div className="lg:col-span-4 flex flex-col justify-between bg-white p-4 rounded-xl border border-slate-150 shadow-sm max-h-[250px] overflow-y-auto custom-scrollbar">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
-                      <h4 className="text-[10px] font-black text-[#0B1E41] uppercase tracking-wider flex items-center gap-1.5">
-                        <Brain className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                        Gemini AI Interpretasi
-                      </h4>
-                      <button
-                        onClick={() => fetchAiInsight(selectedYear, selectedMonth, kotaCilegon)}
-                        disabled={loadingAi}
-                        className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-[#0B1E41] transition-all cursor-pointer disabled:opacity-50"
-                        title="Hasilkan Ulang Insight"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${loadingAi ? 'animate-spin' : ''}`} />
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 flex flex-col justify-center text-left">
-                      {loadingAi ? (
-                        <div className="flex flex-col items-center justify-center py-6 text-slate-400">
-                          <Loader2 className="w-5 h-5 text-emerald-500 animate-spin mb-1.5" />
-                          <span className="text-[9px] font-bold uppercase tracking-wider">Memikirkan Analisis...</span>
-                        </div>
-                      ) : aiInsight ? (
-                        <div className="text-[10px] text-slate-650 font-bold leading-normal prose prose-sm max-w-none">
-                          {aiInsight.split('\n').map((line, idx) => {
-                            if (line.trim().startsWith('*') || line.trim().startsWith('-')) {
-                              return <p key={idx} className="my-0.5 pl-2 border-l border-emerald-500">• {line.replace(/^[*-\s]+/, '')}</p>;
-                            }
-                            return <p key={idx} className="my-1">{line}</p>;
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-6">
-                          <button
-                            onClick={() => fetchAiInsight(selectedYear, selectedMonth, kotaCilegon)}
-                            className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] rounded-lg tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
-                          >
-                            Mulai Analisis AI
-                          </button>
-                        </div>
-                      )}
+                  {/* Kolom 3: Status Komposit (Span 4) */}
+                  <div className="lg:col-span-4 flex flex-col justify-between">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 text-center lg:text-left font-black uppercase">Status Komposit Kota</h4>
+                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex flex-col justify-center">
+                      {(() => {
+                        const score = kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : 0;
+                        const status = score === 6 ? 'AMAN' : score >= 4 ? 'WASPADA' : 'RENTAN';
+                        return (
+                          <div className="space-y-3.5 text-xs text-slate-650 font-bold">
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">IA (Index Akses) Kota:</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                                backgroundColor: kotaCilegon.indexAkses === 3 ? '#6ABD45' : kotaCilegon.indexAkses === 2 ? '#F7EC13' : '#ED1E24',
+                                color: kotaCilegon.indexAkses === 2 ? '#1E293B' : '#FFFFFF'
+                              }}>
+                                {kotaCilegon.indexAkses} ({kotaCilegon.statusAkses})
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">IP (Index Pemanfaatan) Kota:</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white" style={{
+                                backgroundColor: kotaCilegon.nutrition.bobot === 3 ? '#6ABD45' : kotaCilegon.nutrition.bobot === 2 ? '#F7EC13' : '#ED1E24',
+                                color: kotaCilegon.nutrition.bobot === 2 ? '#1E293B' : '#FFFFFF'
+                              }}>
+                                {kotaCilegon.nutrition.bobot} ({kotaCilegon.nutrition.status})
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                              <span className="text-slate-600">Skor Komposit (IA + IP):</span>
+                              <span className="text-slate-800 font-extrabold text-sm">{score}</span>
+                            </div>
+                            <div className="pt-2">
+                              <span className="text-[10px] text-slate-400 block mb-1">STATUS KOMPOSIT KOTA:</span>
+                              <span className="px-3.5 py-1.5 rounded-lg text-sm font-black inline-block tracking-wider" style={{
+                                backgroundColor: status === 'AMAN' ? '#6ABD45' : status === 'WASPADA' ? '#F7EC13' : '#ED1E24',
+                                color: status === 'WASPADA' ? '#1E293B' : '#FFFFFF'
+                              }}>
+                                {status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

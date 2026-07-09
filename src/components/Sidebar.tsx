@@ -59,7 +59,7 @@ export default function Sidebar({
     },
     { 
       icon: ExternalLink, 
-      label: 'Serumpumpadi.web.id', 
+      label: 'Serumpunpadi.web.id', 
       view: 'serumpun',
       url: 'https://serumpunpadi.web.id/'
     },

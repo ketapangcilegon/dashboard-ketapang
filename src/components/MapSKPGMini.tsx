@@ -41,8 +41,8 @@ export default function MapSKPGMini({ level, dataStatus, height = '240px' }: Map
   const activeFeatures = level === 'kecamatan' ? layers.kecamatan : layers.kelurahan;
 
   // Cilegon center coordinates and zoom settings
-  const center: [number, number] = [-6.015, 106.012];
-  const zoom = level === 'kecamatan' ? 11.2 : 11.2;
+  const center: [number, number] = [-6.012, 106.015];
+  const zoom = 10.6;
 
   const styleFeature = (feature: any) => {
     const name = String(feature.properties?.name || feature.properties?.Name || '').trim();
@@ -67,9 +67,9 @@ export default function MapSKPGMini({ level, dataStatus, height = '240px' }: Map
     const status = dataStatus[lookupKey] || 'aman';
 
     const colors = {
-      aman: { fill: '#10B981', border: '#059669' },
-      waspada: { fill: '#F59E0B', border: '#D97706' },
-      rentan: { fill: '#EF4444', border: '#DC2626' }
+      aman: { fill: '#6ABD45', border: '#4E9E2F' },
+      waspada: { fill: '#F7EC13', border: '#D5CA0B' },
+      rentan: { fill: '#ED1E24', border: '#B91217' }
     };
 
     const c = colors[status] || colors.aman;
