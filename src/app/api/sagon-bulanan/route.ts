@@ -111,6 +111,59 @@ async function scrapeMarketInfografis(marketId: string): Promise<CommodityData> 
   }
 }
 
+async function autoBackupPrices(year: number, month: number, prices: Record<string, { beras: number; minyak: number; telur: number }>) {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      console.warn('[AutoBackup] ADMIN_EMAIL or ADMIN_PASSWORD not set in env. Skipping backup.');
+      return;
+    }
+
+    const records = Object.entries(prices).map(([kec, p]) => ({
+      tahun: year,
+      bulan: month,
+      kecamatan: kec,
+      beras: p.beras,
+      jagung: 0,
+      gula: 0,
+      minyak: p.minyak,
+      daging: 0,
+      telur: p.telur
+    }));
+
+    // Perform sign in dynamically using isolated Supabase auth to write under RLS bypass
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false }
+    });
+
+    const { error: signInError } = await authClient.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword
+    });
+
+    if (signInError) {
+      console.error('[AutoBackup] Admin authentication failed:', signInError.message);
+      return;
+    }
+
+    const { error: upsertError } = await authClient
+      .from('harga_komoditas_skpg')
+      .upsert(records, { onConflict: 'tahun, bulan, kecamatan' });
+
+    if (upsertError) {
+      console.error('[AutoBackup] Price upsert failed:', upsertError.message);
+    } else {
+      console.log(`[AutoBackup] Successfully saved and backed up prices for ${year}/${month} into database.`);
+    }
+  } catch (err: any) {
+    console.error('[AutoBackup] Error during automated backup:', err.message || err);
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get('month');
@@ -236,6 +289,26 @@ export async function GET(request: Request) {
       for (const kec of KECAMATANS) {
         const dbRow = dbRows?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
         pricesPrev[kec] = { beras: dbRow ? Number(dbRow.beras) : FALLBACKS_2025.beras, minyak: dbRow ? Number(dbRow.minyak) : FALLBACKS_2025.minyak, telur: dbRow ? Number(dbRow.telur) : FALLBACKS_2025.telur };
+      }
+
+      // --- AUTOMATED BACKUP TRIGGER ---
+      // Check if this month is completed or if it is the end of the current month (>= 23:30)
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      const isPastMonth = effectiveYear < currentYear || (effectiveYear === currentYear && effectiveMonth < currentMonth);
+      const isBackupTime = (
+        effectiveYear === currentYear &&
+        effectiveMonth === currentMonth &&
+        currentDate === lastDayOfCurrentMonth &&
+        (currentHour > 23 || (currentHour === 23 && currentMinute >= 30))
+      );
+
+      if (isPastMonth || isBackupTime) {
+        // Run backup asynchronously without blocking response
+        autoBackupPrices(effectiveYear, effectiveMonth, pricesCur).catch(err => {
+          console.error('[AutoBackup] Error triggered during request:', err);
+        });
       }
     }
 
