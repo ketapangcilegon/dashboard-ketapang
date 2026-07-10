@@ -134,32 +134,40 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
     }
   };
 
-  // Fetch available periods on mount
+   // Fetch available periods on mount
   useEffect(() => {
     const fetchPeriods = async () => {
       try {
         // Fetch periods from gizi_balita_skpg (2024-2025 SKPG monthly data)
         const { data: skpgData } = await supabase
           .from('gizi_balita_skpg')
-          .select('tahun, bulan')
+          .select('tahun, bulan, total_balita')
           .order('tahun', { ascending: false })
           .order('bulan', { ascending: false });
 
-        // Also fetch from gizi_balita (2026+ kelurahan data)
+        // Also fetch from gizi_balita_skpg_kelurahan (2026+ kelurahan data)
         const { data: giziData } = await supabase
-          .from('gizi_balita')
-          .select('tahun, bulan')
+          .from('gizi_balita_skpg_kelurahan')
+          .select('tahun, bulan, total_balita')
           .order('tahun', { ascending: false })
           .order('bulan', { ascending: false });
 
         const uniquePeriods: { tahun: number; bulan: number }[] = [];
+        const completePeriods: { tahun: number; bulan: number }[] = [];
         
         // Always include March 2026 baseline
         uniquePeriods.push({ tahun: 2026, bulan: 3 });
+        completePeriods.push({ tahun: 2026, bulan: 3 });
 
-        const addPeriod = (item: { tahun: number; bulan: number }) => {
+        const addPeriod = (item: { tahun: number; bulan: number; total_balita?: number }) => {
           if (!uniquePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
             uniquePeriods.push({ tahun: item.tahun, bulan: item.bulan });
+          }
+          // Only add to completePeriods if gizi data exists (total_balita > 0)
+          if (item.total_balita && item.total_balita > 0) {
+            if (!completePeriods.some(p => p.tahun === item.tahun && p.bulan === item.bulan)) {
+              completePeriods.push({ tahun: item.tahun, bulan: item.bulan });
+            }
           }
         };
 
@@ -168,10 +176,15 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         
         // Sort periods newest first
         uniquePeriods.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
+        completePeriods.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
         setAvailablePeriods(uniquePeriods);
 
-        // Auto-select latest period on first load
-        if (!initialLoaded && uniquePeriods.length > 0) {
+        // Auto-select latest COMPLETE period (with gizi data) on first load
+        if (!initialLoaded && completePeriods.length > 0) {
+          setSelectedYear(completePeriods[0].tahun);
+          setSelectedMonth(completePeriods[0].bulan);
+          setInitialLoaded(true);
+        } else if (!initialLoaded && uniquePeriods.length > 0) {
           setSelectedYear(uniquePeriods[0].tahun);
           setSelectedMonth(uniquePeriods[0].bulan);
           setInitialLoaded(true);

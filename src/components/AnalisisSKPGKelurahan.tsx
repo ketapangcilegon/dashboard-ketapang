@@ -222,8 +222,12 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
         setAvailablePeriods(uniquePeriods);
         setCompletePeriods(completeList);
 
-        // Auto-select latest period on first load
-        if (!initialLoaded && uniquePeriods.length > 0) {
+        // Auto-select latest COMPLETE period (with gizi data) on first load
+        if (!initialLoaded && completeList.length > 0) {
+          setSelectedYear(completeList[0].tahun);
+          setSelectedMonth(completeList[0].bulan);
+          setInitialLoaded(true);
+        } else if (!initialLoaded && uniquePeriods.length > 0) {
           setSelectedYear(uniquePeriods[0].tahun);
           setSelectedMonth(uniquePeriods[0].bulan);
           setInitialLoaded(true);
