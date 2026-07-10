@@ -93,9 +93,10 @@ interface AnalisisSKPGKelurahanProps {
 }
 
 export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: AnalisisSKPGKelurahanProps) {
-  const [selectedYear, setSelectedYear] = useState(2025);
-  const [selectedMonth, setSelectedMonth] = useState(1);
+  const [selectedYear, setSelectedYear] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [sortBy, setSortBy] = useState<'default' | 'gizi-buruk' | 'komposit-terburuk'>('default');
 
   const [pricesCur, setPricesCur] = useState<Record<string, { beras: number; minyak: number; telur: number }>>(BASELINE_PRICES_2026);
@@ -220,14 +221,27 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
         completeList.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
         setAvailablePeriods(uniquePeriods);
         setCompletePeriods(completeList);
+
+        // Auto-select latest period on first load
+        if (!initialLoaded && uniquePeriods.length > 0) {
+          setSelectedYear(uniquePeriods[0].tahun);
+          setSelectedMonth(uniquePeriods[0].bulan);
+          setInitialLoaded(true);
+        }
       } catch (err) {
         console.error('Error fetching Kelurahan stunting periods:', err);
-        setAvailablePeriods([{ tahun: 2025, bulan: 1 }]);
-        setCompletePeriods([{ tahun: 2025, bulan: 1 }]);
+        const fallback = [{ tahun: 2025, bulan: 1 }];
+        setAvailablePeriods(fallback);
+        setCompletePeriods(fallback);
+        if (!initialLoaded) {
+          setSelectedYear(fallback[0].tahun);
+          setSelectedMonth(fallback[0].bulan);
+          setInitialLoaded(true);
+        }
       }
     };
     fetchPeriods();
-  }, []);
+  }, [initialLoaded]);
 
   const isPeriodAvailable = availablePeriods.some(p => p.tahun === selectedYear && p.bulan === selectedMonth);
 
@@ -536,6 +550,18 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
 
   const labelCur = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear}`;
   const labelPrev = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear - 1}`;
+
+  // Show loading state while auto-detecting latest period from DB
+  if (selectedMonth === 0 || selectedYear === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 min-h-[200px]">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Memuat periode terbaru dari database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -998,13 +1024,11 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
               </div>
 
               {/* 3. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan */}
+              <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-4 flex items-center gap-2.5 mt-2">
+                <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
+                III. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan
+              </h3>
               <div className="dashboard-card overflow-hidden">
-                <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
-                  <span className="flex items-center gap-2.5">
-                    <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
-                    III. Indeks Komposit Ketahanan Pangan Bulanan - Tingkat Kelurahan
-                  </span>
-                </h3>
 
                 {/* Visual 3-Panel Grid (Komposit Kelurahan) */}
                 {!isGiziDataAvailable ? (

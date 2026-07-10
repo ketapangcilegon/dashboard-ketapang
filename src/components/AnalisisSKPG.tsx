@@ -67,8 +67,9 @@ interface AnalisisSKPGProps {
 }
 
 export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGProps) {
-  const [selectedYear, setSelectedYear] = useState(2025);
-  const [selectedMonth, setSelectedMonth] = useState(1);
+  const [selectedYear, setSelectedYear] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState(0);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Dynamic state computed from database
@@ -168,13 +169,26 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         // Sort periods newest first
         uniquePeriods.sort((a, b) => b.tahun - a.tahun || b.bulan - a.bulan);
         setAvailablePeriods(uniquePeriods);
+
+        // Auto-select latest period on first load
+        if (!initialLoaded && uniquePeriods.length > 0) {
+          setSelectedYear(uniquePeriods[0].tahun);
+          setSelectedMonth(uniquePeriods[0].bulan);
+          setInitialLoaded(true);
+        }
       } catch (err) {
         console.error('Error fetching stunting periods:', err);
-        setAvailablePeriods([{ tahun: 2026, bulan: 3 }, { tahun: 2025, bulan: 1 }]);
+        const fallback = [{ tahun: 2026, bulan: 3 }, { tahun: 2025, bulan: 1 }];
+        setAvailablePeriods(fallback);
+        if (!initialLoaded) {
+          setSelectedYear(fallback[0].tahun);
+          setSelectedMonth(fallback[0].bulan);
+          setInitialLoaded(true);
+        }
       }
     };
     fetchPeriods();
-  }, []);
+  }, [initialLoaded]);
 
   const isPeriodAvailable = availablePeriods.some(p => p.tahun === selectedYear && p.bulan === selectedMonth);
 
@@ -603,6 +617,18 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
 
   const labelCur = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear}`;
   const labelPrev = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear - 1}`;
+
+  // Show loading state while auto-detecting latest period from DB
+  if (selectedMonth === 0 || selectedYear === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 min-h-[200px]">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Memuat periode terbaru dari database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1089,6 +1115,12 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                 </div>
               </div>
 
+              {/* Section III heading - positioned directly above composite map */}
+              <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-4 flex items-center gap-2.5 mt-2">
+                <Package className="w-4.5 h-4.5 text-[#10B981]" />
+                III. Indeks Komposit Ketahanan Pangan Bulanan
+              </h3>
+
               {/* Visual 3-Panel Grid (Komposit) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100/65">
                 {/* Kolom 1: Peta (Span 4) */}
@@ -1171,10 +1203,7 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                 {/* Table 3: Combined Composite Matrix Map (Span 7) */}
                 <div className="lg:col-span-7 flex flex-col">
                   <div className="dashboard-card flex-1">
-                    <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                      <Package className="w-4.5 h-4.5 text-[#10B981]" />
-                      III. Indeks Komposit Ketahanan Pangan Bulanan
-                    </h3>
+
 
                     <div className="overflow-x-auto select-none">
                       <table className="w-full text-left border-collapse">

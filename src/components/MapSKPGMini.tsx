@@ -42,7 +42,7 @@ export default function MapSKPGMini({ level, dataStatus, height = '240px' }: Map
 
   // Cilegon center coordinates and zoom settings
   const center: [number, number] = [-6.015, 106.024];
-  const zoom = 11.0;
+  const zoom = 10.5;
 
   const styleFeature = (feature: any) => {
     const name = String(feature.properties?.name || feature.properties?.Name || '').trim();
