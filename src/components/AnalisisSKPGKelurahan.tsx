@@ -73,7 +73,7 @@ const BASELINE_PRICES_2026: Record<string, { beras: number; minyak: number; telu
   Ciwandan:   { beras: 14000, minyak: 21032, telur: 31967 },
   Jombang:    { beras: 14000, minyak: 21032, telur: 31967 },
   Purwakarta: { beras: 14000, minyak: 21032, telur: 31967 },
-  Citangkil:  { beras: 13833, minyak: 21355, telur: 31322 }
+  Citangkil:  { beras: 14000, minyak: 21032, telur: 31967 }
 };
 
 const BASELINE_PRICES_2025 = { beras: 13200, minyak: 18000, telur: 29500 };

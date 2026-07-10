@@ -277,13 +277,9 @@ export async function GET(request: Request) {
         '3': { beras: market3.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras, minyak: market3.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak, telur: market3.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur }
       };
 
-      const getCitangkilAverage = () => ({
-        beras: Math.round((pricesMarket['1'].beras + pricesMarket['2'].beras + pricesMarket['3'].beras) / 3),
-        minyak: Math.round((pricesMarket['1'].minyak + pricesMarket['2'].minyak + pricesMarket['3'].minyak) / 3),
-        telur: Math.round((pricesMarket['1'].telur + pricesMarket['2'].telur + pricesMarket['3'].telur) / 3)
-      });
 
-      Object.assign(pricesCur, { Cibeber: pricesMarket['2'], Cilegon: pricesMarket['2'], Pulomerak: pricesMarket['3'], Gerogol: pricesMarket['3'], Ciwandan: pricesMarket['1'], Jombang: pricesMarket['1'], Purwakarta: pricesMarket['1'], Citangkil: getCitangkilAverage() });
+      // Market mapping: Kranggot(1)->Ciwandan,Citangkil,Purwakarta,Jombang | BlokF(2)->Cibeber,Cilegon | Merak(3)->Gerogol,Pulomerak
+      Object.assign(pricesCur, { Cibeber: pricesMarket['2'], Cilegon: pricesMarket['2'], Pulomerak: pricesMarket['3'], Gerogol: pricesMarket['3'], Ciwandan: pricesMarket['1'], Jombang: pricesMarket['1'], Purwakarta: pricesMarket['1'], Citangkil: pricesMarket['1'] });
 
       const { data: dbRows } = await supabase.from('harga_komoditas_skpg').select('*').eq('tahun', effectiveYear - 1).eq('bulan', effectiveMonth);
       for (const kec of KECAMATANS) {

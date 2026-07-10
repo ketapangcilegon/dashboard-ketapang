@@ -10,10 +10,9 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieC
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
 
 // Market mapping rules
-// Pasar Kranggot (Market 1) -> Jombang, Purwakarta, Ciwandan, Cilegon
+// Pasar Kranggot (Market 1) -> Ciwandan, Citangkil, Purwakarta, Jombang
 // Pasar Kavling Blok F (Market 2) -> Cibeber, Cilegon
 // Pasar Baru Merak (Market 3) -> Pulomerak, Gerogol
-// Citangkil -> gets a balanced blend matching Capture 1
 
 // Exact prices from Capture 1 for March 2026 / 2025 baseline
 const BASELINE_PRICES_2025 = {
@@ -30,7 +29,7 @@ const BASELINE_PRICES_2026: Record<string, { beras: number; minyak: number; telu
   Jombang:    { beras: 14000, minyak: 21032, telur: 31967 }, // Kranggot
   Gerogol:    { beras: 14000, minyak: 21032, telur: 31967 }, // Merak
   Purwakarta: { beras: 14000, minyak: 21032, telur: 31967 }, // Kranggot
-  Citangkil:  { beras: 13371, minyak: 21419, telur: 30133 }, // Balanced Average
+  Citangkil:  { beras: 14000, minyak: 21032, telur: 31967 }, // Kranggot
 };
 
 // Exact balita nutrition figures from Capture 5 for March 2026 baseline

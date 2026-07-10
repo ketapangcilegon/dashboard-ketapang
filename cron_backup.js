@@ -162,12 +162,6 @@ async function run() {
     telur: m3.telur[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur
   };
 
-  const getCitangkilAverage = () => ({
-    beras: Math.round((p1.beras + p2.beras + p3.beras) / 3),
-    minyak: Math.round((p1.minyak + p2.minyak + p3.minyak) / 3),
-    telur: Math.round((p1.telur + p2.telur + p3.telur) / 3)
-  });
-
   const pricesCur = {
     Cibeber: p2,
     Cilegon: p2,
@@ -176,7 +170,7 @@ async function run() {
     Ciwandan: p1,
     Jombang: p1,
     Purwakarta: p1,
-    Citangkil: getCitangkilAverage()
+    Citangkil: p1
   };
 
   // Construct DB records
