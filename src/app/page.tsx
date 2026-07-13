@@ -257,6 +257,20 @@ export default function DashboardPage() {
   const [produksiBerasList, setProduksiBerasList] = useState<any[]>([]);
   const [benchmarkList, setBenchmarkList] = useState<any[]>([]);
 
+  // Latest Year/Month states for KPIs
+  const [cvLatestYear, setCvLatestYear] = useState<number>(2025);
+  const [pphLatestYear, setPphLatestYear] = useState<number>(2025);
+  const [kProteinLatestYear, setKonsumsiProteinLatestYear] = useState<number>(2025);
+  const [kEnergiLatestYear, setKEnergiLatestYear] = useState<number>(2025);
+  const [tProteinLatestYear, setTProteinLatestYear] = useState<number>(2025);
+  const [tEnergiLatestYear, setTEnergiLatestYear] = useState<number>(2025);
+  const [produksiLatestYear, setProduksiLatestYear] = useState<number>(2025);
+  const [intervensiLatestYear, setIntervensiLatestYear] = useState<number>(2025);
+
+  const [balitaLatestData, setBalitaLatestData] = useState<any[]>([]);
+  const [balitaLatestYear, setBalitaLatestYear] = useState<number>(2026);
+  const [balitaLatestMonth, setBalitaLatestMonth] = useState<number>(6);
+
   // Lifted SAGON Live Price States
   const [livePrices, setLivePrices] = useState<any>(null);
   const [liveDate, setLiveDate] = useState<string | null>(null);
@@ -385,6 +399,39 @@ export default function DashboardPage() {
     async function fetchData() {
       setLoading(true);
       try {
+        // Find latest month/year for BB/U status balita (which has total_balita > 0)
+        let latestYearBalita = 2026;
+        let latestMonthBalita = 6;
+        try {
+          const { data: latestBalitaPeriod } = await supabase
+            .from('gizi_balita_skpg_kelurahan')
+            .select('tahun, bulan')
+            .gt('total_balita', 0)
+            .order('tahun', { ascending: false })
+            .order('bulan', { ascending: false })
+            .limit(1);
+          if (latestBalitaPeriod && latestBalitaPeriod.length > 0) {
+            latestYearBalita = latestBalitaPeriod[0].tahun;
+            latestMonthBalita = latestBalitaPeriod[0].bulan;
+          }
+        } catch (e) {
+          console.warn('Failed to query latest balita period from gizi_balita_skpg_kelurahan:', e);
+        }
+
+        setBalitaLatestYear(latestYearBalita);
+        setBalitaLatestMonth(latestMonthBalita);
+
+        let latestIntYear = 2025;
+        try {
+          const { data: intYears } = await supabase.from('intervensi_kelurahan').select('tahun');
+          if (intYears && intYears.length > 0) {
+            latestIntYear = Math.max(...intYears.map((x: any) => x.tahun));
+          }
+        } catch (e) {
+          console.warn('Failed to query intervensi years:', e);
+        }
+        setIntervensiLatestYear(latestIntYear);
+
         // 1. Fetch Harga Pangan dynamically from Sagon API (no DB dependency)
         let fetchMonth = selectedMonth;
         let fetchYear = selectedYear;
@@ -661,6 +708,20 @@ export default function DashboardPage() {
           }
         })();
 
+        const balitaLatestPromise = (async () => {
+          try {
+            const { data } = await supabase
+              .from('gizi_balita_skpg_kelurahan')
+              .select('*')
+              .eq('tahun', latestYearBalita)
+              .eq('bulan', latestMonthBalita);
+            return data || [];
+          } catch (e) {
+            console.warn('gizi_balita_skpg_kelurahan latest fetch failed:', e);
+            return [];
+          }
+        })();
+
         // Resolve all concurrently
         const [
           sagonJson,
@@ -678,7 +739,8 @@ export default function DashboardPage() {
           ketersediaanEnergiResult,
           ketersediaanProteinResult,
           produksiBerasResult,
-          benchmarkResult
+          benchmarkResult,
+          balitaLatestResult
         ] = await Promise.all([
           sagonPromise,
           ketersediaanPromise,
@@ -695,7 +757,8 @@ export default function DashboardPage() {
           ketersediaanEnergiPromise,
           ketersediaanProteinPromise,
           produksiBerasPromise,
-          benchmarkPromise
+          benchmarkPromise,
+          balitaLatestPromise
         ]);
 
         // Process sagon price formatting
@@ -756,6 +819,17 @@ export default function DashboardPage() {
         setKetersediaanProteinList(ketersediaanProteinResult);
         setProduksiBerasList(produksiBerasResult);
         setBenchmarkList(benchmarkResult);
+
+        // Extract latest years for target indicator titles dynamically
+        setCvLatestYear(cvBerasResult.length > 0 ? Math.max(...cvBerasResult.map((x: any) => x.tahun)) : 2025);
+        setPphLatestYear(pphResult.length > 0 ? Math.max(...pphResult.map((x: any) => x.tahun)) : 2025);
+        setKonsumsiProteinLatestYear(konsumsiProteinResult.length > 0 ? Math.max(...konsumsiProteinResult.map((x: any) => x.tahun)) : 2025);
+        setKEnergiLatestYear(konsumsiEnergiResult.length > 0 ? Math.max(...konsumsiEnergiResult.map((x: any) => x.tahun)) : 2025);
+        setTProteinLatestYear(ketersediaanProteinResult.length > 0 ? Math.max(...ketersediaanProteinResult.map((x: any) => x.tahun)) : 2025);
+        setTEnergiLatestYear(ketersediaanEnergiResult.length > 0 ? Math.max(...ketersediaanEnergiResult.map((x: any) => x.tahun)) : 2025);
+        setProduksiLatestYear(produksiBerasResult.length > 0 ? Math.max(...produksiBerasResult.map((x: any) => x.tahun)) : 2025);
+        
+        setBalitaLatestData(balitaLatestResult);
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -828,6 +902,30 @@ export default function DashboardPage() {
       lebih,
       total,
       status: balitaDataRaw[0]?.status || 'AMAN'
+    };
+  };
+
+  const getBalitaLatestComputed = () => {
+    if (!balitaLatestData || balitaLatestData.length === 0) {
+      return { sangatKurang: 232, kurang: 946, normal: 25044, lebih: 1064, total: 27286, status: 'AMAN', tahun: balitaLatestYear, bulan: balitaLatestMonth };
+    }
+    const sangatKurang = balitaLatestData.reduce((s, x) => s + (x.bb_sangat_kurang || 0), 0);
+    const kurang = balitaLatestData.reduce((s, x) => s + (x.bb_kurang || 0), 0);
+    const normal = balitaLatestData.reduce((s, x) => s + (x.bb_normal || 0), 0);
+    const lebih = balitaLatestData.reduce((s, x) => s + (x.bb_lebih || 0), 0);
+    const total = sangatKurang + kurang + normal + lebih;
+    const totalKurang = sangatKurang + kurang;
+    const pct = total > 0 ? (totalKurang / total) * 100 : 0;
+    const status = pct > 15 ? 'RENTAN' : (pct >= 10 ? 'WASPADA' : 'AMAN');
+    return {
+      sangatKurang,
+      kurang,
+      normal,
+      lebih,
+      total,
+      status,
+      tahun: balitaLatestYear,
+      bulan: balitaLatestMonth
     };
   };
 
@@ -1003,37 +1101,38 @@ export default function DashboardPage() {
                           transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
                         }}
                       >
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <CVGauge value={getCVValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <CVGauge value={getCVValue()} year={cvLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <PPHGauge value={getPPHValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <PPHGauge value={getPPHValue()} year={pphLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <ProteinGauge value={getKonsumsiProteinValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <EnergiGauge value={getKonsumsiEnergiValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
-                          <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-2 print:px-1 print:h-[255px]">
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
                           <KerawananPanel 
                             intervensiData={intervensiData} 
                             selectedKecamatan={selectedKecamatan} 
                             fsvaMatangData={fsvaMatangData}
                             skpgMatangData={skpgMatangData}
+                            year={intervensiLatestYear}
                           />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
-                          <BalitaDoughnut balitaData={getBalitaData()} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
+                          <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
                         </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[245px] print:w-full print:col-span-3 print:px-1 print:h-[255px]">
-                          <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
+                          <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
                         </div>
                       </div>
                     </div>
@@ -1055,57 +1154,58 @@ export default function DashboardPage() {
                     {/* The snap scroll container */}
                     <div 
                       onScroll={handleMobileScroll}
-                      className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth w-full px-[15vw] py-4 gap-4 no-scrollbar"
+                      className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth w-full px-[15vw] py-4 gap-4 no-scrollbar animate-in fade-in duration-300"
                       style={{ scrollbarWidth: 'none' }}
                     >
                       {/* Card 1 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <CVGauge value={getCVValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <CVGauge value={getCVValue()} year={cvLatestYear} />
                       </div>
                       
                       {/* Card 2 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <PPHGauge value={getPPHValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <PPHGauge value={getPPHValue()} year={pphLatestYear} />
                       </div>
                       
                       {/* Card 3 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <ProteinGauge value={getKonsumsiProteinValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
                       </div>
                       
                       {/* Card 4 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <EnergiGauge value={getKonsumsiEnergiValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
                       </div>
                       
                       {/* Card 5 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
                       </div>
                       
                       {/* Card 6 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
                       </div>
                       
                       {/* Card 7 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
                         <KerawananPanel 
                           intervensiData={intervensiData} 
                           selectedKecamatan={selectedKecamatan} 
                           fsvaMatangData={fsvaMatangData}
                           skpgMatangData={skpgMatangData}
+                          year={intervensiLatestYear}
                         />
                       </div>
                       
                       {/* Card 8 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 7 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <BalitaDoughnut balitaData={getBalitaData()} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 7 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
                       </div>
                       
                       {/* Card 9 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 8 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'}`}>
-                        <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 8 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                        <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
                       </div>
                     </div>
 
@@ -1120,42 +1220,54 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW: 2 Column Layout (Harga Panel & Wide Map) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                    {/* Column 1: Harga Panel (Span 4) */}
-                    <div className="lg:col-span-4 flex flex-col print:col-span-5">
-                      <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
-                        <HargaPanel 
-                          hargaData={hargaData} 
-                          previousHargaData={previousHargaData} 
-                          livePrices={livePrices}
-                          liveDate={liveDate}
-                          loadingLive={loadingLive}
-                        />
-                      </div>
+                  {/* Section: Early Warning System */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
+                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Early Warning System (Pemantauan Harga & Peta Tematik)</h2>
                     </div>
-
-                    {/* Column 2: Wide Map (Span 8) */}
-                    <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                      <div className="dashboard-card flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
-                        <div className="mb-2">
-                          <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
-                          <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
-                        </div>
-                        <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[350px] print:h-[280px] print:min-h-0">
-                          <MapUnified 
-                            selectedKecamatan={selectedKecamatan}
-                            selectedKelurahan={selectedKelurahan}
-                            selectedYear={selectedYear}
-                            selectedMonth={selectedMonth}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
+                      {/* Column 1: Harga Panel (Span 4) */}
+                      <div className="lg:col-span-4 flex flex-col print:col-span-5">
+                        <div className="dashboard-card border border-emerald-100 dark:border-slate-800 bg-gradient-to-br from-white to-emerald-50/10 dark:from-slate-900 dark:to-emerald-950/5 flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                          <HargaPanel 
+                            hargaData={hargaData} 
+                            previousHargaData={previousHargaData} 
+                            livePrices={livePrices}
+                            liveDate={liveDate}
+                            loadingLive={loadingLive}
                           />
+                        </div>
+                      </div>
+
+                      {/* Column 2: Wide Map (Span 8) */}
+                      <div className="lg:col-span-8 flex flex-col print:col-span-7">
+                        <div className="dashboard-card border border-blue-100 dark:border-slate-800 bg-gradient-to-br from-white to-blue-50/10 dark:from-slate-900 dark:to-slate-800/10 flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                          <div className="mb-2">
+                            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
+                            <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
+                          </div>
+                          <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[350px] print:h-[280px] print:min-h-0">
+                            <MapUnified 
+                              selectedKecamatan={selectedKecamatan}
+                              selectedKelurahan={selectedKelurahan}
+                              selectedYear={selectedYear}
+                              selectedMonth={selectedMonth}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* ML Forecast Panel */}
-                  <ForecastPanel livePrices={livePrices} />
+                  {/* Section: AI Forecast */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="h-4 w-1 bg-teal-500 rounded-full"></span>
+                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">AI Forecast & Analisis Prediktif</h2>
+                    </div>
+                    <ForecastPanel livePrices={livePrices} />
+                  </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
@@ -1200,9 +1312,15 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  {/* BOTTOM ROW 3: Benchmark Panel (Full Width, directly below) */}
-                  <div className="w-full mt-6 print:hidden">
-                    <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
+                  {/* Section: Benchmark */}
+                  <div className="space-y-3 mt-6 print:hidden">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="h-4 w-1 bg-indigo-500 rounded-full"></span>
+                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Benchmark & Perbandingan Wilayah</h2>
+                    </div>
+                    <div className="w-full">
+                      <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
+                    </div>
                   </div>
 
                 </>

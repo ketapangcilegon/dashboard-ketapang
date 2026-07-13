@@ -5,9 +5,10 @@ import { Sparkles, Brain } from 'lucide-react';
 
 interface EnergiGaugeProps {
   value: number;
+  year?: number;
 }
 
-export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
+export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -112,9 +113,10 @@ export default function EnergiGauge({ value = 2163 }: EnergiGaugeProps) {
       </button>
 
       {/* Header */}
-      <div className="w-full text-left h-[42px] flex flex-col justify-start">
+      <div className="w-full text-left h-[54px] flex flex-col justify-start">
         <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Konsumsi Energi</h4>
-        <h3 className="text-xs font-bold text-white mt-1 leading-tight">(kkal/kapita/hari)</h3>
+        <span className="text-[10px] font-black text-white/90 leading-none mt-0.5">{year}</span>
+        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">(kkal/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}

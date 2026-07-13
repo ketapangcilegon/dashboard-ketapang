@@ -5,9 +5,10 @@ import { Sparkles, Brain } from 'lucide-react';
 
 interface KetersediaanProteinGaugeProps {
   value: number;
+  year?: number;
 }
 
-export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanProteinGaugeProps) {
+export default function KetersediaanProteinGauge({ value = 85, year = 2025 }: KetersediaanProteinGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -112,9 +113,10 @@ export default function KetersediaanProteinGauge({ value = 85 }: KetersediaanPro
       </button>
 
       {/* Header */}
-      <div className="w-full text-left h-[42px] flex flex-col justify-start">
-        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Ketersediaan Protein</h4>
-        <h3 className="text-xs font-bold text-white mt-1 leading-tight">(gram/kapita/hari)</h3>
+      <div className="w-full text-left h-[54px] flex flex-col justify-start">
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Ketersediaan</h4>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-0.5">Protein {year}</h4>
+        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">(gram/kapita/hari)</h3>
       </div>
       
       {/* Gauge Visual Area */}

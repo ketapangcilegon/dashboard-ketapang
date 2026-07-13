@@ -15,9 +15,10 @@ interface ProduksiLokalChartProps {
   produksiBerasData: ProduksiBerasData[];
   selectedYear: number;
   selectedMonth: number;
+  year?: number;
 }
 
-export default function ProduksiLokalChart({ produksiBerasData = [], selectedYear, selectedMonth }: ProduksiLokalChartProps) {
+export default function ProduksiLokalChart({ produksiBerasData = [], selectedYear, selectedMonth, year = 2025 }: ProduksiLokalChartProps) {
   const [showAIModal, setShowAIModal] = useState(false);
 
   // Compute annual average or latest production values from the database
@@ -61,8 +62,9 @@ export default function ProduksiLokalChart({ produksiBerasData = [], selectedYea
       </button>
 
       {/* Header */}
-      <div className="w-full text-left z-10">
-        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Produksi Beras Lokal</h4>
+      <div className="w-full text-left z-10 flex flex-col justify-start h-[32px]">
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Produksi Beras</h4>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-0.5">Lokal {year}</h4>
       </div>
       
       {/* Value Display */}

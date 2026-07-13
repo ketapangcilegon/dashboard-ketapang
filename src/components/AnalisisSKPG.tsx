@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles, RefreshCw, UploadCloud, Download, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import MapSKPGMini from './MapSKPGMini';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import * as XLSX from 'xlsx';
 
 // Standard Kecamatan
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
@@ -71,6 +72,171 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Upload Excel states for SKPG
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  const handleDownloadTemplate = () => {
+    const headers = ['Tahun', 'Bulan', 'Kecamatan', 'Kelurahan', 'bb_sangat_kurang', 'bb_kurang', 'bb_normal', 'bb_lebih'];
+    const sampleData = [
+      [2026, 7, 'Cilegon', 'Bagendung', 10, 23, 673, 27],
+      [2026, 7, 'Ciwandan', 'Banjar Negara', 17, 70, 553, 12],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Template SKPG');
+    XLSX.writeFile(wb, 'template_upload_skpg.xlsx');
+  };
+
+  const handleUploadClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const confirmUpload = window.confirm(
+      "PERINGATAN: Mengunggah template baru akan menimpa/overwrite data gizi balita SKPG yang sudah ada untuk tahun dan bulan yang ditentukan dalam file Excel. Apakah Anda yakin ingin melanjutkan?"
+    );
+    if (!confirmUpload) {
+      e.target.value = '';
+      return;
+    }
+
+    setUploadError(null);
+    setUploadMessage(null);
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const rawRows = XLSX.utils.sheet_to_json<any>(ws);
+
+        if (rawRows.length === 0) {
+          throw new Error("File Excel kosong atau tidak valid.");
+        }
+
+        const firstRow = rawRows[0];
+        const requiredFields = ['Tahun', 'Bulan', 'Kecamatan', 'Kelurahan', 'bb_sangat_kurang', 'bb_kurang', 'bb_normal', 'bb_lebih'];
+        const missingFields = requiredFields.filter(f => !(f in firstRow));
+        if (missingFields.length > 0) {
+          throw new Error(`Kolom template tidak sesuai. Kolom berikut hilang: ${missingFields.join(', ')}`);
+        }
+
+        // Group by targeted period (tahun, bulan) to delete cleanly for overwrite
+        const periodsToClear = new Map<string, { tahun: number; bulan: number }>();
+        for (const row of rawRows) {
+          const tahun = parseInt(row['Tahun']) || 2026;
+          const bulan = parseInt(row['Bulan']) || 6;
+          const key = `${tahun}-${bulan}`;
+          periodsToClear.set(key, { tahun, bulan });
+        }
+
+        for (const [_, { tahun, bulan }] of periodsToClear) {
+          const { error: delSkpgErr } = await supabase
+            .from('gizi_balita_skpg_kelurahan')
+            .delete()
+            .eq('tahun', tahun)
+            .eq('bulan', bulan);
+          if (delSkpgErr) throw delSkpgErr;
+
+          const { error: delBalitaErr } = await supabase
+            .from('gizi_balita')
+            .delete()
+            .eq('tahun', tahun)
+            .eq('bulan', bulan);
+          if (delBalitaErr) throw delBalitaErr;
+        }
+
+        const skpgRowsToInsert = [];
+        const balitaRowsToInsert = [];
+
+        for (const row of rawRows) {
+          const tahun = parseInt(row['Tahun']) || 2026;
+          const bulan = parseInt(row['Bulan']) || 6;
+          const kecamatan = String(row['Kecamatan'] || '').trim();
+          const kelurahan = String(row['Kelurahan'] || '').trim();
+          const bb_sangat_kurang = parseInt(row['bb_sangat_kurang']) || 0;
+          const bb_kurang = parseInt(row['bb_kurang']) || 0;
+          const bb_normal = parseInt(row['bb_normal']) || 0;
+          const bb_lebih = parseInt(row['bb_lebih']) || 0;
+
+          if (!kelurahan) continue;
+
+          const total_balita = bb_sangat_kurang + bb_kurang + bb_normal + bb_lebih;
+          const total_kurang = bb_sangat_kurang + bb_kurang;
+          const nilai = total_balita > 0 ? parseFloat(((total_kurang / total_balita) * 100).toFixed(2)) : 0;
+          
+          let bobot = 1;
+          let status = 'AMAN';
+          if (nilai >= 15) {
+            bobot = 3;
+            status = 'RENTAN';
+          } else if (nilai >= 10) {
+            bobot = 2;
+            status = 'WASPADA';
+          }
+
+          skpgRowsToInsert.push({
+            tahun,
+            bulan,
+            kecamatan,
+            kelurahan,
+            bb_sangat_kurang,
+            bb_kurang,
+            bb_normal,
+            bb_lebih,
+            total_balita,
+            total_kurang,
+            nilai,
+            bobot,
+            status
+          });
+
+          balitaRowsToInsert.push({
+            tahun,
+            bulan,
+            nama_kelurahan: kelurahan,
+            gizi_sangat_kurang: bb_sangat_kurang,
+            gizi_kurang: bb_kurang,
+            gizi_normal: bb_normal,
+            gizi_berlebih: bb_lebih,
+            status
+          });
+        }
+
+        if (skpgRowsToInsert.length > 0) {
+          const { error: insSkpgErr } = await supabase
+            .from('gizi_balita_skpg_kelurahan')
+            .insert(skpgRowsToInsert);
+          if (insSkpgErr) throw insSkpgErr;
+        }
+
+        if (balitaRowsToInsert.length > 0) {
+          const { error: insBalitaErr } = await supabase
+            .from('gizi_balita')
+            .insert(balitaRowsToInsert);
+          if (insBalitaErr) throw insBalitaErr;
+        }
+
+        setUploadSuccess(true);
+        setUploadMessage(`Berhasil mengunggah ${skpgRowsToInsert.length} data gizi balita ke database.`);
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
+      } catch (err: any) {
+        console.error('Upload error:', err);
+        setUploadError(err.message || 'Gagal memproses file Excel.');
+        setUploadSuccess(false);
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  };
+
   // Dynamic state computed from database
   const [pricesCur, setPricesCur] = useState<Record<string, { beras: number; minyak: number; telur: number }>>(BASELINE_PRICES_2026);
   const [pricesPrev, setPricesPrev] = useState<Record<string, { beras: number; minyak: number; telur: number }>>(
@@ -78,6 +244,7 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
   );
   
   const [nutrition, setNutrition] = useState<Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }>>(BASELINE_NUTRITION);
+  const [priceSource, setPriceSource] = useState<'live' | 'fallback' | 'database'>('database');
 
   const [availablePeriods, setAvailablePeriods] = useState<{ tahun: number; bulan: number }[]>([]);
   const [aiInsight, setAiInsight] = useState<string>('');
@@ -224,6 +391,7 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       setPricesCur(emptyPrices);
       setPricesPrev(emptyPrices);
       setNutrition(BASELINE_NUTRITION);
+      setPriceSource('database');
       return;
     }
 
@@ -232,6 +400,7 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       setPricesCur(BASELINE_PRICES_2026);
       setPricesPrev(Object.keys(BASELINE_PRICES_2026).reduce((acc, k) => ({ ...acc, [k]: BASELINE_PRICES_2025 }), {}));
       setNutrition(BASELINE_NUTRITION);
+      setPriceSource('database');
       return;
     }
 
@@ -259,10 +428,12 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         if (sagonJson && sagonJson.success) {
           setPricesCur(sagonJson.pricesCur);
           setPricesPrev(sagonJson.pricesPrev);
+          setPriceSource(sagonJson.source || 'live');
         } else {
           console.warn('[AnalisisSKPG] Failed to fetch dynamic Sagon prices, using baseline fallbacks.');
           setPricesCur(BASELINE_PRICES_2026);
           setPricesPrev(Object.keys(BASELINE_PRICES_2026).reduce((acc, k) => ({ ...acc, [k]: BASELINE_PRICES_2025 }), {}));
+          setPriceSource('fallback');
         }
 
         // 2. Fetch nutrition (gizi balita)
@@ -728,6 +899,64 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         </button>
       </div>
 
+      {/* Upload/Download Excel Section */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+              <UploadCloud className="w-4 h-4 text-emerald-500" />
+              Upload Data SKPG Bulanan (Kecamatan / Kelurahan)
+            </h3>
+            <p className="text-xs text-slate-500 font-bold mt-1">
+              Perbaharui data balita underweight bulanan Kota Cilegon via berkas Excel (.xlsx).
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Template xlsx
+            </button>
+
+            <label className="relative flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer">
+              {uploadSuccess ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-white bg-emerald-500 rounded-full p-0.5 animate-in zoom-in-50 duration-200" />
+                  Sudah Terupload
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  Upload Data SKPG
+                </>
+              )}
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                onChange={handleUploadClick}
+              />
+            </label>
+          </div>
+        </div>
+
+        {uploadError && (
+          <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-150 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>{uploadError}</span>
+          </div>
+        )}
+        {uploadMessage && (
+          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-150 flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>{uploadMessage}</span>
+          </div>
+        )}
+      </div>
+
       {loading ? (
         <div className="w-full min-h-[400px] bg-white rounded-2xl flex flex-col items-center justify-center border border-slate-100 shadow-sm">
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-3" />
@@ -757,7 +986,22 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
               
               {/* Kolom 2: Grafik (Span 5) */}
               <div className="lg:col-span-5 flex flex-col justify-between">
-                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
+                <div className="flex flex-col lg:flex-row justify-between items-center lg:items-center gap-1.5 mb-2">
+                  <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
+                  <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm tracking-wider uppercase ${
+                    priceSource === 'live' 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-250' 
+                      : priceSource === 'fallback' 
+                        ? 'bg-amber-50 text-amber-700 border-amber-250' 
+                        : 'bg-blue-50 text-blue-700 border-blue-250'
+                  }`}>
+                    {priceSource === 'live' 
+                      ? '● Live Sagon' 
+                      : priceSource === 'fallback' 
+                        ? '● Data Cadangan (Fallback) Cloud Server' 
+                        : '● Database'}
+                  </span>
+                </div>
                 <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 5 }}>

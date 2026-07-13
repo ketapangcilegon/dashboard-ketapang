@@ -9,13 +9,15 @@ interface KerawananPanelProps {
   selectedKecamatan: string;
   fsvaMatangData?: any[];
   skpgMatangData?: any[];
+  year?: number;
 }
 
 export default function KerawananPanel({ 
   intervensiData = [], 
   selectedKecamatan = 'ALL',
   fsvaMatangData = [],
-  skpgMatangData = []
+  skpgMatangData = [],
+  year = 2025
 }: KerawananPanelProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   
@@ -103,9 +105,10 @@ export default function KerawananPanel({
       </button>
 
       {/* Header */}
-      <div className="z-10 text-left">
+      <div className="z-10 text-left flex flex-col justify-start h-[45px]">
         <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Intervensi</h4>
-        <h3 className="text-xs font-bold text-white mt-1.5 leading-tight">Penanganan Kerawanan</h3>
+        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">Penanganan Kerawanan</h3>
+        <span className="text-[10px] font-black text-white/90 mt-0.5">{year}</span>
       </div>
 
       {/* GPM Section */}
@@ -150,7 +153,7 @@ export default function KerawananPanel({
 
       {/* Footer Info */}
       <div className="z-10 mt-3 pt-2 border-t border-slate-200/60 flex justify-between items-center text-[8px] font-bold text-slate-400 leading-tight">
-        <span>TA 2026</span>
+        <span>TA {year}</span>
         <span>Sumber: APBD & APBN</span>
       </div>
 

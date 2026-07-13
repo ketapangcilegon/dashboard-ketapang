@@ -5,9 +5,10 @@ import { Sparkles, Brain } from 'lucide-react';
 
 interface PPHGaugeProps {
   value: number;
+  year?: number;
 }
 
-export default function PPHGauge({ value = 88.1 }: PPHGaugeProps) {
+export default function PPHGauge({ value = 88.1, year = 2025 }: PPHGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -108,9 +109,10 @@ export default function PPHGauge({ value = 88.1 }: PPHGaugeProps) {
       </button>
 
       {/* Header */}
-      <div className="w-full text-left h-[42px] flex flex-col justify-start">
+      <div className="w-full text-left h-[54px] flex flex-col justify-start">
         <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Skor PPH Konsumsi</h4>
-        <h3 className="text-xs font-bold text-white mt-1 leading-tight">(Pola Pangan Harapan)</h3>
+        <span className="text-[10px] font-black text-white/90 leading-none mt-0.5">{year}</span>
+        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">(Pola Pangan Harapan)</h3>
       </div>
       
       {/* Gauge Visual Area */}

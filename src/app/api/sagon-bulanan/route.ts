@@ -25,7 +25,7 @@ const FALLBACKS_2026_MARKETS: Record<string, { beras: number; minyak: number; te
 
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
 
-async function scrapeMarketInfografis(marketId: string): Promise<CommodityData> {
+async function scrapeMarketInfografis(marketId: string): Promise<{ data: CommodityData; isFallback: boolean }> {
   const defaultData: CommodityData = {
     beras: { '2025': Array(12).fill(FALLBACKS_2025.beras), '2026': Array(12).fill(FALLBACKS_2026_MARKETS[marketId].beras) },
     minyak: { '2025': Array(12).fill(FALLBACKS_2025.minyak), '2026': Array(12).fill(FALLBACKS_2026_MARKETS[marketId].minyak) },
@@ -51,7 +51,7 @@ async function scrapeMarketInfografis(marketId: string): Promise<CommodityData> 
       next: { revalidate: 86400 }
     });
 
-    if (!response.ok) return defaultData;
+    if (!response.ok) return { data: defaultData, isFallback: true };
 
     const html = await response.text();
     const $ = cheerio.load(html);
@@ -99,15 +99,22 @@ async function scrapeMarketInfografis(marketId: string): Promise<CommodityData> 
     });
 
     const mergedData = { ...defaultData };
+    let hasScrapedData = false;
     for (const key of ['beras', 'minyak', 'telur'] as const) {
       if (results[key]) {
-        if (results[key]['2025'] && results[key]['2025'].length === 12) mergedData[key]['2025'] = results[key]['2025'];
-        if (results[key]['2026'] && results[key]['2026'].length === 12) mergedData[key]['2026'] = results[key]['2026'];
+        if (results[key]['2025'] && results[key]['2025'].length === 12) {
+          mergedData[key]['2025'] = results[key]['2025'];
+          hasScrapedData = true;
+        }
+        if (results[key]['2026'] && results[key]['2026'].length === 12) {
+          mergedData[key]['2026'] = results[key]['2026'];
+          hasScrapedData = true;
+        }
       }
     }
-    return mergedData;
+    return { data: mergedData, isFallback: !hasScrapedData };
   } catch (err) {
-    return defaultData;
+    return { data: defaultData, isFallback: true };
   }
 }
 
@@ -268,7 +275,17 @@ export async function GET(request: Request) {
       // Tahun 2026 ke atas: 3 komoditas, curPrices = scraping SAGON live, prevPrices = YoY dari DB (tahun-1, bulan sama)
       console.log(`[Sagon API] Year ${effectiveYear} >= 2026: scraping Sagon + YoY from DB (${effectiveYear - 1}/${effectiveMonth}).`);
 
-      const [market1, market2, market3] = await Promise.all([scrapeMarketInfografis('1'), scrapeMarketInfografis('2'), scrapeMarketInfografis('3')]);
+      let anyFallback = false;
+      const [m1Result, m2Result, m3Result] = await Promise.all([
+        scrapeMarketInfografis('1'),
+        scrapeMarketInfografis('2'),
+        scrapeMarketInfografis('3')
+      ]);
+      const market1 = m1Result.data;
+      const market2 = m2Result.data;
+      const market3 = m3Result.data;
+      anyFallback = m1Result.isFallback || m2Result.isFallback || m3Result.isFallback;
+
       const monthIdx = Math.max(0, Math.min(11, effectiveMonth - 1));
 
       const pricesMarket = {
@@ -301,14 +318,29 @@ export async function GET(request: Request) {
       );
 
       if (isPastMonth || isBackupTime) {
-        // Run backup asynchronously without blocking response
         autoBackupPrices(effectiveYear, effectiveMonth, pricesCur).catch(err => {
           console.error('[AutoBackup] Error triggered during request:', err);
         });
       }
+
+      return NextResponse.json({ 
+        success: true, 
+        month: selectedMonth, 
+        year: selectedYear, 
+        pricesCur, 
+        pricesPrev,
+        source: anyFallback ? 'fallback' : 'live'
+      });
     }
 
-    return NextResponse.json({ success: true, month: selectedMonth, year: selectedYear, pricesCur, pricesPrev });
+    return NextResponse.json({ 
+      success: true, 
+      month: selectedMonth, 
+      year: selectedYear, 
+      pricesCur, 
+      pricesPrev,
+      source: 'database'
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || 'Server error' }, { status: 500 });
   }

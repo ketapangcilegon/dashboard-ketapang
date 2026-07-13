@@ -11,6 +11,8 @@ interface BalitaDoughnutProps {
     lebih: number;
     total: number;
     status: string;
+    tahun?: number;
+    bulan?: number;
   };
 }
 
@@ -44,8 +46,13 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
 
       {/* Header with AMAN Badge */}
       <div className="w-full flex justify-between items-start">
-        <div>
-          <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Status BB/U Balita</h4>
+        <div className="flex flex-col">
+          <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">Status</h4>
+          <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-0.5">BB/U</h4>
+          <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-0.5">Balita</h4>
+          <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-0.5 text-yellow-300">
+            {(balitaData.bulan !== undefined && ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'][balitaData.bulan - 1]) || 'JUNI'} {balitaData.tahun || 2026}
+          </h4>
         </div>
         <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border shadow-sm uppercase mr-8 ${statusColor}`}>
           {statusLabel}

@@ -16,14 +16,12 @@ const WILAYAH: Record<string, string[]> = {
   'Citangkil':  ['Warnasari', 'Deringo', 'Kebonsari', 'Taman Baru', 'Lebak Denok', 'Samangraya', 'Citangkil'],
 };
 
-type DataType = 'harga' | 'pou' | 'ikp' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'skpg_matang' | 'gizi_balita' | 'intervensi_kelurahan';
+type DataType = 'harga' | 'pou' | 'ikp' | 'cv_beras' | 'pph' | 'k_energi' | 'k_protein' | 't_energi' | 't_protein' | 'produksi_beras' | 'fsva_matang' | 'intervensi_kelurahan';
 type ViewMode = 'upload' | 'manual';
 
 const DATA_TYPES = [
-  { value: 'gizi_balita', label: 'Gizi Balita Kel' },
   { value: 'intervensi_kelurahan', label: 'Intervensi Kel' },
   { value: 'fsva_matang', label: 'FSVA Matang' },
-  { value: 'skpg_matang', label: 'SKPG Matang' },
   { value: 'ikp', label: 'Grafik IKP' },
   { value: 'pou', label: 'Grafik POU' },
   { value: 'cv_beras', label: 'CV Beras' },
@@ -37,7 +35,7 @@ const DATA_TYPES = [
 
 export default function UploadPanel() {
   const [viewMode, setViewMode] = useState<ViewMode>('upload');
-  const [selectedType, setSelectedType] = useState<DataType>('gizi_balita');
+  const [selectedType, setSelectedType] = useState<DataType>('intervensi_kelurahan');
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -207,20 +205,6 @@ export default function UploadPanel() {
         sampleData = [
           ['Bagendung', '3672030001', 70.78556644, 2025],
           ['Banjar Negara', '3672010005', 71.90255582, 2025],
-        ];
-      } else if (type === 'skpg_matang') {
-        filename = 'template_skpg.xlsx';
-        headers = ['Tahun', 'Bulan', 'Kecamatan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
-        sampleData = [
-          [2025, 1, 'Cilegon', 'Bagendung', 72, 462, 338, 8414],
-          [2025, 1, 'Ciwandan', 'Banjar Negara', 92, 122, 165, 7684],
-        ];
-      } else if (type === 'gizi_balita') {
-        filename = 'template_gizi_balita.xlsx';
-        headers = ['Tahun', 'Bulan', 'Kecamatan', 'nama_kelurahan', 'gizi_sangat_kurang', 'gizi_kurang', 'gizi_normal', 'gizi_berlebih'];
-        sampleData = [
-          [2026, 1, 'Cilegon', 'Bagendung', 10, 23, 673, 27],
-          [2026, 1, 'Ciwandan', 'Banjar Negara', 17, 70, 553, 12],
         ];
       } else if (type === 'intervensi_kelurahan') {
         filename = 'template_intervensi.xlsx';
@@ -428,50 +412,6 @@ export default function UploadPanel() {
             kode_kel_bps,
             ikp,
             periode
-          });
-
-          if (error) throw error;
-        } else if (selectedType === 'skpg_matang') {
-          const nama_kelurahan = String(row['nama_kelurahan'] || row['Nama Kelurahan'] || '').trim();
-          const gizi_kurang = parseInt(row['gizi_kurang'] || row['Gizi Kurang']) || 0;
-          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang'] || row['Gizi Sangat Kurang']) || 0;
-          const gizi_berlebih = parseInt(row['gizi_berlebih'] || row['Gizi Berlebih'] || row['gizi_lebih']) || 0;
-          const gizi_normal = parseInt(row['gizi_normal'] || row['Gizi Normal']) || 0;
-          const periode = parseInt(row['Tahun'] || row['periode'] || row['Tahun']) || 2025;
-          const bulan = parseInt(row['Bulan'] || row['bulan'] || row['Bulan']) || 1;
-
-          if (!nama_kelurahan) continue;
-
-          const { error } = await supabase.from('skpg_matang').insert({
-            nama_kelurahan,
-            gizi_kurang,
-            gizi_sangat_kurang,
-            gizi_berlebih,
-            gizi_normal,
-            periode,
-            bulan
-          });
-
-          if (error) throw error;
-        } else if (selectedType === 'gizi_balita') {
-          const tahun = parseInt(row['Tahun'] || row['tahun'] || row['periode']) || 2026;
-          const bulan = parseInt(row['Bulan'] || row['bulan']) || 1;
-          const nama_kelurahan = String(row['nama_kelurahan'] || row['Nama Kelurahan'] || '').trim();
-          const gizi_sangat_kurang = parseInt(row['gizi_sangat_kurang'] || row['Gizi Sangat Kurang']) || 0;
-          const gizi_kurang = parseInt(row['gizi_kurang'] || row['Gizi Kurang']) || 0;
-          const gizi_normal = parseInt(row['gizi_normal'] || row['Gizi Normal']) || 0;
-          const gizi_berlebih = parseInt(row['gizi_berlebih'] || row['Gizi Berlebih'] || row['gizi_lebih']) || 0;
-
-          if (!nama_kelurahan) continue;
-
-          const { error } = await supabase.from('gizi_balita').insert({
-            tahun,
-            bulan,
-            nama_kelurahan,
-            gizi_sangat_kurang,
-            gizi_kurang,
-            gizi_normal,
-            gizi_berlebih
           });
 
           if (error) throw error;
@@ -689,7 +629,7 @@ export default function UploadPanel() {
             </div>
 
             <div>
-              Upload {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'gizi_balita' ? 'Gizi Balita Kel' : selectedType === 'intervensi_kelurahan' ? 'Intervensi Kel' : selectedType === 'fsva_matang' ? 'FSVA Matang' : selectedType === 'skpg_matang' ? 'SKPG Matang' : selectedType === 'ikp' ? 'IKP' : selectedType === 'pou' ? 'POU' : selectedType === 'cv_beras' ? 'CV Beras' : selectedType === 'pph' ? 'Skor PPH' : selectedType === 'k_energi' ? 'Konsumsi Energi' : selectedType === 'k_protein' ? 'Konsumsi Protein' : selectedType === 't_energi' ? 'Ketersediaan Energi' : selectedType === 't_protein' ? 'Ketersediaan Protein' : 'Produksi Beras'} Template
+              Upload {selectedType === 'harga' ? 'Harga Pangan' : selectedType === 'intervensi_kelurahan' ? 'Intervensi Kel' : selectedType === 'fsva_matang' ? 'FSVA Matang' : selectedType === 'ikp' ? 'IKP' : selectedType === 'pou' ? 'POU' : selectedType === 'cv_beras' ? 'CV Beras' : selectedType === 'pph' ? 'Skor PPH' : selectedType === 'k_energi' ? 'Konsumsi Energi' : selectedType === 'k_protein' ? 'Konsumsi Protein' : selectedType === 't_energi' ? 'Ketersediaan Energi' : selectedType === 't_protein' ? 'Ketersediaan Protein' : 'Produksi Beras'} Template
               <p className="text-slate-500 text-sm mt-1">
                 Gunakan template Excel resmi agar format baris dan kolom sesuai untuk dashboard.
               </p>
@@ -1229,11 +1169,11 @@ export default function UploadPanel() {
               </div>
             )}
 
-            {(selectedType === 'fsva_matang' || selectedType === 'skpg_matang') && (
+            {selectedType === 'fsva_matang' && (
               <div className="p-5 bg-blue-50 text-blue-800 rounded-xl border border-blue-100 flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
                 <span className="text-xs font-bold leading-normal">
-                  Pemberitahuan: Pengisian data matang FSVA & SKPG sangat disarankan melalui metode <b>Upload Excel</b> untuk kepraktisan pemrosesan batch seluruh kelurahan Kota Cilegon secara kolektif.
+                  Pemberitahuan: Pengisian data matang FSVA sangat disarankan melalui metode <b>Upload Excel</b> untuk kepraktisan pemrosesan batch seluruh kelurahan Kota Cilegon secara kolektif.
                 </span>
               </div>
             )}

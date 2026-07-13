@@ -283,7 +283,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
   };
 
   return (
-    <div className="dashboard-card border-none shadow-xl bg-white rounded-2xl p-6 md:p-8 space-y-6">
+    <div className="dashboard-card border border-indigo-150 dark:border-slate-800 shadow-md bg-gradient-to-br from-white to-indigo-50/5 dark:from-slate-900 dark:to-slate-850/10 rounded-2xl p-6 md:p-8 space-y-6">
       
       {/* Title & Carousel Selector Header */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between border-b border-slate-100 pb-5 gap-4">

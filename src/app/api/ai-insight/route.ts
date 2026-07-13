@@ -103,15 +103,17 @@ export async function POST(request: Request) {
 
     // 2. CALL GEMINI API (MENGGUNAKAN MODEL MURAH & GRATIS: gemini-2.5-flash-lite)
     const model = 'gemini-2.5-flash-lite';
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
+    let generatedText = '';
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
 Tugas Anda adalah membaca data indikator ketahanan pangan real-time yang sedang ditampilkan di dashboard Ketapang berikut ini, lalu berikan laporan analisis/insight eksekutif yang tajam, solutif, profesional, dan kaya akan insight metodologis (tuliskan dalam Bahasa Indonesia yang formal dan terstruktur dengan rapi menggunakan Markdown).
 Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 280-320 kata) agar tetap ringkas namun mencakup semua instruksi penting.
 
@@ -136,24 +138,27 @@ STRUKTUR LAPORAN HARUS TERDIRI DARI:
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
 - **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
   1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.
-  2. Gerakan Pangan Murah (GPM) & kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan tinggi berdasarkan peta FSVA, yang terbukti secara komparatif lebih tepat sasaran bagi masyarakat berpenghasilan rendah.
+  2. Gerakan Pangan Murah (GPM) & kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan tinggi berdasarkan peta FSVA, yang terbukti secara komparatif lebih tepat saran bagi masyarakat berpenghasilan rendah.
   3. Kerja Sama Antar Daerah (KAD) dengan produsen utama pangan strategis untuk menjamin pasokan pangan jangka menengah dan menghindari gejolak spekulasi pasar.
 
 Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Jangan gunakan placeholder.`
-          }]
-        }],
-        generationConfig: {
-          maxOutputTokens: 500 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
-        }
-      })
-    });
+            }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 500 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
+          }
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      if (response.ok) {
+        const result = await response.json();
+        generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        console.warn(`Gemini API error status: ${response.status} ${response.statusText}`);
+      }
+    } catch (err) {
+      console.warn('Network error while fetching Gemini API:', err);
     }
-
-    const result = await response.json();
-    const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     if (generatedText) {
       // 3. UPDATE CACHE LOKAL & DATABASE
@@ -178,12 +183,35 @@ Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Ja
       } catch (dbSaveErr) {
         console.warn('Gagal menyimpan AI Insight ke database cache (Supabase):', dbSaveErr);
       }
+
+      return NextResponse.json({
+        success: true,
+        isFallback: false,
+        insight: generatedText
+      });
     }
+
+    // Heuristic Fallback Analysis Generator (Professional and Rich in Detail)
+    const analysisMarkdown = generateFallbackInsight({
+      year,
+      month,
+      kecamatan,
+      kelurahan,
+      cvBeras,
+      pphScore,
+      konsumsiEnergi,
+      konsumsiProtein,
+      ketersediaanEnergi,
+      ketersediaanProtein,
+      produksiBeras,
+      balitaStatus,
+      hargaStrategis
+    });
 
     return NextResponse.json({
       success: true,
-      isFallback: false,
-      insight: generatedText
+      isFallback: true,
+      insight: analysisMarkdown
     });
 
   } catch (error: any) {
