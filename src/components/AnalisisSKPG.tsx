@@ -1049,17 +1049,17 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       </div>
 
       {/* Upload/Download Excel Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] border border-[#E9E4D5] rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden">
         {!isAdminLoggedIn && (
-          <div className="absolute inset-0 bg-slate-50/30 dark:bg-slate-950/40 backdrop-blur-[0.5px] z-10 flex items-center justify-center">
-            <span className="text-[10px] font-black tracking-widest uppercase text-slate-550 dark:text-slate-350 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2">
+          <div className="absolute inset-0 bg-[#EFEAD8]/40 backdrop-blur-[0.5px] z-10 flex items-center justify-center">
+            <span className="text-[10px] font-black tracking-widest uppercase text-slate-700 bg-[#FCFAF2] border border-[#E9E4D5] px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2">
               🔒 Fitur Unggah Khusus Administrator (Disabled)
             </span>
           </div>
         )}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <UploadCloud className="w-4 h-4 text-emerald-500" />
               Upload Data SKPG Bulanan (Kecamatan / Kelurahan)
             </h3>

@@ -1039,17 +1039,17 @@ export default function DashboardPage() {
                   100% { background-position: 0% 50%; }
                 }
               `}</style>
-              <div className="w-full max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl p-8 flex flex-col items-center text-center">
+              <div className="w-full max-w-md bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] backdrop-blur-md border border-[#E9E4D5] rounded-2xl shadow-xl p-8 flex flex-col items-center text-center">
                 {/* Modern Pulse / Humanist animated icon */}
-                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse">
-                  <Leaf className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse">
+                  <Leaf className="w-8 h-8 text-emerald-600" />
                 </div>
 
-                <h3 className="text-slate-800 dark:text-white font-bold text-lg mb-1 tracking-tight">Memuat Data</h3>
+                <h3 className="text-slate-800 font-bold text-lg mb-1 tracking-tight">Memuat Data</h3>
                 <p className="text-slate-400 text-xs mb-6 font-medium">Sistem Intelijen Ketahanan Pangan Kota Cilegon</p>
 
                 {/* Premium Gradient Progress Bar */}
-                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4 relative border border-slate-200/50 dark:border-slate-700/50">
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4 relative border border-slate-200/50">
                   <div 
                     className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-emerald-600 via-teal-400 to-emerald-500"
                     style={{
@@ -1062,7 +1062,7 @@ export default function DashboardPage() {
 
                 {/* Rotating Educational Tips / Status */}
                 <div className="h-10 flex items-center justify-center">
-                  <p className="text-emerald-700 dark:text-emerald-300 text-sm font-medium transition-all duration-500 ease-in-out">
+                  <p className="text-emerald-700 text-sm font-medium transition-all duration-500 ease-in-out">
                     {loadingTips[activeTipIdx]}
                   </p>
                 </div>
@@ -1229,7 +1229,7 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                       {/* Column 1: Harga Panel (Span 4) */}
                       <div className="lg:col-span-4 flex flex-col print:col-span-5">
-                        <div className="dashboard-card border border-emerald-100 dark:border-slate-800 bg-gradient-to-br from-white to-emerald-50/10 dark:from-slate-900 dark:to-emerald-950/5 flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                           <HargaPanel 
                             hargaData={hargaData} 
                             previousHargaData={previousHargaData} 
@@ -1242,9 +1242,9 @@ export default function DashboardPage() {
 
                       {/* Column 2: Wide Map (Span 8) */}
                       <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                        <div className="dashboard-card border border-blue-100 dark:border-slate-800 bg-gradient-to-br from-white to-blue-50/10 dark:from-slate-900 dark:to-slate-800/10 flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                           <div className="mb-2">
-                            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
+                            <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
                             <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
                           </div>
                           <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[350px] print:h-[280px] print:min-h-0">
