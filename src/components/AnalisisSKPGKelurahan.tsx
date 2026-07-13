@@ -4,10 +4,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  Sparkles, Calendar, TrendingUp, AlertTriangle, ShieldAlert, Loader2, Utensils, RefreshCw, Brain
+  Sparkles, Calendar, TrendingUp, AlertTriangle, ShieldAlert, Loader2, Utensils, RefreshCw, Brain, Download
 } from 'lucide-react';
 import MapSKPGMini from './MapSKPGMini';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import * as XLSX from 'xlsx';
 
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
 
@@ -555,6 +556,151 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   const labelCur = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear}`;
   const labelPrev = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear - 1}`;
 
+  const handleDownloadAksesKelurahanXlsx = () => {
+    const headers = [
+      ["No", "Kelurahan", "Kecamatan", `Beras Medium (${labelPrev})`, `Beras Medium (${labelCur})`, `Minyak Kemasan (${labelPrev})`, `Minyak Kemasan (${labelCur})`, `Telur Ayam (${labelPrev})`, `Telur Ayam (${labelCur})`, "Beras Diff %", "Beras Skor", "Minyak Diff %", "Minyak Skor", "Telur Diff %", "Telur Skor", "Total Bobot", "Status", "Indeks"]
+    ];
+
+    const sortedKelurahans = getSortedKelurahans();
+    const rows = sortedKelurahans.map((kel, i) => {
+      const row = getKeterjangkauanRow(kel.nama, kel.kecamatan);
+      return [
+        i + 1,
+        kel.nama,
+        kel.kecamatan,
+        row.prev.beras > 0 ? row.prev.beras : 0,
+        row.cur.beras > 0 ? row.cur.beras : 0,
+        row.prev.minyak > 0 ? row.prev.minyak : 0,
+        row.cur.minyak > 0 ? row.cur.minyak : 0,
+        row.prev.telur > 0 ? row.prev.telur : 0,
+        row.cur.telur > 0 ? row.cur.telur : 0,
+        row.available ? `${row.rBeras}%` : '-',
+        row.bobotBeras,
+        row.available ? `${row.rMinyak}%` : '-',
+        row.bobotMinyak,
+        row.available ? `${row.rTelur}%` : '-',
+        row.bobotTelur,
+        row.totalBobot,
+        row.status,
+        row.index
+      ];
+    });
+
+    const averageRow = [
+      "",
+      "KOTA CILEGON",
+      "",
+      kotaCilegon.beras.prev > 0 ? kotaCilegon.beras.prev : 0,
+      kotaCilegon.beras.cur > 0 ? kotaCilegon.beras.cur : 0,
+      kotaCilegon.minyak.prev > 0 ? kotaCilegon.minyak.prev : 0,
+      kotaCilegon.minyak.cur > 0 ? kotaCilegon.minyak.cur : 0,
+      kotaCilegon.telur.prev > 0 ? kotaCilegon.telur.prev : 0,
+      kotaCilegon.telur.cur > 0 ? kotaCilegon.telur.cur : 0,
+      kotaCilegon.availableAkses ? `${kotaCilegon.beras.r}%` : '-',
+      kotaCilegon.beras.bobot,
+      kotaCilegon.availableAkses ? `${kotaCilegon.minyak.r}%` : '-',
+      kotaCilegon.minyak.bobot,
+      kotaCilegon.availableAkses ? `${kotaCilegon.telur.r}%` : '-',
+      kotaCilegon.telur.bobot,
+      kotaCilegon.totalBobotAkses,
+      kotaCilegon.statusAkses,
+      kotaCilegon.indexAkses
+    ];
+
+    const data = [...headers, ...rows, averageRow];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Akses Pangan Kelurahan");
+    XLSX.writeFile(wb, `Akses_Pangan_Kelurahan_${MONTH_NAMES_INDO[selectedMonth]}_${selectedYear}.xlsx`);
+  };
+
+  const handleDownloadGiziKelurahanXlsx = () => {
+    const headers = [
+      ["No", "Kelurahan", "Kecamatan", "Sangat Kurang", "Kurang", "Normal", "BB Lebih", "BB Sangat Kurang + BB Kurang", "Total Balita", "Value (%)", "Bobot", "Status"]
+    ];
+
+    const sortedKelurahans = getSortedKelurahans();
+    const rows = sortedKelurahans.map((kel, i) => {
+      const row = getPemanfaatanRow(kel.nama);
+      return [
+        i + 1,
+        kel.nama,
+        kel.kecamatan,
+        row.nutr.sangatKurang,
+        row.nutr.kurang,
+        row.nutr.normal,
+        row.nutr.lebih,
+        row.underweightTotal,
+        row.nutr.total,
+        `${row.value}%`,
+        row.bobot,
+        row.status
+      ];
+    });
+
+    const averageRow = [
+      "",
+      "KOTA CILEGON",
+      "",
+      kotaCilegon.nutrition.sangatKurang,
+      kotaCilegon.nutrition.kurang,
+      kotaCilegon.nutrition.normal,
+      kotaCilegon.nutrition.lebih,
+      kotaCilegon.nutrition.underweightTotal,
+      kotaCilegon.nutrition.totalBalita,
+      `${kotaCilegon.nutrition.value}%`,
+      kotaCilegon.nutrition.bobot,
+      kotaCilegon.nutrition.status
+    ];
+
+    const data = [...headers, ...rows, averageRow];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pemanfaatan Pangan Kelurahan");
+    XLSX.writeFile(wb, `Pemanfaatan_Pangan_Kelurahan_${MONTH_NAMES_INDO[selectedMonth]}_${selectedYear}.xlsx`);
+  };
+
+  const handleDownloadKompositKelurahanXlsx = () => {
+    const headers = [
+      ["Kelurahan", "Kecamatan", "IA (Index Akses)", "IP (Index Pemanfaatan)", "Skor Komposit (IA + IP)", "Keterangan", "Indeks"]
+    ];
+
+    const sortedKelurahans = getSortedKelurahans();
+    const rows = sortedKelurahans.map(kel => {
+      const akses = getKeterjangkauanRow(kel.nama, kel.kecamatan);
+      const nutr = getPemanfaatanRow(kel.nama);
+      const score = akses.index + nutr.bobot;
+      const index = score === 6 ? 3 : score >= 4 ? 2 : 1;
+      const status = index === 3 ? 'AMAN' : index === 2 ? 'WASPADA' : 'RENTAN';
+
+      return [
+        kel.nama,
+        kel.kecamatan,
+        akses.index,
+        nutr.bobot,
+        score,
+        status,
+        index
+      ];
+    });
+
+    const averageRow = [
+      "KOTA CILEGON",
+      "",
+      kotaCilegon.indexAkses,
+      kotaCilegon.nutrition.bobot,
+      kotaCilegon.availableAkses ? (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) : '-',
+      !kotaCilegon.availableAkses ? 'BELUM TERSEDIA' : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 'AMAN' : 'WASPADA',
+      !kotaCilegon.availableAkses ? '-' : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6 ? 3 : 2
+    ];
+
+    const data = [...headers, ...rows, averageRow];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Komposit Kelurahan");
+    XLSX.writeFile(wb, `Komposit_Kelurahan_${MONTH_NAMES_INDO[selectedMonth]}_${selectedYear}.xlsx`);
+  };
+
   // Show loading state while auto-detecting latest period from DB
   if (selectedMonth === 0 || selectedYear === 0) {
     return (
@@ -844,6 +990,16 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 </tbody>
               </table>
             </div>
+            {/* Download Link */}
+            <div className="flex justify-end mt-3 border-t border-slate-100 pt-3">
+              <button
+                onClick={handleDownloadAksesKelurahanXlsx}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
+              >
+                <Download className="w-3 h-3" />
+                Download xlsx
+              </button>
+            </div>
           </div>
 
           {/* 3. Aspek Pemanfaatan Pangan (Gizi) */}
@@ -1024,6 +1180,16 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       })}
                     </tbody>
                   </table>
+                </div>
+                {/* Download Link */}
+                <div className="flex justify-end mt-3 border-t border-slate-100 pt-3">
+                  <button
+                    onClick={handleDownloadGiziKelurahanXlsx}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download xlsx
+                  </button>
                 </div>
               </div>
 
@@ -1206,6 +1372,16 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       })}
                     </tbody>
                   </table>
+                </div>
+                {/* Download Link */}
+                <div className="flex justify-end mt-3 border-t border-slate-100 pt-3">
+                  <button
+                    onClick={handleDownloadKompositKelurahanXlsx}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download xlsx
+                  </button>
                 </div>
               </div>
 
