@@ -1146,15 +1146,15 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                   <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
                   <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm tracking-wider uppercase ${
                     priceSource === 'live' 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-250' 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                       : priceSource === 'fallback' 
-                        ? 'bg-amber-50 text-amber-700 border-amber-250' 
-                        : 'bg-blue-50 text-blue-700 border-blue-250'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
                   }`}>
                     {priceSource === 'live' 
-                      ? '● Live Sagon' 
+                      ? '● Scraping Online' 
                       : priceSource === 'fallback' 
-                        ? '● Data Cadangan (Fallback) Cloud Server' 
+                        ? '● Data Cadangan (Fallback)' 
                         : '● Database'}
                   </span>
                 </div>
