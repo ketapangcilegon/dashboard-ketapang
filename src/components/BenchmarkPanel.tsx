@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import { BENCHMARKS, BenchmarkIndicator } from '@/lib/benchmark';
 import { 
   Award, CheckCircle2, AlertCircle, 
-  ChevronLeft, ChevronRight, TrendingUp, Sparkles
+  ChevronLeft, ChevronRight, TrendingUp, Sparkles, Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { 
   ComposedChart, Line, Area, XAxis, YAxis, Tooltip, 
   ResponsiveContainer, CartesianGrid, ReferenceLine, LabelList
@@ -274,6 +275,21 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
 
   const insights = getBenchmarkInsights(activeIndicator, chartData, currentVal);
 
+  const handleDownloadXlsx = () => {
+    const targetKey = activeIndicator.no === 8 ? 'Target RPJMD' : 'Target Nasional';
+    const headers = [["Tahun", `Capaian Cilegon (${activeIndicator.unit})`, `${targetKey} (${activeIndicator.unit})`]];
+    const rows = chartData.map(d => [
+      d.name,
+      d['Capaian Cilegon'],
+      d[targetKey] ?? "N/A"
+    ]);
+    const data = [...headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Benchmark Detail");
+    XLSX.writeFile(wb, `Benchmark_${activeIndicator.indicator.replace(/\s+/g, '_')}.xlsx`);
+  };
+
   const handlePrev = () => {
     setCurrentIndex(prev => (prev === 0 ? BENCHMARKS.length - 1 : prev - 1));
   };
@@ -476,6 +492,15 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
                   <span>Surplus terhadap target</span>
                 </div>
               )}
+            </div>
+            <div className="flex justify-center mt-3 pt-2.5 border-t border-slate-100/50">
+              <button
+                onClick={handleDownloadXlsx}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-emerald-800 bg-emerald-100 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-emerald-200"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download xlsx
+              </button>
             </div>
           </div>
         </div>

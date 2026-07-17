@@ -2,7 +2,8 @@
 
 import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LabelList } from 'recharts';
 import { useState, useEffect } from 'react';
-import { Brain, X } from 'lucide-react';
+import { Brain, X, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface IKPTrendChartProps {
   ikpData: any[];
@@ -31,6 +32,21 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
         nasional: x.ikp_nasional !== null && x.ikp_nasional !== undefined ? parseFloat(x.ikp_nasional) : null
       })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
     : defaultChartData;
+
+  const handleDownloadXlsx = () => {
+    const headers = [["Tahun", "IKP Kota Cilegon", "IKP Provinsi Banten", "IKP Nasional"]];
+    const rows = chartData.map(d => [
+      d.name,
+      d.cilegon,
+      d.provinsi ?? "N/A",
+      d.nasional ?? "N/A"
+    ]);
+    const data = [...headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "IKP Trend");
+    XLSX.writeFile(wb, "Tren_Indeks_Ketahanan_Pangan_IKP.xlsx");
+  };
 
   const [visibleData, setVisibleData] = useState<any[]>([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -168,7 +184,15 @@ export default function IKPTrendChart({ ikpData = [], selectedYear }: IKPTrendCh
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-
+      <div className="flex justify-end mt-2 pt-2 border-t border-slate-100">
+        <button
+          onClick={handleDownloadXlsx}
+          className="flex items-center gap-1.5 text-[9px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-lg px-2.5 py-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+        >
+          <Download className="w-3 h-3 text-emerald-600" />
+          Download xlsx
+        </button>
+      </div>
     </div>
   );
 }

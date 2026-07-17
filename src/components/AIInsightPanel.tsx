@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Copy, Check, Loader2 } from 'lucide-react';
+import { Sparkles, Copy, Check, Loader2, Download } from 'lucide-react';
 
 interface AIInsightPanelProps {
   year: number;
@@ -134,6 +134,66 @@ export default function AIInsightPanel({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownloadDocx = () => {
+    if (!insight) return;
+    
+    // Clean and format markdown to basic HTML for Word compatibility
+    const formattedHtml = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>AI Insight Ketahanan Pangan Kota Cilegon Tahun ${year}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b; }
+          h2 { font-size: 16pt; color: #0b1e41; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-top: 20px; }
+          h3 { font-size: 13pt; color: #1d4ed8; margin-top: 15px; }
+          h4 { font-size: 11pt; color: #3b82f6; margin-top: 12px; }
+          p { margin-bottom: 10px; text-align: justify; }
+          li { margin-left: 20px; margin-bottom: 5px; }
+          strong { color: #0b1e41; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <h2>AI INSIGHT KETAHANAN PANGAN KOTA CILEGON TAHUN ${year}</h2>
+        <p style="font-size: 9pt; color: #64748b; margin-top: -10px; margin-bottom: 20px;">
+          Dibuat secara otomatis oleh AI GovTech pada ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
+        <div>
+          ${insight
+            .split('\n')
+            .map(line => {
+              if (line.startsWith('### ')) {
+                return `<h3>${line.substring(4).replace(/\*\*/g, '')}</h3>`;
+              }
+              if (line.startsWith('#### ')) {
+                return `<h4>${line.substring(5).replace(/\*\*/g, '')}</h4>`;
+              }
+              if (line.trim().startsWith('- ')) {
+                return `<li>${line.trim().substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`;
+              }
+              const numMatch = line.trim().match(/^(\d+)\.\s(.*)/);
+              if (numMatch) {
+                return `<p><strong>${numMatch[1]}.</strong> ${numMatch[2].replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+              }
+              if (line.trim() === '') return '<br/>';
+              return `<p>${line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+            })
+            .join('\n')}
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + formattedHtml], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `AI_Insight_Ketahanan_Pangan_Kota_Cilegon_${year}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const parseBoldText = (text: string) => {
     const parts = text.split('**');
     return parts.map((part, i) => {
@@ -200,26 +260,36 @@ export default function AIInsightPanel({
             <Sparkles className="w-4 h-4 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-extrabold text-slate-800 text-sm leading-none uppercase tracking-wide">AI Insight Ketahanan Pangan</h3>
+            <h3 className="font-extrabold text-slate-800 text-sm leading-none uppercase tracking-wide">AI Insight Ketahanan Pangan Kota Cilegon Tahun {year}</h3>
             <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
               Kota Cilegon &bull; Model {isFallback ? 'Heuristic Analysis' : 'Gemini Active'}
             </p>
           </div>
         </div>
 
-        {/* Copy Button */}
+        {/* Actions Button Group */}
         {insight && !loading && (
-          <button
-            onClick={handleCopy}
-            className="p-1.5 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-white print:hidden"
-            title="Copy Report"
-          >
-            {copied ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 print:hidden">
+            <button
+              onClick={handleDownloadDocx}
+              className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 hover:border-emerald-300 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95"
+              title="Download Docx"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              Download docx
+            </button>
+            <button
+              onClick={handleCopy}
+              className="p-1.5 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-white"
+              title="Copy Report"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         )}
       </div>
 

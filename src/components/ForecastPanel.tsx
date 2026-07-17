@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp, Square } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp, Square, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import * as XLSX from 'xlsx';
 
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras',
@@ -58,6 +59,23 @@ export default function ForecastPanel({}: ForecastPanelProps) {
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  const handleDownloadXlsx = () => {
+    const headers = [["Komoditas", "Harga Aktual (Rp/kg)", "Forecast +1 Bulan (Rp/kg)", "Forecast +3 Bulan (Rp/kg)", "Indeks Variasi (CV)", "Tren"]];
+    const rows = forecasts.map(item => [
+      item.name,
+      item.current,
+      item.month1,
+      item.month3,
+      item.cv,
+      item.trend === 'up' ? 'Naik' : item.trend === 'down' ? 'Turun' : 'Stabil'
+    ]);
+    const data = [...headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AI Forecast");
+    XLSX.writeFile(wb, "AI_Forecast_Pangan_Strategis.xlsx");
   };
 
   const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
@@ -211,6 +229,14 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Turun</div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Stabil</div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Naik</div>
+            <button
+              onClick={handleDownloadXlsx}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[9.5px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 ml-2"
+              title="Download xlsx"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              Download xlsx
+            </button>
             <div className="ml-auto text-slate-400 font-medium hidden sm:block">Harga dalam Rupiah (Rp) / kg</div>
           </div>
         </div>

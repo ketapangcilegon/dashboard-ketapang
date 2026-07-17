@@ -553,6 +553,20 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
     }
   }
 
+  const handleDownloadHargaYoY = () => {
+    const headers = [["Komoditas", "Harga 1 Tahun Sebelumnya (Rp/kg)", "Harga Bulan Berjalan (Rp/kg)"]];
+    const rows = [
+      ["Beras Medium", kotaCilegon.beras.prev, kotaCilegon.beras.cur],
+      ["Minyak Goreng Kemasan", kotaCilegon.minyak.prev, kotaCilegon.minyak.cur],
+      ["Telur Ayam Negeri", kotaCilegon.telur.prev, kotaCilegon.telur.cur],
+    ];
+    const data = [...headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Perbandingan Harga YoY");
+    XLSX.writeFile(wb, `Perbandingan_Harga_YoY_${MONTH_NAMES_INDO[selectedMonth]}_${selectedYear}.xlsx`);
+  };
+
   const labelCur = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear}`;
   const labelPrev = `${MONTH_NAMES_INDO[displayMonth]?.toUpperCase()} ${displayYear - 1}`;
 
@@ -835,6 +849,16 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+                <div className="flex justify-end mt-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={handleDownloadHargaYoY}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95"
+                    title="Download xlsx"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    Download xlsx
+                  </button>
                 </div>
               </div>
 

@@ -4,9 +4,10 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Layers, MapPin, Navigation, Map, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Layers, MapPin, Navigation, Map, Plus, Minus, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { FSVA_LEGEND, SKPG_LEGEND } from '@/lib/ikpg';
 import { useMap } from 'react-leaflet';
+import * as XLSX from 'xlsx';
 
 // Dynamically import Leaflet components to avoid SSR errors in Next.js
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -163,6 +164,42 @@ function MapController({
 
     const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
     return sortedSums.slice(0, 10);
+  };
+
+  const handleDownloadLokusXlsx = () => {
+    const headers = [
+      ["No", "Berdasarkan Borda Count FSVA & SKPG", "Berdasarkan Gizi Buruk SKPG"]
+    ];
+    
+    const bordaList = getTop10Borda();
+    const rankedList = (skpgMatangData || [])
+      .map(item => {
+        const sk = item.gizi_sangat_kurang || 0;
+        const k = item.gizi_kurang || 0;
+        const n = item.gizi_normal || 0;
+        const l = item.gizi_berlebih || 0;
+        const total = sk + k + n + l;
+        const prevalensi = total > 0 ? ((sk + k) / total) * 100 : 0;
+        return { kelurahan: item.nama_kelurahan || item.kelurahan, prevalensi };
+      })
+      .filter(x => x.prevalensi > 0)
+      .sort((a, b) => b.prevalensi - a.prevalensi)
+      .slice(0, 10);
+
+    const rows = [];
+    for (let i = 0; i < 10; i++) {
+      rows.push([
+        i + 1,
+        bordaList[i] ? `Kel. ${bordaList[i].kelurahan}` : '',
+        rankedList[i] ? `Kel. ${rankedList[i].kelurahan} (${rankedList[i].prevalensi.toFixed(1)}%)` : ''
+      ]);
+    }
+
+    const data = [...headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Prioritas Lokus");
+    XLSX.writeFile(wb, "Prioritas_Lokus_Intervensi.xlsx");
   };
 
   return (
@@ -494,6 +531,15 @@ function MapController({
                 })()}
               </div>
             </div>
+            <div className="flex justify-end mt-3 pt-2 border-t border-amber-200/50">
+              <button
+                onClick={handleDownloadLokusXlsx}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-emerald-850 bg-emerald-100/80 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download xlsx
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -776,6 +822,8 @@ export default function MapUnified({
     }
     return layers.kecamatan;
   };
+
+
 
   const tileUrl = basemap === 'light'
     ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
