@@ -1048,71 +1048,6 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         </button>
       </div>
 
-      {/* Upload/Download Excel Section */}
-      <div className="bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] border border-[#E9E4D5] rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden">
-        {!isAdminLoggedIn && (
-          <div className="absolute inset-0 bg-[#EFEAD8]/40 backdrop-blur-[0.5px] z-10 flex items-center justify-center">
-            <span className="text-[10px] font-black tracking-widest uppercase text-slate-700 bg-[#FCFAF2] border border-[#E9E4D5] px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2">
-              🔒 Fitur Unggah Khusus Administrator (Disabled)
-            </span>
-          </div>
-        )}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-              <UploadCloud className="w-4 h-4 text-emerald-500" />
-              Upload Data SKPG Bulanan (Kecamatan / Kelurahan)
-            </h3>
-            <p className="text-xs text-slate-500 font-bold mt-1">
-              Perbaharui data balita underweight bulanan Kota Cilegon via berkas Excel (.xlsx).
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleDownloadTemplate}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer shadow-sm"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download Template xlsx
-            </button>
-
-            <label className="relative flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer">
-              {uploadSuccess ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-white bg-emerald-500 rounded-full p-0.5 animate-in zoom-in-50 duration-200" />
-                  Sudah Terupload
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-3.5 h-3.5" />
-                  Upload Data SKPG
-                </>
-              )}
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                className="hidden"
-                onChange={handleUploadClick}
-              />
-            </label>
-          </div>
-        </div>
-
-        {uploadError && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-150 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span>{uploadError}</span>
-          </div>
-        )}
-        {uploadMessage && (
-          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-150 flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>{uploadMessage}</span>
-          </div>
-        )}
-      </div>
-
       {loading ? (
         <div className="w-full min-h-[400px] bg-white rounded-2xl flex flex-col items-center justify-center border border-slate-100 shadow-sm">
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-3" />
@@ -1854,6 +1789,71 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
           )}
         </>
       )}
+
+      {/* Upload/Download Excel Section (Moved to bottom) */}
+      <div className="bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] border border-[#E9E4D5] rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden mt-6">
+        {!isAdminLoggedIn && (
+          <div className="absolute inset-0 bg-[#EFEAD8]/40 backdrop-blur-[0.5px] z-10 flex items-center justify-center">
+            <span className="text-[10px] font-black tracking-widest uppercase text-slate-700 bg-[#FCFAF2] border border-[#E9E4D5] px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2">
+              🔒 Fitur Unggah Khusus Administrator (Disabled)
+            </span>
+          </div>
+        )}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <UploadCloud className="w-4 h-4 text-emerald-500" />
+              Upload Data SKPG Bulanan (Kecamatan / Kelurahan)
+            </h3>
+            <p className="text-xs text-slate-500 font-bold mt-1">
+              Perbaharui data balita underweight bulanan Kota Cilegon via berkas Excel (.xlsx).
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Template xlsx
+            </button>
+
+            <label className="relative flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer">
+              {uploadSuccess ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-white bg-emerald-500 rounded-full p-0.5 animate-in zoom-in-50 duration-200" />
+                  Sudah Terupload
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  Upload Data SKPG
+                </>
+              )}
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                onChange={handleUploadClick}
+              />
+            </label>
+          </div>
+        </div>
+
+        {uploadError && (
+          <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-150 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>{uploadError}</span>
+          </div>
+        )}
+        {uploadMessage && (
+          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-150 flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>{uploadMessage}</span>
+          </div>
+        )}
+      </div>
 
     </div>
   );

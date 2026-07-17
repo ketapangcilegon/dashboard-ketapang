@@ -41,6 +41,7 @@ interface MapControllerProps {
   onNextMonth?: () => void;
   hasPrevMonth?: boolean;
   hasNextMonth?: boolean;
+  fsvaYear?: number;
 }
 
 function MapController({
@@ -58,7 +59,8 @@ function MapController({
   onPrevMonth,
   onNextMonth,
   hasPrevMonth,
-  hasNextMonth
+  hasNextMonth,
+  fsvaYear = 2025
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -140,7 +142,9 @@ function MapController({
     const calculatedBorda = skpgMatangData.map(item => {
       const fsvaRow = fsvaMatangData?.find(x => x.nama_kelurahan === item.nama_kelurahan || x.kelurahan === item.nama_kelurahan);
       const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
-      const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
+      const prev = item.prevalensiRataRata !== undefined 
+        ? item.prevalensiRataRata 
+        : (total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0);
       return {
         kelurahan: item.nama_kelurahan || item.kelurahan,
         ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
@@ -184,7 +188,7 @@ function MapController({
                 {/* FSVA Switch */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA 2025</span>
+                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA {fsvaYear}</span>
                     <span className="text-[8px] text-slate-400 font-bold mt-0.5">Indeks Ketahanan Pangan</span>
                   </div>
                   <button 
@@ -525,6 +529,7 @@ export default function MapUnified({
 
   // Supabase Data States
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
+  const [fsvaYear, setFsvaYear] = useState<number>(2025);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
@@ -583,21 +588,27 @@ export default function MapUnified({
     async function fetchMapData() {
       setDataLoading(true);
       try {
-        // Fetch Mature FSVA Dataset
+        // Fetch Mature FSVA Dataset (Dinamis mengambil periode terbaru)
+        let actualFsvaYear = 2025;
         try {
-          const fsvaYear = Number(selectedYear) - 1;
+          const { data: latestFsva } = await supabase
+            .from('fsva_matang')
+            .select('periode')
+            .order('periode', { ascending: false })
+            .limit(1);
+          if (latestFsva && latestFsva.length > 0) {
+            actualFsvaYear = latestFsva[0].periode;
+          }
+          setFsvaYear(actualFsvaYear);
+
           const { data: fsvaM, error } = await supabase
             .from('fsva_matang')
             .select('*')
-            .eq('periode', fsvaYear);
+            .eq('periode', actualFsvaYear);
           if (!error && fsvaM && fsvaM.length > 0) {
             setFsvaMatangData(fsvaM);
           } else {
-            const { data: fsvaMFb } = await supabase
-              .from('fsva_matang')
-              .select('*')
-              .eq('periode', 2025);
-            setFsvaMatangData(fsvaMFb || []);
+            setFsvaMatangData([]);
           }
         } catch (e) {
           console.warn('fsva_matang fetch failed:', e);
@@ -605,6 +616,35 @@ export default function MapUnified({
 
         // Fetch Mature SKPG Dataset (Dinamis: mengikuti activeSkpgPeriod)
         try {
+          // Fetch YTD average prevalences for the active year
+          const averages: Record<string, number> = {};
+          try {
+            const { data: ytdRows } = await supabase
+              .from('gizi_balita_skpg_kelurahan')
+              .select('*')
+              .eq('tahun', activeSkpgPeriod.tahun);
+            
+            if (ytdRows && ytdRows.length > 0) {
+              const groups: Record<string, { sum: number; count: number }> = {};
+              ytdRows.forEach(r => {
+                const total = (r.bb_sangat_kurang || 0) + (r.bb_kurang || 0) + (r.bb_normal || 0) + (r.bb_lebih || 0);
+                if (total > 0) {
+                  const prev = ((r.bb_sangat_kurang || 0) + (r.bb_kurang || 0)) / total * 100;
+                  if (!groups[r.kelurahan]) {
+                    groups[r.kelurahan] = { sum: 0, count: 0 };
+                  }
+                  groups[r.kelurahan].sum += prev;
+                  groups[r.kelurahan].count += 1;
+                }
+              });
+              Object.keys(groups).forEach(kel => {
+                averages[kel] = groups[kel].sum / groups[kel].count;
+              });
+            }
+          } catch (eytd) {
+            console.warn('Failed to calculate YTD averages:', eytd);
+          }
+
           const { data: skpgRows, error } = await supabase
             .from('gizi_balita_skpg_kelurahan')
             .select('*')
@@ -620,7 +660,8 @@ export default function MapUnified({
               gizi_normal: r.bb_normal,
               gizi_berlebih: r.bb_lebih,
               periode: r.tahun,
-              bulan: r.bulan
+              bulan: r.bulan,
+              prevalensiRataRata: averages[r.kelurahan]
             }));
             setSkpgMatangData(mappedSkpg);
           } else {
@@ -807,6 +848,7 @@ export default function MapUnified({
                 onNextMonth={handleNext}
                 hasPrevMonth={hasPrev}
                 hasNextMonth={hasNext}
+                fsvaYear={fsvaYear}
               />
             );
           })()}

@@ -520,13 +520,19 @@ export default function DashboardPage() {
 
         const fsvaPromise = (async () => {
           try {
-            const fsvaYear = Number(selectedYear) - 1;
-            const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', fsvaYear);
+            // Get latest FSVA year from database
+            const { data: latestFsva } = await supabase
+              .from('fsva_matang')
+              .select('periode')
+              .order('periode', { ascending: false })
+              .limit(1);
+            const latestFsvaYear = latestFsva && latestFsva.length > 0 ? latestFsva[0].periode : 2025;
+
+            const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', latestFsvaYear);
             if (!error && fsvaM && fsvaM.length > 0) {
               return fsvaM;
             } else {
-              const { data: fsvaMFb } = await supabase.from('fsva_matang').select('*').eq('periode', 2025);
-              return fsvaMFb || [];
+              return [];
             }
           } catch (e) {
             console.warn('fsva_matang query failed in page.tsx:', e);
@@ -536,15 +542,63 @@ export default function DashboardPage() {
 
         const skpgPromise = (async () => {
           try {
-            const { data: skpgM, error } = await supabase
-              .from('skpg_matang')
+            // Fetch YTD average prevalences for the active year
+            const averages: Record<string, number> = {};
+            try {
+              const { data: ytdRows } = await supabase
+                .from('gizi_balita_skpg_kelurahan')
+                .select('*')
+                .eq('tahun', Number(selectedYear));
+              
+              if (ytdRows && ytdRows.length > 0) {
+                const groups: Record<string, { sum: number; count: number }> = {};
+                ytdRows.forEach(r => {
+                  const total = (r.bb_sangat_kurang || 0) + (r.bb_kurang || 0) + (r.bb_normal || 0) + (r.bb_lebih || 0);
+                  if (total > 0) {
+                    const prev = ((r.bb_sangat_kurang || 0) + (r.bb_kurang || 0)) / total * 100;
+                    if (!groups[r.kelurahan]) {
+                      groups[r.kelurahan] = { sum: 0, count: 0 };
+                    }
+                    groups[r.kelurahan].sum += prev;
+                    groups[r.kelurahan].count += 1;
+                  }
+                });
+                Object.keys(groups).forEach(kel => {
+                  averages[kel] = groups[kel].sum / groups[kel].count;
+                });
+              }
+            } catch (eytd) {
+              console.warn('Failed to calculate YTD averages in page.tsx:', eytd);
+            }
+
+            const { data: skpgRows, error } = await supabase
+              .from('gizi_balita_skpg_kelurahan')
               .select('*')
-              .eq('periode', Number(selectedYear))
+              .eq('tahun', Number(selectedYear))
               .eq('bulan', Number(selectedMonth));
-               
-            if (!error && skpgM && skpgM.length > 0) {
-              return skpgM;
+              
+            if (!error && skpgRows && skpgRows.length > 0) {
+              return skpgRows.map(r => ({
+                nama_kelurahan: r.kelurahan,
+                gizi_sangat_kurang: r.bb_sangat_kurang,
+                gizi_kurang: r.bb_kurang,
+                gizi_normal: r.bb_normal,
+                gizi_berlebih: r.bb_lebih,
+                periode: r.tahun,
+                bulan: r.bulan,
+                prevalensiRataRata: averages[r.kelurahan]
+              }));
             } else {
+              // Fallback to skpg_matang table
+              const { data: skpgM, error: errFallback } = await supabase
+                .from('skpg_matang')
+                .select('*')
+                .eq('periode', Number(selectedYear))
+                .eq('bulan', Number(selectedMonth));
+              if (!errFallback && skpgM && skpgM.length > 0) {
+                return skpgM;
+              }
+
               const { data: skpgMFallback } = await supabase
                 .from('skpg_matang')
                 .select('*')
@@ -552,7 +606,7 @@ export default function DashboardPage() {
               return skpgMFallback || [];
             }
           } catch (e) {
-            console.warn('skpg_matang query failed in page.tsx:', e);
+            console.warn('skpg fetch failed in page.tsx:', e);
             return [];
           }
         })();

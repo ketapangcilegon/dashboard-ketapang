@@ -26,11 +26,13 @@ export default function KerawananPanel({
   
   if (fsvaMatangData && fsvaMatangData.length > 0 && skpgMatangData && skpgMatangData.length > 0) {
     const calculatedBorda = skpgMatangData.map(item => {
-      const fsvaRow = fsvaMatangData.find(x => x.nama_kelurahan === item.nama_kelurahan);
+      const fsvaRow = fsvaMatangData.find(x => x.nama_kelurahan === item.nama_kelurahan || x.kelurahan === item.nama_kelurahan);
       const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
-      const prev = total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0;
+      const prev = item.prevalensiRataRata !== undefined 
+        ? item.prevalensiRataRata 
+        : (total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0);
       return {
-        kelurahan: item.nama_kelurahan,
+        kelurahan: item.nama_kelurahan || item.kelurahan,
         ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
         prevalensi: prev
       };
