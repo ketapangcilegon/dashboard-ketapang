@@ -474,8 +474,18 @@ function MapController({
 
         {expandPrioritas && (
           <div className="p-3.5 max-h-80 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
-            <div className="text-[12px] font-black text-slate-800 leading-tight uppercase mb-2 text-center">
-              Prioritas Intervensi
+            <div className="flex items-center justify-between border-b border-amber-200/50 pb-2 mb-3">
+              <div className="text-[12px] font-black text-slate-800 uppercase tracking-wider pl-1">
+                Prioritas Intervensi
+              </div>
+              <button
+                onClick={handleDownloadLokusXlsx}
+                className="flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black text-emerald-850 bg-emerald-100 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-emerald-200/60"
+                title="Download xlsx"
+              >
+                <Download className="w-3 h-3" />
+                Download xlsx
+              </button>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -530,15 +540,6 @@ function MapController({
                   );
                 })()}
               </div>
-            </div>
-            <div className="flex justify-end mt-3 pt-2 border-t border-amber-200/50">
-              <button
-                onClick={handleDownloadLokusXlsx}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-emerald-850 bg-emerald-100/80 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download xlsx
-              </button>
             </div>
           </div>
         )}

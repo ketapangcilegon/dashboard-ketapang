@@ -78,6 +78,61 @@ export default function ForecastPanel({}: ForecastPanelProps) {
     XLSX.writeFile(wb, "AI_Forecast_Pangan_Strategis.xlsx");
   };
 
+  const handleDownloadEwsDocx = () => {
+    if (warnings.length === 0) return;
+
+    const contentHtml = warnings.map(w => {
+      return `
+        <div style="margin-bottom: 25px; padding: 15px; border: 1px solid #fed7aa; background-color: #fff7ed; border-radius: 8px;">
+          <h3 style="color: #c2410c; margin-top: 0; font-size: 14pt; border-bottom: 1px solid #ffedd5; padding-bottom: 5px;">
+            ${w.name.toUpperCase()}
+          </h3>
+          <p><strong>Status Risiko:</strong> <span style="color: #dc2626; font-weight: bold;">WASPADA / RENTAN</span></p>
+          <p><strong>Interpretasi AI:</strong> Komoditas ini terdeteksi memiliki peningkatan risiko fluktuasi harga yang signifikan berdasarkan 3 layer analisis (Tren Perubahan, Volatilitas CV, dan Nilai SKPG YoY Growth). Proyeksi harga untuk 3 bulan ke depan diperkirakan mencapai <strong>Rp ${Math.round(w.month3).toLocaleString('id-ID')}/kg</strong> dengan indeks variabilitas (CV) sebesar <strong>${w.cv.toFixed(1)}%</strong>.</p>
+          <p><strong>Rekomendasi Intervensi:</strong></p>
+          <ul>
+            ${w.rekomendasi.map((r: string) => `<li style="margin-bottom: 4px;">${r}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }).join('');
+
+    const formattedHtml = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>Laporan Early Warning System (EWS) Kota Cilegon</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b; }
+          h2 { font-size: 16pt; color: #7c2d12; border-bottom: 2.5px solid #f97316; padding-bottom: 6px; margin-top: 20px; }
+          h3 { font-size: 13pt; color: #c2410c; margin-top: 15px; }
+          p { margin-bottom: 10px; text-align: justify; }
+          li { margin-left: 20px; margin-bottom: 5px; }
+          strong { color: #0f172a; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <h2>LAPORAN EARLY WARNING SYSTEM (EWS) KETAHANAN PANGAN KOTA CILEGON</h2>
+        <p style="font-size: 9.5pt; color: #64748b; margin-top: -8px; margin-bottom: 25px;">
+          Laporan Peringatan Dini Kerentanan Harga Pangan Strategis - Dibuat secara otomatis oleh AI GovTech pada ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
+        <div>
+          ${contentHtml}
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([formattedHtml], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Laporan_EWS_Pangan_Kota_Cilegon_${new Date().toISOString().split('T')[0]}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
     if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
     if (statusCV === 'WASPADA' || statusSKPG === 'WASPADA' || statusForecast === 'Naik') return 'Waspada';
@@ -292,11 +347,21 @@ export default function ForecastPanel({}: ForecastPanelProps) {
                 </div>
               ) : warnings.length > 0 ? (
                 <div className="bg-amber-50/70 border border-amber-200/60 p-5 rounded-2xl relative border-r-[6px] border-r-amber-500 shadow-inner min-h-full">
-                  <div className="flex items-center gap-3 text-amber-750 font-black text-xs uppercase tracking-wider mb-5">
-                    <div className="p-1.5 bg-amber-200/50 rounded-full text-amber-700 shrink-0">
-                      <AlertTriangle className="w-4 h-4 fill-amber-600 text-[#fffbeb]" />
+                  <div className="flex items-center justify-between border-b border-amber-200/40 pb-3 mb-5 shrink-0">
+                    <div className="flex items-center gap-2.5 text-amber-750 font-black text-[10px] sm:text-[10.5px] uppercase tracking-wider">
+                      <div className="p-1.5 bg-amber-200/50 rounded-full text-amber-700 shrink-0">
+                        <AlertTriangle className="w-3.5 h-3.5 fill-amber-600 text-[#fffbeb]" />
+                      </div>
+                      <span>EWS AKTIF</span>
                     </div>
-                    EARLY WARNING SYSTEM (EWS) AKTIF
+                    <button
+                      onClick={handleDownloadEwsDocx}
+                      className="flex items-center gap-1 px-2 py-0.5 text-[8.5px] sm:text-[9px] font-black text-amber-855 bg-amber-100 hover:bg-amber-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-amber-200/50"
+                      title="Download EWS docx"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download docx
+                    </button>
                   </div>
                   <ul className="space-y-3">
                     {warnings.map(w => {

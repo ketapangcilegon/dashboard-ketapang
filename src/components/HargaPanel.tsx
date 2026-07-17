@@ -103,6 +103,11 @@ export default function HargaPanel({
   const gulaCur = getAverage(hargaData, 'gula_pasir', 15963);
   const cabeCur = getAverage(hargaData, 'cabe_merah', 53184);
 
+  const bawangMerahCur = getAverage(hargaData, 'bawang_merah', 38000);
+  const bawangPutihCur = getAverage(hargaData, 'bawang_putih', 40000);
+  const cabeRawitCur = getAverage(hargaData, 'cabe_rawit', 60000);
+  const dagingSapiCur = getAverage(hargaData, 'daging_sapi', 135000);
+
   // Previous year averages (YoY)
   const berasPrev = getAverage(previousHargaData, 'beras', 14050);
   const minyakPrev = getAverage(previousHargaData, 'minyak_goreng', 18000);
@@ -110,6 +115,11 @@ export default function HargaPanel({
   const ayamPrev = getAverage(previousHargaData, 'daging_ayam', 36364);
   const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 15900);
   const cabePrev = getAverage(previousHargaData, 'cabe_merah', 53184);
+
+  const bawangMerahPrev = getAverage(previousHargaData, 'bawang_merah', 34000);
+  const bawangPutihPrev = getAverage(previousHargaData, 'bawang_putih', 38000);
+  const cabeRawitPrev = getAverage(previousHargaData, 'cabe_rawit', 50000);
+  const dagingSapiPrev = getAverage(previousHargaData, 'daging_sapi', 130000);
 
   // Helper to calculate YoY change and metadata
   const getYoYStats = (curr: number, prev: number) => {
@@ -143,19 +153,24 @@ export default function HargaPanel({
     
     // Deterministic offset based on commodity name
     let factor = 0.005; // 0.5% decrease per day
-    if (commodity === 'Cabe Merah') factor = 0.015; // 1.5% decrease per day for chilis
-    if (commodity === 'Daging Ayam') factor = 0.008; // 0.8% decrease per day
+    if (commodity === 'Cabe Merah' || commodity === 'Cabe Rawit') factor = 0.015; // 1.5% decrease per day for chilis
+    if (commodity === 'Bawang Merah' || commodity === 'Bawang Putih') factor = 0.010; // 1.0% decrease per day
+    if (commodity === 'Daging Ayam' || commodity === 'Daging Sapi') factor = 0.008; // 0.8% decrease per day
     
     return basePrice * (1 - diff * factor);
   };
 
   const commStats = [
     { name: 'Beras Medium', curr: getDynamicPrice('Beras Medium', livePrices ? livePrices.beras : berasCur), prev: berasPrev, emoji: '🍚' },
-    { name: 'Minyak Goreng', curr: getDynamicPrice('Minyak Goreng', livePrices ? livePrices.minyak_goreng : minyakCur), prev: minyakPrev, emoji: '🧴' },
-    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices ? livePrices.telur : telurCur), prev: telurPrev, emoji: '🥚' },
-    { name: 'Daging Ayam', curr: getDynamicPrice('Daging Ayam', livePrices ? livePrices.daging_ayam : ayamCur), prev: ayamPrev, emoji: '🍗' },
-    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices ? livePrices.gula_pasir : gulaCur), prev: gulaPrev, emoji: '🧂' },
+    { name: 'Bawang Merah', curr: getDynamicPrice('Bawang Merah', livePrices ? (livePrices.bawang_merah ?? bawangMerahCur) : bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
+    { name: 'Bawang Putih', curr: getDynamicPrice('Bawang Putih', livePrices ? (livePrices.bawang_putih ?? bawangPutihCur) : bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
     { name: 'Cabe Merah', curr: getDynamicPrice('Cabe Merah', livePrices ? livePrices.cabe_merah : cabeCur), prev: cabePrev, emoji: '🌶️' },
+    { name: 'Cabe Rawit', curr: getDynamicPrice('Cabe Rawit', livePrices ? (livePrices.cabe_rawit ?? cabeRawitCur) : cabeRawitCur), prev: cabeRawitPrev, emoji: '🌶️' },
+    { name: 'Daging Sapi', curr: getDynamicPrice('Daging Sapi', livePrices ? (livePrices.daging_sapi ?? dagingSapiCur) : dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
+    { name: 'Daging Ayam', curr: getDynamicPrice('Daging Ayam', livePrices ? livePrices.daging_ayam : ayamCur), prev: ayamPrev, emoji: '🍗' },
+    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices ? livePrices.telur : telurCur), prev: telurPrev, emoji: '🥚' },
+    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices ? livePrices.gula_pasir : gulaCur), prev: gulaPrev, emoji: '🧂' },
+    { name: 'Minyak Goreng', curr: getDynamicPrice('Minyak Goreng', livePrices ? livePrices.minyak_goreng : minyakCur), prev: minyakPrev, emoji: '🧴' },
   ];
 
   return (
@@ -220,10 +235,10 @@ export default function HargaPanel({
       </div>
       
       {/* Table */}
-      <div className="flex-1 mt-3 overflow-hidden">
+      <div className="flex-1 mt-3 overflow-y-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-[#0B7A53]/10 text-[8px] sm:text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider">
+            <tr className="border-b border-[#0B7A53]/10 text-[8px] sm:text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider sticky top-0 bg-[#E6FDF4] z-10">
               <th className="pb-1.5 font-bold w-[35%]">Komoditas</th>
               <th className="pb-1.5 font-bold text-right w-[25%]">Harga Rata-Rata</th>
               <th className="pb-1.5 font-bold text-right w-[22%]">Perubahan (YoY)</th>
@@ -235,19 +250,19 @@ export default function HargaPanel({
               const stats = getYoYStats(c.curr, c.prev);
               return (
                 <tr key={i} className="hover:bg-white/40 transition-colors">
-                  <td className="py-2 flex items-center gap-1.5 text-slate-700 text-[10px] sm:text-xs font-bold whitespace-normal break-words leading-tight">
+                  <td className="py-1 flex items-center gap-1.5 text-slate-700 text-[10px] sm:text-xs font-bold whitespace-normal break-words leading-tight">
                     <span className="text-xs sm:text-sm shrink-0">{c.emoji}</span>
                     <span>{c.name}</span>
                   </td>
-                  <td className="py-2 text-right font-extrabold text-slate-800 text-[10px] sm:text-xs whitespace-nowrap">
+                  <td className="py-1 text-right font-extrabold text-slate-800 text-[10px] sm:text-xs whitespace-nowrap">
                     Rp {Math.round(c.curr).toLocaleString('id-ID')}
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-1 text-right">
                     <span className={`text-[9px] sm:text-[10px] font-bold ${stats.isZero ? 'text-slate-500' : stats.isUp ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {stats.changeText}
                     </span>
                   </td>
-                  <td className="py-2 text-right pr-1">
+                  <td className="py-1 text-right pr-1">
                     <span className={`text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
                       {stats.status}
                     </span>

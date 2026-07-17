@@ -1119,16 +1119,6 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex justify-end mt-2 pt-2 border-t border-slate-100">
-                  <button
-                    onClick={handleDownloadHargaYoY}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95"
-                    title="Download xlsx"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-600" />
-                    Download xlsx
-                  </button>
-                </div>
               </div>
 
               {/* Kolom 3: Interpretasi (Span 3) */}
