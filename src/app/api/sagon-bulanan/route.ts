@@ -47,7 +47,7 @@ async function scrapeMarketInfografis(marketId: string): Promise<{ data: Commodi
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       body,
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(8000),
       next: { revalidate: 86400 }
     });
 
@@ -304,20 +304,41 @@ export async function GET(request: Request) {
         pricesPrev[kec] = { beras: dbRow ? Number(dbRow.beras) : FALLBACKS_2025.beras, minyak: dbRow ? Number(dbRow.minyak) : FALLBACKS_2025.minyak, telur: dbRow ? Number(dbRow.telur) : FALLBACKS_2025.telur };
       }
 
-      // --- AUTOMATED BACKUP TRIGGER ---
-      // Check if this month is completed or if it is the end of the current month (>= 23:30)
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
+      // --- DYNAMIC DATABASE CACHE & AUTO-COPY SYSTEM ---
+      let source = 'live';
 
-      const isPastMonth = effectiveYear < currentYear || (effectiveYear === currentYear && effectiveMonth < currentMonth);
-      const isBackupTime = (
-        effectiveYear === currentYear &&
-        effectiveMonth === currentMonth &&
-        currentDate === lastDayOfCurrentMonth &&
-        (currentHour > 23 || (currentHour === 23 && currentMinute >= 30))
-      );
+      if (anyFallback) {
+        // Try to fetch from DB cache first before using fallback constants
+        try {
+          const { data: dbRows } = await supabase
+            .from('harga_komoditas_skpg')
+            .select('*')
+            .eq('tahun', effectiveYear)
+            .eq('bulan', effectiveMonth);
+            
+          if (dbRows && dbRows.length >= 8) {
+            for (const kec of KECAMATANS) {
+              const dbRow = dbRows.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
+              if (dbRow && Number(dbRow.beras) > 0) {
+                pricesCur[kec] = {
+                  beras: Number(dbRow.beras),
+                  minyak: Number(dbRow.minyak),
+                  telur: Number(dbRow.telur)
+                };
+              }
+            }
+            source = 'database';
+            anyFallback = false; // Successfully recovered via database cache!
+          }
+        } catch (dbErr) {
+          console.warn('[Sagon API] Failed to fetch current prices from DB cache:', dbErr);
+        }
+      }
 
-      if (isPastMonth || isBackupTime) {
+      if (anyFallback) {
+        source = 'fallback';
+      } else if (source === 'live') {
+        // Automatically save/backup successfully scraped live prices to the DB
         autoBackupPrices(effectiveYear, effectiveMonth, pricesCur).catch(err => {
           console.error('[AutoBackup] Error triggered during request:', err);
         });
@@ -329,7 +350,7 @@ export async function GET(request: Request) {
         year: selectedYear, 
         pricesCur, 
         pricesPrev,
-        source: anyFallback ? 'fallback' : 'live'
+        source
       });
     }
 
