@@ -54,6 +54,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
   const [showMobileMetodologi, setShowMobileMetodologi] = useState(false);
   const [showMobileSumberModel, setShowMobileSumberModel] = useState(false);
   const [showForecastInfo, setShowForecastInfo] = useState(false);
+  const [showEwsInfo, setShowEwsInfo] = useState(false);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -309,46 +310,31 @@ export default function ForecastPanel({}: ForecastPanelProps) {
         {/* Right Column: AI Interpretation */}
         <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-full">
           
-          <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 mb-5 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 mb-4 shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
                 <Brain className="w-6 h-6 text-emerald-600" />
               </div>
-              <h4 className="font-black text-[#0f172a] text-[15px] uppercase tracking-wide">
-                EARLY WARNING SYSTEM (ML)
+              <h4 className="font-black text-[#0f172a] text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center gap-2">
+                <span>EARLY WARNING SYSTEM (ML)</span>
+                <button
+                  onClick={() => setShowEwsInfo(!showEwsInfo)}
+                  className="p-1 hover:bg-emerald-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
+                  title="Metodologi EWS"
+                >
+                  <Lightbulb className="w-3.5 h-3.5 fill-amber-100 text-amber-500" />
+                </button>
               </h4>
             </div>
             <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shrink-0 shadow-sm sm:mt-1 self-start sm:self-auto">EWS AKTIF</span>
           </div>
+          {showEwsInfo && (
+            <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg font-medium mb-4 leading-relaxed shadow-sm animate-in fade-in duration-200 text-justify shrink-0">
+              Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi pada beberapa komoditas strategis berdasarkan 3 layer analisis: Trend Perubahan, Volatilitas CV, dan Nilai SKPG (YoY Growth). Batas toleransi indeks variabilitas (CV) beras diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong>, dan komoditas lain pada level <strong className="text-slate-800">&lt; 9%</strong>.
+            </p>
+          )}
           
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Metodologi - Desktop version (always visible) */}
-            <div className="hidden lg:block">
-              <p className="text-xs text-slate-600 leading-relaxed text-justify font-medium mb-5 shrink-0">
-                Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi pada beberapa komoditas strategis berdasarkan 3 layer analisis: Trend Perubahan, Volatilitas CV, dan Nilai SKPG (YoY Growth). Batas toleransi indeks variabilitas (CV) beras diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong>, dan komoditas lain pada level <strong className="text-slate-800">&lt; 9%</strong>.
-              </p>
-            </div>
-            
-            {/* Metodologi - Mobile version (accordion) */}
-            <div className="lg:hidden mb-4 shrink-0">
-              <button
-                onClick={() => setShowMobileMetodologi(!showMobileMetodologi)}
-                className="flex items-center gap-2 text-xs font-black text-slate-850 hover:text-slate-900 cursor-pointer focus:outline-none"
-              >
-                <Square className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />
-                <span className="uppercase tracking-wider">Metodologi</span>
-                {showMobileMetodologi ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-                )}
-              </button>
-              {showMobileMetodologi && (
-                <p className="text-[11px] text-slate-600 leading-relaxed text-justify font-medium mt-2 bg-amber-50/40 p-3.5 rounded-xl border border-amber-200/40 animate-in fade-in duration-200">
-                  Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi pada beberapa komoditas strategis berdasarkan 3 layer analisis: Trend Perubahan, Volatilitas CV, dan Nilai SKPG (YoY Growth). Batas toleransi indeks variabilitas (CV) beras diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong>, dan komoditas lain pada level <strong className="text-slate-800">&lt; 9%</strong>.
-                </p>
-              )}
-            </div>
 
             <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 pr-2">
               {loading ? (
@@ -436,7 +422,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             </div>
             <div>
               <p className="text-[10px] text-slate-500 font-medium leading-relaxed text-justify">
-                <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses data historis, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
+                <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
               </p>
             </div>
           </div>
@@ -458,7 +444,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             {showMobileSumberModel && (
               <div className="mt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-105 animate-in fade-in duration-200">
                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed text-justify">
-                  <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses data historis, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
+                  <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
                 </p>
               </div>
             )}

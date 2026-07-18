@@ -1128,7 +1128,7 @@ export default function DashboardPage() {
               {currentView === 'beranda' && (
                 <>
                   {/* Title Header for KPI Carousel */}
-                  <div className="flex items-center gap-2 px-10 print:px-0 mb-3">
+                  <div className="flex items-center gap-2 px-1 print:px-0 mb-3">
                     <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
                     <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">
                       KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
@@ -1359,10 +1359,15 @@ export default function DashboardPage() {
                       balitaStatus={getBalitaData()}
                       hargaStrategis={{
                         beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
-                        minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
-                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
-                        gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
-                        cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
+                        bawang_merah: livePrices ? (livePrices.bawang_merah ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_merah || 0), 0) / hargaData.length) : 40000),
+                        bawang_putih: livePrices ? (livePrices.bawang_putih ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_putih || 0), 0) / hargaData.length) : 40000),
+                        cabe_merah: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 37500),
+                        cabe_rawit: livePrices ? (livePrices.cabe_rawit ?? 50000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_rawit || 0), 0) / hargaData.length) : 50000),
+                        daging_sapi: livePrices ? (livePrices.daging_sapi ?? 150000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_sapi || 0), 0) / hargaData.length) : 150000),
+                        daging_ayam: livePrices ? livePrices.daging_ayam : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_ayam || 0), 0) / hargaData.length) : 35000),
+                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 24000),
+                        gula_pasir: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                        minyak_goreng: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
                       }}
                       loadingPrices={loadingLive}
                     />
@@ -1409,10 +1414,15 @@ export default function DashboardPage() {
                       balitaStatus={getBalitaData()}
                       hargaStrategis={{
                         beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
-                        minyak: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
-                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 30400),
-                        gula: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
-                        cabai: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 45000),
+                        bawang_merah: livePrices ? (livePrices.bawang_merah ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_merah || 0), 0) / hargaData.length) : 40000),
+                        bawang_putih: livePrices ? (livePrices.bawang_putih ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_putih || 0), 0) / hargaData.length) : 40000),
+                        cabe_merah: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 37500),
+                        cabe_rawit: livePrices ? (livePrices.cabe_rawit ?? 50000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_rawit || 0), 0) / hargaData.length) : 50000),
+                        daging_sapi: livePrices ? (livePrices.daging_sapi ?? 150000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_sapi || 0), 0) / hargaData.length) : 150000),
+                        daging_ayam: livePrices ? livePrices.daging_ayam : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_ayam || 0), 0) / hargaData.length) : 35000),
+                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 24000),
+                        gula_pasir: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                        minyak_goreng: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
                       }}
                       loadingPrices={loadingLive}
                       isFullScreen={true}

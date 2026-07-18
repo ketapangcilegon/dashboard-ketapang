@@ -25,10 +25,15 @@ interface AIInsightPanelProps {
   };
   hargaStrategis: {
     beras: number;
-    minyak: number;
+    bawang_merah: number;
+    bawang_putih: number;
+    cabe_merah: number;
+    cabe_rawit: number;
+    daging_sapi: number;
+    daging_ayam: number;
     telur: number;
-    gula: number;
-    cabai: number;
+    gula_pasir: number;
+    minyak_goreng: number;
   };
   loadingPrices: boolean;
   isFullScreen?: boolean;

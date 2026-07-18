@@ -25,7 +25,18 @@ export async function POST(request: Request) {
       ketersediaanProtein = 85,
       produksiBeras = 8708,
       balitaStatus = { sangatKurang: 232, kurang: 946, normal: 25044, lebih: 1064, total: 27286, status: 'AMAN' },
-      hargaStrategis = { beras: 13500, minyak: 21000, telur: 30400, gula: 16000, cabai: 45000 }
+      hargaStrategis = {
+        beras: 13500,
+        bawang_merah: 40000,
+        bawang_putih: 40000,
+        cabe_merah: 37500,
+        cabe_rawit: 50000,
+        daging_sapi: 150000,
+        daging_ayam: 35000,
+        telur: 24000,
+        gula_pasir: 16000,
+        minyak_goreng: 21000
+      }
     } = data;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -127,8 +138,17 @@ DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan $
 7. Produksi Beras Lokal: ${produksiBeras} ton (Konversi GKG Provinsi Banten)
 8. Kondisi Balita (BB/U):
    - Sangat Kurang: ${balitaStatus.sangatKurang} balita, Kurang: ${balitaStatus.kurang} balita, Normal: ${balitaStatus.normal} balita, Lebih: ${balitaStatus.lebih} balita (Status Gizi: ${balitaStatus.status})
-9. Rata-rata Harga Pangan Strategis Harian:
-   - Beras: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg, Minyak Goreng: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter, Telur Ayam: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg, Gula Pasir: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg, Cabai Merah: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
+9. Rata-rata Harga Pangan Strategis Harian (10 Komoditas):
+   - Beras Medium: Rp ${(hargaStrategis.beras || 0).toLocaleString('id-ID')}/kg
+   - Bawang Merah: Rp ${(hargaStrategis.bawang_merah || 0).toLocaleString('id-ID')}/kg
+   - Bawang Putih: Rp ${(hargaStrategis.bawang_putih || 0).toLocaleString('id-ID')}/kg
+   - Cabe Merah: Rp ${(hargaStrategis.cabe_merah || 0).toLocaleString('id-ID')}/kg
+   - Cabe Rawit: Rp ${(hargaStrategis.cabe_rawit || 0).toLocaleString('id-ID')}/kg
+   - Daging Sapi: Rp ${(hargaStrategis.daging_sapi || 0).toLocaleString('id-ID')}/kg
+   - Daging Ayam: Rp ${(hargaStrategis.daging_ayam || 0).toLocaleString('id-ID')}/kg
+   - Telur Ayam Ras: Rp ${(hargaStrategis.telur || 0).toLocaleString('id-ID')}/kg
+   - Gula Pasir: Rp ${(hargaStrategis.gula_pasir || 0).toLocaleString('id-ID')}/kg
+   - Minyak Goreng: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN HARUS TERDIRI DARI:
 - **Catatan Basis Data**: Catatan metodologi tidak perlu dimasukkan ke dalam laporan karena sudah ditangani secara statis oleh antarmuka sistem.
@@ -255,13 +275,18 @@ Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi a
 
 #### **3. Stabilitas Harga & Aksesibilitas Pangan**
 Koefisien Variasi (CV) harga beras di angka **${cvBeras}%** (di bawah ambang batas 10%) membuktikan efektivitas rantai pasok lokal dan program penetrasi pasar. Harga rata-rata komoditas strategis tercatat sebagai berikut:
-- **Beras**: Rp ${hargaStrategis.beras.toLocaleString('id-ID')}/kg
-- **Minyak Goreng**: Rp ${hargaStrategis.minyak.toLocaleString('id-ID')}/liter
-- **Telur Ayam**: Rp ${hargaStrategis.telur.toLocaleString('id-ID')}/kg
-- **Gula Pasir**: Rp ${hargaStrategis.gula.toLocaleString('id-ID')}/kg
-- **Cabai Merah**: Rp ${hargaStrategis.cabai.toLocaleString('id-ID')}/kg
+- **Beras Medium**: Rp ${(hargaStrategis.beras || 0).toLocaleString('id-ID')}/kg
+- **Bawang Merah**: Rp ${(hargaStrategis.bawang_merah || 0).toLocaleString('id-ID')}/kg
+- **Bawang Putih**: Rp ${(hargaStrategis.bawang_putih || 0).toLocaleString('id-ID')}/kg
+- **Cabe Merah**: Rp ${(hargaStrategis.cabe_merah || 0).toLocaleString('id-ID')}/kg
+- **Cabe Rawit**: Rp ${(hargaStrategis.cabe_rawit || 0).toLocaleString('id-ID')}/kg
+- **Daging Sapi**: Rp ${(hargaStrategis.daging_sapi || 0).toLocaleString('id-ID')}/kg
+- **Daging Ayam**: Rp ${(hargaStrategis.daging_ayam || 0).toLocaleString('id-ID')}/kg
+- **Telur Ayam Ras**: Rp ${(hargaStrategis.telur || 0).toLocaleString('id-ID')}/kg
+- **Gula Pasir**: Rp ${(hargaStrategis.gula_pasir || 0).toLocaleString('id-ID')}/kg
+- **Minyak Goreng**: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
-Angka-angka ini mencerminkan bahwa meskipun terjadi dinamika musiman pada komoditas hortikultura (Cabai Merah), bahan pangan pokok utama (Beras dan Minyak) tetap terjangkau bagi sebagian besar masyarakat.
+Angka-angka ini mencerminkan stabilitas harga komoditas strategis utama di Kota Cilegon. Meskipun terjadi dinamika harga musiman pada komoditas hortikultura (cabai dan bawang), bahan pangan pokok hewani dan nabati utama tetap dalam jangkauan pasar masyarakat.
 
 #### **4. Profil Kerawanan & Kesehatan Balita**
 Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.status}** dengan total **${balitaStatus.total.toLocaleString('id-ID')} balita** yang diukur. Distribusinya adalah:
