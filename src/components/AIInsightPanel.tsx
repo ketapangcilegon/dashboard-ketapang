@@ -249,7 +249,7 @@ export default function AIInsightPanel({
   };
 
   return (
-    <div className={`dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 overflow-hidden ${isFullScreen ? 'min-h-0' : 'min-h-[300px]'}`}>
+    <div className={`dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 overflow-hidden h-[600px] lg:h-auto ${isFullScreen ? 'min-h-0' : 'min-h-[300px]'}`}>
       {/* Background ambient light */}
       <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-blue-100/30 blur-2xl pointer-events-none z-0"></div>
 
@@ -301,7 +301,7 @@ export default function AIInsightPanel({
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
           </div>
         ) : (
-          <div className={`w-full h-full overflow-y-auto pr-1 ${isFullScreen ? 'max-h-none' : 'max-h-[240px]'} print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left`}>
+          <div className={`w-full h-full overflow-y-auto pr-1 ${isFullScreen ? 'max-h-none' : 'max-h-[460px] lg:max-h-[240px]'} print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left`}>
             <div className="prose prose-sm max-w-none prose-slate">
               {renderMarkdown(
                 insight.replace(/\*?Catatan:\s*Indikator FSVA, KPI, IKP, dan POU.*?(panel harga harian\.\*?|harian\.)/gi, '').trim()

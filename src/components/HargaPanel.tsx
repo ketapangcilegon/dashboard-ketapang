@@ -176,30 +176,28 @@ export default function HargaPanel({
   return (
     <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between select-none">
       <div>
-        <div className="flex justify-between items-center">
-          <h3 className="font-extrabold text-[#0B7A53] text-sm leading-none flex items-center gap-1.5">
-            <span className="text-base">🟢</span> Harga Pangan Strategis
-          </h3>
-          {loadingLive ? (
-            <span className="flex items-center gap-1 text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 font-bold animate-pulse">
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              SAGON...
-            </span>
-          ) : dateIndex === 4 && livePrices ? (
-            <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full border border-red-600 font-extrabold flex items-center gap-1 animate-pulse shadow-sm">
-              <span className="w-1 h-1 bg-white rounded-full"></span>
-              SAGON LIVE
-            </span>
-          ) : (
-            <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200 font-bold">
-              OFFLINE/DB
-            </span>
-          )}
+        <div className="flex justify-between items-center gap-2">
+          <p className="text-[9px] text-[#0B7A53]/70 font-semibold leading-tight">
+            {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
+          </p>
+          <div className="shrink-0">
+            {loadingLive ? (
+              <span className="flex items-center gap-1 text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 font-bold animate-pulse">
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                SAGON...
+              </span>
+            ) : dateIndex === 4 && livePrices ? (
+              <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full border border-red-600 font-extrabold flex items-center gap-1 animate-pulse shadow-sm">
+                <span className="w-1 h-1 bg-white rounded-full"></span>
+                SAGON LIVE
+              </span>
+            ) : (
+              <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200 font-bold">
+                OFFLINE/DB
+              </span>
+            )}
+          </div>
         </div>
-        
-        <p className="text-[9px] text-[#0B7A53]/70 font-semibold mt-1">
-          {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
-        </p>
 
         {/* Date Hopping Back and Forward Navigation Row (Mockup Match) */}
         <div className="mt-2 flex items-center justify-between bg-white border border-[#E6FDF4] p-1.5 rounded-2xl w-full shadow-sm">

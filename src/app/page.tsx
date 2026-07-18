@@ -1127,7 +1127,13 @@ export default function DashboardPage() {
               
               {currentView === 'beranda' && (
                 <>
-                  {/* TOP ROW: 9 KPI Panels (Dual Viewport: Desktop Slider + Mobile Snap Carousel) */}
+                  {/* Title Header for KPI Carousel */}
+                  <div className="flex items-center gap-2 px-10 print:px-0 mb-3">
+                    <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
+                    <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
+                    </h2>
+                  </div>
                   
                   {/* 1. Desktop KPI Carousel (lg:flex, print:flex, hidden on mobile) */}
                   <div className="hidden lg:flex print:flex relative w-full items-center group px-10 print:px-0">
@@ -1278,7 +1284,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 px-1">
                       <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
-                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Early Warning System (Pemantauan Harga & Peta Tematik)</h2>
+                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">PANEL HARGA PANGAN STRATEGIS</h2>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                       {/* Column 1: Harga Panel (Span 4) */}
@@ -1296,12 +1302,12 @@ export default function DashboardPage() {
 
                       {/* Column 2: Wide Map (Span 8) */}
                       <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-auto lg:min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                           <div className="mb-2">
                             <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
                             <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
                           </div>
-                          <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[350px] print:h-[280px] print:min-h-0">
+                          <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[250px] lg:min-h-[350px] print:h-[280px] print:min-h-0">
                             <MapUnified 
                               selectedKecamatan={selectedKecamatan}
                               selectedKelurahan={selectedKelurahan}
@@ -1314,14 +1320,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   
-                  {/* Section: AI Forecast */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 px-1">
-                      <span className="h-4 w-1 bg-teal-500 rounded-full"></span>
-                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">AI Forecast & Analisis Prediktif</h2>
-                    </div>
-                    <ForecastPanel livePrices={livePrices} />
-                  </div>
+                   {/* Section: AI Forecast */}
+                   <div className="space-y-3">
+                     <ForecastPanel livePrices={livePrices} />
+                   </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
@@ -1337,7 +1339,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* BOTTOM ROW 2: AI Insight Panel (Full Width) */}
-                  <div className="w-full mt-6 print:mt-6 print:break-before-page">
+                  <div className="w-full mt-6 h-[600px] lg:h-auto print:mt-6 print:break-before-page flex flex-col">
                     <AIInsightPanel 
                       year={selectedYear}
                       month={selectedMonth}
@@ -1366,16 +1368,12 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  {/* Section: Benchmark */}
-                  <div className="space-y-3 mt-6 print:hidden">
-                    <div className="flex items-center gap-2 px-1">
-                      <span className="h-4 w-1 bg-indigo-500 rounded-full"></span>
-                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Benchmark & Perbandingan Wilayah</h2>
-                    </div>
-                    <div className="w-full">
-                      <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
-                    </div>
-                  </div>
+                   {/* Section: Benchmark */}
+                   <div className="space-y-3 mt-6 print:hidden">
+                     <div className="w-full">
+                       <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
+                     </div>
+                   </div>
 
                 </>
               )}

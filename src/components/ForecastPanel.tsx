@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp, Square, Download } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp, Square, Download, Lightbulb } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -53,6 +53,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showMobileMetodologi, setShowMobileMetodologi] = useState(false);
   const [showMobileSumberModel, setShowMobileSumberModel] = useState(false);
+  const [showForecastInfo, setShowForecastInfo] = useState(false);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -214,19 +215,28 @@ export default function ForecastPanel({}: ForecastPanelProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-[550px]">
         
         {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[550px] lg:h-full">
+        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-full">
           <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex flex-col sm:flex-row items-start justify-between gap-4 shrink-0">
             <div className="flex gap-3">
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
                 <TrendingUp className="w-6 h-6 text-emerald-600" />
               </div>
               <div>
-                <h4 className="font-black text-[#0f172a] text-[15px] uppercase tracking-wide flex items-center gap-3">
-                  AI FORECAST
+                <h4 className="font-black text-[#0f172a] text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center gap-2">
+                  <span>AI FORECAST & ANALISIS PREDIKTIF</span>
+                  <button
+                    onClick={() => setShowForecastInfo(!showForecastInfo)}
+                    className="p-1 hover:bg-emerald-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
+                    title="Info Model"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5 fill-amber-100 text-amber-500" />
+                  </button>
                 </h4>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5 sm:pr-4 leading-relaxed">
-                  Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning terintegrasi.
-                </p>
+                {showForecastInfo && (
+                  <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2 rounded-lg font-medium mt-1 leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-sm">
+                    Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning terintegrasi.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-emerald-100/50">
