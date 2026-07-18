@@ -1302,7 +1302,7 @@ export default function DashboardPage() {
 
                       {/* Column 2: Wide Map (Span 8) */}
                       <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-auto lg:min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-full lg:flex-1 flex flex-col print:h-[380px] print:min-h-0">
                           <div className="mb-2">
                             <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
                             <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
