@@ -329,9 +329,16 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shrink-0 shadow-sm sm:mt-1 self-start sm:self-auto">EWS AKTIF</span>
           </div>
           {showEwsInfo && (
-            <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg font-medium mb-4 leading-relaxed shadow-sm animate-in fade-in duration-200 text-justify shrink-0">
-              Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi pada beberapa komoditas strategis berdasarkan 3 layer analisis: Trend Perubahan, Volatilitas CV, dan Nilai SKPG (YoY Growth). Batas toleransi indeks variabilitas (CV) beras diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong>, dan komoditas lain pada level <strong className="text-slate-800">&lt; 9%</strong>.
-            </p>
+            <div className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-3 rounded-xl font-medium mb-4 leading-relaxed shadow-sm animate-in fade-in duration-200 text-justify shrink-0 space-y-1.5">
+              <p>
+                Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi harga komoditas strategis menggunakan 3 layer analisis:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 pl-1">
+                <li><strong>Tren Perubahan</strong>: Arah pergerakan proyeksi Machine Learning 1 & 3 bulan ke depan.</li>
+                <li><strong>Volatilitas CV</strong>: Batas toleransi indeks variabilitas (CV) untuk status Aman diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong> (beras) dan <strong className="text-slate-800">&lt; 9%</strong> (komoditas lain).</li>
+                <li><strong>Nilai SKPG (YoY Growth)</strong>: Sesuai rumus resmi Petunjuk Teknis SKPG (r_harga), dengan batas toleransi Aman <strong className="text-slate-800">&lt; 5%</strong> YoY untuk seluruh komoditas, batas Waspada 5%&ndash;10% YoY (beras) / 5%&ndash;15% YoY (minyak & telur), serta Rentan &gt; 10% YoY (beras) / &gt; 15% YoY (minyak & telur).</li>
+              </ol>
+            </div>
           )}
           
           <div className="flex-1 flex flex-col min-h-0">
