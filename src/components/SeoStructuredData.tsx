@@ -76,7 +76,7 @@ export default function SeoStructuredData() {
         version: APP_VERSION,
         datePublished: '2026-06-06',
         description:
-          'Web app analitik ketahanan pangan Kota Cilegon dengan fitur: pemantauan harga 10 komoditas strategis real-time (SAGON), CV harga beras, peta FSVA/SKPG interaktif, forecast ML 1 & 3 bulan (Regresi Aditif OLS + Custom GBDT + Custom Random Forest), EWS kerawanan pangan, IKP, PPH, PoU, Borda Desil kerentanan kelurahan, dan AI insight per panel.',
+          'Web app analitik ketahanan pangan Kota Cilegon dengan fitur: pemantauan harga 10 komoditas strategis real-time (SAGON), CV harga beras, peta FSVA/SKPG interaktif, forecast ML 1 & 3 bulan (Regresi OLS Bermusim + Custom GBDT + Custom Random Forest), EWS kerawanan pangan, IKP, PPH, PoU, Borda Desil kerentanan kelurahan, dan AI insight per panel.',
         featureList: [
           'Harga pangan real-time dari SAGON Cilegon',
           'Forecast harga ML 1 & 3 bulan ke depan',
