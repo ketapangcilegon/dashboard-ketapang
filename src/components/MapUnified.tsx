@@ -649,33 +649,15 @@ function MapController({
             {activeLayer === 'intervensi' && (
               <div className="grid grid-cols-2 gap-2 pt-1">
                 {/* Kolom Kiri: GPM */}
-                <div>
+                <div className="border-r border-slate-200 pr-2">
                   <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">GPM</div>
-                  <ol className="list-decimal list-inside space-y-1 text-[9.5px] sm:text-[10px] font-extrabold text-slate-700">
-                    {[
-                      'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
-                      'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
-                    ].map((kName, idx) => (
-                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
-                        Kel. {kName}
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="text-[9px] text-slate-400 font-bold italic py-1">(Data menyusul)</div>
                 </div>
 
                 {/* Kolom Kanan: B2SA */}
-                <div>
+                <div className="pl-1">
                   <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-tight uppercase">Bahan pangan B2SA untuk balita</div>
-                  <ol className="list-decimal list-inside space-y-1 text-[9.5px] sm:text-[10px] font-extrabold text-slate-700">
-                    {[
-                      'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
-                      'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
-                    ].map((kName, idx) => (
-                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
-                        Kel. {kName}
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="text-[9px] text-slate-400 font-bold italic py-1">(Data menyusul)</div>
                 </div>
               </div>
             )}
