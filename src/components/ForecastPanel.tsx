@@ -429,7 +429,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             </div>
             <div>
               <p className="text-[10px] text-slate-500 font-medium leading-relaxed text-justify">
-                <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
+                <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (Regresi Aditif OLS + Custom GBDT + Custom RF) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
               </p>
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function ForecastPanel({}: ForecastPanelProps) {
             {showMobileSumberModel && (
               <div className="mt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-105 animate-in fade-in duration-200">
                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed text-justify">
-                  <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (XGBoost + Prophet + Random Forest) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
+                  <strong className="text-emerald-800">Sumber Model:</strong> Model ML V1 (Regresi Aditif OLS + Custom GBDT + Custom RF) memproses historis time series harga pangan 5 tahun terakhir, pengaruh HBKN, iklim makro (curah hujan), dan volatilitas inflasi secara dinamis untuk peramalan harga pangan strategis Kota Cilegon.
                 </p>
               </div>
             )}

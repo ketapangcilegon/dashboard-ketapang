@@ -141,7 +141,13 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               </p>
               <ul className="list-disc pl-5 space-y-2.5 text-slate-600">
                 <li>
-                  <strong className="text-slate-800">Pipeline Seleksi Model (Champion-Challenger):</strong> Sistem membandingkan tiga algoritme secara dinamis untuk setiap komoditas: <span className="font-semibold text-slate-700">XGBoost Regressor</span> (untuk pola non-linear kompleks), <span className="font-semibold text-slate-700">Random Forest Regressor</span> (untuk stabilitas variansi), dan <span className="font-semibold text-slate-700">Prophet Additive Model</span> (untuk tren musiman jangka panjang). Model dengan akurasi validasi terbaik otomatis dipilih sebagai champion untuk melakukan peramalan akhir.
+                  <strong className="text-slate-800">Pipeline Seleksi Model (Champion-Challenger) Berbasis Serverless Engine:</strong> Modul peramalan dikembangkan menggunakan <span className="font-semibold text-slate-700">TypeScript murni (native JS/TS engine)</span> agar dapat berjalan optimal dalam infrastruktur serverless (Vercel Functions) tanpa dependensi binary C++ eksternal. Sistem membandingkan tiga model matematis secara dinamis untuk setiap komoditas:
+                  <ul className="list-circle pl-5 mt-2 space-y-1.5 text-slate-550">
+                    <li><strong className="text-slate-700">Model Regresi Aditif Time-Series (Pendekatan GAM - Generalized Additive Model):</strong> Memecahkan hubungan tren, musiman, dan faktor eksternal secara closed-form menggunakan metode Least Squares (OLS) yang diselesaikan dengan dekomposisi LU (Gaussian Elimination). Ini merupakan model baseline utama yang sangat andal dan efisien.</li>
+                    <li><strong className="text-slate-700">Custom Gradient Boosted Trees (GBDT):</strong> Algoritme pohon keputusan bertahap yang ditulis secara mandiri dalam TypeScript untuk menangkap pola non-linear musiman.</li>
+                    <li><strong className="text-slate-700">Custom Random Forest Regressor:</strong> Pendekatan ensemble decision trees berbasis bootstrap agregasi yang ditulis secara native dalam TypeScript.</li>
+                  </ul>
+                  Model dengan nilai kesalahan validasi (MAPE) terkecil secara otomatis dipilih sebagai champion untuk peramalan akhir.
                 </li>
                 <li>
                   <strong className="text-slate-800">Skema Validasi & Backtesting:</strong> Model divalidasi menggunakan pembagian data berdasarkan waktu (<em className="italic">Time-Series Split</em>), dengan data historis hingga tahun 2025 digunakan sebagai data latih (<em className="italic">training</em>), dan data tahun 2026 digunakan sebagai set pengujian (<em className="italic">validation/testing</em>) untuk menjamin keabsahan prediksi sebelum model dirilis ke produksi.

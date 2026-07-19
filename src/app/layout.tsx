@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     'early warning system pangan Cilegon',
     'EWS kerawanan pangan AI Cilegon',
     'machine learning ketahanan pangan Cilegon',
-    'XGBoost forecast harga beras Cilegon',
+    'model regresi aditif forecast harga beras Cilegon',
     'AI insight ketahanan pangan daerah',
     'analisis tren harga komoditas strategis Cilegon',
     'early warning system kompatibel SKPG Cilegon',

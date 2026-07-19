@@ -34,14 +34,14 @@ export function explainPrediction(
   const diffPercent = ((predictedPrice - currentPrice) / currentPrice) * 100;
   const isRising = diffPercent > 0;
   const absDiff = Math.abs(diffPercent);
-  
+
   // 1. Calculate category impacts (SHAP-like)
   const contributions: { factor: string; value: number; direction: 'naik' | 'turun' }[] = [];
-  
+
   // A. Keagamaan & HBKN (Ramadhan, Idul Fitri, Idul Adha, Nataru)
   let hbknImpact = 0;
   const hbknReasons: string[] = [];
-  
+
   if (features.idul_fitri === 1 || (features.hari_menuju_idul_fitri !== undefined && features.hari_menuju_idul_fitri <= 30)) {
     hbknImpact += 15.5;
     hbknReasons.push("Menjelang Idul Fitri");
@@ -58,7 +58,7 @@ export function explainPrediction(
     hbknImpact += 5.0;
     hbknReasons.push("Periode Nataru");
   }
-  
+
   if (hbknImpact > 0) {
     contributions.push({
       factor: hbknReasons[0] || "Hari Besar Keagamaan Nasional (HBKN)",
@@ -73,7 +73,7 @@ export function explainPrediction(
   const curahHujan = features.curah_hujan_mm || 0;
   const hariHujan = features.hari_hujan || 0;
   const isCrop = ['harga_cabai_merah', 'harga_cabai_rawit', 'harga_bawang_merah', 'harga_bawang_putih'].includes(komoditas);
-  
+
   if (curahHujan > 250 || hariHujan > 15) {
     weatherImpact = isCrop ? 14.5 : 4.5;
     weatherReasons.push("Curah hujan tinggi");
@@ -84,7 +84,7 @@ export function explainPrediction(
     weatherImpact = -3.5;
     weatherReasons.push("Cuaca kondusif");
   }
-  
+
   contributions.push({
     factor: weatherReasons[0],
     value: Math.abs(weatherImpact),
@@ -96,7 +96,7 @@ export function explainPrediction(
   const mtm = features.inflasi_mtm || 0;
   const yoy = features.inflasi_yoy || 0;
   let inflName = "Stabilitas inflasi makro";
-  
+
   if (mtm > 0.4 || yoy > 3.0) {
     inflationImpact = 9.5;
     inflName = "Peningkatan inflasi IHK";
@@ -106,7 +106,7 @@ export function explainPrediction(
   } else {
     inflationImpact = 2.5;
   }
-  
+
   contributions.push({
     factor: inflName,
     value: Math.abs(inflationImpact),
@@ -172,7 +172,7 @@ export function explainPrediction(
   const komoditasCleanName = komoditas.replace('harga_', '').replace(/_/g, ' ');
   const capitalizedName = komoditasCleanName.charAt(0).toUpperCase() + komoditasCleanName.slice(1);
   const actionWord = isRising ? 'naik' : 'turun';
-  
+
   const narasi = `${capitalizedName} diproyeksikan ${actionWord} ${absDiff.toFixed(0)}%.
 Pendorong utama:
 ${topDrivers.join('\n')}
