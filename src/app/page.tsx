@@ -28,6 +28,7 @@ const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: f
 const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKelurahan'), { ssr: false });
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
+const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -1322,7 +1323,7 @@ export default function DashboardPage() {
                   
                    {/* Section: AI Forecast */}
                    <div className="space-y-3">
-                     <ForecastPanel livePrices={livePrices} />
+                      <ForecastPanel livePrices={livePrices} onSwitchView={setCurrentView} />
                    </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
@@ -1737,6 +1738,10 @@ export default function DashboardPage() {
 
               {currentView === 'forecasting' && (
                 <ForecastView onBack={() => setCurrentView('beranda')} />
+              )}
+
+              {currentView === 'validasi_forecast' && (
+                <ValidasiForecastView onBack={() => setCurrentView('beranda')} />
               )}
 
               {currentView === 'sumber_data' && (

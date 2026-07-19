@@ -67,7 +67,7 @@ export default function Sidebar({
       icon: FileText, 
       label: 'FSVA.my.id', 
       view: 'dss_fsva',
-      url: 'https://dss-fsva.vercel.app/'
+      url: 'https://fsva.my.id/'
     }
   ];
 

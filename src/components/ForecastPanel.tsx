@@ -45,9 +45,10 @@ interface ForecastItem {
 
 interface ForecastPanelProps {
   livePrices?: Record<string, number>;
+  onSwitchView?: (view: string) => void;
 }
 
-export default function ForecastPanel({}: ForecastPanelProps) {
+export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPanelProps) {
   const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -240,10 +241,21 @@ export default function ForecastPanel({}: ForecastPanelProps) {
                 )}
               </div>
             </div>
-            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-emerald-100/50">
-              <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shadow-sm">Model ML V1</span>
-              <span className="text-[9px] bg-white border border-emerald-200 text-[#0B4D3C] px-3 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
-            </div>
+             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-emerald-100/50">
+               {onSwitchView && (
+                 <button
+                   onClick={() => onSwitchView('validasi_forecast')}
+                   className="px-3 py-1 bg-[#0f172a] hover:bg-slate-800 text-white text-[9px] font-black rounded-full uppercase tracking-wider shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+                   title="Validasi Akurasi Peramalan"
+                 >
+                   <span>🎯 Validasi Akurasi</span>
+                 </button>
+               )}
+               <div className="flex gap-2">
+                 <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shadow-sm">Model ML V1</span>
+                 <span className="text-[9px] bg-white border border-emerald-200 text-[#0B4D3C] px-3 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
+               </div>
+             </div>
           </div>
           
           <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
