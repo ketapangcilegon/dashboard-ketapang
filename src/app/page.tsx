@@ -29,6 +29,7 @@ const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKel
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
+const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -1955,6 +1956,14 @@ export default function DashboardPage() {
               
             </div>
           )}
+
+          {/* Footer with copyright and visit counter */}
+          <footer className="mt-12 pt-6 pb-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden text-slate-500 text-xs shrink-0">
+            <span className="font-semibold text-slate-400">
+              &copy; {new Date().getFullYear()} Pemerintah Kota Cilegon. All Rights Reserved.
+            </span>
+            <VisitCounter path="/" />
+          </footer>
         </main>
       </div>
 
