@@ -43,6 +43,8 @@ interface MapControllerProps {
   hasPrevMonth?: boolean;
   hasNextMonth?: boolean;
   fsvaYear?: number;
+  validFsvaYears?: number[];
+  setFsvaYear?: (yr: number) => void;
 }
 
 function MapController({
@@ -61,7 +63,9 @@ function MapController({
   onNextMonth,
   hasPrevMonth,
   hasNextMonth,
-  fsvaYear = 2025
+  fsvaYear = 2025,
+  validFsvaYears = [2025],
+  setFsvaYear
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -226,7 +230,49 @@ function MapController({
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA {fsvaYear}</span>
-                    <span className="text-[8px] text-slate-400 font-bold mt-0.5">Indeks Ketahanan Pangan</span>
+                    <div className="flex items-center gap-1 mt-1 select-none">
+                      <span className="text-[8px] text-slate-400 font-bold mr-0.5">IKP Makro</span>
+                      
+                      {/* Tombol Kiri (n-1) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const idx = validFsvaYears.indexOf(fsvaYear);
+                          if (idx > 0 && setFsvaYear) {
+                            setFsvaYear(validFsvaYears[idx - 1]);
+                          }
+                        }}
+                        disabled={validFsvaYears.indexOf(fsvaYear) <= 0}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          validFsvaYears.indexOf(fsvaYear) > 0 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Tahun Sebelumnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&lt;</span>
+                      </button>
+
+                      {/* Tombol Kanan (n+1) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const idx = validFsvaYears.indexOf(fsvaYear);
+                          if (idx !== -1 && idx < validFsvaYears.length - 1 && setFsvaYear) {
+                            setFsvaYear(validFsvaYears[idx + 1]);
+                          }
+                        }}
+                        disabled={validFsvaYears.indexOf(fsvaYear) === -1 || validFsvaYears.indexOf(fsvaYear) >= validFsvaYears.length - 1}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          validFsvaYears.indexOf(fsvaYear) !== -1 && validFsvaYears.indexOf(fsvaYear) < validFsvaYears.length - 1
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Tahun Berikutnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&gt;</span>
+                      </button>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setActiveLayer('fsva')}
@@ -293,10 +339,10 @@ function MapController({
                   </button>
                 </div>
 
-                {/* Prioritas Borda Switch */}
+                {/* Prioritas Borda Switch (FSVA + SKPG) */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">Prioritas</span>
+                    <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA + SKPG</span>
                     <span className="text-[8px] text-slate-400 font-bold mt-0.5">Borda Count Desil</span>
                   </div>
                   <button 
@@ -391,7 +437,7 @@ function MapController({
         >
           <div className="flex items-center gap-1">
             <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-            <span className="hidden sm:inline">Legenda {activeLayer.toUpperCase()}</span>
+            <span className="hidden sm:inline">Legenda {activeLayer === 'borda' ? 'FSVA + SKPG' : activeLayer.toUpperCase()}</span>
             <span className="inline sm:hidden">Legenda</span>
           </div>
           {expandLegend ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronUp className="w-3 h-3 shrink-0" />}
@@ -474,13 +520,44 @@ function MapController({
 
         {expandPrioritas && (
           <div className="p-3.5 max-h-80 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
-            <div className="flex items-center justify-between border-b border-amber-200/50 pb-2 mb-3">
-              <div className="text-[12px] font-black text-slate-800 uppercase tracking-wider pl-1">
-                Prioritas Intervensi
+            <div className="flex items-start justify-between border-b border-amber-200/50 pb-2 mb-3">
+              <div className="flex flex-col pl-1">
+                <div className="text-[11px] sm:text-[12px] font-black text-slate-800 uppercase tracking-wider leading-tight">
+                  {(() => {
+                    if (activeLayer === 'fsva') {
+                      return `Prioritas Intervensi Berdasarkan FSVA ${fsvaYear}`;
+                    } else if (activeLayer === 'skpg') {
+                      const MONTHS_INDO = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+                      const m = activeSkpgPeriod?.bulan || 6;
+                      const y = activeSkpgPeriod?.tahun || 2026;
+                      return `Prioritas Intervensi Berdasarkan SKPG ${MONTHS_INDO[m - 1]} ${y}`;
+                    } else if (activeLayer === 'borda') {
+                      const MONTHS_INDO = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+                      const m = activeSkpgPeriod?.bulan || 6;
+                      const y = activeSkpgPeriod?.tahun || 2026;
+                      return `Prioritas Intervensi Berdasarkan FSVA ${fsvaYear} dan SKPG ${MONTHS_INDO[m - 1]} ${y}`;
+                    } else if (activeLayer === 'intervensi') {
+                      return 'INTERVENSI';
+                    }
+                    return 'Prioritas Intervensi';
+                  })()}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold mt-0.5">
+                  {(() => {
+                    if (activeLayer === 'fsva') {
+                      return '(Tahunan / Indikator makro)';
+                    } else if (activeLayer === 'skpg') {
+                      return '(Bulanan / prevalensi gizi buruk)';
+                    } else if (activeLayer === 'borda') {
+                      return '(Borda count)';
+                    }
+                    return '';
+                  })()}
+                </div>
               </div>
               <button
                 onClick={handleDownloadLokusXlsx}
-                className="flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black text-emerald-850 bg-emerald-100 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-emerald-200/60"
+                className="flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black text-emerald-850 bg-emerald-100 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-emerald-200/60 shrink-0"
                 title="Download xlsx"
               >
                 <Download className="w-3 h-3" />
@@ -488,29 +565,40 @@ function MapController({
               </button>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              {/* Kolom Kiri: Borda Count FSVA & SKPG */}
-              <div>
-                <div className="text-[9.5px] sm:text-[10.5px] text-amber-700 font-black tracking-wider mb-1.5 leading-tight">Berdasarkan Borda Count <span className="text-amber-600">FSVA & SKPG</span></div>
-                {getTop10Borda().length === 0 ? (
-                  <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data.</div>
-                ) : (
-                  <ol className="list-decimal list-inside space-y-0.5 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
-                    {getTop10Borda().map((item, idx) => (
-                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
-                        Kel. {item.kelurahan}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
+            {/* Dynamic content depending on activeLayer */}
+            {activeLayer === 'fsva' && (
+              <div className="space-y-1 pl-1">
+                {(() => {
+                  if (!fsvaMatangData || fsvaMatangData.length === 0) {
+                    return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data FSVA.</div>;
+                  }
+                  // Sort by IKP ascending (lowest value = highest priority)
+                  const sortedFsva = [...fsvaMatangData]
+                    .map(item => ({
+                      kelurahan: item.nama_kelurahan || item.kelurahan,
+                      ikp: parseFloat(item.ikp) || 0
+                    }))
+                    .sort((a, b) => a.ikp - b.ikp)
+                    .slice(0, 10);
 
-              {/* Kolom Kanan: Gizi Buruk SKPG */}
-              <div>
-                <div className="text-[9.5px] sm:text-[10.5px] text-rose-700 font-black tracking-wider mb-1.5 leading-tight">Berdasarkan Gizi Buruk <span className="text-rose-600">SKPG</span></div>
+                  return (
+                    <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
+                      {sortedFsva.map((item, idx) => (
+                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Nilai IKP: ${item.ikp.toFixed(2)}`}>
+                          Kel. {item.kelurahan} <span className="text-[9px] text-slate-400 font-bold ml-1">(IKP: {item.ikp.toFixed(1)})</span>
+                        </li>
+                      ))}
+                    </ol>
+                  );
+                })()}
+              </div>
+            )}
+
+            {activeLayer === 'skpg' && (
+              <div className="space-y-1 pl-1">
                 {(() => {
                   if (!skpgMatangData || skpgMatangData.length === 0) {
-                    return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data.</div>;
+                    return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data SKPG.</div>;
                   }
                   const ranked = skpgMatangData
                     .map(item => {
@@ -527,20 +615,70 @@ function MapController({
                     .slice(0, 10);
 
                   if (ranked.length === 0) {
-                    return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data.</div>;
+                    return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data prevalensi gizi buruk.</div>;
                   }
                   return (
-                    <ol className="list-decimal list-inside space-y-0.5 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
+                    <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
                       {ranked.map((item, idx) => (
                         <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Prevalensi: ${item.prevalensi.toFixed(1)}%`}>
-                          Kel. {item.kelurahan}
+                          Kel. {item.kelurahan} <span className="text-[9px] text-rose-550 font-extrabold ml-1">({item.prevalensi.toFixed(1)}%)</span>
                         </li>
                       ))}
                     </ol>
                   );
                 })()}
               </div>
-            </div>
+            )}
+
+            {activeLayer === 'borda' && (
+              <div className="space-y-1 pl-1">
+                {getTop10Borda().length === 0 ? (
+                  <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data untuk Borda Count.</div>
+                ) : (
+                  <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
+                    {getTop10Borda().map((item, idx) => (
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
+                        Kel. {item.kelurahan}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+
+            {activeLayer === 'intervensi' && (
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                {/* Kolom Kiri: GPM */}
+                <div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">GPM</div>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
+                    {[
+                      'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
+                      'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
+                    ].map((kName, idx) => (
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
+                        Kel. {kName}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                {/* Kolom Kanan: B2SA */}
+                <div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">Bahan pangan B2SA untuk balita</div>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
+                    {[
+                      'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
+                      'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
+                    ].map((kName, idx) => (
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
+                        Kel. {kName}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -577,11 +715,36 @@ export default function MapUnified({
   // Supabase Data States
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
   const [fsvaYear, setFsvaYear] = useState<number>(2025);
+  const [validFsvaYears, setValidFsvaYears] = useState<number[]>([2025]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [validPeriods, setValidPeriods] = useState<{ tahun: number; bulan: number }[]>([]);
   const [activeSkpgPeriod, setActiveSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
+
+  // Fetch all valid FSVA years available in database
+  useEffect(() => {
+    if (!mounted) return;
+    const fetchValidFsvaYears = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('fsva_matang')
+          .select('periode')
+          .order('periode', { ascending: true });
+
+        if (!error && data) {
+          const list = Array.from(new Set(data.map(r => r.periode))).sort((a, b) => a - b);
+          if (list.length > 0) {
+            setValidFsvaYears(list);
+            setFsvaYear(list[list.length - 1]); // default to newest year
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch valid FSVA years:', err);
+      }
+    };
+    fetchValidFsvaYears();
+  }, [mounted]);
 
   useEffect(() => {
     setMounted(true);
@@ -635,23 +798,12 @@ export default function MapUnified({
     async function fetchMapData() {
       setDataLoading(true);
       try {
-        // Fetch Mature FSVA Dataset (Dinamis mengambil periode terbaru)
-        let actualFsvaYear = 2025;
+        // Fetch Mature FSVA Dataset (Dinamis mengambil periode terpilih)
         try {
-          const { data: latestFsva } = await supabase
-            .from('fsva_matang')
-            .select('periode')
-            .order('periode', { ascending: false })
-            .limit(1);
-          if (latestFsva && latestFsva.length > 0) {
-            actualFsvaYear = latestFsva[0].periode;
-          }
-          setFsvaYear(actualFsvaYear);
-
           const { data: fsvaM, error } = await supabase
             .from('fsva_matang')
             .select('*')
-            .eq('periode', actualFsvaYear);
+            .eq('periode', fsvaYear);
           if (!error && fsvaM && fsvaM.length > 0) {
             setFsvaMatangData(fsvaM);
           } else {
@@ -762,7 +914,7 @@ export default function MapUnified({
     }
 
     fetchMapData();
-  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod]);
+  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear]);
 
   if (!mounted || kmzLoading) {
     return (
@@ -898,6 +1050,8 @@ export default function MapUnified({
                 hasPrevMonth={hasPrev}
                 hasNextMonth={hasNext}
                 fsvaYear={fsvaYear}
+                validFsvaYears={validFsvaYears}
+                setFsvaYear={setFsvaYear}
               />
             );
           })()}

@@ -136,25 +136,8 @@ function getIKPGStyle(
     return { color: c.border, weight: 1.5, fillColor: c.fill, fillOpacity: ikpgOpacity };
   }
   if (activeIKPGLayer === 'intervensi') {
-    const row = intervensiData.find(r => r.nama_kelurahan === nama || r.kelurahan === nama);
-    if (!row) return { ...kelStyle, fillOpacity: 0.1, fillColor: '#cccccc' };
-    
-    // Support both new intervensi_kelurahan schema (gpm, bantuan_pangan) and legacy intervensi_pangan schema (kegiatan_gpm, penerima_bantuan_jiwa)
-    const gpm = row.gpm !== undefined ? (row.gpm || 0) : parseInt(row.kegiatan_gpm || '0');
-    const bantuan = row.bantuan_pangan !== undefined ? (row.bantuan_pangan || 0) : parseInt(row.penerima_bantuan_jiwa || '0');
-    
-    let c = { fill: '#e2e8f0', border: '#94a3b8' }; // fallback
-    if (gpm > 0 && bantuan > 0) {
-      c = { fill: '#a855f7', border: '#7e22ce' }; // both (Purple)
-    } else if (gpm > 0) {
-      c = { fill: '#f59e0b', border: '#d97706' }; // gpm (Orange)
-    } else if (bantuan > 0) {
-      c = { fill: '#3b82f6', border: '#1d4ed8' }; // bantuan (Blue)
-    } else {
-      c = { fill: '#10b981', border: '#047857' }; // none (Green / Mandiri)
-    }
-    
-    return { color: c.border, weight: 1.5, fillColor: c.fill, fillOpacity: ikpgOpacity };
+    // sementara peta intervensi dihapus saja (disabled)
+    return { color: '#cbd5e1', weight: 1.2, fillColor: '#f8fafc', fillOpacity: 0.15 };
   }
   
   return kelStyle;
@@ -272,17 +255,10 @@ export function KelurahanLayer({
                   popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data Borda.</p>`;
                 }
               } else if (activeIKPGLayer === 'intervensi') {
-                const row = intervensiData.find(r => r.nama_kelurahan === namaKel || r.kelurahan === namaKel);
-                if (row) {
-                  const gpm = row.gpm !== undefined ? (row.gpm || 0) : parseInt(row.kegiatan_gpm || '0');
-                  const bantuan = row.bantuan_pangan !== undefined ? (row.bantuan_pangan || 0) : parseInt(row.penerima_bantuan_jiwa || '0');
-                  popupContent += `
-                    <p style="margin:4px 0;font-size:11px;color:#475569;">🎪 <b>Kegiatan GPM</b>: <span style="font-weight:900;color:#0f172a;">${gpm} kegiatan</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;">🌾 <b>Penerima Bantuan Pangan</b>: <span style="font-weight:900;color:#0f172a;">${bantuan.toLocaleString('id-ID')} jiwa</span></p>
-                  `;
-                } else {
-                  popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data intervensi.</p>`;
-                }
+                popupContent += `
+                  <p style="margin:4px 0;font-size:11px;color:#64748b;font-weight:bold;">📍 Kelurahan: ${namaKel}</p>
+                  <p style="margin:4px 0;font-size:11px;color:#94a3b8;font-style:italic;">Data intervensi spasial (GPM & B2SA) menyusul.</p>
+                `;
               }
               
               popupContent += `</div>`;
