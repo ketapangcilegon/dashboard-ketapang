@@ -505,7 +505,7 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
-        expandPrioritas ? 'w-[320px] sm:w-[450px]' : 'w-[125px] sm:w-48'
+        expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
       }`}>
         <button
           onClick={togglePrioritas}
@@ -519,7 +519,7 @@ function MapController({
         </button>
 
         {expandPrioritas && (
-          <div className="p-3.5 max-h-80 overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
+          <div className="p-3 max-h-[220px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
             <div className="flex items-start justify-between border-b border-amber-200/50 pb-2 mb-3">
               <div className="flex flex-col pl-1">
                 <div className="text-[11px] sm:text-[12px] font-black text-slate-800 uppercase tracking-wider leading-tight">
@@ -647,11 +647,11 @@ function MapController({
             )}
 
             {activeLayer === 'intervensi' && (
-              <div className="grid grid-cols-2 gap-4 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 {/* Kolom Kiri: GPM */}
                 <div>
-                  <div className="text-[9px] sm:text-[10px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">GPM</div>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
+                  <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">GPM</div>
+                  <ol className="list-decimal list-inside space-y-1 text-[9.5px] sm:text-[10px] font-extrabold text-slate-700">
                     {[
                       'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
                       'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
@@ -665,8 +665,8 @@ function MapController({
 
                 {/* Kolom Kanan: B2SA */}
                 <div>
-                  <div className="text-[9px] sm:text-[10px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-none uppercase">Bahan pangan B2SA untuk balita</div>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] sm:text-[11.5px] font-extrabold text-slate-700">
+                  <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 font-black tracking-wider mb-2 border-b border-slate-200 pb-1 leading-tight uppercase">Bahan pangan B2SA untuk balita</div>
+                  <ol className="list-decimal list-inside space-y-1 text-[9.5px] sm:text-[10px] font-extrabold text-slate-700">
                     {[
                       'Mekarsari', 'Bulakan', 'Tamansari', 'Gerem', 'Suralaya',
                       'Cikerai', 'Karang Asem', 'Citangkil', 'Lebakgede', 'Ramanuju'
