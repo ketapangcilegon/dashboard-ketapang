@@ -42,4 +42,4 @@ ALTER TABLE page_visits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public read access on page_visits" ON page_visits FOR SELECT USING (true);
 CREATE POLICY "Allow public update access on page_visits" ON page_visits FOR UPDATE USING (true);
-CREATE POLICY "Allow public insert access on page_visits" ON page_visits FOR INSERT USING (true);
+CREATE POLICY "Allow public insert access on page_visits" ON page_visits FOR INSERT WITH CHECK (true);
