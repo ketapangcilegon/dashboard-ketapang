@@ -74,14 +74,13 @@ function MapController({
 
   // Drag-to-scroll state for Prioritas Lokus list on desktop
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const [isScrollDragging, setIsScrollDragging] = useState(false);
   const scrollStartY = useRef(0);
   const scrollTopVal = useRef(0);
 
-  // Prevent any mouse/touch/scroll events on the panel from propagating to Leaflet map container
+  // Prevent any mouse/touch/scroll events on the inner scroll list from propagating to Leaflet map container
   useEffect(() => {
-    const el = panelRef.current;
+    const el = scrollRef.current;
     if (!el) return;
 
     const stopPropagation = (e: Event) => {
@@ -109,7 +108,7 @@ function MapController({
       el.removeEventListener('dblclick', stopPropagation);
       el.removeEventListener('wheel', stopPropagation);
     };
-  }, []);
+  }, [expandPrioritas]);
 
   const handleScrollMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
@@ -588,7 +587,6 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div 
-        ref={panelRef}
         className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
           expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
         }`}
