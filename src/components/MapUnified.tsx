@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Layers, MapPin, Navigation, Map, Plus, Minus, ChevronDown, ChevronUp, Download } from 'lucide-react';
@@ -71,6 +71,75 @@ function MapController({
   const [expandLayers, setExpandLayers] = useState(false);
   const [expandLegend, setExpandLegend] = useState(false);
   const [expandPrioritas, setExpandPrioritas] = useState(false);
+
+  // Draggable state for Prioritas Lokus panel
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    setIsDragging(true);
+    dragStart.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    setIsDragging(true);
+    const touch = e.touches[0];
+    dragStart.current = {
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const newX = e.clientX - dragStart.current.x;
+      const newY = e.clientY - dragStart.current.y;
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      const newX = touch.clientX - dragStart.current.x;
+      const newY = touch.clientY - dragStart.current.y;
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging]);
 
   // Dynamically inject zoom-dependent CSS classes to the Leaflet map container
   useEffect(() => {
@@ -514,9 +583,16 @@ function MapController({
       </div>
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
-      <div className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
-        expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
-      }`}>
+      <div 
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden select-none ${
+          isDragging ? 'cursor-grabbing' : 'cursor-grab transition-all duration-300'
+        } ${expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'}`}
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`
+        }}
+      >
         <button
           onClick={togglePrioritas}
           className="w-full px-1.5 sm:px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
