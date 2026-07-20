@@ -72,74 +72,45 @@ function MapController({
   const [expandLegend, setExpandLegend] = useState(false);
   const [expandPrioritas, setExpandPrioritas] = useState(false);
 
-  // Draggable state for Prioritas Lokus panel
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
+  // Drag-to-scroll state for Prioritas Lokus list on desktop
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [isScrollDragging, setIsScrollDragging] = useState(false);
+  const scrollStartY = useRef(0);
+  const scrollTopVal = useRef(0);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleScrollMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('a') || target.closest('input')) {
       return;
     }
-    setIsDragging(true);
-    dragStart.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    };
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input')) {
-      return;
-    }
-    setIsDragging(true);
-    const touch = e.touches[0];
-    dragStart.current = {
-      x: touch.clientX - position.x,
-      y: touch.clientY - position.y
-    };
+    setIsScrollDragging(true);
+    scrollStartY.current = e.clientY;
+    scrollTopVal.current = scrollRef.current.scrollTop;
+    e.stopPropagation();
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const newX = e.clientX - dragStart.current.x;
-      const newY = e.clientY - dragStart.current.y;
-      setPosition({ x: newX, y: newY });
+      if (!isScrollDragging || !scrollRef.current) return;
+      e.preventDefault();
+      const deltaY = e.clientY - scrollStartY.current;
+      scrollRef.current.scrollTop = scrollTopVal.current - deltaY;
     };
 
     const handleMouseUp = () => {
-      setIsDragging(false);
+      setIsScrollDragging(false);
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging) return;
-      const touch = e.touches[0];
-      const newX = touch.clientX - dragStart.current.x;
-      const newY = touch.clientY - dragStart.current.y;
-      setPosition({ x: newX, y: newY });
-    };
-
-    const handleTouchEnd = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
+    if (isScrollDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleTouchEnd);
     }
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging]);
+  }, [isScrollDragging]);
 
   // Dynamically inject zoom-dependent CSS classes to the Leaflet map container
   useEffect(() => {
@@ -584,14 +555,13 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div 
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden select-none ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab transition-all duration-300'
-        } ${expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'}`}
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px)`
-        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
+          expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
+        }`}
       >
         <button
           onClick={togglePrioritas}
@@ -605,7 +575,13 @@ function MapController({
         </button>
 
         {expandPrioritas && (
-          <div className="p-3 max-h-[286px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
+          <div 
+            ref={scrollRef}
+            onMouseDown={handleScrollMouseDown}
+            className={`p-3 max-h-[286px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60 select-none ${
+              isScrollDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+          >
             <div className="flex items-start justify-between border-b border-amber-200/50 pb-2 mb-3">
               <div className="flex flex-col pl-1">
                 <div className="text-[11px] sm:text-[12px] font-black text-slate-800 uppercase tracking-wider leading-tight">
