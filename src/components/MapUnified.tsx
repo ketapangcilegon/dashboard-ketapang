@@ -74,9 +74,42 @@ function MapController({
 
   // Drag-to-scroll state for Prioritas Lokus list on desktop
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [isScrollDragging, setIsScrollDragging] = useState(false);
   const scrollStartY = useRef(0);
   const scrollTopVal = useRef(0);
+
+  // Prevent any mouse/touch/scroll events on the panel from propagating to Leaflet map container
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+
+    const stopPropagation = (e: Event) => {
+      e.stopPropagation();
+    };
+
+    el.addEventListener('mousedown', stopPropagation);
+    el.addEventListener('touchstart', stopPropagation, { passive: true });
+    el.addEventListener('touchmove', stopPropagation, { passive: true });
+    el.addEventListener('touchend', stopPropagation);
+    el.addEventListener('pointerdown', stopPropagation);
+    el.addEventListener('pointermove', stopPropagation);
+    el.addEventListener('click', stopPropagation);
+    el.addEventListener('dblclick', stopPropagation);
+    el.addEventListener('wheel', stopPropagation);
+
+    return () => {
+      el.removeEventListener('mousedown', stopPropagation);
+      el.removeEventListener('touchstart', stopPropagation);
+      el.removeEventListener('touchmove', stopPropagation);
+      el.removeEventListener('touchend', stopPropagation);
+      el.removeEventListener('pointerdown', stopPropagation);
+      el.removeEventListener('pointermove', stopPropagation);
+      el.removeEventListener('click', stopPropagation);
+      el.removeEventListener('dblclick', stopPropagation);
+      el.removeEventListener('wheel', stopPropagation);
+    };
+  }, []);
 
   const handleScrollMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
@@ -555,10 +588,7 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div 
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
+        ref={panelRef}
         className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
           expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
         }`}
