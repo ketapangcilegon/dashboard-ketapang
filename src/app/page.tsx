@@ -227,7 +227,24 @@ const loadingTips = [
 
 export default function DashboardPage() {
   // Navigation State
-  const [currentView, setCurrentView] = useState<string>('beranda');
+  const [currentView, setCurrentViewRaw] = useState<string>('beranda');
+  
+  const setCurrentView = (newView: string) => {
+    setCurrentViewRaw(newView);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (newView === 'beranda') {
+        url.searchParams.delete('view');
+      } else {
+        url.searchParams.set('view', newView);
+      }
+      const currentUrlParam = new URLSearchParams(window.location.search).get('view') || 'beranda';
+      if (currentUrlParam !== newView) {
+        window.history.pushState({ view: newView }, '', url.pathname + url.search);
+      }
+    }
+  };
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
@@ -310,11 +327,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const handlePopState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const viewParam = params.get('view') || 'beranda';
+        setCurrentViewRaw(viewParam);
+      };
+
+      // Initial check
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get('view');
       if (viewParam) {
-        setCurrentView(viewParam);
+        setCurrentViewRaw(viewParam);
       }
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
     }
   }, []);
 

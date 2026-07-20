@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles, RefreshCw, UploadCloud, Download, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import MapSKPGMini from './MapSKPGMini';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
 
 // Standard Kecamatan
@@ -1109,13 +1109,17 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                 </div>
                 <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 5 }}>
+                    <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 60, left: 0, bottom: 5 }}>
                       <XAxis type="number" stroke="#94A3B8" fontSize={9} />
-                      <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={90} />
+                      <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={75} />
                       <Tooltip formatter={(value) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} contentStyle={{ fontSize: '10px' }} />
                       <Legend wrapperStyle={{ fontSize: '9px' }} />
-                      <Bar dataKey="1 Tahun Sebelumnya" fill="#F97316" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="1 Tahun Sebelumnya" fill="#F97316" radius={[0, 4, 4, 0]}>
+                        <LabelList dataKey="1 Tahun Sebelumnya" position="right" formatter={(value: any) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} style={{ fontSize: 8, fontWeight: 'bold', fill: '#ea580c' }} />
+                      </Bar>
+                      <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                        <LabelList dataKey="Bulan Berjalan" position="right" formatter={(value: any) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} style={{ fontSize: 8, fontWeight: 'bold', fill: '#1d4ed8' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

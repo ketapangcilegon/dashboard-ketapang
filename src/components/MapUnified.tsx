@@ -167,7 +167,17 @@ function MapController({
     });
 
     const sortedSums = [...allBordaSums].sort((a, b) => a.sum - b.sum);
-    return sortedSums.slice(0, 10);
+    const total = sortedSums.length;
+    return sortedSums.map((item, index) => {
+      const rank = index + 1;
+      const desil = Math.min(10, Math.ceil((rank / total) * 10));
+      return {
+        kelurahan: item.kelurahan,
+        sum: item.sum,
+        rank,
+        desil
+      };
+    }).slice(0, 10);
   };
 
   const handleDownloadLokusXlsx = () => {
@@ -519,7 +529,7 @@ function MapController({
         </button>
 
         {expandPrioritas && (
-          <div className="p-3 max-h-[220px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
+          <div className="p-3 max-h-[286px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60">
             <div className="flex items-start justify-between border-b border-amber-200/50 pb-2 mb-3">
               <div className="flex flex-col pl-1">
                 <div className="text-[11px] sm:text-[12px] font-black text-slate-800 uppercase tracking-wider leading-tight">
@@ -637,8 +647,8 @@ function MapController({
                 ) : (
                   <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
                     {getTop10Borda().map((item, idx) => (
-                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate">
-                        Kel. {item.kelurahan}
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Rank Borda: ${item.rank}, Desil: ${item.desil}`}>
+                        Kel. {item.kelurahan} <span className="text-[9.5px] text-amber-600 font-black ml-1">(Skor: {item.sum} | Desil: {item.desil})</span>
                       </li>
                     ))}
                   </ol>
