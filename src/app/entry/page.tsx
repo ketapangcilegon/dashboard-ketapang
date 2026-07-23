@@ -5,13 +5,14 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import UploadPanel from '@/components/UploadPanel';
-import { Lock, Mail, AlertCircle, LogOut } from 'lucide-react';
+import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -165,14 +166,22 @@ export default function EntryPage() {
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
                   <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-blue-500 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-9 pr-10 text-sm focus:outline-none focus:border-blue-500 transition-all font-semibold"
                     />
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-all cursor-pointer focus:outline-none"
+                      title={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 

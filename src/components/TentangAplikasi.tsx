@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
 
 interface TentangAplikasiProps {
@@ -10,6 +10,12 @@ interface TentangAplikasiProps {
 
 export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+    setIsAdmin(sessionActive);
+  }, []);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -135,34 +141,42 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           </button>
           
           {expandedSections['metodologi'] && (
-            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
-              <p className="mt-4">
-                Modul peramalan harga pangan pada platform ini dirancang dengan pendekatan ilmiah yang ketat untuk memberikan estimasi harga jangka pendek yang andal bagi pengambil kebijakan:
-              </p>
-              <ul className="list-disc pl-5 space-y-2.5 text-slate-600">
-                <li>
-                  <strong className="text-slate-800">Pipeline Seleksi Model (Champion-Challenger) Berbasis Serverless Engine:</strong> Modul peramalan dikembangkan menggunakan <span className="font-semibold text-slate-700">TypeScript murni (native JS/TS engine)</span> agar dapat berjalan optimal dalam infrastruktur serverless (Vercel Functions) tanpa dependensi binary C++ eksternal. Sistem membandingkan tiga model matematis secara dinamis untuk setiap komoditas:
-                  <ul className="list-circle pl-5 mt-2 space-y-1.5 text-slate-550">
-                    <li><strong className="text-slate-700">Multiple Linear Regression dengan Fitur Musiman Terekayasa (OLS):</strong> Model regresi linear multivariat yang memecahkan hubungan tren, variabel dummy musiman (HBKN), dan data lag harga secara closed-form menggunakan metode Least Squares (OLS) yang diselesaikan dengan dekomposisi LU (Gaussian Elimination).</li>
-                    <li><strong className="text-slate-700">Custom Gradient Boosting Regressor (GBDT Sederhana):</strong> Algoritme pohon keputusan bertahap (gradient boosting) yang dibangun secara iteratif untuk meminimalkan residual kesalahan dari pohon keputusan sebelumnya.</li>
-                    <li><strong className="text-slate-700">Custom Random Forest Regressor:</strong> Pendekatan ensemble decision trees sederhana berbasis bootstrap agregasi.</li>
-                  </ul>
-                  Model dengan nilai kesalahan validasi (MAPE) terkecil secara otomatis dipilih sebagai champion untuk peramalan akhir.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Skema Validasi & Backtesting:</strong> Model divalidasi menggunakan pembagian data berdasarkan waktu (<em className="italic">Time-Series Split</em>), dengan data historis hingga tahun 2025 digunakan sebagai data latih (<em className="italic">training</em>), dan data tahun 2026 digunakan sebagai set pengujian (<em className="italic">validation/testing</em>) untuk menjamin keabsahan prediksi sebelum model dirilis ke produksi.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Metrik Evaluasi & Tingkat Kepercayaan:</strong> Performa model diukur menggunakan metrik <em className="italic">Mean Absolute Percentage Error</em> (MAPE). Indikator <strong className="text-slate-800">Tingkat Kepercayaan (Confidence Score)</strong> yang ditampilkan di dashboard (misalnya 99.2%) dihitung secara langsung dengan formula <code className="px-1.5 py-0.5 bg-slate-100 rounded text-purple-700 font-bold text-[11px]">100% - MAPE</code>.
-                  <p className="mt-1.5 text-slate-500 italic text-[11px] leading-relaxed">
-                    *Catatan Metodologi: Tingkat Kepercayaan ini mengukur keandalan prediksi satu bulan ke depan (one-step-ahead prediction) pada set data pengujian tahun berjalan (2026). Mengingat data tahun berjalan masih terus bertambah (ukuran sampel uji terbatas), akurasi jangka pendek ini sangat dipengaruhi oleh stabilitas pasar berjalan dan tidak meniadakan risiko guncangan ekstrem tak terduga (black swan) seperti anomali iklim global (El Niño) atau kebijakan impor nasional mendadak.
-                  </p>
-                </li>
-                <li>
-                  <strong className="text-slate-800">Interpretasi Akurasi Tinggi:</strong> Tingkat kepercayaan yang sangat tinggi ini mencerminkan keandalan peramalan jangka pendek (<em className="italic">one-step-ahead monthly prediction</em>) karena model memanfaatkan data lag harga bulan sebelumnya serta pola musiman Hari Besar Keagamaan Nasional (HBKN). Pengguna diimbau untuk memahami bahwa akurasi ini mengukur kestabilan jangka pendek dan tidak meniadakan risiko guncangan ekstrem tak terduga seperti anomali iklim global (El Niño) atau intervensi kebijakan impor yang mendadak.
-                </li>
-              </ul>
-            </div>
+            isAdmin ? (
+              <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
+                <p className="mt-4">
+                  Modul peramalan harga pangan pada platform ini dirancang dengan pendekatan ilmiah yang ketat untuk memberikan estimasi harga jangka pendek yang andal bagi pengambil kebijakan:
+                </p>
+                <ul className="list-disc pl-5 space-y-2.5 text-slate-600">
+                  <li>
+                    <strong className="text-slate-800">Pipeline Seleksi Model (Champion-Challenger) Berbasis Serverless Engine:</strong> Modul peramalan dikembangkan menggunakan <span className="font-semibold text-slate-700">TypeScript murni (native JS/TS engine)</span> agar dapat berjalan optimal dalam infrastruktur serverless (Vercel Functions) tanpa dependensi binary C++ eksternal. Sistem membandingkan tiga model matematis secara dinamis untuk setiap komoditas:
+                    <ul className="list-circle pl-5 mt-2 space-y-1.5 text-slate-550">
+                      <li><strong className="text-slate-700">Multiple Linear Regression dengan Fitur Musiman Terekayasa (OLS):</strong> Model regresi linear multivariat yang memecahkan hubungan tren, variabel dummy musiman (HBKN), dan data lag harga secara closed-form menggunakan metode Least Squares (OLS) yang diselesaikan dengan dekomposisi LU (Gaussian Elimination).</li>
+                      <li><strong className="text-slate-700">Custom Gradient Boosting Regressor (GBDT Sederhana):</strong> Algoritme pohon keputusan bertahap (gradient boosting) yang dibangun secara iteratif untuk meminimalkan residual kesalahan dari pohon keputusan sebelumnya.</li>
+                      <li><strong className="text-slate-700">Custom Random Forest Regressor:</strong> Pendekatan ensemble decision trees sederhana berbasis bootstrap agregasi.</li>
+                    </ul>
+                    Model dengan nilai kesalahan validasi (MAPE) terkecil secara otomatis dipilih sebagai champion untuk peramalan akhir.
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">Skema Validasi & Backtesting:</strong> Model divalidasi menggunakan pembagian data berdasarkan waktu (<em className="italic">Time-Series Split</em>), dengan data historis hingga tahun 2025 digunakan sebagai data latih (<em className="italic">training</em>), dan data tahun 2026 digunakan sebagai set pengujian (<em className="italic">validation/testing</em>) untuk menjamin keabsahan prediksi sebelum model dirilis ke produksi.
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">Metrik Evaluasi & Tingkat Kepercayaan:</strong> Performa model diukur menggunakan metrik <em className="italic">Mean Absolute Percentage Error</em> (MAPE). Indikator <strong className="text-slate-800">Tingkat Kepercayaan (Confidence Score)</strong> yang ditampilkan di dashboard (misalnya 99.2%) dihitung secara langsung dengan formula <code className="px-1.5 py-0.5 bg-slate-100 rounded text-purple-700 font-bold text-[11px]">100% - MAPE</code>.
+                    <p className="mt-1.5 text-slate-500 italic text-[11px] leading-relaxed">
+                      *Catatan Metodologi: Tingkat Kepercayaan ini mengukur keandalan prediksi satu bulan ke depan (one-step-ahead prediction) pada set data pengujian tahun berjalan (2026). Mengingat data tahun berjalan masih terus bertambah (ukuran sampel uji terbatas), akurasi jangka pendek ini sangat dipengaruhi oleh stabilitas pasar berjalan dan tidak meniadakan risiko guncangan ekstrem tak terduga (black swan) seperti anomali iklim global (El Niño) atau kebijakan impor nasional mendadak.
+                    </p>
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">Interpretasi Akurasi Tinggi:</strong> Tingkat kepercayaan yang sangat tinggi ini mencerminkan keandalan peramalan jangka pendek (<em className="italic">one-step-ahead monthly prediction</em>) karena model memanfaatkan data lag harga bulan sebelumnya serta pola musiman Hari Besar Keagamaan Nasional (HBKN). Pengguna diimbau untuk memahami bahwa akurasi ini mengukur kestabilan jangka pendek dan tidak meniadakan risiko guncangan ekstrem tak terduga seperti anomali iklim global (El Niño) atau intervensi kebijakan impor yang mendadak.
+                  </li>
+                </ul>
+              </div>
+            ) : (
+              <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 py-6 text-center text-slate-500 font-semibold text-xs flex flex-col items-center justify-center gap-2">
+                <Lock className="w-8 h-8 text-amber-500 animate-bounce mt-4" />
+                <p className="font-bold text-slate-700">Informasi Metodologi & Validasi Machine Learning Terkunci.</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Silakan masuk sebagai Administrator (Portal Admin) untuk melihat detail teknis.</p>
+              </div>
+            )
           )}
         </div>
 
@@ -190,22 +204,30 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           </button>
           
           {expandedSections['pipeline'] && (
-            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
-              <p className="mt-4">
-                Sistem pemantauan harga real-time terintegrasi secara langsung dengan portal SAGON (<a href="https://sagon.cilegon.go.id" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-semibold">sagon.cilegon.go.id</a>). Guna menjaga ketahanan sistem terhadap risiko perubahan eksternal, arsitektur data dirancang dengan skema mitigasi berlapis:
-              </p>
-              <ul className="list-disc pl-5 space-y-2.5 text-slate-600">
-                <li>
-                  <strong className="text-slate-800">Mekanisme Scraping & Parsing:</strong> Data diekstrak secara otomatis melalui mesin parser HTML (<em className="italic">cheerio-based</em>) dari halaman infografis dan komoditas pasar harian SAGON.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Antisipasi Perubahan Struktur (Layout Breakage):</strong> Mengingat scraping bergantung pada kestabilan elemen DOM, perubahan layout situs SAGON dapat memicu kegagalan ETL. Platform ini mengantisipasinya dengan mekanisme <strong className="text-slate-850">Local Caching & Fallback</strong>, di mana sistem akan otomatis menyajikan data cache terbaru di database lokal jika koneksi ke SAGON gagal atau struktur HTML berubah, sehingga menjaga dashboard tetap operasional tanpa merusak antarmuka pengguna.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Pengujian Otomatis (Automated Smoke Test):</strong> Pengembang telah menyediakan unit test khusus (<code className="px-1.5 py-0.5 bg-slate-100 rounded text-blue-700 font-bold text-[11px]">npm run test:pipeline</code>) yang dapat dijalankan secara berkala dalam alur CI/CD untuk memvalidasi kompatibilitas parser terhadap HTML SAGON secara berkala dan memberikan peringatan dini jika terdeteksi adanya perubahan struktur DOM.
-                </li>
-              </ul>
-            </div>
+            isAdmin ? (
+              <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
+                <p className="mt-4">
+                  Sistem pemantauan harga real-time terintegrasi secara langsung dengan portal SAGON (<a href="https://sagon.cilegon.go.id" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-semibold">sagon.cilegon.go.id</a>). Guna menjaga ketahanan sistem terhadap risiko perubahan eksternal, arsitektur data dirancang dengan skema mitigasi berlapis:
+                </p>
+                <ul className="list-disc pl-5 space-y-2.5 text-slate-600">
+                  <li>
+                    <strong className="text-slate-800">Mekanisme Scraping & Parsing:</strong> Data diekstrak secara otomatis melalui mesin parser HTML (<em className="italic">cheerio-based</em>) dari halaman infografis dan komoditas pasar harian SAGON.
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">Antisipasi Perubahan Struktur (Layout Breakage):</strong> Mengingat scraping bergantung pada kestabilan elemen DOM, perubahan layout situs SAGON dapat memicu kegagalan ETL. Platform ini mengantisipasinya dengan mekanisme <strong className="text-slate-850">Local Caching & Fallback</strong>, di mana sistem akan otomatis menyajikan data cache terbaru di database lokal jika koneksi ke SAGON gagal atau struktur HTML berubah, sehingga menjaga dashboard tetap operasional tanpa merusak antarmuka pengguna.
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">Pengujian Otomatis (Automated Smoke Test):</strong> Pengembang telah menyediakan unit test khusus (<code className="px-1.5 py-0.5 bg-slate-100 rounded text-blue-700 font-bold text-[11px]">npm run test:pipeline</code>) yang dapat dijalankan secara berkala dalam alur CI/CD untuk memvalidasi kompatibilitas parser terhadap HTML SAGON secara berkala dan memberikan peringatan dini jika terdeteksi adanya perubahan struktur DOM.
+                  </li>
+                </ul>
+              </div>
+            ) : (
+              <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 py-6 text-center text-slate-500 font-semibold text-xs flex flex-col items-center justify-center gap-2">
+                <Lock className="w-8 h-8 text-blue-500 animate-bounce mt-4" />
+                <p className="font-bold text-slate-700">Informasi Keandalan & Pipeline Data SAGON Terkunci.</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Silakan masuk sebagai Administrator (Portal Admin) untuk melihat detail teknis.</p>
+              </div>
+            )
           )}
         </div>
         {/* Section 5: Pengembang */}
