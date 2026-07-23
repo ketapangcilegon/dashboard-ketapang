@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const COMMODITY_MAP: Record<string, string> = {
@@ -51,6 +51,7 @@ interface ForecastViewProps {
 
 export default function ForecastView({ onBack, livePrices }: ForecastViewProps) {
   const [selectedCommodity, setSelectedCommodity] = useState<string>('harga_beras');
+  const [activeTooltip, setActiveTooltip] = useState<{ title: string; content: string } | null>(null);
 
   const [forecasts, setForecasts] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -74,7 +75,23 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
         }
         throw fcError;
       }
-      setForecasts(fcData || []);
+      const mappedFcData = (fcData || []).map((item: any) => {
+        if (item.status_forecast === 'Turun') {
+          return {
+            ...item,
+            status_cv: 'AMAN',
+            status_skpg: 'AMAN',
+            narasi: `Tren harga diproyeksikan mengalami penurunan sebesar ${Math.abs(item.perubahan_pct).toFixed(1)}% dalam 1 bulan ke depan. Dari sudut pandang konsumen, penurunan ini sangat kondusif dan memperkuat aksesibilitas pangan masyarakat. Volatilitas (CV) dan kerentanan (SKPG) dinilai AMAN seiring dengan tren penurunan harga komoditas ini.`,
+            rekomendasi: [
+              "Lanjutkan pemantauan pasokan agar kestabilan harga tetap terjaga.",
+              "Optimalkan penyerapan hasil panen petani lokal untuk menjaga harga di tingkat produsen agar tidak anjlok terlalu dalam.",
+              "Pertahankan distribusi normal ke pasar-pasar rakyat."
+            ]
+          };
+        }
+        return item;
+      });
+      setForecasts(mappedFcData);
 
       const { data: histData, error: histError } = await supabase
         .from('forecast_dataset')
@@ -381,11 +398,81 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                       <div className="leading-tight">+3 Bulan</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                     </th>
-                    <th className="p-3 text-center">Forecast</th>
-                    <th className="p-3 text-center">CV</th>
-                    <th className="p-3 text-center">SKPG</th>
-                    <th className="p-3 text-center">Confidence</th>
-                    <th className="p-3 text-center">Status</th>
+                    <th className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="leading-tight">Forecast</span>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'Forecast (Proyeksi Tren)',
+                            content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 1 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun (menguntungkan bagi konsumen).\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 2%.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan Forecast"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="leading-tight">CV</span>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'CV (Koefisien Variasi)',
+                            content: 'Tingkat kestabilan harga historis selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi / Rata-rata) * 100.\n• AMAN: Fluktuasi harga sangat rendah (< 10%).\n• WASPADA: Fluktuasi harga sedang (10-20%).\n• RENTAN: Fluktuasi harga tinggi (> 20%).\n*Catatan: Jika tren diproyeksikan Turun, maka status CV dinilai AMAN untuk melindungi daya beli konsumen.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan CV"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="leading-tight">SKPG</span>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'SKPG (Sistem Kewaspadaan Pangan & Gizi)',
+                            content: 'Indikator kerentanan pangan sektoral berbasis pertumbuhan harga bulanan dibandingkan tahun lalu (YoY Growth).\n• AMAN: Pertumbuhan harga di bawah batas toleransi.\n• WASPADA/RENTAN: Pertumbuhan harga melonjak tinggi.\n*Catatan: Jika tren diproyeksikan Turun, maka status SKPG dinilai AMAN untuk melindungi daya beli konsumen.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan SKPG"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="leading-tight">Confidence</span>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'Confidence (Tingkat Kepercayaan)',
+                            content: 'Skor akurasi model peramalan Machine Learning yang dihitung dengan rumus: 100% - MAPE (Mean Absolute Percentage Error).\nSemakin tinggi persentasenya (mendekati 100%), peramalan semakin akurat berdasarkan pola data historis.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan Confidence"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="leading-tight">Status</span>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'Status (EWS Pangan)',
+                            content: 'Status akhir kesiapsiagaan kerawanan pangan (Early Warning System) yang menggabungkan L1 (Tren), L2 (CV), dan L3 (SKPG).\nJika tren diproyeksikan Turun, maka status akhir otomatis diatur menjadi AMAN bagi konsumen.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan Status EWS"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -733,6 +820,37 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
           Update: <span className="text-slate-500">otomatis bulanan (Tanggal 5)</span>
         </div>
       </footer>
+
+      {/* Interactive Explanation Modal */}
+      {activeTooltip && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 text-left">
+            <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-500 font-extrabold text-xs uppercase tracking-wide">
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <span>{activeTooltip.title}</span>
+              </div>
+              <button 
+                onClick={() => setActiveTooltip(null)} 
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-5 py-4 text-xs text-slate-600 font-semibold leading-relaxed whitespace-pre-line">
+              {activeTooltip.content}
+            </div>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setActiveTooltip(null)} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 shadow-sm cursor-pointer"
+              >
+                Paham
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
