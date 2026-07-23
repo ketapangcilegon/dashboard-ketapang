@@ -173,7 +173,7 @@ export default function KerawananPanel({
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Berdasarkan analisis Borda dinamis Kota Cilegon pada tahun 2026, intervensi Gerakan Pangan Murah (GPM) telah dilaksanakan secara optimal di **{activeGpmLokus} dari {totalLokus} kelurahan lokus prioritas** (Desil 1 s.d. Desil 4). Sinergi dengan penyaluran bantuan pangan gratis bagi **{activeKPM.toLocaleString('id-ID')} Keluarga Penerima Manfaat (KPM)** berhasil menekan laju kerawanan pangan di wilayah rentan secara komprehensif.
+                 Berdasarkan analisis Borda dinamis Kota Cilegon pada tahun 2026, intervensi Gerakan Pangan Murah (GPM) telah dilaksanakan secara optimal di <strong>{activeGpmLokus} dari {totalLokus} kelurahan lokus prioritas</strong> (Desil 1 s.d. Desil 4). Sinergi dengan penyaluran bantuan pangan gratis bagi <strong>{activeKPM.toLocaleString('id-ID')} Keluarga Penerima Manfaat (KPM)</strong> berhasil menekan laju kerawanan pangan di wilayah rentan secara komprehensif.
               </p>
            </div>
            {/* Footer */}

@@ -44,7 +44,7 @@ export default function TrendChart() {
       </div>
 
       <div className="mt-2 p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-[10px] text-emerald-800 font-semibold leading-relaxed">
-        💡 Proyeksi IKP Kota Cilegon menunjukkan arah **tren positif (Sangat Tahan Pangan)**, melampaui rata-rata provinsi sejak 2021.
+        💡 Proyeksi IKP Kota Cilegon menunjukkan arah <strong>tren positif (Sangat Tahan Pangan)</strong>, melampaui rata-rata provinsi sejak 2021.
       </div>
     </div>
   );

@@ -183,7 +183,7 @@ export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false }
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-650 leading-relaxed font-semibold">
-                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi {isBulanan ? 'bulanan' : 'tahunan'} harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, yang dikategorikan sebagai **{statusText}**. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
+                 Berdasarkan pemantauan real-time <strong>SAGON</strong>, koefisien variasi {isBulanan ? 'bulanan' : 'tahunan'} harga beras di Kota Cilegon berada pada tingkat <strong>{value.toFixed(2)}%</strong>, yang dikategorikan sebagai <strong>{statusText}</strong>. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
               </p>
            </div>
            {/* Footer */}

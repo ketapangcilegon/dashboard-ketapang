@@ -184,7 +184,7 @@ export default function KetersediaanProteinGauge({ value = 85, year = 2025 }: Ke
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Ketersediaan protein pangan di wilayah Kota Cilegon mencapai **{value.toFixed(1)} gram/kapita/hari**, surplus sebesar **+{(value - 63).toFixed(1)} gram** di atas standar kecukupan nasional 63 gram. Angka ini menjamin ketersediaan stok protein hewani dan nabati yang sangat aman bagi stabilitas pangan dan gizi daerah.
+                 Ketersediaan protein pangan di wilayah Kota Cilegon mencapai <strong>{value.toFixed(1)} gram/kapita/hari</strong>, surplus sebesar <strong>+{(value - 63).toFixed(1)} gram</strong> di atas standar kecukupan nasional 63 gram. Angka ini menjamin ketersediaan stok protein hewani dan nabati yang sangat aman bagi stabilitas pangan dan gizi daerah.
               </p>
            </div>
            {/* Footer */}

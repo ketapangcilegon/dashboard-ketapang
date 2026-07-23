@@ -180,7 +180,7 @@ export default function ProteinGauge({ value = 63.4, year = 2025 }: ProteinGauge
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Tingkat konsumsi protein per kapita per hari di Kota Cilegon saat ini adalah **{value.toFixed(1)} gram**, melampaui standar kecukupan nasional sebesar **57 gram**. Pemenuhan zat gizi makro protein ini merupakan pilar utama dalam pencegahan prevalensi stunting dan gizi buruk di seluruh kelurahan lokus prioritas Cilegon.
+                 Tingkat konsumsi protein per kapita per hari di Kota Cilegon saat ini adalah <strong>{value.toFixed(1)} gram</strong>, melampaui standar kecukupan nasional sebesar <strong>57 gram</strong>. Pemenuhan zat gizi makro protein ini merupakan pilar utama dalam pencegahan prevalensi stunting dan gizi buruk di seluruh kelurahan lokus prioritas Cilegon.
               </p>
            </div>
            {/* Footer */}

@@ -180,7 +180,7 @@ export default function PPHGauge({ value = 88.1, year = 2025 }: PPHGaugeProps) {
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Pencapaian Skor Pola Pangan Harapan (PPH) Kota Cilegon berada pada angka **{value.toFixed(1)}**, melampaui target nasional sebesar **90 poin**. Hal ini mengindikasikan diversifikasi konsumsi pangan masyarakat yang sangat baik, dengan keseimbangan gizi karbohidrat, protein hewani, serta sayuran yang memadai untuk mendukung hidup sehat dan produktif secara makro.
+                 Pencapaian Skor Pola Pangan Harapan (PPH) Kota Cilegon berada pada angka <strong>{value.toFixed(1)}</strong>, melampaui target nasional sebesar <strong>90 poin</strong>. Hal ini mengindikasikan diversifikasi konsumsi pangan masyarakat yang sangat baik, dengan keseimbangan gizi karbohidrat, protein hewani, serta sayuran yang memadai untuk mendukung hidup sehat dan produktif secara makro.
               </p>
            </div>
            {/* Footer */}

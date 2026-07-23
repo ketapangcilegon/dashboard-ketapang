@@ -184,7 +184,7 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Angka konsumsi energi rata-rata harian masyarakat Cilegon saat ini tercatat sebesar **{Math.round(value).toLocaleString('id-ID')} kkal/kapita/hari**, sedikit di bawah target nasional sebesar **2100 kkal**. Meskipun surplus di sektor protein, akselerasi edukasi diversifikasi pangan karbohidrat non-beras perlu terus digalakkan untuk mencapai pemenuhan energi yang optimal di wilayah perkotaan.
+                 Angka konsumsi energi rata-rata harian masyarakat Cilegon saat ini tercatat sebesar <strong>{Math.round(value).toLocaleString('id-ID')} kkal/kapita/hari</strong>, sedikit di bawah target nasional sebesar <strong>2100 kkal</strong>. Meskipun surplus di sektor protein, akselerasi edukasi diversifikasi pangan karbohidrat non-beras perlu terus digalakkan untuk mencapai pemenuhan energi yang optimal di wilayah perkotaan.
               </p>
            </div>
            {/* Footer */}

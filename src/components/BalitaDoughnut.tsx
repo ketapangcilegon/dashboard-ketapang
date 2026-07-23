@@ -109,7 +109,7 @@ export default function BalitaDoughnut({ balitaData }: BalitaDoughnutProps) {
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Berdasarkan data penimbangan Balita BB/U terbaru di Kota Cilegon, status ketahanan gizi dikategorikan **{statusLabel}**. Dari total **{totalVal.toLocaleString('id-ID')}** balita yang diukur, mayoritas berada pada status gizi Normal (**{((balitaData.normal/totalVal)*100).toFixed(1)}%**), gizi Kurang (**{((balitaData.kurang/totalVal)*100).toFixed(1)}%**), dan gizi Buruk/Sangat Kurang (**{((balitaData.sangatKurang/totalVal)*100).toFixed(1)}%**). Intervensi PMT pangan lokal terbukti efektif mempertahankan status gizi balita perkotaan.
+                 Berdasarkan data penimbangan Balita BB/U terbaru di Kota Cilegon, status ketahanan gizi dikategorikan <strong>{statusLabel}</strong>. Dari total <strong>{totalVal.toLocaleString('id-ID')}</strong> balita yang diukur, mayoritas berada pada status gizi Normal (<strong>{((balitaData.normal/totalVal)*100).toFixed(1)}%</strong>), gizi Kurang (<strong>{((balitaData.kurang/totalVal)*100).toFixed(1)}%</strong>), dan gizi Buruk/Sangat Kurang (<strong>{((balitaData.sangatKurang/totalVal)*100).toFixed(1)}%</strong>). Intervensi PMT pangan lokal terbukti efektif mempertahankan status gizi balita perkotaan.
               </p>
            </div>
            {/* Footer */}

@@ -110,7 +110,7 @@ export default function ProduksiLokalChart({ produksiBerasData = [], selectedYea
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Berdasarkan data kompilasi dinas, total produksi beras lokal Kota Cilegon pada tahun **{selectedYear}** tercatat mencapai **{displayValue.toLocaleString('id-ID')} ton**. Peningkatan kapasitas giling padi (GKG ke Beras) serta pengamanan lahan sawah lestari di beberapa kelurahan sentra produksi pangan secara konsisten memperkuat ketahanan pangan wilayah dari fluktuasi pasokan luar daerah.
+                 Berdasarkan data kompilasi dinas, total produksi beras lokal Kota Cilegon pada tahun <strong>{selectedYear}</strong> tercatat mencapai <strong>{displayValue.toLocaleString('id-ID')} ton</strong>. Peningkatan kapasitas giling padi (GKG ke Beras) serta pengamanan lahan sawah lestari di beberapa kelurahan sentra produksi pangan secara konsisten memperkuat ketahanan pangan wilayah dari fluktuasi pasokan luar daerah.
               </p>
            </div>
            {/* Footer */}

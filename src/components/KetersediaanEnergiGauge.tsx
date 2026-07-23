@@ -187,7 +187,7 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Penyediaan pasokan energi pangan di wilayah Kota Cilegon mencapai **{Math.round(value).toLocaleString('id-ID')} kkal/kapita/hari**, surplus sebesar **+{(value - 2400).toFixed(0)} kkal** di atas standar kebutuhan nasional 2400 kkal. Surplus energi pangan yang melimpah ini memberikan penyangga ketahanan pangan (*food buffer*) yang sangat aman dan tangguh bagi kestabilan logistik masyarakat daerah.
+                 Penyediaan pasokan energi pangan di wilayah Kota Cilegon mencapai <strong>{Math.round(value).toLocaleString('id-ID')} kkal/kapita/hari</strong>, surplus sebesar <strong>+{(value - 2400).toFixed(0)} kkal</strong> di atas standar kebutuhan nasional 2400 kkal. Surplus energi pangan yang melimpah ini memberikan penyangga ketahanan pangan (*food buffer*) yang sangat aman dan tangguh bagi kestabilan logistik masyarakat daerah.
               </p>
            </div>
            {/* Footer */}
