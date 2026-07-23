@@ -19,12 +19,39 @@ const COMMODITY_MAP: Record<string, string> = {
   harga_minyak_goreng: 'Minyak Goreng'
 };
 
+const getIndonesianMonthName = (monthIndex: number): string => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  return months[monthIndex];
+};
+
+const getBaselineMonthStr = (): string => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
+const getT1MonthStr = (): string => {
+  const d = new Date();
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
+const getT3MonthStr = (): string => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 2);
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
 interface ForecastViewProps {
   onBack: () => void;
+  livePrices?: Record<string, number> | null;
 }
 
-export default function ForecastView({ onBack }: ForecastViewProps) {
+export default function ForecastView({ onBack, livePrices }: ForecastViewProps) {
   const [selectedCommodity, setSelectedCommodity] = useState<string>('harga_beras');
+
   const [forecasts, setForecasts] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -126,6 +153,7 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
   };
 
   const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
+    if (statusForecast === 'Turun') return 'Aman';
     if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
     if (statusCV === 'WASPADA' || statusSKPG === 'WASPADA' || statusForecast === 'Naik') return 'Waspada';
     return 'Aman';
@@ -232,7 +260,8 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
 
   const tableRows = Object.keys(COMMODITY_MAP).map(comm => {
     const f = forecasts.find(item => item.komoditas === comm);
-    const hargaKini = f?.harga_aktual || 0;
+    const dbHargaKini = f?.harga_aktual || 0;
+    const hargaKini = dbHargaKini;
     const forecast1m = f?.forecast_1m || 0;
     const forecast3m = f?.forecast_3m || 0;
     
@@ -338,11 +367,20 @@ export default function ForecastView({ onBack }: ForecastViewProps) {
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-slate-600 font-extrabold uppercase tracking-wider text-[10px]">
+                  <tr className="text-slate-600 font-extrabold uppercase tracking-wider text-[9px] sm:text-[10px]">
                     <th className="p-3">Komoditas</th>
-                    <th className="p-3 text-right">Harga Kini</th>
-                    <th className="p-3 text-right">1 Bulan</th>
-                    <th className="p-3 text-right">3 Bulan</th>
+                    <th className="p-3 text-right">
+                      <div className="leading-tight">Harga Rata-Rata</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                    </th>
+                    <th className="p-3 text-right">
+                      <div className="leading-tight">+1 Bulan</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
+                    </th>
+                    <th className="p-3 text-right">
+                      <div className="leading-tight">+3 Bulan</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
+                    </th>
                     <th className="p-3 text-center">Forecast</th>
                     <th className="p-3 text-center">CV</th>
                     <th className="p-3 text-center">SKPG</th>

@@ -1767,7 +1767,7 @@ export default function DashboardPage() {
               )}
 
               {currentView === 'forecasting' && (
-                <ForecastView onBack={() => setCurrentView('beranda')} />
+                <ForecastView onBack={() => setCurrentView('beranda')} livePrices={livePrices} />
               )}
 
               {currentView === 'validasi_forecast' && (
@@ -1987,10 +1987,7 @@ export default function DashboardPage() {
           )}
 
           {/* Footer with copyright and visit counter */}
-          <footer className="mt-12 pt-6 pb-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden text-slate-500 text-xs shrink-0">
-            <span className="font-semibold text-slate-400">
-              @2026 RidwanS. All rights reserved.
-            </span>
+          <footer className="mt-12 pt-6 pb-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden text-slate-500 text-xs shrink-0 justify-end">
             <VisitCounter path="/" />
           </footer>
         </main>

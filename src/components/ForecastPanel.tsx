@@ -31,6 +31,31 @@ const getIcon = (id: string) => {
   return '📦';
 };
 
+const getIndonesianMonthName = (monthIndex: number): string => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  return months[monthIndex];
+};
+
+const getBaselineMonthStr = (): string => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
+const getT1MonthStr = (): string => {
+  const d = new Date();
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
+const getT3MonthStr = (): string => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 2);
+  return `${getIndonesianMonthName(d.getMonth()).toUpperCase()} ${d.getFullYear()}`;
+};
+
 interface ForecastItem {
   id: string;
   name: string;
@@ -137,6 +162,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
   };
 
   const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
+    if (statusForecast === 'Turun') return 'Aman';
     if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
     if (statusCV === 'WASPADA' || statusSKPG === 'WASPADA' || statusForecast === 'Naik') return 'Waspada';
     return 'Aman';
@@ -234,6 +260,9 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                     <Lightbulb className="w-3.5 h-3.5 fill-amber-100 text-amber-500" />
                   </button>
                 </h4>
+                <div className="text-[10px] font-extrabold text-[#0B4D3C] tracking-wider mt-0.5">
+                  HARGA RATA-RATA BULANAN
+                </div>
                 {showForecastInfo && (
                   <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2 rounded-lg font-medium mt-1 leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-sm">
                     Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning terintegrasi.
@@ -268,11 +297,20 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
               <table className="w-full text-left border-collapse text-xs">
                 <thead className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 shadow-sm">
                   <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
-                    <th className="p-2 py-3 bg-emerald-50/30">Komoditas</th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">Harga Kini</th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">+1 Bulan</th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">+3 Bulan</th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-center">Tren</th>
+                    <th className="p-2 py-3 bg-emerald-50/30 align-middle">Komoditas</th>
+                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
+                      <div className="leading-tight">HARGA RATA-RATA</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                    </th>
+                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
+                      <div className="leading-tight">+1 BULAN</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
+                    </th>
+                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
+                      <div className="leading-tight">+3 BULAN</div>
+                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
+                    </th>
+                    <th className="p-2 py-3 bg-emerald-50/30 text-center align-middle">Tren</th>
                   </tr>
                 </thead>
                 <tbody className="font-medium">
@@ -282,7 +320,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                         <span className="text-xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
                         {item.name}
                       </td>
-                      <td className="p-2 text-right text-slate-500 font-semibold text-[11px]">
+                      <td className="p-2 text-right text-slate-800 font-extrabold text-[11px]">
                         Rp{item.current.toLocaleString('id-ID')}
                       </td>
                       <td className={`p-2 text-right font-bold text-[11px] ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
