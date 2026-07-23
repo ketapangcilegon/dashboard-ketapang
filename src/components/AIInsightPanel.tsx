@@ -146,7 +146,7 @@ export default function AIInsightPanel({
     const formattedHtml = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <title>AI Insight Ketahanan Pangan Kota Cilegon Tahun ${year}</title>
+        <title>AI Insight Ketahanan Pangan Kota Cilegon Tahun ${year}-${year + 1}</title>
         <style>
           body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b; }
           h2 { font-size: 16pt; color: #0b1e41; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-top: 20px; }
@@ -158,7 +158,7 @@ export default function AIInsightPanel({
         </style>
       </head>
       <body>
-        <h2>AI INSIGHT KETAHANAN PANGAN KOTA CILEGON TAHUN ${year}</h2>
+        <h2>AI INSIGHT KETAHANAN PANGAN KOTA CILEGON TAHUN ${year}-${year + 1}</h2>
         <p style="font-size: 9pt; color: #64748b; margin-top: -10px; margin-bottom: 20px;">
           Dibuat secara otomatis oleh AI GovTech pada ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
@@ -265,7 +265,7 @@ export default function AIInsightPanel({
             <Sparkles className="w-4 h-4 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-extrabold text-slate-800 text-sm leading-none uppercase tracking-wide">AI Insight Ketahanan Pangan Kota Cilegon Tahun {year}</h3>
+            <h3 className="font-extrabold text-slate-800 text-sm leading-none uppercase tracking-wide">AI Insight Ketahanan Pangan Kota Cilegon Tahun {year}-{year + 1}</h3>
             <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
               Kota Cilegon &bull; Model {isFallback ? 'Heuristic Analysis' : 'Gemini Active'}
             </p>

@@ -268,6 +268,7 @@ export default function DashboardPage() {
 
   // New Data States for the annual indicators
   const [cvBerasList, setCvBerasList] = useState<any[]>([]);
+  const [cvBerasBulananList, setCvBerasBulananList] = useState<any[]>([]);
   const [pphList, setPphList] = useState<any[]>([]);
   const [konsumsiEnergiList, setKonsumsiEnergiList] = useState<any[]>([]);
   const [konsumsiProteinList, setKonsumsiProteinList] = useState<any[]>([]);
@@ -723,6 +724,16 @@ export default function DashboardPage() {
           }
         })();
 
+        const cvBerasBulananPromise = (async () => {
+          try {
+            const { data } = await supabase.from('cv_beras_bulanan').select('*').order('tahun', { ascending: true }).order('bulan', { ascending: true });
+            return data || [];
+          } catch (e) {
+            console.warn('cv_beras_bulanan failed:', e);
+            return [];
+          }
+        })();
+
         const pphPromise = (async () => {
           try {
             const { data } = await supabase.from('pph_data').select('*').order('tahun', { ascending: true });
@@ -825,7 +836,8 @@ export default function DashboardPage() {
           ketersediaanProteinResult,
           produksiBerasResult,
           benchmarkResult,
-          balitaLatestResult
+          balitaLatestResult,
+          cvBerasBulananResult
         ] = await Promise.all([
           sagonPromise,
           ketersediaanPromise,
@@ -843,7 +855,8 @@ export default function DashboardPage() {
           ketersediaanProteinPromise,
           produksiBerasPromise,
           benchmarkPromise,
-          balitaLatestPromise
+          balitaLatestPromise,
+          cvBerasBulananPromise
         ]);
 
         // Process sagon price formatting
@@ -897,6 +910,7 @@ export default function DashboardPage() {
         setPouData(pouResult);
         setIkpData(ikpResult);
         setCvBerasList(cvBerasResult);
+        setCvBerasBulananList(cvBerasBulananResult || []);
         setPphList(pphResult);
         setKonsumsiEnergiList(konsumsiEnergiResult);
         setKonsumsiProteinList(konsumsiProteinResult);
@@ -932,6 +946,12 @@ export default function DashboardPage() {
     if (!entry) entry = cvBerasList.find(x => x.tahun === 2025);
     if (entry) return parseFloat(entry.cilegon);
     return 3.65;
+  };
+
+  const getCVBulananValue = () => {
+    let entry = cvBerasBulananList.find(x => x.tahun === 2026 && x.bulan === 6);
+    if (entry) return parseFloat(entry.cilegon);
+    return 2.08;
   };
 
   const getPPHValue = () => {
@@ -1193,7 +1213,10 @@ export default function DashboardPage() {
                         }}
                       >
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <CVGauge value={getCVValue()} year={cvLatestYear} />
+                          <CVGauge value={getCVBulananValue()} year="Juni 2026" isBulanan={true} />
+                        </div>
+                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                          <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
                         </div>
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
                           <PPHGauge value={getPPHValue()} year={pphLatestYear} />
@@ -1209,15 +1232,6 @@ export default function DashboardPage() {
                         </div>
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
                           <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <KerawananPanel 
-                            intervensiData={intervensiData} 
-                            selectedKecamatan={selectedKecamatan} 
-                            fsvaMatangData={fsvaMatangData}
-                            skpgMatangData={skpgMatangData}
-                            year={intervensiLatestYear}
-                          />
                         </div>
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
                           <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
@@ -1250,43 +1264,37 @@ export default function DashboardPage() {
                     >
                       {/* Card 1 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <CVGauge value={getCVValue()} year={cvLatestYear} />
+                        <CVGauge value={getCVBulananValue()} year="Juni 2026" isBulanan={true} />
                       </div>
                       
                       {/* Card 2 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <PPHGauge value={getPPHValue()} year={pphLatestYear} />
+                        <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
                       </div>
                       
                       {/* Card 3 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
+                        <PPHGauge value={getPPHValue()} year={pphLatestYear} />
                       </div>
                       
                       {/* Card 4 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
+                        <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
                       </div>
                       
                       {/* Card 5 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
+                        <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
                       </div>
                       
                       {/* Card 6 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
+                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
                       </div>
                       
                       {/* Card 7 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <KerawananPanel 
-                          intervensiData={intervensiData} 
-                          selectedKecamatan={selectedKecamatan} 
-                          fsvaMatangData={fsvaMatangData}
-                          skpgMatangData={skpgMatangData}
-                          year={intervensiLatestYear}
-                        />
+                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
                       </div>
                       
                       {/* Card 8 */}
@@ -1616,7 +1624,7 @@ export default function DashboardPage() {
                       <div className="lg:col-span-5 flex flex-col gap-6">
                         <div className="dashboard-card flex items-center justify-center min-h-[220px]">
                           <div className="w-full max-w-[280px]">
-                            <CVGauge value={cvVal} />
+                            <CVGauge value={cvVal} isBulanan={false} />
                           </div>
                         </div>
                         

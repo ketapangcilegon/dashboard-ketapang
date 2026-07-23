@@ -5,10 +5,11 @@ import { Sparkles, Brain } from 'lucide-react';
 
 interface CVGaugeProps {
   value: number;
-  year?: number;
+  year?: number | string;
+  isBulanan?: boolean;
 }
 
-export default function CVGauge({ value = 3.65, year = 2025 }: CVGaugeProps) {
+export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false }: CVGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -104,7 +105,9 @@ export default function CVGauge({ value = 3.65, year = 2025 }: CVGaugeProps) {
 
       {/* Header */}
       <div className="w-full text-left h-[54px] flex flex-col justify-start">
-        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">CV Koefisien Variasi</h4>
+        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">
+          {isBulanan ? 'CV Koefisien Variasi Bulanan' : 'CV Koefisien Variasi Tahunan'}
+        </h4>
         <span className="text-[10px] font-black text-white/90 leading-none mt-0.5">{year}</span>
         <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">Harga Beras</h3>
       </div>
@@ -179,8 +182,8 @@ export default function CVGauge({ value = 3.65, year = 2025 }: CVGaugeProps) {
            </div>
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
-              <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">
-                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, yang dikategorikan sebagai **{statusText}**. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
+              <p className="text-[10px] text-slate-650 leading-relaxed font-semibold">
+                 Berdasarkan pemantauan real-time **SAGON**, koefisien variasi {isBulanan ? 'bulanan' : 'tahunan'} harga beras di Kota Cilegon berada pada tingkat **{value.toFixed(2)}%**, yang dikategorikan sebagai **{statusText}**. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
               </p>
            </div>
            {/* Footer */}
