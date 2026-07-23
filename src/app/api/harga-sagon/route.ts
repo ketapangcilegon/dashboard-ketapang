@@ -71,7 +71,7 @@ async function scrapeMarket(idPasar: string, tanggal: string): Promise<Record<st
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       body,
-      signal: AbortSignal.timeout(2000), // 2 seconds timeout to prevent long page hangs when SAGON is down
+      signal: AbortSignal.timeout(5000), // 5 seconds timeout to prevent long page hangs when SAGON is down
       next: { revalidate: 3600 } // Cache for 1 hour
     });
     

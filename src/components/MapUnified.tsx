@@ -72,6 +72,12 @@ function MapController({
   const [expandLegend, setExpandLegend] = useState(false);
   const [expandPrioritas, setExpandPrioritas] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setExpandLegend(true);
+    }
+  }, []);
+
   // Drag-to-scroll state for Prioritas Lokus list on desktop
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isScrollDragging, setIsScrollDragging] = useState(false);
