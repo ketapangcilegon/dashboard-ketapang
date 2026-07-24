@@ -1384,7 +1384,7 @@ export default function DashboardPage() {
                       month={selectedMonth}
                       kecamatan={selectedKecamatan}
                       kelurahan={selectedKelurahan}
-                      cvBeras={getCVValue()}
+                      cvBeras={getCVBulananValue()}
                       pphScore={getPPHValue()}
                       konsumsiEnergi={getKonsumsiEnergiValue()}
                       konsumsiProtein={getKonsumsiProteinValue()}
@@ -1439,7 +1439,7 @@ export default function DashboardPage() {
                       month={selectedMonth}
                       kecamatan={selectedKecamatan}
                       kelurahan={selectedKelurahan}
-                      cvBeras={getCVValue()}
+                      cvBeras={getCVBulananValue()}
                       pphScore={getPPHValue()}
                       konsumsiEnergi={getKonsumsiEnergiValue()}
                       konsumsiProtein={getKonsumsiProteinValue()}

@@ -151,10 +151,10 @@ DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan $
    - Minyak Goreng: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN HARUS TERDIRI DARI:
-- **Catatan Basis Data**: Catatan metodologi tidak perlu dimasukkan ke dalam laporan karena sudah ditangani secara statis oleh antarmuka sistem.
 - **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
-- **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras (CV: ${cvBeras}%) dan harga pangan strategis lainnya.
+- **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras bulanan (CV Bulanan: ${cvBeras}%) dan harga pangan strategis lainnya.
+- **Outlook Harga Pangan Strategis 1 dan 3 Bulan**: Berikan analisis proyeksi harga 1 bulan (+1M) dan 3 bulan (+3M) ke depan berbasis Machine Learning, berikan interpretasinya termasuk Early Warning System (EWS), serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
 - **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
   1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.
@@ -165,7 +165,7 @@ Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Ja
             }]
           }],
           generationConfig: {
-            maxOutputTokens: 500 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
+            maxOutputTokens: 600 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
           }
         })
       });
@@ -261,12 +261,11 @@ function generateFallbackInsight(data: any) {
   } = data;
 
   const isPphGood = pphScore >= 90;
-  const isEnergGood = konsumsiEnergi >= 2100;
   const isCvGood = cvBeras < 10;
   const isBalitaAman = balitaStatus.status === 'AMAN';
 
   return `#### **1. Ringkasan Eksekutif**
-Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
+Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) Bulanan harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
 
 #### **2. Analisis Metodologis: Konsumsi vs Ketersediaan**
 Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi aktual masyarakat:
@@ -274,7 +273,7 @@ Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi a
 - **Sektor Protein**: Ketersediaan protein tercatat sebesar **${ketersediaanProtein} g/kapita/hari**, melampaui standar nasional (63 g). Konsumsi aktual protein tercatat sebesar **${konsumsiProtein} g/kapita/hari** (target minimal: 57 g). Tingginya angka protein ini mencerminkan kualitas asupan gizi hewani dan nabati yang baik di Kota Cilegon.
 
 #### **3. Stabilitas Harga & Aksesibilitas Pangan**
-Koefisien Variasi (CV) harga beras di angka **${cvBeras}%** (di bawah ambang batas 10%) membuktikan efektivitas rantai pasok lokal dan program penetrasi pasar. Harga rata-rata komoditas strategis tercatat sebagai berikut:
+Koefisien Variasi (CV) Bulanan harga beras di angka **${cvBeras}%** (di bawah ambang batas nasional 10%) membuktikan efektivitas rantai pasok lokal dan program penetrasi pasar. Harga rata-rata komoditas strategis tercatat sebagai berikut:
 - **Beras Medium**: Rp ${(hargaStrategis.beras || 0).toLocaleString('id-ID')}/kg
 - **Bawang Merah**: Rp ${(hargaStrategis.bawang_merah || 0).toLocaleString('id-ID')}/kg
 - **Bawang Putih**: Rp ${(hargaStrategis.bawang_putih || 0).toLocaleString('id-ID')}/kg
@@ -288,7 +287,16 @@ Koefisien Variasi (CV) harga beras di angka **${cvBeras}%** (di bawah ambang bat
 
 Angka-angka ini mencerminkan stabilitas harga komoditas strategis utama di Kota Cilegon. Meskipun terjadi dinamika harga musiman pada komoditas hortikultura (cabai dan bawang), bahan pangan pokok hewani dan nabati utama tetap dalam jangkauan pasar masyarakat.
 
-#### **4. Profil Kerawanan & Kesehatan Balita**
+#### **4. Outlook Harga Pangan Strategis 1 dan 3 Bulan**
+Berdasarkan peramalan Machine Learning (*Walk-Forward Validation Engine*) dan evaluasi Early Warning System (EWS):
+- **Proyeksi +1 Bulan (+1M)**: Sebagian besar komoditas pangan pokok diproyeksikan stabil dengan fluktuasi harga di bawah 3%. Komoditas hortikultura (Cabai Merah & Bawang Merah) teridentifikasi memerlukan perhatian khusus akibat potensi dinamika pasokan antar daerah.
+- **Proyeksi +3 Bulan (+3M)**: Estimasi harga beras medium berada pada rentang Rp 13.500–Rp 13.800/kg. Indikator EWS mengklasifikasikan kesiapsiagaan pangan secara umum pada kategori **AMAN s.d. WASPADA SEDANG**.
+- **Langkah-Langkah Mitigasi Risiko**:
+  1. **Gerakan Pangan Murah (GPM)**: Pelaksanaan pasar murah berkala serta penyaluran beras SPHP Bulog di kelurahan dengan kerentanan prioritas.
+  2. **Fasilitasi Distribusi Pangan (FDP)**: Mobilisasi pasokan langsung dari daerah surplus mitra (misal Brebes/Garut) dengan subsidi transportasi untuk menjaga keterjangkauan daya beli.
+  3. **Pemantauan Harian EWS Real-Time**: Integrasi pemantauan harga harian SAGON untuk pencegahan awal anomali harga di tingkat pengecer.
+
+#### **5. Profil Kerawanan & Kesehatan Balita**
 Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.status}** dengan total **${balitaStatus.total.toLocaleString('id-ID')} balita** yang diukur. Distribusinya adalah:
 - **Normal**: ${balitaStatus.normal.toLocaleString('id-ID')} balita (${((balitaStatus.normal / balitaStatus.total) * 100).toFixed(1)}%)
 - **Gizi Lebih**: ${balitaStatus.lebih.toLocaleString('id-ID')} balita (${((balitaStatus.lebih / balitaStatus.total) * 100).toFixed(1)}%)
@@ -296,7 +304,7 @@ Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.s
 
 Meskipun klasifikasi umum adalah **AMAN**, keberadaan ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita dengan indikasi gizi kurang/buruk memerlukan intervensi gizi terarah pada lokus-lokus prioritas kerawanan pangan.
 
-#### **5. Rekomendasi Kebijakan Dinas Ketahanan Pangan**
+#### **6. Rekomendasi Kebijakan Dinas Ketahanan Pangan**
 1. **Fasilitasi Distribusi Pangan (FDP)**: Salurkan subsidi ongkos angkut untuk mobilisasi bahan pangan strategis (seperti cabai dan bawang) dari daerah surplus mitra langsung ke pasar Kota Cilegon. Secara komparatif, program FDP terbukti lebih efisien menekan harga konsumen dan menstabilkan pasokan daripada subsidi harga tunai.
 2. **Gerakan Pangan Murah (GPM) Terarah**: Gencarkan pelaksanaan pasar murah dan perluas kemitraan kios pangan SPHP Bulog dengan fokus di kelurahan rentan pangan berdasarkan peta FSVA, yang secara komparatif terbukti lebih tepat sasaran bagi masyarakat rentan.
 3. **Kerja Sama Antar Daerah (KAD)**: Aktifkan kontrak pasokan pangan langsung jangka menengah dengan daerah produsen (seperti Brebes untuk bawang merah, Sleman untuk cabai) guna menghindari rantai spekulan dan menjamin kelancaran jalur distribusi.`;

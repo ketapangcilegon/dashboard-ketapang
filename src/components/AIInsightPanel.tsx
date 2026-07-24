@@ -225,13 +225,13 @@ export default function AIInsightPanel({
       // Header 4: #### **title**
       if (line.startsWith('#### ')) {
         const content = line.substring(5).replace(/\*\*/g, '');
-        return <h4 key={idx} className={`${isFullScreen ? 'text-xs' : 'text-[11px]'} font-extrabold text-blue-700 mt-3 mb-1`}>{content}</h4>;
+        return <h4 key={idx} className={`${isFullScreen ? 'text-xs' : 'text-xs'} font-extrabold text-blue-700 mt-3 mb-1`}>{content}</h4>;
       }
       // Bullet item: - **bold**: text
       if (line.trim().startsWith('- ')) {
         const content = line.trim().substring(2);
         return (
-          <li key={idx} className={`${isFullScreen ? 'text-xs mb-2' : 'text-[11px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-4 list-disc pl-1`}>
+          <li key={idx} className={`${isFullScreen ? 'text-[12px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-4 list-disc pl-1`}>
             {parseBoldText(content)}
           </li>
         );
@@ -241,7 +241,7 @@ export default function AIInsightPanel({
       if (numMatch) {
         const content = numMatch[2];
         return (
-          <div key={idx} className={`${isFullScreen ? 'text-xs mb-2' : 'text-[11px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
+          <div key={idx} className={`${isFullScreen ? 'text-[12px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
             <span className="font-extrabold text-blue-600 shrink-0">{numMatch[1]}.</span>
             <span>{parseBoldText(content)}</span>
           </div>
@@ -249,7 +249,7 @@ export default function AIInsightPanel({
       }
       // Standard paragraph
       if (line.trim() === '') return <div key={idx} className={isFullScreen ? 'h-2' : 'h-1.5'} />;
-      return <p key={idx} className={`${isFullScreen ? 'text-[13px] mb-3' : 'text-[11px] mb-2'} text-slate-600 font-semibold leading-relaxed`}>{parseBoldText(line)}</p>;
+      return <p key={idx} className={`${isFullScreen ? 'text-[13px] mb-3' : 'text-[12px] mb-2'} text-slate-600 font-semibold leading-relaxed`}>{parseBoldText(line)}</p>;
     });
   };
 
