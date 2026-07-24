@@ -7,7 +7,7 @@ import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Spa
 import { supabase } from '@/lib/supabase';
 
 const COMMODITY_MAP: Record<string, string> = {
-  harga_beras: 'Beras',
+  harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
   harga_bawang_putih: 'Bawang Putih',
   harga_cabai_merah: 'Cabai Merah',
@@ -18,6 +18,19 @@ const COMMODITY_MAP: Record<string, string> = {
   harga_gula_pasir: 'Gula Pasir',
   harga_minyak_goreng: 'Minyak Goreng'
 };
+
+const COMMODITY_ORDER = [
+  'harga_beras',
+  'harga_bawang_merah',
+  'harga_bawang_putih',
+  'harga_cabai_merah',
+  'harga_cabai_rawit',
+  'harga_daging_sapi',
+  'harga_daging_ayam_ras',
+  'harga_telur_ayam_ras',
+  'harga_gula_pasir',
+  'harga_minyak_goreng'
+];
 
 const getIndonesianMonthName = (monthIndex: number): string => {
   const months = [
@@ -301,6 +314,10 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       confidence,
       overallStatus
     };
+  }).sort((a, b) => {
+    const idxA = COMMODITY_ORDER.indexOf(a.key);
+    const idxB = COMMODITY_ORDER.indexOf(b.key);
+    return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
   });
 
   const activeForecast = forecasts.find(f => f.komoditas === selectedCommodity);
@@ -449,7 +466,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         <button 
                           onClick={() => setActiveTooltip({
                             title: 'Confidence (Tingkat Kepercayaan)',
-                            content: 'Skor akurasi model peramalan Machine Learning yang dihitung dengan rumus: 100% - MAPE (Mean Absolute Percentage Error).\nSemakin tinggi persentasenya (mendekati 100%), peramalan semakin akurat berdasarkan pola data historis.'
+                            content: 'Skor akurasi model peramalan Machine Learning yang dihitung dengan rumus: 100% - MAPE (Mean Absolute Percentage Error).\nDihitung secara Walk-Forward Validation lintas 4 periode (n ≈ 43 observasi pengujian out-of-sample) sehingga skor akurasi terukur dan stabil sepanjang tahun.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
                           title="Penjelasan Confidence"

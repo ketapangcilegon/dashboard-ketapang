@@ -7,9 +7,10 @@ interface CVGaugeProps {
   value: number;
   year?: number | string;
   isBulanan?: boolean;
+  commodity?: string;
 }
 
-export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false }: CVGaugeProps) {
+export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false, commodity = 'Harga Beras Medium' }: CVGaugeProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -109,7 +110,7 @@ export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false }
           {isBulanan ? 'CV Koefisien Variasi Bulanan' : 'CV Koefisien Variasi Tahunan'}
         </h4>
         <span className="text-[10px] font-black text-white/90 leading-none mt-0.5">{year}</span>
-        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">Harga Beras</h3>
+        <h3 className="text-xs font-bold text-white mt-0.5 leading-tight">{commodity}</h3>
       </div>
       
       {/* Gauge Visual Area */}
@@ -183,7 +184,7 @@ export default function CVGauge({ value = 3.65, year = 2025, isBulanan = false }
            {/* Body */}
            <div className="flex-1 py-2 overflow-y-auto custom-scrollbar select-text">
               <p className="text-[10px] text-slate-650 leading-relaxed font-semibold">
-                 Berdasarkan pemantauan real-time <strong>SAGON</strong>, koefisien variasi {isBulanan ? 'bulanan' : 'tahunan'} harga beras di Kota Cilegon berada pada tingkat <strong>{value.toFixed(2)}%</strong>, yang dikategorikan sebagai <strong>{statusText}</strong>. Rentang ini menunjukkan bahwa kestabilan harga beras lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
+                 Berdasarkan pemantauan real-time <strong>SAGON</strong>, koefisien variasi {isBulanan ? 'bulanan' : 'tahunan'} {commodity.toLowerCase()} di Kota Cilegon berada pada tingkat <strong>{value.toFixed(2)}%</strong>, yang dikategorikan sebagai <strong>{statusText}</strong>. Rentang ini menunjukkan bahwa kestabilan {commodity.toLowerCase()} lokal berada pada tingkat aman, meminimalkan gejolak pasar dan menjaga keterjangkauan daya beli masyarakat secara luas dan merata.
               </p>
            </div>
            {/* Footer */}

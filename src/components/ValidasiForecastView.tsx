@@ -6,14 +6,14 @@ import { supabase } from '@/lib/supabase';
 
 // Map commodity raw name to display name
 const COMMODITY_MAP: Record<string, string> = {
-  harga_beras: 'Beras',
+  harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
   harga_bawang_putih: 'Bawang Putih',
   harga_cabai_merah: 'Cabai Merah',
   harga_cabai_rawit: 'Cabai Rawit',
   harga_daging_sapi: 'Daging Sapi',
   harga_daging_ayam_ras: 'Daging Ayam',
-  harga_telur_ayam_ras: 'Telur Ayam',
+  harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
   harga_minyak_goreng: 'Minyak Goreng'
 };

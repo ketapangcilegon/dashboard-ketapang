@@ -238,8 +238,8 @@ export default function HargaPanel({
           <thead>
             <tr className="border-b border-[#0B7A53]/10 text-[8px] sm:text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider sticky top-0 bg-[#E6FDF4] z-10">
               <th className="pb-1.5 font-bold w-[35%]">Komoditas</th>
-              <th className="pb-1.5 font-bold text-right w-[25%]">Harga Rata-Rata</th>
-              <th className="pb-1.5 font-bold text-right w-[22%]">Perubahan (YoY)</th>
+              <th className="pb-1.5 font-bold text-center w-[25%]">Harga Rata-Rata</th>
+              <th className="pb-1.5 font-bold text-center w-[22%]">Perubahan (YoY)</th>
               <th className="pb-1.5 font-bold text-right w-[18%] pr-1">Status</th>
             </tr>
           </thead>

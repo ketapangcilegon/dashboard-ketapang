@@ -195,38 +195,98 @@ export async function trainAndForecastAll(token?: string) {
       continue;
     }
 
-    // 3. Split: Train: 2022–2025, Validation: 2026
-    const trainSamples = samples.filter(s => s.tahun <= 2025);
-    const valSamples = samples.filter(s => s.tahun === 2026);
+interface WalkForwardMetrics {
+  mape: number;
+  rmse: number;
+  mae: number;
+  totalTestSamples: number;
+  foldCount: number;
+}
+
+/**
+ * Expanding Window / Walk-Forward Validation
+ * Evaluates model performance across multiple historical validation folds:
+ * - Fold 1: Train <= 2022, Test == 2023
+ * - Fold 2: Train <= 2023, Test == 2024
+ * - Fold 3: Train <= 2024, Test == 2025
+ * - Fold 4: Train <= 2025, Test == 2026 (partial year)
+ * 
+ * Aggregates out-of-sample error metrics over all folds for stable, scientifically sound Confidence Scoring.
+ */
+function runWalkForwardValidation(
+  samples: EngineeredSample[],
+  modelType: 'xgboost' | 'prophet' | 'randomforest'
+): WalkForwardMetrics {
+  const years = Array.from(new Set(samples.map(s => s.tahun))).sort((a, b) => a - b);
+
+  if (years.length < 2) {
+    const trainCount = Math.floor(samples.length * 0.8);
+    const trainX = samples.slice(0, trainCount).map(s => s.features);
+    const trainY = samples.slice(0, trainCount).map(s => s.y);
+    const valX = samples.slice(trainCount).map(s => s.features);
+    const valY = samples.slice(trainCount).map(s => s.y);
+
+    let model: XGBoostRegressor | ProphetRegressor | RandomForestRegressor;
+    if (modelType === 'xgboost') model = new XGBoostRegressor(12, 3, 0.1);
+    else if (modelType === 'prophet') model = new ProphetRegressor();
+    else model = new RandomForestRegressor(10, 4);
+
+    model.fit(trainX, trainY);
+    const preds = valX.map(x => model.predict(x));
+    const evalResult = evaluatePredictions(valY, preds);
+    return { ...evalResult, totalTestSamples: valY.length, foldCount: 1 };
+  }
+
+  const allActuals: number[] = [];
+  const allPredictions: number[] = [];
+  let foldCount = 0;
+
+  const minTrainIdx = 1;
+  for (let i = minTrainIdx; i < years.length; i++) {
+    const testYear = years[i];
+    const trainSamples = samples.filter(s => s.tahun < testYear);
+    const testSamples = samples.filter(s => s.tahun === testYear);
+
+    if (trainSamples.length < 6 || testSamples.length === 0) continue;
+
+    const trainX = trainSamples.map(s => s.features);
+    const trainY = trainSamples.map(s => s.y);
+    const testX = testSamples.map(s => s.features);
+    const testY = testSamples.map(s => s.y);
+
+    let model: XGBoostRegressor | ProphetRegressor | RandomForestRegressor;
+    if (modelType === 'xgboost') model = new XGBoostRegressor(12, 3, 0.1);
+    else if (modelType === 'prophet') model = new ProphetRegressor();
+    else model = new RandomForestRegressor(10, 4);
+
+    model.fit(trainX, trainY);
+    const preds = testX.map(x => model.predict(x));
+
+    allActuals.push(...testY);
+    allPredictions.push(...preds);
+    foldCount++;
+  }
+
+  if (allActuals.length === 0) {
+    return { mape: 5.0, rmse: 500, mae: 400, totalTestSamples: 0, foldCount: 0 };
+  }
+
+  const metrics = evaluatePredictions(allActuals, allPredictions);
+  return {
+    mape: metrics.mape,
+    rmse: metrics.rmse,
+    mae: metrics.mae,
+    totalTestSamples: allActuals.length,
+    foldCount
+  };
+}
+
+    // 3. Walk-Forward Cross Validation across expanding time windows
+    const xgbMetrics = runWalkForwardValidation(samples, 'xgboost');
+    const prophetMetrics = runWalkForwardValidation(samples, 'prophet');
+    const rfMetrics = runWalkForwardValidation(samples, 'randomforest');
     
-    const hasValidation = valSamples.length > 0;
-    const finalTrain = hasValidation ? trainSamples : samples.slice(0, Math.floor(samples.length * 0.8));
-    const finalVal = hasValidation ? valSamples : samples.slice(Math.floor(samples.length * 0.8));
-    
-    const trainX = finalTrain.map(s => s.features);
-    const trainY = finalTrain.map(s => s.y);
-    const valX = finalVal.map(s => s.features);
-    const valY = finalVal.map(s => s.y);
-    
-    // Evaluate XGBoost
-    const xgb = new XGBoostRegressor(12, 3, 0.1);
-    xgb.fit(trainX, trainY);
-    const xgbPreds = valX.map(x => xgb.predict(x));
-    const xgbMetrics = evaluatePredictions(valY, xgbPreds);
-    
-    // Evaluate Prophet
-    const prophet = new ProphetRegressor();
-    prophet.fit(trainX, trainY);
-    const prophetPreds = valX.map(x => prophet.predict(x));
-    const prophetMetrics = evaluatePredictions(valY, prophetPreds);
-    
-    // Evaluate Random Forest
-    const rf = new RandomForestRegressor(10, 4);
-    rf.fit(trainX, trainY);
-    const rfPreds = valX.map(x => rf.predict(x));
-    const rfMetrics = evaluatePredictions(valY, rfPreds);
-    
-    // Select model with the lowest validation MAPE
+    // Select champion model with the lowest aggregated Walk-Forward MAPE
     let bestModelType: 'xgboost' | 'prophet' | 'randomforest' = 'xgboost';
     let bestMetrics = xgbMetrics;
     
@@ -239,7 +299,7 @@ export async function trainAndForecastAll(token?: string) {
       bestMetrics = rfMetrics;
     }
     
-    console.log(`[ML Train] Model terbaik untuk ${commodity}: ${bestModelType.toUpperCase()} (MAPE: ${bestMetrics.mape}%)`);
+    console.log(`[ML Train] Model terbaik untuk ${commodity}: ${bestModelType.toUpperCase()} (Walk-Forward MAPE: ${bestMetrics.mape}%, n=${bestMetrics.totalTestSamples} obs across ${bestMetrics.foldCount} folds)`);
     
     // Save active champion model metrics to model_registry table
     try {

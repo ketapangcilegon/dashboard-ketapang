@@ -6,17 +6,30 @@ import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 
 const COMMODITY_MAP: Record<string, string> = {
-  harga_beras: 'Beras',
+  harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
   harga_bawang_putih: 'Bawang Putih',
   harga_cabai_merah: 'Cabai Merah',
   harga_cabai_rawit: 'Cabai Rawit',
   harga_daging_sapi: 'Daging Sapi',
   harga_daging_ayam_ras: 'Daging Ayam',
-  harga_telur_ayam_ras: 'Telur Ayam',
+  harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
   harga_minyak_goreng: 'Minyak Goreng'
 };
+
+const COMMODITY_ORDER = [
+  'harga_beras',
+  'harga_bawang_merah',
+  'harga_bawang_putih',
+  'harga_cabai_merah',
+  'harga_cabai_rawit',
+  'harga_daging_sapi',
+  'harga_daging_ayam_ras',
+  'harga_telur_ayam_ras',
+  'harga_gula_pasir',
+  'harga_minyak_goreng'
+];
 
 const getIcon = (id: string) => {
   if (id.includes('beras')) return '🌾';
@@ -209,6 +222,11 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
               trend,
               rekomendasi: item.rekomendasi || []
             };
+          });
+          mapped.sort((a, b) => {
+            const idxA = COMMODITY_ORDER.indexOf(a.id);
+            const idxB = COMMODITY_ORDER.indexOf(b.id);
+            return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
           });
           setForecasts(mapped);
         } else {
