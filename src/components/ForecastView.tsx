@@ -462,14 +462,14 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">Confidence</span>
+                        <span className="leading-tight">Akurasi (100%-MAPE)</span>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Confidence (Tingkat Kepercayaan)',
-                            content: 'Skor akurasi model peramalan Machine Learning yang dihitung dengan rumus: 100% - MAPE (Mean Absolute Percentage Error).\nDihitung secara Walk-Forward Validation lintas 4 periode (n ≈ 43 observasi pengujian out-of-sample) sehingga skor akurasi terukur dan stabil sepanjang tahun.'
+                            title: 'Akurasi Model (100% - MAPE)',
+                            content: 'Skor presisi peramalan Machine Learning yang dihitung dengan rumus: 100% - MAPE (Mean Absolute Percentage Error).\nDihitung secara Walk-Forward Validation lintas 4 periode (n ≈ 43 observasi pengujian out-of-sample). Nilai akurasi berkisar antara 70,2% (komoditas volatil) hingga 99,2% (komoditas stabil).'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Confidence"
+                          title="Penjelasan Akurasi Model"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
