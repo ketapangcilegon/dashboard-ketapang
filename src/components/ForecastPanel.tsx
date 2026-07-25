@@ -279,7 +279,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                   </button>
                 </h4>
                 <div className="text-[10px] font-extrabold text-[#0B4D3C] tracking-wider mt-0.5">
-                  HARGA RATA-RATA BULANAN
+                  HARGA AKTUAL BULANAN
                 </div>
                 {showForecastInfo && (
                   <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2 rounded-lg font-medium mt-1 leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-sm">
@@ -317,18 +317,18 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                   <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
                     <th className="p-2 py-3 bg-emerald-50/30 align-middle">Komoditas</th>
                     <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">HARGA RATA-RATA</div>
+                      <div className="leading-tight">HARGA AKTUAL</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
                     </th>
                     <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">+1 BULAN</div>
+                      <div className="leading-tight">PERAMALAN +1 BULAN</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
                     </th>
                     <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">+3 BULAN</div>
+                      <div className="leading-tight">PERAMALAN +3 BULAN</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                     </th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-center align-middle">Tren</th>
+                    <th className="p-2 py-3 bg-emerald-50/30 text-center align-middle">ARAH TREN</th>
                   </tr>
                 </thead>
                 <tbody className="font-medium">

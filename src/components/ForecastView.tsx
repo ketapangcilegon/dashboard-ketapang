@@ -404,27 +404,27 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                   <tr className="text-slate-600 font-extrabold uppercase tracking-wider text-[9px] sm:text-[10px]">
                     <th className="p-3">Komoditas</th>
                     <th className="p-3 text-right">
-                      <div className="leading-tight">Harga Rata-Rata</div>
+                      <div className="leading-tight">Harga Aktual</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
                     </th>
                     <th className="p-3 text-right">
-                      <div className="leading-tight">+1 Bulan</div>
+                      <div className="leading-tight">Peramalan +1 Bulan</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
                     </th>
                     <th className="p-3 text-right">
-                      <div className="leading-tight">+3 Bulan</div>
+                      <div className="leading-tight">Peramalan +3 Bulan</div>
                       <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">Forecast</span>
+                        <span className="leading-tight">Arah Tren</span>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Forecast (Proyeksi Tren)',
+                            title: 'Arah Tren (Proyeksi Tren)',
                             content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 1 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun (menguntungkan bagi konsumen).\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 2%.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Forecast"
+                          title="Penjelasan Arah Tren"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
