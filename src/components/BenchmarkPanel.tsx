@@ -233,7 +233,7 @@ export default function BenchmarkPanel({ currentData = {}, dbBenchmarkList = [] 
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
           <h2 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
-            CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL
+            CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL DALAM 5 TAHUN TERAKHIR
           </h2>
         </div>
         <button

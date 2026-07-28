@@ -1442,7 +1442,7 @@ export default function DashboardPage() {
                        <div className="flex items-center gap-2">
                          <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
                          <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wide leading-snug">
-                           CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL
+                           CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL DALAM 5 TAHUN TERAKHIR
                          </h3>
                        </div>
                      </div>
