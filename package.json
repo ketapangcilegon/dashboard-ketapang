@@ -1,6 +1,6 @@
 {
   "name": "dashboard-ketapang",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "private": true,
   "scripts": {
     "prebuild": "node generate-version.js",

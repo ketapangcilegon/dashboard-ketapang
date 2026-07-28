@@ -1321,13 +1321,18 @@ export default function DashboardPage() {
 
                   {/* Section: Early Warning System */}
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 px-1">
-                      <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
-                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">PANEL HARGA PANGAN STRATEGIS</h2>
-                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
                       {/* Column 1: Harga Panel (Span 4) */}
-                      <div className="lg:col-span-4 flex flex-col print:col-span-5">
+                      <div id="panel-harga" className="lg:col-span-4 flex flex-col print:col-span-5 scroll-mt-20">
+                        <div className="mb-2.5 flex flex-col justify-end min-h-[38px]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                            <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
+                              PANEL HARGA PANGAN STRATEGIS
+                            </h3>
+                          </div>
+                        </div>
+
                         <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] flex-1 min-h-[420px] flex flex-col print:h-[380px] print:min-h-0">
                           <HargaPanel 
                             hargaData={hargaData} 
@@ -1340,12 +1345,18 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Column 2: Wide Map (Span 8) */}
-                      <div className="lg:col-span-8 flex flex-col print:col-span-7">
-                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-full lg:flex-1 flex flex-col print:h-[380px] print:min-h-0">
-                          <div className="mb-2">
-                            <h3 className="font-extrabold text-slate-800 text-sm leading-none">PETA TEMATIK KETAHANAN PANGAN</h3>
-                            <p className="text-[10px] text-slate-500 mt-1">Sistem Informasi Geospasial Ketahanan dan Kerawanan Pangan Kota Cilegon</p>
+                      <div id="panel-peta" className="lg:col-span-8 flex flex-col print:col-span-7 scroll-mt-20">
+                        {/* Header OUTSIDE & ABOVE panel box (on white background) */}
+                        <div className="mb-2.5 flex flex-col justify-end min-h-[38px]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                            <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
+                              PETA TEMATIK FSVA & SKPG
+                            </h3>
                           </div>
+                        </div>
+
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-full lg:flex-1 flex flex-col print:h-[380px] print:min-h-0">
                           <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[250px] lg:min-h-[350px] print:h-[280px] print:min-h-0">
                             <MapUnified 
                               selectedKecamatan={selectedKecamatan}
@@ -1360,25 +1371,37 @@ export default function DashboardPage() {
                   </div>
                   
                    {/* Section: AI Forecast */}
-                   <div className="space-y-3">
+                   <div id="panel-forecast" className="space-y-3 scroll-mt-20">
                       <ForecastPanel livePrices={livePrices} onSwitchView={setCurrentView} />
                    </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                    {/* IKP Chart - Span 6 */}
-                    <div className="lg:col-span-6 flex flex-col print:col-span-6">
-                      <IKPTrendChart ikpData={ikpData} selectedYear={selectedYear} />
+                  <div className="space-y-3 mt-6">
+                    {/* Header OUTSIDE & ABOVE panel box (on white background) */}
+                    <div className="mb-2.5 flex flex-col justify-end min-h-[38px]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                        <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
+                          IKP & POU KOTA CILEGON 5 TAHUN TERAKHIR
+                        </h3>
+                      </div>
                     </div>
 
-                    {/* PoU Chart - Span 6 */}
-                    <div className="lg:col-span-6 flex flex-col print:col-span-6 print:break-before-page">
-                      <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4">
+                      {/* IKP Chart - Span 6 */}
+                      <div className="lg:col-span-6 flex flex-col print:col-span-6">
+                        <IKPTrendChart ikpData={ikpData} selectedYear={selectedYear} />
+                      </div>
+
+                      {/* PoU Chart - Span 6 */}
+                      <div className="lg:col-span-6 flex flex-col print:col-span-6 print:break-before-page">
+                        <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+                      </div>
                     </div>
                   </div>
 
                   {/* BOTTOM ROW 2: AI Insight Panel (Full Width) */}
-                  <div className="w-full mt-6 h-[600px] lg:h-auto print:mt-6 print:break-before-page flex flex-col">
+                  <div id="panel-insight" className="w-full mt-6 h-[600px] lg:h-auto print:mt-6 print:break-before-page flex flex-col scroll-mt-20">
                     <AIInsightPanel 
                       year={selectedYear}
                       month={selectedMonth}
@@ -1414,12 +1437,85 @@ export default function DashboardPage() {
 
                    {/* Section: Benchmark */}
                    <div className="space-y-3 mt-6 print:hidden">
+                     {/* Mobile Header Outside Box */}
+                     <div className="sm:hidden mb-2.5 flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                         <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wide leading-snug">
+                           CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL
+                         </h3>
+                       </div>
+                     </div>
                      <div className="w-full">
                        <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
                      </div>
                    </div>
 
                 </>
+              )}
+
+              {currentView === 'harga_full' && (
+                <div className="space-y-6">
+                  <button
+                    onClick={() => setCurrentView('beranda')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                    Kembali ke Beranda
+                  </button>
+                  
+                  <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] min-h-[550px] flex flex-col p-6">
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                        <h2 className="font-extrabold text-slate-800 text-base sm:text-lg uppercase tracking-wide">
+                          PANEL HARGA PANGAN STRATEGIS
+                        </h2>
+                      </div>
+                    </div>
+                    <HargaPanel 
+                      hargaData={hargaData} 
+                      previousHargaData={previousHargaData} 
+                      livePrices={livePrices}
+                      liveDate={liveDate}
+                      loadingLive={loadingLive}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {currentView === 'peta_full' && (
+                <div className="space-y-4 flex flex-col h-[88vh]">
+                  <div>
+                    <button
+                      onClick={() => setCurrentView('beranda')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-emerald-500 font-bold" />
+                      Kembali ke Beranda
+                    </button>
+                  </div>
+                  
+                  <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] flex-1 flex flex-col p-4 sm:p-6 min-h-0">
+                    <div className="mb-3 flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                        <h2 className="font-extrabold text-slate-800 text-base sm:text-lg uppercase tracking-wide">
+                          PETA TEMATIK FSVA & SKPG
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[500px]">
+                      <MapUnified 
+                        selectedKecamatan={selectedKecamatan}
+                        selectedKelurahan={selectedKelurahan}
+                        selectedYear={selectedYear}
+                        selectedMonth={selectedMonth}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
 
               {currentView === 'insight' && (
@@ -1489,9 +1585,23 @@ export default function DashboardPage() {
                     </button>
                     
                     <div className="space-y-6">
-                      {/* Row 1: Ketersediaan Energi */}
+                      {/* Row 1: Ketersediaan Energi (Chart Left, AI Right) */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left Card: AI Insights */}
+                        {/* Left Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-emerald-600" />
+                            Tingkat Ketersediaan Energi (kkal/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={6} 
+                            currentValue={values.ketersediaanEnergi} 
+                            unit="kkal" 
+                            nationalStandard={2400} 
+                            colorTheme="emerald"
+                          />
+                        </div>
+                        {/* Right Card: AI Insights */}
                         <div className="dashboard-card bg-gradient-to-br from-white to-emerald-50/10">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Brain className="w-4 h-4 text-emerald-600" />
@@ -1506,25 +1616,25 @@ export default function DashboardPage() {
                             ))}
                           </ul>
                         </div>
-                        {/* Right Card: Chart */}
-                        <div className="dashboard-card">
-                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-emerald-600" />
-                            Tingkat Ketersediaan Energi (kkal/kapita/hari)
-                          </h3>
-                          <MiniBenchmarkChart 
-                            indicatorNo={6} 
-                            currentValue={values.ketersediaanEnergi} 
-                            unit="kkal" 
-                            nationalStandard={2400} 
-                            colorTheme="emerald"
-                          />
-                        </div>
                       </div>
 
-                      {/* Row 2: Ketersediaan Protein */}
+                      {/* Row 2: Ketersediaan Protein (Chart Left, AI Right) */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left Card: AI Insights */}
+                        {/* Left Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-blue-600" />
+                            Tingkat Ketersediaan Protein (gram/kapita/hari)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={7} 
+                            currentValue={values.ketersediaanProtein} 
+                            unit="gram" 
+                            nationalStandard={63} 
+                            colorTheme="blue"
+                          />
+                        </div>
+                        {/* Right Card: AI Insights */}
                         <div className="dashboard-card bg-gradient-to-br from-white to-blue-50/10">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Brain className="w-4 h-4 text-blue-600" />
@@ -1539,25 +1649,25 @@ export default function DashboardPage() {
                             ))}
                           </ul>
                         </div>
-                        {/* Right Card: Chart */}
-                        <div className="dashboard-card">
-                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-blue-600" />
-                            Tingkat Ketersediaan Protein (gram/kapita/hari)
-                          </h3>
-                          <MiniBenchmarkChart 
-                            indicatorNo={7} 
-                            currentValue={values.ketersediaanProtein} 
-                            unit="gram" 
-                            nationalStandard={63} 
-                            colorTheme="blue"
-                          />
-                        </div>
                       </div>
 
-                      {/* Row 3: Cadangan Pangan */}
+                      {/* Row 3: Cadangan Pangan (Chart Left, AI Right) */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left Card: AI Insights */}
+                        {/* Left Card: Chart */}
+                        <div className="dashboard-card">
+                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-purple-600" />
+                            Jumlah Cadangan Pangan Pemerintah Daerah (Ton)
+                          </h3>
+                          <MiniBenchmarkChart 
+                            indicatorNo={8} 
+                            currentValue={values.cppd} 
+                            unit="Ton" 
+                            nationalStandard={115} 
+                            colorTheme="purple"
+                          />
+                        </div>
+                        {/* Right Card: AI Insights */}
                         <div className="dashboard-card bg-gradient-to-br from-white to-purple-50/10">
                           <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Brain className="w-4 h-4 text-purple-600" />
@@ -1571,20 +1681,6 @@ export default function DashboardPage() {
                               </li>
                             ))}
                           </ul>
-                        </div>
-                        {/* Right Card: Chart */}
-                        <div className="dashboard-card">
-                          <h3 className="font-extrabold text-slate-800 text-xs leading-none uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-purple-600" />
-                            Jumlah Cadangan Pangan Pemerintah Daerah (Ton)
-                          </h3>
-                          <MiniBenchmarkChart 
-                            indicatorNo={8} 
-                            currentValue={values.cppd} 
-                            unit="Ton" 
-                            nationalStandard={115} 
-                            colorTheme="purple"
-                          />
                         </div>
                       </div>
                     </div>

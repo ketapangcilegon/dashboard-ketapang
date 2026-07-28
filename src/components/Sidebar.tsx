@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
-import { Home, Package, Utensils, FileText, Download, Brain, TrendingUp, ExternalLink, ChevronsLeft, ChevronsRight, Leaf, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Home, Layers, PieChart, ExternalLink, Database, Info, Download, Leaf, ChevronsLeft, ChevronsRight, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   currentView?: string;
@@ -20,75 +20,51 @@ export default function Sidebar({
   isMobile = false,
   onCloseMobile = () => {}
 }: SidebarProps) {
-  
-  const menuItems = [
-    { 
-      icon: Home, 
-      label: 'Beranda', 
-      view: 'beranda' 
-    },
-    { 
-      icon: Brain, 
-      label: 'Insight Ketahanan Pangan', 
-      view: 'insight' 
-    },
-    {
-      icon: TrendingUp,
-      label: 'Forecast Harga Pangan',
-      view: 'forecasting'
-    },
-    { 
-      icon: FileText, 
-      label: 'Analisis SKPG', 
-      view: 'analisis_skpg'
-    },
-    { 
-      icon: Package, 
-      label: 'Ketersediaan', 
-      view: 'ketersediaan' 
-    },
-    { 
-      icon: TrendingUp, 
-      label: 'Keterjangkauan', 
-      view: 'keterjangkauan' 
-    },
-    { 
-      icon: Utensils, 
-      label: 'Pemanfaatan', 
-      view: 'pemanfaatan' 
-    },
-    { 
-      icon: ExternalLink, 
-      label: 'Serumpunpadi.web.id', 
-      view: 'serumpun',
-      url: 'https://serumpunpadi.web.id/'
-    },
-    { 
-      icon: FileText, 
-      label: 'FSVA.my.id', 
-      view: 'dss_fsva',
-      url: 'https://fsva.my.id/'
-    }
-  ];
 
-  const handleMenuClick = (e: React.MouseEvent, item: typeof menuItems[0]) => {
-    if (item.url) {
-      // External link: let default behavior open in new tab
-      return;
-    }
-    // If we are not on the main dashboard homepage, let standard link navigation take over
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      return;
-    }
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    fiturUtama: true,
+    aspekPangan: true,
+    linkExternal: true
+  });
+
+  const toggleSection = (sectionKey: string) => {
+    setOpenSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
+  };
+
+  const handleNavClick = (e: React.MouseEvent, view: string, url?: string) => {
+    if (url) return; // External link opens in new tab
     e.preventDefault();
-    setCurrentView(item.view);
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = `/?view=${view}`;
+      return;
+    }
+    setCurrentView(view);
     if (isMobile) {
       onCloseMobile();
     }
   };
 
+  const fiturUtamaSub = [
+    { label: 'Panel Harga Pangan Strategis', view: 'harga_full' },
+    { label: 'Peta Tematik FSVA dan SKPG', view: 'peta_full' },
+    { label: 'Forecast Harga Pangan & EWS', view: 'forecasting' },
+    { label: 'Insight Ketahanan Pangan', view: 'insight' },
+    { label: 'Analisis SKPG', view: 'analisis_skpg' }
+  ];
+
+  const aspekPanganSub = [
+    { label: 'Ketersediaan', view: 'ketersediaan' },
+    { label: 'Keterjangkauan', view: 'keterjangkauan' },
+    { label: 'Pemanfaatan', view: 'pemanfaatan' }
+  ];
+
+  const linkExternalSub = [
+    { label: 'SerumpunPadi.web.id', url: 'https://serumpunpadi.web.id/' },
+    { label: 'FSVA.my.id', url: 'https://fsva.my.id/' }
+  ];
+
   return (
-    <div className="h-full flex flex-col justify-between pt-[1cm] pb-6 print:hidden relative transition-all duration-300 overflow-y-auto custom-scrollbar">
+    <div className="h-full flex flex-col justify-between pt-6 pb-6 print:hidden relative transition-all duration-300 overflow-y-auto custom-scrollbar select-none text-left">
       
       {/* Toggle Collapse Button (Desktop Only) */}
       {!isMobile && (
@@ -106,117 +82,215 @@ export default function Sidebar({
       )}
 
       <div>
-        {/* Leaf Green Circle Header Icon */}
-        <div className={`px-6 mb-8 flex items-center gap-3 ${isCollapsed ? 'justify-center px-0' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center shrink-0 border border-emerald-400 shadow-md">
-             <Leaf className="w-4 h-4 text-white" />
+        {/* Header Branding */}
+        <div className={`px-6 mb-6 flex items-center gap-3 ${isCollapsed ? 'justify-center px-0' : ''}`}>
+          <div className="w-9 h-9 rounded-full bg-[#10B981] flex items-center justify-center shrink-0 border border-emerald-400 shadow-md">
+             <Leaf className="w-5 h-5 text-white" />
           </div>
           {!isCollapsed && (
-            <div className="animate-in fade-in duration-300">
-              <h1 className="text-white font-black leading-tight text-[11px] tracking-wider uppercase">Ketahanan Pangan</h1>
-              <p className="text-emerald-400 text-[9px] uppercase tracking-widest font-black">KOTA CILEGON</p>
+            <div className="animate-in fade-in duration-300 text-left">
+              <h1 className="text-white font-black leading-tight text-[11px] tracking-wider uppercase text-left">Ketahanan Pangan</h1>
+              <p className="text-emerald-400 text-[9px] uppercase tracking-widest font-black text-left">KOTA CILEGON</p>
             </div>
           )}
         </div>
 
-        <nav className="space-y-0.5">
-          {menuItems.map((item, i) => {
-            const Icon = item.icon;
-            const isActive = currentView === item.view;
-            
-            return (
-              <a 
-                key={i} 
-                href={item.url ? item.url : `/?view=${item.view}`}
-                target={item.url && item.url.startsWith('http') ? '_blank' : undefined}
-                rel={item.url && item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                onClick={(e) => handleMenuClick(e, item)}
-                className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
-                  isActive ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
-                } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} />
+        <nav className="space-y-3 px-3 text-left">
+          
+          {/* 1. BERANDA */}
+          <a
+            href="/?view=beranda"
+            onClick={(e) => handleNavClick(e, 'beranda')}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
+              currentView === 'beranda' ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm' : ''
+            } ${isCollapsed ? 'justify-center px-0' : ''}`}
+            title={isCollapsed ? "BERANDA" : undefined}
+          >
+            <Home className="w-4 h-4 text-emerald-400 shrink-0" />
+            {!isCollapsed && (
+              <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words">BERANDA</span>
+            )}
+          </a>
+
+          {/* 2. FITUR UTAMA (Collapsible Tree) */}
+          <div>
+            <button
+              onClick={() => toggleSection('fiturUtama')}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer text-left ${
+                isCollapsed ? 'justify-center px-0' : ''
+              }`}
+              title={isCollapsed ? "FITUR UTAMA" : undefined}
+            >
+              <div className="flex items-center gap-3 text-left min-w-0 flex-1">
+                <Layers className="w-4 h-4 text-emerald-400 shrink-0" />
                 {!isCollapsed && (
-                  <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
-                    {item.label}
-                  </span>
+                  <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">FITUR UTAMA</span>
                 )}
-              </a>
-            );
-          })}
+              </div>
+              {!isCollapsed && (
+                openSections.fiturUtama ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+                )
+              )}
+            </button>
+
+            {!isCollapsed && openSections.fiturUtama && (
+              <div className="ml-5 pl-3 border-l border-emerald-500/40 space-y-1 mt-1 text-left">
+                {fiturUtamaSub.map((sub, i) => (
+                  <a
+                    key={i}
+                    href={`/?view=${sub.view}`}
+                    onClick={(e) => handleNavClick(e, sub.view)}
+                    className={`relative flex items-center text-left px-2 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-all whitespace-normal break-words leading-tight before:content-[''] before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-px before:bg-emerald-500/40 ${
+                      currentView === sub.view ? 'text-white bg-emerald-900/60 font-black' : ''
+                    }`}
+                  >
+                    <span className="text-left">{sub.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 3. ASPEK KETAHANAN PANGAN (Collapsible Tree) */}
+          <div>
+            <button
+              onClick={() => toggleSection('aspekPangan')}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer text-left ${
+                isCollapsed ? 'justify-center px-0' : ''
+              }`}
+              title={isCollapsed ? "ASPEK KETAHANAN PANGAN" : undefined}
+            >
+              <div className="flex items-center gap-3 text-left min-w-0 flex-1">
+                <PieChart className="w-4 h-4 text-emerald-400 shrink-0" />
+                {!isCollapsed && (
+                  <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">ASPEK KETAHANAN PANGAN</span>
+                )}
+              </div>
+              {!isCollapsed && (
+                openSections.aspekPangan ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+                )
+              )}
+            </button>
+
+            {!isCollapsed && openSections.aspekPangan && (
+              <div className="ml-5 pl-3 border-l border-emerald-500/40 space-y-1 mt-1 text-left">
+                {aspekPanganSub.map((sub, i) => (
+                  <a
+                    key={i}
+                    href={`/?view=${sub.view}`}
+                    onClick={(e) => handleNavClick(e, sub.view)}
+                    className={`relative flex items-center text-left px-2 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-all whitespace-normal break-words leading-tight before:content-[''] before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-px before:bg-emerald-500/40 ${
+                      currentView === sub.view ? 'text-white bg-emerald-900/60 font-black' : ''
+                    }`}
+                  >
+                    <span className="text-left">{sub.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4. LINK EXTERNAL (Collapsible Tree) */}
+          <div>
+            <button
+              onClick={() => toggleSection('linkExternal')}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-slate-200 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer text-left ${
+                isCollapsed ? 'justify-center px-0' : ''
+              }`}
+              title={isCollapsed ? "LINK EXTERNAL" : undefined}
+            >
+              <div className="flex items-center gap-3 text-left min-w-0 flex-1">
+                <ExternalLink className="w-4 h-4 text-emerald-400 shrink-0" />
+                {!isCollapsed && (
+                  <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">LINK EXTERNAL</span>
+                )}
+              </div>
+              {!isCollapsed && (
+                openSections.linkExternal ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+                )
+              )}
+            </button>
+
+            {!isCollapsed && openSections.linkExternal && (
+              <div className="ml-5 pl-3 border-l border-emerald-500/40 space-y-1 mt-1 text-left">
+                {linkExternalSub.map((sub, i) => (
+                  <a
+                    key={i}
+                    href={sub.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative flex items-center text-left px-2 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-all whitespace-normal break-words leading-tight before:content-[''] before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-px before:bg-emerald-500/40"
+                  >
+                    <span className="text-left">{sub.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 5. SUMBER DATA */}
+          <a
+            href="/?view=sumber_data"
+            onClick={(e) => handleNavClick(e, 'sumber_data')}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
+              currentView === 'sumber_data' ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm' : ''
+            } ${isCollapsed ? 'justify-center px-0' : ''}`}
+            title={isCollapsed ? "SUMBER DATA" : undefined}
+          >
+            <Database className="w-4 h-4 text-emerald-400 shrink-0" />
+            {!isCollapsed && (
+              <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words">SUMBER DATA</span>
+            )}
+          </a>
+
+          {/* 6. TENTANG APLIKASI */}
+          <a
+            href="/?view=tentang"
+            onClick={(e) => handleNavClick(e, 'tentang')}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
+              currentView === 'tentang' ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm' : ''
+            } ${isCollapsed ? 'justify-center px-0' : ''}`}
+            title={isCollapsed ? "TENTANG APLIKASI" : undefined}
+          >
+            <Info className="w-4 h-4 text-emerald-400 shrink-0" />
+            {!isCollapsed && (
+              <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words">TENTANG APLIKASI</span>
+            )}
+          </a>
+
         </nav>
       </div>
 
-      <div className="mt-auto space-y-3">
-        {/* Padded elements (Disclaimer & Unduh Laporan) */}
-        <div className={`px-6 space-y-2.5 ${isMobile ? '-translate-y-2' : ''} ${isCollapsed ? 'px-2 flex flex-col items-center' : ''}`}>
-          {!isCollapsed ? (
-            <div className="text-[9px] text-slate-200/90 leading-normal font-medium bg-emerald-950/20 p-3 rounded-xl border-2 border-emerald-500/40 animate-in fade-in duration-300">
-              <p>
-                <span className="font-extrabold text-amber-400 block mb-1">Disclaimer:</span> 
-                Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
-              </p>
-            </div>
-          ) : null}
-          <button 
-            onClick={() => typeof window !== 'undefined' && window.print()}
-            className={`w-full py-2.5 rounded-lg border border-emerald-600/50 hover:border-emerald-450 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-700/20 hover:text-emerald-400 transition-all cursor-pointer active:scale-95 shadow-sm ${isCollapsed ? 'px-0 w-10 h-10' : 'px-4'}`}
-            title={isCollapsed ? "Unduh Laporan" : undefined}
-          >
-            <Download className="w-3.5 h-3.5 shrink-0" /> 
-            {!isCollapsed && <span>Unduh Laporan</span>}
-          </button>
-        </div>
+      <div className="mt-6 space-y-3 px-3 text-left">
+        {/* Disclaimer & Unduh Laporan */}
+        {!isCollapsed && (
+          <div className="text-[9px] text-slate-200/90 leading-normal font-medium bg-emerald-950/40 p-3 rounded-xl border border-emerald-500/40 animate-in fade-in duration-300 text-left">
+            <p className="text-left">
+              <strong className="font-extrabold text-amber-400 block mb-1 text-left">Disclaimer:</strong> 
+              Interpretasi AI pada dashboard ini disusun secara otomatis berdasarkan data yang tersedia dan bertujuan sebagai informasi pendukung. Hasil analisis dapat mengandung keterbatasan atau ketidaksesuaian sehingga tetap memerlukan verifikasi dan penilaian profesional sebelum digunakan sebagai dasar pengambilan keputusan.
+            </p>
+          </div>
+        )}
 
-        {/* Unpadded menu items (Sumber Data & Credit Title) styled exactly like BERANDA */}
-        <div className="space-y-0.5">
-          <a 
-            href="/?view=sumber_data"
-            onClick={(e) => {
-              if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-                return;
-              }
-              e.preventDefault();
-              setCurrentView('sumber_data');
-              if (isMobile) onCloseMobile();
-            }}
-            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
-              currentView === 'sumber_data' ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
-            } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
-            title={isCollapsed ? "Sumber Data" : undefined}
-          >
-            <FileText className={`w-4 h-4 shrink-0 ${currentView === 'sumber_data' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
-            {!isCollapsed && (
-              <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
-                Sumber Data
-              </span>
-            )}
-          </a>
-
-          <a 
-            href="/?view=tentang"
-            onClick={(e) => {
-              if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-                return;
-              }
-              e.preventDefault();
-              setCurrentView('tentang');
-              if (isMobile) onCloseMobile();
-            }}
-            className={`sidebar-link flex items-center gap-3 px-6 py-1.5 transition-all text-slate-300 hover:text-white hover:bg-white/10 ${
-              currentView === 'tentang' ? '!text-white bg-emerald-900/50 border-l-4 border-emerald-400 pl-5 font-bold shadow-inner' : ''
-            } ${isCollapsed ? 'justify-center px-0 pl-0 border-l-0 pl-[4px]' : ''}`}
-            title={isCollapsed ? "Tentang Aplikasi" : undefined}
-          >
-            <Info className={`w-4 h-4 shrink-0 ${currentView === 'tentang' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`} /> 
-            {!isCollapsed && (
-              <span className="text-[12px] font-black tracking-wide uppercase leading-tight whitespace-normal break-words flex-1 animate-in fade-in duration-300">
-                Tentang Aplikasi
-              </span>
-            )}
-          </a>
-        </div>
+        <button 
+          onClick={() => typeof window !== 'undefined' && window.print()}
+          className={`w-full py-2.5 rounded-lg border border-emerald-500/50 hover:border-emerald-400 text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-emerald-700/30 hover:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-sm ${
+            isCollapsed ? 'px-0 w-10 h-10' : 'px-4'
+          }`}
+          title={isCollapsed ? "Unduh Laporan" : undefined}
+        >
+          <Download className="w-3.5 h-3.5 shrink-0" /> 
+          {!isCollapsed && <span>Unduh Laporan</span>}
+        </button>
       </div>
     </div>
   );

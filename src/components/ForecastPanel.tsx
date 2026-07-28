@@ -258,156 +258,151 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
 
   return (
     <div className="mt-8 mb-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-[550px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* Left Column: Forecast Table */}
-        <div className="lg:col-span-7 dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-full">
-          <div className="p-4 border-b border-emerald-100/50 bg-white/40 flex flex-col sm:flex-row items-start justify-between gap-4 shrink-0">
-            <div className="flex gap-3">
-              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
-                <TrendingUp className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <h4 className="font-black text-[#0f172a] text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center gap-2">
-                  <span>AI FORECAST & ANALISIS PREDIKTIF</span>
+        {/* Left Column: Forecast Table Header + Card */}
+        <div className="lg:col-span-7 flex flex-col">
+          {/* Header OUTSIDE & ABOVE panel box (Mockup 1 Match) */}
+          <div className="mb-3">
+            <div className="flex items-stretch gap-2.5">
+              <div className="w-[3px] bg-emerald-600 rounded-full shrink-0"></div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
+                    PERAMALAN HARGA PANGAN
+                  </h3>
                   <button
                     onClick={() => setShowForecastInfo(!showForecastInfo)}
-                    className="p-1 hover:bg-emerald-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
+                    className="p-1 hover:bg-amber-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
                     title="Info Model"
                   >
-                    <Lightbulb className="w-3.5 h-3.5 fill-amber-100 text-amber-500" />
+                    <Lightbulb className="w-4 h-4 fill-amber-100 text-amber-500" />
                   </button>
-                </h4>
-                <div className="text-[10px] font-extrabold text-[#0B4D3C] tracking-wider mt-0.5">
-                  HARGA AKTUAL BULANAN
                 </div>
-                {showForecastInfo && (
-                  <p className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2 rounded-lg font-medium mt-1 leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-sm">
-                    Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning terintegrasi.
-                  </p>
-                )}
+                <div className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
+                  (ML FORECASTING)
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 italic mt-0.5">
+                  Proyeksi 1 & 3 bulan ke depan
+                </p>
               </div>
             </div>
-             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-emerald-100/50">
-               {onSwitchView && (
-                 <button
-                   onClick={() => onSwitchView('validasi_forecast')}
-                   className="px-3 py-1 bg-[#0f172a] hover:bg-slate-800 text-white text-[9px] font-black rounded-full uppercase tracking-wider shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
-                   title="Validasi Akurasi Peramalan"
-                 >
-                   <span>🎯 Validasi Akurasi</span>
-                 </button>
-               )}
-               <div className="flex gap-2">
-                 <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shadow-sm">Model ML V1</span>
-                 <span className="text-[9px] bg-white border border-emerald-200 text-[#0B4D3C] px-3 py-1 rounded-full font-bold uppercase tracking-wider">1 & 3 BULAN</span>
-               </div>
-             </div>
-          </div>
-          
-          <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
-            {loading ? (
-              <div className="p-16 flex justify-center items-center text-slate-400 font-bold text-xs h-full">
-                <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-600" />
-                Memuat proyeksi...
+            {showForecastInfo && (
+              <div className="mt-2 ml-3 text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg font-medium leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-md">
+                Proyeksi pergerakan harga pangan strategis 1 dan 3 bulan ke depan menggunakan model Machine Learning terintegrasi.
               </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 shadow-sm">
-                  <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
-                    <th className="p-2 py-3 bg-emerald-50/30 align-middle">Komoditas</th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">HARGA AKTUAL</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
-                    </th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">PERAMALAN +1 BULAN</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
-                    </th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-right">
-                      <div className="leading-tight">PERAMALAN +3 BULAN</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
-                    </th>
-                    <th className="p-2 py-3 bg-emerald-50/30 text-center align-middle">ARAH TREN</th>
-                  </tr>
-                </thead>
-                <tbody className="font-medium">
-                  {forecasts.map((item, index) => (
-                    <tr key={item.id} className={`hover:bg-emerald-50/60 transition-colors border-b border-slate-100/50 ${index % 2 === 0 ? 'bg-white/60' : 'bg-transparent'}`}>
-                      <td className="p-2 py-2.5 font-bold text-slate-800 flex items-center gap-2.5 text-[11px]">
-                        <span className="text-xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
-                        {item.name}
-                      </td>
-                      <td className="p-2 text-right text-slate-800 font-extrabold text-[11px]">
-                        Rp{item.current.toLocaleString('id-ID')}
-                      </td>
-                      <td className={`p-2 text-right font-bold text-[11px] ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
-                        Rp{item.month1.toLocaleString('id-ID')}
-                      </td>
-                      <td className={`p-2 text-right font-black text-xs ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
-                        Rp{item.month3.toLocaleString('id-ID')}
-                      </td>
-                      <td className="p-2 text-center">
-                        {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500 mx-auto" />}
-                        {item.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500 mx-auto" />}
-                        {item.trend === 'stable' && <Minus className="w-4 h-4 text-amber-500 mx-auto" />}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             )}
           </div>
-          
-          <div className="p-4 border-t border-slate-100 bg-white flex flex-wrap items-center gap-4 shrink-0 text-[10px] font-bold text-slate-500">
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Turun</div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Stabil</div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Naik</div>
-            <button
-              onClick={handleDownloadXlsx}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-[9.5px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 ml-2"
-              title="Download xlsx"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-600" />
-              Download xlsx
-            </button>
-            <div className="ml-auto text-slate-400 font-medium hidden sm:block">Harga dalam Rupiah (Rp) / kg</div>
+
+          {/* Left Column Card: Forecast Table */}
+          <div className="dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-[550px] flex-1">
+            <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
+              {loading ? (
+                <div className="p-16 flex justify-center items-center text-slate-400 font-bold text-xs h-full">
+                  <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-600" />
+                  Memuat proyeksi...
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 shadow-sm">
+                    <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
+                      <th className="p-2 py-3 bg-emerald-50/50 align-middle">Komoditas</th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                        <div className="leading-tight">HARGA AKTUAL</div>
+                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                      </th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                        <div className="leading-tight">PERAMALAN +1 BULAN</div>
+                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
+                      </th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                        <div className="leading-tight">PERAMALAN +3 BULAN</div>
+                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
+                      </th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-center align-middle">ARAH TREN</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-medium">
+                    {forecasts.map((item, index) => (
+                      <tr key={item.id} className={`hover:bg-emerald-200/50 transition-colors border-b border-emerald-100/60 ${index % 2 === 0 ? 'bg-emerald-50/70' : 'bg-emerald-100/35'}`}>
+                        <td className="p-2 py-2.5 font-bold text-slate-800 flex items-center gap-2.5 text-[11px]">
+                          <span className="text-xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
+                          {item.name}
+                        </td>
+                        <td className="p-2 text-right text-slate-800 font-extrabold text-[11px]">
+                          Rp{item.current.toLocaleString('id-ID')}
+                        </td>
+                        <td className={`p-2 text-right font-bold text-[11px] ${item.month1 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
+                          Rp{item.month1.toLocaleString('id-ID')}
+                        </td>
+                        <td className={`p-2 text-right font-black text-xs ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
+                          Rp{item.month3.toLocaleString('id-ID')}
+                        </td>
+                        <td className="p-2 text-center">
+                          {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500 mx-auto" />}
+                          {item.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500 mx-auto" />}
+                          {item.trend === 'stable' && <Minus className="w-4 h-4 text-amber-500 mx-auto" />}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            
+            <div className="p-3 px-4 border-t border-slate-100 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0 text-[10px] font-bold text-slate-500">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Turun</div>
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Stabil</div>
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Naik</div>
+                <button
+                  onClick={handleDownloadXlsx}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-[9.5px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 ml-1"
+                  title="Download xlsx"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-600" />
+                  Download xlsx
+                </button>
+              </div>
+              {onSwitchView && (
+                <button
+                  onClick={() => onSwitchView('validasi_forecast')}
+                  className="px-3 py-1.5 bg-[#0f172a] hover:bg-slate-800 text-white text-[9.5px] font-black rounded-lg uppercase tracking-wider shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
+                  title="Validasi Akurasi Peramalan"
+                >
+                  <span>🎯 Validasi Akurasi</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right Column: AI Interpretation */}
-        <div className="lg:col-span-5 dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-full">
-          
-          <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 mb-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
-                <Brain className="w-6 h-6 text-emerald-600" />
-              </div>
-              <h4 className="font-black text-[#0f172a] text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center gap-2">
+        {/* Right Column: EWS Header + Card (Capture 1 Fix) */}
+        <div className="lg:col-span-5 flex flex-col">
+          {/* Header OUTSIDE & ABOVE EWS card box */}
+          <div className="mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-[3px] h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+              <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide flex items-center gap-2">
                 <span>EARLY WARNING SYSTEM (ML)</span>
                 <button
                   onClick={() => setShowEwsInfo(!showEwsInfo)}
-                  className="p-1 hover:bg-emerald-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
+                  className="p-1 hover:bg-amber-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
                   title="Metodologi EWS"
                 >
-                  <Lightbulb className="w-3.5 h-3.5 fill-amber-100 text-amber-500" />
+                  <Lightbulb className="w-4 h-4 fill-amber-100 text-amber-500" />
                 </button>
-              </h4>
+              </h3>
             </div>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-wider border border-emerald-200 shrink-0 shadow-sm sm:mt-1 self-start sm:self-auto">EWS AKTIF</span>
+            {showEwsInfo && (
+              <div className="mt-2 ml-3 text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg font-medium leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-md">
+                Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi harga komoditas strategis menggunakan 3 layer analisis (ML Trend, CV Volatilitas, dan SKPG YoY).
+              </div>
+            )}
           </div>
-          {showEwsInfo && (
-            <div className="text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-3 rounded-xl font-medium mb-4 leading-relaxed shadow-sm animate-in fade-in duration-200 text-justify shrink-0 space-y-1.5">
-              <p>
-                Sistem Peringatan Dini (EWS) mendeteksi potensi fluktuasi harga komoditas strategis menggunakan 3 layer analisis:
-              </p>
-              <ol className="list-decimal list-inside space-y-1 pl-1">
-                <li><strong>Tren Perubahan</strong>: Arah pergerakan proyeksi Machine Learning 1 & 3 bulan ke depan.</li>
-                <li><strong>Volatilitas CV</strong>: Batas toleransi indeks variabilitas (CV) untuk status Aman diatur ketat pada level <strong className="text-slate-800">&lt; 5%</strong> (beras) dan <strong className="text-slate-800">&lt; 9%</strong> (komoditas lain).</li>
-                <li><strong>Nilai SKPG (YoY Growth)</strong>: Sesuai rumus resmi Petunjuk Teknis SKPG (r_harga), dengan batas toleransi Aman <strong className="text-slate-800">&lt; 5%</strong> YoY untuk seluruh komoditas, batas Waspada 5%&ndash;10% YoY (beras) / 5%&ndash;15% YoY (minyak & telur), serta Rentan &gt; 10% YoY (beras) / &gt; 15% YoY (minyak & telur).</li>
-              </ol>
-            </div>
-          )}
+
+          {/* Right Column Card: EWS Panel */}
+          <div className="dashboard-card bg-gradient-to-br from-teal-50/40 to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-6 lg:p-7 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-[550px] flex-1">
           
           <div className="flex-1 flex flex-col min-h-0">
 
@@ -427,10 +422,10 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                     </div>
                     <button
                       onClick={handleDownloadEwsDocx}
-                      className="flex items-center gap-1 px-2 py-0.5 text-[8.5px] sm:text-[9px] font-black text-amber-855 bg-amber-100 hover:bg-amber-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-amber-200/50"
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] sm:text-[9.5px] font-black text-amber-855 bg-amber-100 hover:bg-amber-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-amber-200/60"
                       title="Download EWS docx"
                     >
-                      <Download className="w-3 h-3" />
+                      <Download className="w-3.5 h-3.5" />
                       Download docx
                     </button>
                   </div>
@@ -524,9 +519,9 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
               </div>
             )}
           </div>
-          
         </div>
       </div>
     </div>
+  </div>
   );
 }

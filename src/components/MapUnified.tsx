@@ -827,6 +827,12 @@ export default function MapUnified({
   useEffect(() => {
     setMounted(true);
     loadFromURL();
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('resize'));
+      }
+    }, 250);
+    return () => clearTimeout(timer);
   }, [loadFromURL]);
 
   // Fetch all valid periods available with real stunting data
