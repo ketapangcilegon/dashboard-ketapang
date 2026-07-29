@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized: ' + (authError?.message || 'Invalid token') }, { status: 401 });
     }
 
-    const metrics = await retrainModel();
+    const metrics = await retrainModel(token);
     return NextResponse.json({
       success: true,
       message: 'Model Machine Learning berhasil dilatih ulang.',

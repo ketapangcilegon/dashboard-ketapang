@@ -8,6 +8,7 @@ import { Loader2, Layers, MapPin, Navigation, Map, Plus, Minus, ChevronDown, Che
 import { FSVA_LEGEND, SKPG_LEGEND } from '@/lib/ikpg';
 import { useMap } from 'react-leaflet';
 import * as XLSX from 'xlsx';
+import { isKelurahanMatch, normalizeKelurahanName } from '@/lib/wilayah';
 
 // Dynamically import Leaflet components to avoid SSR errors in Next.js
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -45,6 +46,12 @@ interface MapControllerProps {
   fsvaYear?: number;
   validFsvaYears?: number[];
   setFsvaYear?: (yr: number) => void;
+  bordaYear?: number;
+  validBordaYears?: number[];
+  onPrevBordaYear?: () => void;
+  onNextBordaYear?: () => void;
+  hasPrevBordaYear?: boolean;
+  hasNextBordaYear?: boolean;
 }
 
 function MapController({
@@ -65,7 +72,13 @@ function MapController({
   hasNextMonth,
   fsvaYear = 2025,
   validFsvaYears = [2025],
-  setFsvaYear
+  setFsvaYear,
+  bordaYear = 2026,
+  validBordaYears = [2025, 2026, 2027],
+  onPrevBordaYear,
+  onNextBordaYear,
+  hasPrevBordaYear,
+  hasNextBordaYear
 }: MapControllerProps) {
   const map = useMap();
   const [expandLayers, setExpandLayers] = useState(false);
@@ -223,7 +236,7 @@ function MapController({
     if (!skpgMatangData || skpgMatangData.length === 0) return [];
 
     const calculatedBorda = skpgMatangData.map(item => {
-      const fsvaRow = fsvaMatangData?.find(x => x.nama_kelurahan === item.nama_kelurahan || x.kelurahan === item.nama_kelurahan);
+      const fsvaRow = fsvaMatangData?.find(x => isKelurahanMatch(x.nama_kelurahan || x.kelurahan, item.nama_kelurahan || item.kelurahan));
       const total = (item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0) + (item.gizi_normal || 0) + (item.gizi_berlebih || 0);
       const prev = item.prevalensiRataRata !== undefined 
         ? item.prevalensiRataRata 
@@ -431,7 +444,43 @@ function MapController({
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-extrabold text-slate-800 leading-none">FSVA + SKPG</span>
-                    <span className="text-[8px] text-slate-400 font-bold mt-0.5">Borda Count Desil</span>
+                    <div className="flex items-center gap-1 mt-1 select-none">
+                      <span className="text-[8px] text-slate-400 font-bold mr-0.5">Borda {bordaYear}</span>
+                      
+                      {/* Tombol Kiri (<) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onPrevBordaYear) onPrevBordaYear();
+                        }}
+                        disabled={!hasPrevBordaYear}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          hasPrevBordaYear 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Tahun Borda Sebelumnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&lt;</span>
+                      </button>
+
+                      {/* Tombol Kanan (>) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onNextBordaYear) onNextBordaYear();
+                        }}
+                        disabled={!hasNextBordaYear}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                          hasNextBordaYear 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-90' 
+                            : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-40'
+                        }`}
+                        title="Tahun Borda Berikutnya"
+                      >
+                        <span className="text-[8px] font-black leading-none -mt-0.5">&gt;</span>
+                      </button>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setActiveLayer('borda')}
@@ -794,6 +843,8 @@ export default function MapUnified({
   const [fsvaMatangData, setFsvaMatangData] = useState<any[]>([]);
   const [fsvaYear, setFsvaYear] = useState<number>(2025);
   const [validFsvaYears, setValidFsvaYears] = useState<number[]>([2025]);
+  const [bordaYear, setBordaYear] = useState<number>(2026);
+  const [validBordaYears, setValidBordaYears] = useState<number[]>([2025, 2026, 2027]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
@@ -822,6 +873,65 @@ export default function MapUnified({
       }
     };
     fetchValidFsvaYears();
+  }, [mounted]);
+
+  // Fetch valid Borda years available in database only if data is complete
+  useEffect(() => {
+    if (!mounted) return;
+    const fetchValidBordaYears = async () => {
+      try {
+        // 1. Check which years have real uploaded stunting data
+        const { data: skpgRows } = await supabase
+          .from('gizi_balita_skpg_kelurahan')
+          .select('tahun, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih');
+
+        const skpgYearsSet = new Set<number>();
+        if (skpgRows) {
+          skpgRows.forEach(r => {
+            const tot = (r.bb_sangat_kurang || 0) + (r.bb_kurang || 0) + (r.bb_normal || 0) + (r.bb_lebih || 0);
+            if (r.tahun && tot > 0) {
+              skpgYearsSet.add(r.tahun);
+            }
+          });
+        }
+
+        // 2. Check available FSVA years in fsva_matang
+        const { data: fsvaRows } = await supabase
+          .from('fsva_matang')
+          .select('periode');
+
+        const fsvaYearsSet = new Set<number>();
+        if (fsvaRows) {
+          fsvaRows.forEach(r => {
+            if (r.periode) fsvaYearsSet.add(r.periode);
+          });
+        }
+
+        // A Borda year Y is valid if SKPG has >= 1 month of uploaded data for year Y AND FSVA has data for year Y-1 or year Y
+        const validList: number[] = [];
+        skpgYearsSet.forEach(y => {
+          if (fsvaYearsSet.has(y - 1) || fsvaYearsSet.has(y)) {
+            validList.push(y);
+          }
+        });
+
+        // Fallback default to 2026 if list is empty but 2026 SKPG and 2025 FSVA exist
+        if (validList.length === 0 && skpgYearsSet.has(2026) && fsvaYearsSet.has(2025)) {
+          validList.push(2026);
+        }
+
+        validList.sort((a, b) => a - b);
+        setValidBordaYears(validList);
+
+        // Make sure bordaYear is set to a valid year in the list
+        if (validList.length > 0 && !validList.includes(bordaYear)) {
+          setBordaYear(validList[validList.length - 1]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch valid Borda years:', err);
+      }
+    };
+    fetchValidBordaYears();
   }, [mounted]);
 
   useEffect(() => {
@@ -875,37 +985,44 @@ export default function MapUnified({
     fetchValidPeriods();
   }, [mounted]);
 
-  // Fetch Supabase Data dynamically on year/month/activeSkpgPeriod change
+  // Fetch Supabase Data dynamically on year/month/activeSkpgPeriod/bordaYear change
   useEffect(() => {
     if (!mounted) return;
 
     async function fetchMapData() {
       setDataLoading(true);
       try {
-        // Fetch Mature FSVA Dataset (Dinamis mengambil periode terpilih)
+        // Fetch FSVA Dataset: For Borda Count layer (year Y), use FSVA year Y - 1 (e.g. Borda 2026 uses FSVA 2025)
         try {
+          const targetFsvaYear = activeLayer === 'borda' ? (bordaYear - 1) : fsvaYear;
           const { data: fsvaM, error } = await supabase
             .from('fsva_matang')
             .select('*')
-            .eq('periode', fsvaYear);
+            .eq('periode', targetFsvaYear);
+          
           if (!error && fsvaM && fsvaM.length > 0) {
             setFsvaMatangData(fsvaM);
           } else {
-            setFsvaMatangData([]);
+            // Fallback to active fsvaYear if exact targetFsvaYear doesn't exist
+            const { data: fsvaFB } = await supabase
+              .from('fsva_matang')
+              .select('*')
+              .eq('periode', fsvaYear);
+            setFsvaMatangData(fsvaFB || []);
           }
         } catch (e) {
           console.warn('fsva_matang fetch failed:', e);
         }
 
-        // Fetch Mature SKPG Dataset (Dinamis: mengikuti activeSkpgPeriod)
+        // Fetch SKPG Dataset for activeSkpgPeriod & bordaYear
         try {
-          // Fetch YTD average prevalences for the active year
-          const averages: Record<string, number> = {};
+          // Fetch YTD average prevalences for the selected bordaYear (Rata-rata Jan s/d bulan terakhir yg diupload di bordaYear)
+          const bordaAverages: Record<string, number> = {};
           try {
             const { data: ytdRows } = await supabase
               .from('gizi_balita_skpg_kelurahan')
               .select('*')
-              .eq('tahun', activeSkpgPeriod.tahun);
+              .eq('tahun', bordaYear);
             
             if (ytdRows && ytdRows.length > 0) {
               const groups: Record<string, { sum: number; count: number }> = {};
@@ -921,39 +1038,53 @@ export default function MapUnified({
                 }
               });
               Object.keys(groups).forEach(kel => {
-                averages[kel] = groups[kel].sum / groups[kel].count;
+                bordaAverages[kel] = groups[kel].sum / groups[kel].count;
               });
             }
           } catch (eytd) {
-            console.warn('Failed to calculate YTD averages:', eytd);
+            console.warn('Failed to calculate YTD averages for bordaYear:', eytd);
           }
 
-          const { data: skpgRows, error } = await supabase
-            .from('gizi_balita_skpg_kelurahan')
-            .select('*')
-            .eq('tahun', activeSkpgPeriod.tahun)
-            .eq('bulan', activeSkpgPeriod.bulan);
-          
-          if (!error && skpgRows && skpgRows.length > 0) {
-            // Map gizi_balita_skpg_kelurahan to expected MapLayers layout
-            const mappedSkpg = skpgRows.map(r => ({
-              nama_kelurahan: r.kelurahan,
-              gizi_sangat_kurang: r.bb_sangat_kurang,
-              gizi_kurang: r.bb_kurang,
-              gizi_normal: r.bb_normal,
-              gizi_berlebih: r.bb_lebih,
-              periode: r.tahun,
-              bulan: r.bulan,
-              prevalensiRataRata: averages[r.kelurahan]
-            }));
-            setSkpgMatangData(mappedSkpg);
+          if (activeLayer === 'borda') {
+            if (Object.keys(bordaAverages).length === 0) {
+              // Data incomplete for bordaYear -> do not force map display
+              setSkpgMatangData([]);
+            } else {
+              // Build mapped SKPG dataset for Borda
+              const bordaMapped = Object.keys(bordaAverages).map(kel => ({
+                nama_kelurahan: kel,
+                kelurahan: kel,
+                periode: bordaYear,
+                prevalensiRataRata: bordaAverages[kel]
+              }));
+              setSkpgMatangData(bordaMapped);
+            }
           } else {
-            // Fallback to skpg_matang table
-            const { data: skpgMFallback } = await supabase
-              .from('skpg_matang')
+            const { data: skpgRows, error } = await supabase
+              .from('gizi_balita_skpg_kelurahan')
               .select('*')
-              .eq('periode', Number(selectedYear));
-            setSkpgMatangData(skpgMFallback || []);
+              .eq('tahun', activeSkpgPeriod.tahun)
+              .eq('bulan', activeSkpgPeriod.bulan);
+            
+            if (!error && skpgRows && skpgRows.length > 0) {
+              const mappedSkpg = skpgRows.map(r => ({
+                nama_kelurahan: r.kelurahan,
+                gizi_sangat_kurang: r.bb_sangat_kurang,
+                gizi_kurang: r.bb_kurang,
+                gizi_normal: r.bb_normal,
+                gizi_berlebih: r.bb_lebih,
+                periode: r.tahun,
+                bulan: r.bulan,
+                prevalensiRataRata: bordaAverages[r.kelurahan]
+              }));
+              setSkpgMatangData(mappedSkpg);
+            } else {
+              const { data: skpgMFallback } = await supabase
+                .from('skpg_matang')
+                .select('*')
+                .eq('periode', Number(selectedYear));
+              setSkpgMatangData(skpgMFallback || []);
+            }
           }
         } catch (e) {
           console.warn('gizi_balita_skpg_kelurahan fetch failed:', e);
@@ -998,7 +1129,7 @@ export default function MapUnified({
     }
 
     fetchMapData();
-  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear]);
+  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear, bordaYear, activeLayer]);
 
   if (!mounted || kmzLoading) {
     return (
@@ -1025,14 +1156,14 @@ export default function MapUnified({
         'Tamansari': 'PULO MERAK', 'Lebakgede': 'PULO MERAK', 'Mekarsari': 'PULO MERAK', 'Suralaya': 'PULO MERAK',
         'Banjar Negara': 'CIWANDAN', 'Tegal Ratu': 'CIWANDAN', 'Kubangsari': 'CIWANDAN', 'Gunung Sugih': 'CIWANDAN', 'Kepuh': 'CIWANDAN', 'Randakari': 'CIWANDAN',
         'Sukmajaya': 'JOMBANG', 'Jombang Wetan': 'JOMBANG', 'Masigit': 'JOMBANG', 'Panggung Rawi': 'JOMBANG', 'Gedong Dalem': 'JOMBANG',
-        'Kotasari': 'GEROGOL', 'Gerogol': 'GEROGOL', 'Rawa Arum': 'GEROGOL', 'Gerem': 'GEROGOL',
+        'Kotasari': 'GEROGOL', 'Gerogol': 'GEROGOL', 'Grogol': 'GEROGOL', 'Rawa Arum': 'GEROGOL', 'Gerem': 'GEROGOL',
         'Ramanuju': 'PURWAKARTA', 'Kotabumi': 'PURWAKARTA', 'Kebon Dalem': 'PURWAKARTA', 'Purwakarta': 'PURWAKARTA', 'Tegal Bunder': 'PURWAKARTA', 'Pabean': 'PURWAKARTA',
-        'Warnasari': 'CITANGKIL', 'Deringo': 'CITANGKIL', 'Kebonsari': 'CITANGKIL', 'Taman Baru': 'CITANGKIL', 'Lebak Denok': 'CITANGKIL', 'Samangraya': 'CITANGKIL', 'Citangkil': 'CITANGKIL'
+        'Warnasari': 'CITANGKIL', 'Deringo': 'CITANGKIL', 'Dringo': 'CITANGKIL', 'Kebonsari': 'CITANGKIL', 'Taman Baru': 'CITANGKIL', 'Lebak Denok': 'CITANGKIL', 'Samangraya': 'CITANGKIL', 'Citangkil': 'CITANGKIL'
       };
 
       filtered = filtered.filter(f => {
         const kelName = f.properties?.name || f.properties?.Name || '';
-        return KEL_TO_KEC[kelName] === standardKec;
+        return KEL_TO_KEC[kelName] === standardKec || KEL_TO_KEC[normalizeKelurahanName(kelName)] === standardKec;
       });
     }
 
@@ -1040,7 +1171,7 @@ export default function MapUnified({
     if (selectedKelurahan !== 'ALL') {
       filtered = filtered.filter(f => {
         const kelName = f.properties?.name || f.properties?.Name || '';
-        return kelName === selectedKelurahan;
+        return isKelurahanMatch(kelName, selectedKelurahan);
       });
     }
 
@@ -1116,6 +1247,17 @@ export default function MapUnified({
               if (hasNext) setActiveSkpgPeriod(validPeriods[idx + 1]);
             };
 
+            const bIdx = validBordaYears.indexOf(bordaYear);
+            const hasPrevBorda = bIdx > 0;
+            const hasNextBorda = bIdx !== -1 && bIdx < validBordaYears.length - 1;
+
+            const handlePrevBorda = () => {
+              if (hasPrevBorda) setBordaYear(validBordaYears[bIdx - 1]);
+            };
+            const handleNextBorda = () => {
+              if (hasNextBorda) setBordaYear(validBordaYears[bIdx + 1]);
+            };
+
             return (
               <MapController 
                 activeLayer={activeLayer}
@@ -1136,6 +1278,12 @@ export default function MapUnified({
                 fsvaYear={fsvaYear}
                 validFsvaYears={validFsvaYears}
                 setFsvaYear={setFsvaYear}
+                bordaYear={bordaYear}
+                validBordaYears={validBordaYears}
+                onPrevBordaYear={handlePrevBorda}
+                onNextBordaYear={handleNextBorda}
+                hasPrevBordaYear={hasPrevBorda}
+                hasNextBordaYear={hasNextBorda}
               />
             );
           })()}

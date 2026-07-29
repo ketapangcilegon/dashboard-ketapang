@@ -4,9 +4,9 @@ import { trainAndForecastAll } from './ml/train_model';
  * Retrains the ML models and updates the forecast results.
  * This is triggered by cron jobs, ETL pipelines, or administrative manual runs.
  */
-export async function retrainModel() {
+export async function retrainModel(token?: string) {
   console.log('[ML Retrain] Memulai retraining model terpadu...');
-  const result = await trainAndForecastAll();
+  const result = await trainAndForecastAll(token);
   return {
     success: true,
     totalForecasts: result.totalForecasts,

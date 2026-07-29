@@ -104,13 +104,13 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
   };
 
   return (
-    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#DC2626] via-[#FCA5A5]/45 to-white/95 p-4 rounded-xl shadow-md border border-red-200/50 items-center justify-between group select-none">
+    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#38d48b] via-[#bff6c3]/60 to-white/95 p-4 rounded-xl shadow-md border border-[#bff6c3]/80 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
         onClick={() => setShowAIModal(true)}
         title="Analisis AI GovTech"
-        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-red-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-red-100 z-10"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-emerald-700 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-emerald-100 z-10"
       >
         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
       </button>
@@ -129,8 +129,8 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
             {/* Outer Gray Track */}
             <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* Red Progress Arc */}
-            <path d={getArcPath(percentValue)} fill="none" stroke="#DC2626" strokeWidth="8" strokeLinecap="round" />
+            {/* Green Progress Arc */}
+            <path d={getArcPath(percentValue)} fill="none" stroke="#16a34a" strokeWidth="8" strokeLinecap="round" />
             
             {/* Needle */}
             <line 
@@ -157,7 +157,7 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-red-800/80 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-emerald-950/80 mt-0.5">
         <span>0</span>
         <span>1.750</span>
         <span>3.500</span>
@@ -171,14 +171,14 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-red-900 font-bold mt-2">Target Nasional: 2.400</p>
+      <p className="text-[9px] text-emerald-950 font-bold mt-2">Target Nasional: 2.400</p>
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="absolute inset-0 bg-white/98 rounded-xl border border-red-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-emerald-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
            {/* Header */}
-           <div className="flex items-center justify-between border-b border-red-100 pb-2">
-              <div className="flex items-center gap-1.5 text-red-600">
+           <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+              <div className="flex items-center gap-1.5 text-emerald-600">
                  <Sparkles className="w-4 h-4 animate-pulse" />
                  <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
               </div>
@@ -191,9 +191,9 @@ export default function KetersediaanEnergiGauge({ value = 2582, year = 2025 }: K
               </p>
            </div>
            {/* Footer */}
-           <div className="border-t border-red-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+           <div className="border-t border-emerald-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
               <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-              <button onClick={() => setShowAIModal(false)} className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+              <button onClick={() => setShowAIModal(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
       )}

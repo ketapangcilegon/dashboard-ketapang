@@ -101,13 +101,13 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
   };
 
   return (
-    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#EA580C] via-[#FDBA74]/45 to-white/95 p-4 rounded-xl shadow-md border border-orange-200/50 items-center justify-between group select-none">
+    <div ref={setElementRef} className="relative flex flex-col h-full bg-gradient-to-br from-[#d97ae8] via-[#eabff6]/60 to-white/95 p-4 rounded-xl shadow-md border border-[#eabff6]/80 items-center justify-between group select-none">
       
       {/* AI Interpretation Icon */}
       <button 
         onClick={() => setShowAIModal(true)}
         title="Analisis AI GovTech"
-        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-orange-600 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-orange-100 z-10"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-purple-700 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md flex items-center justify-center border border-purple-100 z-10"
       >
         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
       </button>
@@ -126,8 +126,8 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
             {/* Outer Gray Track */}
             <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="8" strokeLinecap="round" />
             
-            {/* Orange Progress Arc */}
-            <path d={getArcPath(percentValue)} fill="none" stroke="#D97706" strokeWidth="8" strokeLinecap="round" />
+            {/* Purple Progress Arc */}
+            <path d={getArcPath(percentValue)} fill="none" stroke="#9333ea" strokeWidth="8" strokeLinecap="round" />
             
             {/* Jarum Penunjuk (Needle) */}
             <line 
@@ -154,7 +154,7 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
       </div>
 
       {/* Target/Scale Limits */}
-      <div className="flex justify-between w-32 text-[8px] font-bold text-orange-800/80 mt-0.5">
+      <div className="flex justify-between w-32 text-[8px] font-bold text-purple-900/80 mt-0.5">
         <span>0</span>
         <span>1.500</span>
         <span>3.000</span>
@@ -168,14 +168,14 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
       </div>
       
       {/* Target info */}
-      <p className="text-[9px] text-[#A33A00] font-bold mt-2">Target Nasional: 2.100</p>
+      <p className="text-[9px] text-purple-950 font-bold mt-2">Target Nasional: 2.100</p>
 
       {/* AI Modal Popup */}
       {showAIModal && (
-        <div className="absolute inset-0 bg-white/98 rounded-xl border border-orange-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
+        <div className="absolute inset-0 bg-white/98 rounded-xl border border-purple-200/50 p-4 flex flex-col justify-between shadow-lg z-30 animate-in fade-in zoom-in-95 duration-200 text-left">
            {/* Header */}
-           <div className="flex items-center justify-between border-b border-orange-100 pb-2">
-              <div className="flex items-center gap-1.5 text-orange-600">
+           <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+              <div className="flex items-center gap-1.5 text-purple-600">
                  <Sparkles className="w-4 h-4 animate-pulse" />
                  <span className="font-extrabold text-[10px] tracking-wide uppercase">Analisis AI GovTech</span>
               </div>
@@ -188,9 +188,9 @@ export default function EnergiGauge({ value = 2163, year = 2025 }: EnergiGaugePr
               </p>
            </div>
            {/* Footer */}
-           <div className="border-t border-orange-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
+           <div className="border-t border-purple-100 pt-2 flex justify-between items-center text-[7px] font-bold text-slate-400">
               <span>SEKTOR KETAHANAN PANGAN CILEGON</span>
-              <button onClick={() => setShowAIModal(false)} className="bg-orange-600 hover:bg-orange-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
+              <button onClick={() => setShowAIModal(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded text-[8px] font-black transition-all active:scale-95 shadow-sm cursor-pointer">Tutup</button>
            </div>
         </div>
       )}
