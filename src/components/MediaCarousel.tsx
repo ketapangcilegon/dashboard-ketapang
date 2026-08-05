@@ -99,6 +99,7 @@ export default function MediaCarousel() {
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [activeVideoModal, setActiveVideoModal] = useState<DashboardMedia | null>(null);
   const [inlineVideoPlaying, setInlineVideoPlaying] = useState<boolean>(false);
+  const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
 
   // Swipe gesture touch state
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -204,9 +205,10 @@ export default function MediaCarousel() {
         </div>
       </div>
 
-      {/* Main Carousel Hero Card (Compact Height: ~180-220px for Data-First View) */}
+      {/* Main Carousel Hero Card (Click/Tap to Toggle Clean Mode / Mode Bersih) */}
       <div 
-        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/80 group transition-all duration-300 h-[170px] sm:h-[195px] md:h-[210px] lg:h-[220px] flex flex-col justify-between"
+        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/80 group transition-all duration-300 h-[170px] sm:h-[195px] md:h-[210px] lg:h-[220px] flex flex-col justify-between cursor-pointer select-none"
+        onClick={() => setShowTextOverlay(prev => !prev)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={handleTouchStart}
@@ -214,10 +216,16 @@ export default function MediaCarousel() {
         onTouchEnd={handleTouchEnd}
       >
         {/* Counter Badge & Play/Pause (Top Right Overlay) */}
-        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20 text-white text-[10px] sm:text-[11px] font-bold shadow-sm">
+        <div 
+          className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20 text-white text-[10px] sm:text-[11px] font-bold shadow-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
           <span>{currentIndex + 1} / {totalItems}</span>
           <button 
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPlaying(!isPlaying);
+            }}
             className="hover:text-emerald-400 transition-colors cursor-pointer p-0.5"
             title={isPlaying ? "Jeda Autoplay" : "Putar Autoplay"}
           >
@@ -228,7 +236,7 @@ export default function MediaCarousel() {
         {/* Media Content Container */}
         <div className="absolute inset-0 w-full h-full">
           {currentItem.media_type === 'video' && inlineVideoPlaying ? (
-            <div className="relative w-full h-full bg-black flex items-center justify-center">
+            <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <video 
                 src={currentItem.media_url}
                 controls
@@ -237,7 +245,10 @@ export default function MediaCarousel() {
                 onEnded={() => setInlineVideoPlaying(false)}
               />
               <button
-                onClick={() => setInlineVideoPlaying(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInlineVideoPlaying(false);
+                }}
                 className="absolute top-3 left-3 z-30 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-all cursor-pointer"
                 title="Tutup Video"
               >
@@ -259,18 +270,24 @@ export default function MediaCarousel() {
           )}
         </div>
 
-        {/* Previous Button (Left Arrow - Centered Vertically & Compact Translucent Style) */}
+        {/* Previous Button (Left Arrow - Always Visible) */}
         <button
-          onClick={prevSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
           className="absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/35 hover:bg-black/65 text-white shadow-md border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
           aria-label="Previous Slide"
         >
           <ChevronLeft className="w-4 h-4 text-white" />
         </button>
 
-        {/* Next Button (Right Arrow - Centered Vertically & Compact Translucent Style) */}
+        {/* Next Button (Right Arrow - Always Visible) */}
         <button
-          onClick={nextSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
           className="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/35 hover:bg-black/65 text-white shadow-lg border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
           aria-label="Next Slide"
         >
@@ -281,7 +298,10 @@ export default function MediaCarousel() {
         {currentItem.media_type === 'video' && !inlineVideoPlaying && (
           <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
             <button
-              onClick={() => setInlineVideoPlaying(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setInlineVideoPlaying(true);
+              }}
               className="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all border-2 border-white/40 cursor-pointer"
               title="Putar Video"
             >
@@ -290,11 +310,18 @@ export default function MediaCarousel() {
           </div>
         )}
 
-        {/* Bottom-Left Text & Content Overlay (Title Max 2 Lines & Description Max 3 Lines, Scrollable if Exceeded) */}
+        {/* Bottom-Left Text & Content Overlay (Clean Mode Toggle: Hides text when showTextOverlay is false) */}
         {!inlineVideoPlaying && (
-          <div className="absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[72%] sm:max-w-md lg:max-w-lg text-left pointer-events-none space-y-0.5">
+          <div 
+            className={`absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[72%] sm:max-w-md lg:max-w-lg text-left transition-all duration-300 space-y-0.5 ${
+              showTextOverlay ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+            }`}
+          >
             {/* Title (Max 2 lines on Mobile, scrollable if exceeded) */}
-            <div className="max-h-[2.2rem] sm:max-h-[3rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 mb-0.5">
+            <div 
+              className="max-h-[2.2rem] sm:max-h-[3rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 mb-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 
                 className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide whitespace-normal break-words"
                 style={{
@@ -310,7 +337,10 @@ export default function MediaCarousel() {
 
             {/* Description (Max 3 lines on Mobile, scrollable if exceeded) */}
             {currentItem.description && (
-              <div className="max-h-[3.2rem] sm:max-h-[4.4rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50">
+              <div 
+                className="max-h-[3.2rem] sm:max-h-[4.4rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <p 
                   className="text-[10px] sm:text-[11.5px] font-medium leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
                   style={{
@@ -333,7 +363,8 @@ export default function MediaCarousel() {
             {items.map((_, idx) => (
               <button
                 key={idx}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setCurrentIndex(idx);
                   setInlineVideoPlaying(false);
                 }}
