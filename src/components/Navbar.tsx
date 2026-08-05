@@ -49,7 +49,7 @@ export default function Navbar({
   const activeKelurahans = selectedKecamatan !== 'ALL' ? WILAYAH[selectedKecamatan] : [];
 
   return (
-    <header className="h-auto pt-2.5 pb-2.5 sm:pt-6 sm:pb-6 bg-transparent flex items-center justify-between px-3 sm:px-6 z-10 select-none">
+    <header className="h-auto pt-1.5 pb-1.5 sm:pt-2 sm:pb-2 bg-transparent flex items-center justify-between px-3 sm:px-6 z-10 select-none">
       <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Mobile Menu Toggle Button */}
         <button

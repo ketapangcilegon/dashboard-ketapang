@@ -12,6 +12,7 @@ import EnergiGauge from '@/components/EnergiGauge';
 import { supabase } from '@/lib/supabase';
 import { WILAYAH } from '@/lib/wilayah';
 import { BENCHMARKS } from '@/lib/benchmark';
+import MediaCarousel from '@/components/MediaCarousel';
 import dynamic from 'next/dynamic';
 
 // Lazy-load heavier panels and view modules to optimize mobile bundle load time
@@ -1178,6 +1179,9 @@ export default function DashboardPage() {
               
               {currentView === 'beranda' && (
                 <>
+                  {/* INFORMASI & DOKUMENTASI (Hero Media Carousel) */}
+                  <MediaCarousel />
+
                   {/* Title Header for KPI Carousel */}
                   <div className="flex items-center gap-2 px-1 print:px-0 mb-3">
                     <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>

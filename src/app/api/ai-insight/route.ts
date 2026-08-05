@@ -45,6 +45,11 @@ export async function POST(request: Request) {
 
     // 1. CEK CACHE DATABASE (SUPABASE) & IN-MEMORY CACHE
     try {
+      // Purge old test cache entries if present
+      if (localCache[cacheKey] && (localCache[cacheKey].insight.includes('# 1. RINGKASAN EKSEKUTIF') || localCache[cacheKey].insight.includes('REKOMENDASI KEBIJAKAN TELAAHAN STAF'))) {
+        delete localCache[cacheKey];
+      }
+
       // Cek in-memory cache lokal terlebih dahulu (sangat cepat)
       if (localCache[cacheKey] && (now - localCache[cacheKey].timestamp) < CACHE_TTL) {
         return NextResponse.json({

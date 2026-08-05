@@ -5,17 +5,29 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import UploadPanel from '@/components/UploadPanel';
-import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff } from 'lucide-react';
+import AdminMediaPanel from '@/components/AdminMediaPanel';
+import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeTab, setActiveTab] = useState<'upload' | 'media'>('upload');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Read URL query parameter for tab selection
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'media') {
+        setActiveTab('media');
+      }
+    }
+  }, []);
 
   // Load session from sessionStorage to persist state on refresh
   useEffect(() => {
@@ -204,22 +216,55 @@ export default function EntryPage() {
           ) : (
             /* UPLOAD & MANUAL INPUT FORMS WRAPPER */
             <div className="w-full max-w-5xl space-y-6">
-              <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+              {/* Header Bar with Logout & Tab Switcher */}
+              <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-extrabold text-[#0B1E41] tracking-tight">Upload & Input Data Ketahanan Pangan</h2>
+                  <h2 className="text-xl font-extrabold text-[#0B1E41] tracking-tight">Portal Manajemen Admin</h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Unggah template Excel atau gunakan formulir input manual di bawah. Sistem terintegrasi dengan database Supabase Kota Cilegon.
+                    Kelola data indikator ketahanan pangan serta media informasi & dokumentasi Kota Cilegon.
                   </p>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-black text-rose-600 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-black text-rose-600 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0 self-start md:self-auto"
                 >
-                  <LogOut className="w-4 h-4" /> Keluar
+                  <LogOut className="w-4 h-4" /> Keluar Portal
                 </button>
               </div>
-              
-              <UploadPanel />
+
+              {/* Admin Tabs */}
+              <div className="flex items-center gap-3 border-b border-slate-200 pb-1">
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'upload'
+                      ? 'bg-emerald-800 text-white shadow-md'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Upload & Input Data Ketahanan Pangan</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('media')}
+                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'media'
+                      ? 'bg-emerald-800 text-white shadow-md'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Manajemen Informasi & Dokumentasi</span>
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === 'upload' ? (
+                <UploadPanel />
+              ) : (
+                <AdminMediaPanel />
+              )}
             </div>
           )}
         </main>
