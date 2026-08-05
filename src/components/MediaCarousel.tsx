@@ -290,7 +290,7 @@ export default function MediaCarousel() {
           </div>
         )}
 
-        {/* Bottom-Left Text & Content Metadata Overlay (Compact Layout for ~190-220px Card) */}
+        {/* Bottom-Left Text & Content Overlay (Title & Scrollable Wrapped Description) */}
         {!inlineVideoPlaying && (
           <div className="absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[70%] sm:max-w-md lg:max-w-lg text-left pointer-events-none space-y-0.5">
             {/* Title */}
@@ -306,52 +306,21 @@ export default function MediaCarousel() {
               {currentItem.title}
             </h3>
 
-            {/* Location & Date */}
-            {(currentItem.location || currentItem.event_date) && (
-              <div 
-                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-bold text-[10px] sm:text-[11px] mb-0.5"
-                style={{
-                  color: '#ffffff',
-                  WebkitTextStroke: '0.8px #000000',
-                  paintOrder: 'stroke fill',
-                  textShadow: '0 1px 2.5px rgba(0,0,0,0.95), 0 0 3px #000000'
-                }}
-              >
-                {currentItem.location && (
-                  <span className="flex items-center gap-1 text-emerald-300">
-                    <MapPin 
-                      className="w-3 h-3 text-emerald-400 shrink-0" 
-                      style={{ filter: 'drop-shadow(0 0 1.5px #000) drop-shadow(0.5px 0.5px 0px #000)' }}
-                    />
-                    {currentItem.location}
-                  </span>
-                )}
-                {currentItem.location && currentItem.event_date && <span>•</span>}
-                {currentItem.event_date && (
-                  <span className="flex items-center gap-1 text-emerald-300">
-                    <Calendar 
-                      className="w-3 h-3 text-emerald-400 shrink-0" 
-                      style={{ filter: 'drop-shadow(0 0 1.5px #000) drop-shadow(0.5px 0.5px 0px #000)' }}
-                    />
-                    {formatDate(currentItem.event_date)}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Short Description */}
+            {/* Description (Text-wrap & Scrollable for Long Sentences) */}
             {currentItem.description && (
-              <p 
-                className="text-[9.5px] sm:text-[10.5px] line-clamp-1 sm:line-clamp-2 font-medium leading-tight max-w-xs sm:max-w-md"
-                style={{
-                  color: '#ffffff',
-                  WebkitTextStroke: '0.7px #000000',
-                  paintOrder: 'stroke fill',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 3px #000000'
-                }}
-              >
-                {currentItem.description}
-              </p>
+              <div className="max-h-[3.2rem] sm:max-h-[4.2rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50">
+                <p 
+                  className="text-[10px] sm:text-[11.5px] font-medium leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
+                  style={{
+                    color: '#ffffff',
+                    WebkitTextStroke: '0.75px #000000',
+                    paintOrder: 'stroke fill',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 3px #000000'
+                  }}
+                >
+                  {currentItem.description}
+                </p>
+              </div>
             )}
           </div>
         )}
