@@ -101,6 +101,17 @@ export default function MediaCarousel() {
   const [inlineVideoPlaying, setInlineVideoPlaying] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
 
+  // Dynamic Title & Description line measuring for mobile (Item 1)
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [isTitleTwoLines, setIsTitleTwoLines] = useState<boolean>(false);
+
+  // Drag/Pan Image State for 3.6:1 Aspect Ratio Images on Mobile (Item 2)
+  const [panPercentage, setPanPercentage] = useState<number>(50);
+  const [isDraggingImage, setIsDraggingImage] = useState<boolean>(false);
+  const dragStartX = useRef<number>(0);
+  const dragStartPan = useRef<number>(50);
+  const hasMovedDrag = useRef<boolean>(false);
+
   // Swipe gesture touch state
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
@@ -140,9 +151,27 @@ export default function MediaCarousel() {
     setInlineVideoPlaying(false);
   }, [totalItems]);
 
+  // Reset pan & check title height on slide change
+  useEffect(() => {
+    setPanPercentage(50);
+  }, [currentIndex]);
+
+  useEffect(() => {
+    const checkTitleLines = () => {
+      if (titleRef.current) {
+        const h = titleRef.current.clientHeight;
+        // On mobile, text-xs line height is ~16.5px. If height > 22px, title is 2 lines.
+        setIsTitleTwoLines(h > 22);
+      }
+    };
+    checkTitleLines();
+    window.addEventListener('resize', checkTitleLines);
+    return () => window.removeEventListener('resize', checkTitleLines);
+  }, [currentIndex, items]);
+
   // Autoplay Timer (5-7 seconds interval)
   useEffect(() => {
-    if (!isPlaying || isHovered || activeVideoModal !== null || inlineVideoPlaying || totalItems <= 1) {
+    if (!isPlaying || isHovered || activeVideoModal !== null || inlineVideoPlaying || isDraggingImage || totalItems <= 1) {
       return;
     }
 
@@ -151,9 +180,44 @@ export default function MediaCarousel() {
     }, 6000); // 6 seconds
 
     return () => clearInterval(timer);
-  }, [isPlaying, isHovered, activeVideoModal, inlineVideoPlaying, totalItems, nextSlide]);
+  }, [isPlaying, isHovered, activeVideoModal, inlineVideoPlaying, isDraggingImage, totalItems, nextSlide]);
 
-  // Touch Swipe Handlers
+  // Pointer / Touch Handlers for Drag/Pan Image (Item 2)
+  const handlePointerDown = (e: React.PointerEvent) => {
+    dragStartX.current = e.clientX;
+    dragStartPan.current = panPercentage;
+    hasMovedDrag.current = false;
+    setIsDraggingImage(true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingImage) return;
+    const deltaX = e.clientX - dragStartX.current;
+    if (Math.abs(deltaX) > 5) {
+      hasMovedDrag.current = true;
+    }
+    const containerWidth = (e.currentTarget as HTMLElement).clientWidth || 360;
+    // Dragging left (deltaX < 0) increases pan % (moves image right)
+    // Dragging right (deltaX > 0) decreases pan % (moves image left)
+    const panDelta = -(deltaX / containerWidth) * 110;
+    const newPan = Math.max(0, Math.min(100, dragStartPan.current + panDelta));
+    setPanPercentage(newPan);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDraggingImage) return;
+    setIsDraggingImage(false);
+
+    const deltaX = e.clientX - dragStartX.current;
+    // Quick horizontal swipe over 75px triggers slide transition
+    if (deltaX < -75) {
+      nextSlide();
+    } else if (deltaX > 75) {
+      prevSlide();
+    }
+  };
+
+  // Touch Swipe Fallbacks
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEndX(null);
     setTouchStartX(e.targetTouches[0].clientX);
@@ -166,7 +230,7 @@ export default function MediaCarousel() {
   const handleTouchEnd = () => {
     if (!touchStartX || !touchEndX) return;
     const distance = touchStartX - touchEndX;
-    const minSwipeDistance = 40; // minimum px swipe
+    const minSwipeDistance = 50; // minimum px swipe
     if (distance > minSwipeDistance) {
       nextSlide();
     } else if (distance < -minSwipeDistance) {
@@ -177,21 +241,6 @@ export default function MediaCarousel() {
   if (totalItems === 0) return null;
 
   const currentItem = items[currentIndex];
-
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return dateStr;
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
 
   return (
     <div className="w-full mb-3.5 select-none">
@@ -205,12 +254,23 @@ export default function MediaCarousel() {
         </div>
       </div>
 
-      {/* Main Carousel Hero Card (Click/Tap to Toggle Clean Mode / Mode Bersih) */}
+      {/* Main Carousel Hero Card */}
       <div 
-        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/80 group transition-all duration-300 h-[170px] sm:h-[195px] md:h-[210px] lg:h-[220px] flex flex-col justify-between cursor-pointer select-none"
-        onClick={() => setShowTextOverlay(prev => !prev)}
+        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/80 group transition-all duration-300 h-[170px] sm:h-[195px] md:h-[210px] lg:h-[220px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x"
+        onClick={() => {
+          if (!hasMovedDrag.current) {
+            setShowTextOverlay(prev => !prev);
+          }
+        }}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setIsDraggingImage(false);
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => setIsDraggingImage(false)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -260,8 +320,10 @@ export default function MediaCarousel() {
               <img 
                 src={currentItem.media_type === 'video' ? (currentItem.thumbnail_url || currentItem.media_url) : currentItem.media_url}
                 alt={currentItem.title}
-                className="w-full h-full object-cover transform scale-[1.01] transition-transform duration-700 ease-out"
+                className="w-full h-full object-cover transform scale-[1.01] transition-all duration-75 ease-out select-none pointer-events-none"
+                style={{ objectPosition: `${panPercentage}% center` }}
                 loading="eager"
+                draggable={false}
               />
               
               {/* Subtle Overlay to enhance contrast without darkening full image */}
@@ -310,7 +372,7 @@ export default function MediaCarousel() {
           </div>
         )}
 
-        {/* Bottom-Left Text & Content Overlay (Clean Mode Toggle: Hides text when showTextOverlay is false) */}
+        {/* Bottom-Left Text & Content Overlay */}
         {!inlineVideoPlaying && (
           <div 
             className={`absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[72%] sm:max-w-md lg:max-w-lg text-left transition-all duration-300 space-y-0.5 ${
@@ -323,6 +385,7 @@ export default function MediaCarousel() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 
+                ref={titleRef}
                 className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide whitespace-normal break-words"
                 style={{
                   color: '#ffffff',
@@ -335,10 +398,12 @@ export default function MediaCarousel() {
               </h3>
             </div>
 
-            {/* Description (Max 3 lines on Mobile, scrollable if exceeded) */}
+            {/* Description (Dynamic Clamping: Max 2 lines if Title is 2 lines, Max 3 lines if Title is 1 line on Mobile) */}
             {currentItem.description && (
               <div 
-                className="max-h-[3.2rem] sm:max-h-[4.4rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50"
+                className={`overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 transition-all duration-200 ${
+                  isTitleTwoLines ? 'max-h-[2.1rem] sm:max-h-[4.4rem]' : 'max-h-[3.1rem] sm:max-h-[4.4rem]'
+                }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <p 
@@ -347,7 +412,7 @@ export default function MediaCarousel() {
                     color: '#ffffff',
                     WebkitTextStroke: '0.75px #000000',
                     paintOrder: 'stroke fill',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 3px #000000'
+                    textShadow: '0 1px 1.5px rgba(0,0,0,0.95), 0 0 3px #000000'
                   }}
                 >
                   {currentItem.description}

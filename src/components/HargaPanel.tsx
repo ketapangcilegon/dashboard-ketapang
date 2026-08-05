@@ -27,8 +27,9 @@ export default function HargaPanel({
   const liveDate = hasPropLive ? propLiveDate : localLiveDate;
   const loadingLive = hasPropLive ? propLoadingLive : localLoadingLive;
 
-  // Date Navigation Mockup State
-  const liveDateString = liveDate || '2026-05-31';
+  // Date Navigation State
+  const todayStr = new Date().toISOString().split('T')[0];
+  const liveDateString = liveDate || todayStr;
 
   // Helper to subtract days from a date string dynamically
   const subtractDays = (dateStr: string, days: number): string => {

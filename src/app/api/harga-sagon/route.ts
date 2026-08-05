@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Server-side Supabase client using Service Role Key for secure RLS write bypass on server
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
 // Disable TLS verification to bypass self-signed SSL issues on government websites
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -169,7 +174,7 @@ export async function GET(request: Request) {
   if (!success) {
     console.log(`[SAGON Scraper] SAGON is entirely offline or daily attempts failed. Attempting fallback to Supabase archive...`);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseServer
         .from('harga_sagon_harian')
         .select('*')
         .order('tanggal', { ascending: false })
@@ -205,14 +210,17 @@ export async function GET(request: Request) {
     }
   }
   
-  // Final stable fallback to 2026-05-13 if everything else fails and Supabase is empty
+  // Dynamic fallback to yesterday if SAGON is down and Supabase is empty
   if (!success) {
-    console.log(`[SAGON Scraper] Supabase archive is empty. Trying static fallback on SAGON for 3 markets: 2026-05-13`);
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = formatDate(yesterdayDate);
+    console.log(`[SAGON Scraper] Supabase archive is empty. Trying dynamic fallback on SAGON for yesterday: ${yesterdayStr}`);
     try {
       const results = await Promise.all([
-        scrapeMarket('1', '2026-05-13'),
-        scrapeMarket('2', '2026-05-13'),
-        scrapeMarket('3', '2026-05-13')
+        scrapeMarket('1', yesterdayStr),
+        scrapeMarket('2', yesterdayStr),
+        scrapeMarket('3', yesterdayStr)
       ]);
       
       results.forEach(res => {
@@ -224,11 +232,11 @@ export async function GET(request: Request) {
         });
       });
       if (success) {
-        parsedDate = '2026-05-13';
+        parsedDate = yesterdayStr;
       }
     } catch (err: unknown) {
       const err2 = err as Error;
-      console.error('[SAGON Scraper] Static fallback date scrape failed:', err2.message);
+      console.error('[SAGON Scraper] Dynamic yesterday fallback scrape failed:', err2.message);
     }
   }
   
@@ -265,7 +273,7 @@ export async function GET(request: Request) {
   
   // Archive/Upsert to Supabase
   try {
-    const { error: upsertError } = await supabase.from('harga_sagon_harian').upsert({
+    const { error: upsertError } = await supabaseServer.from('harga_sagon_harian').upsert({
       tanggal: parsedDate,
       beras: prices.beras,
       minyak_goreng: prices.minyak_goreng,
