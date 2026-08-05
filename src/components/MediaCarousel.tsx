@@ -290,25 +290,27 @@ export default function MediaCarousel() {
           </div>
         )}
 
-        {/* Bottom-Left Text & Content Overlay (Title & Scrollable Wrapped Description) */}
+        {/* Bottom-Left Text & Content Overlay (Title Max 2 Lines & Description Max 3 Lines, Scrollable if Exceeded) */}
         {!inlineVideoPlaying && (
-          <div className="absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[70%] sm:max-w-md lg:max-w-lg text-left pointer-events-none space-y-0.5">
-            {/* Title */}
-            <h3 
-              className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide mb-0.5"
-              style={{
-                color: '#ffffff',
-                WebkitTextStroke: '1px #000000',
-                paintOrder: 'stroke fill',
-                textShadow: '0 1.5px 3px rgba(0,0,0,0.95), 0 0 4px #000000'
-              }}
-            >
-              {currentItem.title}
-            </h3>
+          <div className="absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[72%] sm:max-w-md lg:max-w-lg text-left pointer-events-none space-y-0.5">
+            {/* Title (Max 2 lines on Mobile, scrollable if exceeded) */}
+            <div className="max-h-[2.2rem] sm:max-h-[3rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 mb-0.5">
+              <h3 
+                className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide whitespace-normal break-words"
+                style={{
+                  color: '#ffffff',
+                  WebkitTextStroke: '1px #000000',
+                  paintOrder: 'stroke fill',
+                  textShadow: '0 1.5px 3px rgba(0,0,0,0.95), 0 0 4px #000000'
+                }}
+              >
+                {currentItem.title}
+              </h3>
+            </div>
 
-            {/* Description (Text-wrap & Scrollable for Long Sentences) */}
+            {/* Description (Max 3 lines on Mobile, scrollable if exceeded) */}
             {currentItem.description && (
-              <div className="max-h-[3.2rem] sm:max-h-[4.2rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50">
+              <div className="max-h-[3.2rem] sm:max-h-[4.4rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50">
                 <p 
                   className="text-[10px] sm:text-[11.5px] font-medium leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
                   style={{
