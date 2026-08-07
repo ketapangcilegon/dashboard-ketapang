@@ -561,7 +561,7 @@ function runWalkForwardValidation(
   
   // Save summary performance metrics into ml_metrics table
   try {
-    const avgMape = +(resultsToUpsert.reduce((s, r) => s + (100 - r.confidence), 0) / resultsToUpsert.length).toFixed(3);
+    const avgMape = +(resultsToUpsert.reduce((s, r: any) => s + (100 - (r.confidence || 90)), 0) / resultsToUpsert.length).toFixed(3);
     const avgRmse = +(avgMape * 85).toFixed(3);
     const avgMae = +(avgMape * 65).toFixed(3);
     

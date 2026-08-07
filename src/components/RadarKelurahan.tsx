@@ -9,97 +9,99 @@ import {
 import { WILAYAH, ALL_KEC } from '@/lib/wilayah';
 import { 
   ShieldCheck, AlertCircle, Layers, Sliders, ArrowRightLeft, 
-  Sparkles, CheckCircle2, TrendingUp, Calendar, Database, FileSpreadsheet
+  Sparkles, CheckCircle2, TrendingUp, Calendar, FileSpreadsheet, Loader2
 } from 'lucide-react';
-import fsvaOfficialRaw from '@/lib/fsva-official-data.json';
+import { supabase } from '@/lib/supabase';
+import fsvaForm2Raw from '@/lib/fsva-form2-official-data.json';
 
-const fsvaOfficialData: Record<string, Record<string, any>> = fsvaOfficialRaw as any;
+const fsvaForm2Data: Record<string, any> = fsvaForm2Raw as any;
 
 interface KelurahanData {
   nama: string;
   kecamatan: string;
-  // Availability (Pilar Ketersediaan)
-  score_lahan: number;
-  score_sarana: number;
+  // 11 Indikator Raw Values (Form 2.1)
+  raw_ncpr: number;
+  raw_energy: number;
+  raw_animal_protein: number;
+  raw_food_reserves: number;
+  raw_poverty: number;
+  raw_price_cv: number;
+  raw_pou: number;
+  raw_female_school: number;
+  raw_no_water: number;
+  raw_pph: number;
+  raw_stunting: number;
+  // 11 Indikator Normalized Scores 0-100 (Form 2.3)
+  score_ncpr: number;
+  score_energy: number;
+  score_animal_protein: number;
+  score_food_reserves: number;
+  score_poverty: number;
+  score_price_cv: number;
+  score_pou: number;
+  score_female_school: number;
+  score_no_water: number;
+  score_pph: number;
+  score_stunting: number;
+  // Composite & Sub-Indices
   idx_ketersediaan: number;
-  ncpr: number;
-  ake: number;
-  prohe: number;
-  cadangan: number;
-  // Accessibility (Pilar Keterjangkauan)
-  score_miskin: number;
-  score_jalan: number;
   idx_akses: number;
-  pct_miskin: number;
-  pou: number;
-  cv_harga: number;
-  // Utilization (Pilar Pemanfaatan)
-  score_air: number;
-  score_tenkes: number;
   idx_pemanfaatan: number;
-  pct_no_water: number;
-  rls_perempuan: number;
-  skor_pph: number;
-  pct_stunting: number;
-  // Composite Score
-  idx_komposit: number;
+  ikp: number;
   rank: number;
 }
 
-// Function to lookup official FSVA data from fsva_interaktif_2024_2025.xlsx
-function getOfficialFSVAData(year: number): Record<string, KelurahanData> {
-  const yearKey = String(year) as '2025' | '2024';
-  const yearDataset = fsvaOfficialData[yearKey] || fsvaOfficialData['2025'] || {};
+// Function to lookup official FSVA 11-indicator data
+function getForm2FSVAData(dbRows: any[]): Record<string, KelurahanData> {
   const result: Record<string, KelurahanData> = {};
 
   Object.entries(WILAYAH).forEach(([kec, kels]) => {
     kels.forEach((kel) => {
-      // Find matching item in official JSON
-      const officialItem = Object.values(yearDataset).find(
+      // Find matching item in DB rows first
+      const dbMatch = (dbRows || []).find(
+        (d) => d.nama_kelurahan?.toLowerCase().replace(/\s+/g, '') === kel.toLowerCase().replace(/\s+/g, '')
+      );
+
+      // Or fallback to official Form 2.1 & 2.3 JSON
+      const jsonMatch = Object.values(fsvaForm2Data).find(
         (item: any) => item.kelurahan?.toLowerCase().replace(/\s+/g, '') === kel.toLowerCase().replace(/\s+/g, '')
       ) || {};
 
-      const scoreLahan = officialItem.score_lahan ?? 60;
-      const scoreSarana = officialItem.score_sarana ?? 70;
-      const scoreMiskin = officialItem.score_miskin ?? 65;
-      const scoreJalan = officialItem.score_jalan ?? 80;
-      const scoreAir = officialItem.score_air ?? 75;
-      const scoreTenkes = officialItem.score_tenkes ?? 70;
-
-      const idxAvail = officialItem.idx_ketersediaan ?? Math.round((scoreLahan + scoreSarana) / 2);
-      const idxAccess = officialItem.idx_akses ?? Math.round((scoreMiskin + scoreJalan) / 2);
-      const idxUtil = officialItem.idx_pemanfaatan ?? Math.round((scoreAir + scoreTenkes) / 2);
-      const idxKomposit = officialItem.idx_komposit ?? officialItem.ikp ?? Math.round((idxAvail + idxAccess + idxUtil) / 3);
+      const item = dbMatch || jsonMatch;
 
       result[kel] = {
         nama: kel,
         kecamatan: kec,
-        // Availability
-        score_lahan: scoreLahan,
-        score_sarana: scoreSarana,
-        idx_ketersediaan: idxAvail,
-        ncpr: +(0.85 + ((kel.length % 5) * 0.05)).toFixed(2),
-        ake: +(105 + ((kel.length % 4) * 2)).toFixed(1),
-        prohe: +(110 + ((kel.length % 6) * 1.5)).toFixed(1),
-        cadangan: 0.85,
-        // Accessibility
-        score_miskin: scoreMiskin,
-        score_jalan: scoreJalan,
-        idx_akses: idxAccess,
-        pct_miskin: +(officialItem.rasio_miskin ? (officialItem.rasio_miskin * 100).toFixed(1) : 12.5),
-        pou: 6.8,
-        cv_harga: 5.4,
-        // Utilization
-        score_air: scoreAir,
-        score_tenkes: scoreTenkes,
-        idx_pemanfaatan: idxUtil,
-        pct_no_water: +(officialItem.rasio_air ? (officialItem.rasio_air * 100).toFixed(1) : 5.2),
-        rls_perempuan: 9.2,
-        skor_pph: 88,
-        pct_stunting: 11.4,
-        // Composite Score
-        idx_komposit: idxKomposit,
-        rank: officialItem.rank ?? 1,
+        // Raw Values
+        raw_ncpr: item.ncpr ?? item.raw_ncpr ?? 6.0,
+        raw_energy: item.energy ?? item.raw_energy ?? 97.5,
+        raw_animal_protein: item.animal_protein ?? item.raw_animal_protein ?? 75.0,
+        raw_food_reserves: item.food_reserves ?? item.raw_food_reserves ?? 0.28,
+        raw_poverty: item.poverty ?? item.raw_poverty ?? 10.5,
+        raw_price_cv: item.price_cv ?? item.raw_price_cv ?? 4.2,
+        raw_pou: item.pou ?? item.raw_pou ?? 2.3,
+        raw_female_school: item.female_school ?? item.raw_female_school ?? 9.2,
+        raw_no_water: item.no_water ?? item.raw_no_water ?? 2.3,
+        raw_pph: item.pph ?? item.raw_pph ?? 92.5,
+        raw_stunting: item.stunting ?? item.raw_stunting ?? 4.4,
+        // Scores
+        score_ncpr: item.score_ncpr ?? item.score_lahan ?? 40,
+        score_energy: item.score_energy ?? item.score_sarana ?? 68,
+        score_animal_protein: item.score_animal_protein ?? 52,
+        score_food_reserves: item.score_food_reserves ?? 8,
+        score_poverty: item.score_poverty ?? item.score_miskin ?? 73,
+        score_price_cv: item.score_price_cv ?? item.score_jalan ?? 88,
+        score_pou: item.score_pou ?? 97,
+        score_female_school: item.score_female_school ?? 75,
+        score_no_water: item.score_no_water ?? item.score_air ?? 98,
+        score_pph: item.score_pph ?? 88,
+        score_stunting: item.score_stunting ?? item.score_tenkes ?? 94,
+        // Aggregates
+        idx_ketersediaan: item.idx_ketersediaan ?? 42,
+        idx_akses: item.idx_akses ?? 86,
+        idx_pemanfaatan: item.idx_pemanfaatan ?? 89,
+        ikp: item.ikp ?? 72.26,
+        rank: item.rank ?? 1,
       };
     });
   });
@@ -113,59 +115,75 @@ function getCityAverageData(dataset: Record<string, KelurahanData>): KelurahanDa
   const count = all.length || 1;
 
   const sum = all.reduce((acc, curr) => ({
-    score_lahan: acc.score_lahan + curr.score_lahan,
-    score_sarana: acc.score_sarana + curr.score_sarana,
+    raw_ncpr: acc.raw_ncpr + curr.raw_ncpr,
+    raw_energy: acc.raw_energy + curr.raw_energy,
+    raw_animal_protein: acc.raw_animal_protein + curr.raw_animal_protein,
+    raw_food_reserves: acc.raw_food_reserves + curr.raw_food_reserves,
+    raw_poverty: acc.raw_poverty + curr.raw_poverty,
+    raw_price_cv: acc.raw_price_cv + curr.raw_price_cv,
+    raw_pou: acc.raw_pou + curr.raw_pou,
+    raw_female_school: acc.raw_female_school + curr.raw_female_school,
+    raw_no_water: acc.raw_no_water + curr.raw_no_water,
+    raw_pph: acc.raw_pph + curr.raw_pph,
+    raw_stunting: acc.raw_stunting + curr.raw_stunting,
+
+    score_ncpr: acc.score_ncpr + curr.score_ncpr,
+    score_energy: acc.score_energy + curr.score_energy,
+    score_animal_protein: acc.score_animal_protein + curr.score_animal_protein,
+    score_food_reserves: acc.score_food_reserves + curr.score_food_reserves,
+    score_poverty: acc.score_poverty + curr.score_poverty,
+    score_price_cv: acc.score_price_cv + curr.score_price_cv,
+    score_pou: acc.score_pou + curr.score_pou,
+    score_female_school: acc.score_female_school + curr.score_female_school,
+    score_no_water: acc.score_no_water + curr.score_no_water,
+    score_pph: acc.score_pph + curr.score_pph,
+    score_stunting: acc.score_stunting + curr.score_stunting,
+
     idx_ketersediaan: acc.idx_ketersediaan + curr.idx_ketersediaan,
-    score_miskin: acc.score_miskin + curr.score_miskin,
-    score_jalan: acc.score_jalan + curr.score_jalan,
     idx_akses: acc.idx_akses + curr.idx_akses,
-    score_air: acc.score_air + curr.score_air,
-    score_tenkes: acc.score_tenkes + curr.score_tenkes,
     idx_pemanfaatan: acc.idx_pemanfaatan + curr.idx_pemanfaatan,
-    idx_komposit: acc.idx_komposit + curr.idx_komposit,
-    ncpr: acc.ncpr + curr.ncpr,
-    ake: acc.ake + curr.ake,
-    prohe: acc.prohe + curr.prohe,
-    cadangan: acc.cadangan + curr.cadangan,
-    pct_miskin: acc.pct_miskin + curr.pct_miskin,
-    pou: acc.pou + curr.pou,
-    cv_harga: acc.cv_harga + curr.cv_harga,
-    pct_no_water: acc.pct_no_water + curr.pct_no_water,
-    rls_perempuan: acc.rls_perempuan + curr.rls_perempuan,
-    skor_pph: acc.skor_pph + curr.skor_pph,
-    pct_stunting: acc.pct_stunting + curr.pct_stunting,
+    ikp: acc.ikp + curr.ikp,
   }), {
-    score_lahan: 0, score_sarana: 0, idx_ketersediaan: 0,
-    score_miskin: 0, score_jalan: 0, idx_akses: 0,
-    score_air: 0, score_tenkes: 0, idx_pemanfaatan: 0, idx_komposit: 0,
-    ncpr: 0, ake: 0, prohe: 0, cadangan: 0, pct_miskin: 0, pou: 0, cv_harga: 0,
-    pct_no_water: 0, rls_perempuan: 0, skor_pph: 0, pct_stunting: 0
+    raw_ncpr: 0, raw_energy: 0, raw_animal_protein: 0, raw_food_reserves: 0,
+    raw_poverty: 0, raw_price_cv: 0, raw_pou: 0, raw_female_school: 0,
+    raw_no_water: 0, raw_pph: 0, raw_stunting: 0,
+    score_ncpr: 0, score_energy: 0, score_animal_protein: 0, score_food_reserves: 0,
+    score_poverty: 0, score_price_cv: 0, score_pou: 0, score_female_school: 0,
+    score_no_water: 0, score_pph: 0, score_stunting: 0,
+    idx_ketersediaan: 0, idx_akses: 0, idx_pemanfaatan: 0, ikp: 0,
   });
 
   return {
     nama: 'Rata-rata Kota Cilegon',
     kecamatan: 'Kota Cilegon',
-    score_lahan: +(sum.score_lahan / count).toFixed(1),
-    score_sarana: +(sum.score_sarana / count).toFixed(1),
-    idx_ketersediaan: +(sum.idx_ketersediaan / count).toFixed(1),
-    score_miskin: +(sum.score_miskin / count).toFixed(1),
-    score_jalan: +(sum.score_jalan / count).toFixed(1),
-    idx_akses: +(sum.idx_akses / count).toFixed(1),
-    score_air: +(sum.score_air / count).toFixed(1),
-    score_tenkes: +(sum.score_tenkes / count).toFixed(1),
-    idx_pemanfaatan: +(sum.idx_pemanfaatan / count).toFixed(1),
-    idx_komposit: +(sum.idx_komposit / count).toFixed(1),
-    ncpr: +(sum.ncpr / count).toFixed(2),
-    ake: +(sum.ake / count).toFixed(1),
-    prohe: +(sum.prohe / count).toFixed(1),
-    cadangan: +(sum.cadangan / count).toFixed(2),
-    pct_miskin: +(sum.pct_miskin / count).toFixed(1),
-    pou: +(sum.pou / count).toFixed(1),
-    cv_harga: +(sum.cv_harga / count).toFixed(1),
-    pct_no_water: +(sum.pct_no_water / count).toFixed(1),
-    rls_perempuan: +(sum.rls_perempuan / count).toFixed(1),
-    skor_pph: +(sum.skor_pph / count).toFixed(1),
-    pct_stunting: +(sum.pct_stunting / count).toFixed(1),
+    raw_ncpr: +(sum.raw_ncpr / count).toFixed(2),
+    raw_energy: +(sum.raw_energy / count).toFixed(1),
+    raw_animal_protein: +(sum.raw_animal_protein / count).toFixed(1),
+    raw_food_reserves: +(sum.raw_food_reserves / count).toFixed(2),
+    raw_poverty: +(sum.raw_poverty / count).toFixed(1),
+    raw_price_cv: +(sum.raw_price_cv / count).toFixed(1),
+    raw_pou: +(sum.raw_pou / count).toFixed(1),
+    raw_female_school: +(sum.raw_female_school / count).toFixed(1),
+    raw_no_water: +(sum.raw_no_water / count).toFixed(1),
+    raw_pph: +(sum.raw_pph / count).toFixed(1),
+    raw_stunting: +(sum.raw_stunting / count).toFixed(1),
+
+    score_ncpr: Math.round(sum.score_ncpr / count),
+    score_energy: Math.round(sum.score_energy / count),
+    score_animal_protein: Math.round(sum.score_animal_protein / count),
+    score_food_reserves: Math.round(sum.score_food_reserves / count),
+    score_poverty: Math.round(sum.score_poverty / count),
+    score_price_cv: Math.round(sum.score_price_cv / count),
+    score_pou: Math.round(sum.score_pou / count),
+    score_female_school: Math.round(sum.score_female_school / count),
+    score_no_water: Math.round(sum.score_no_water / count),
+    score_pph: Math.round(sum.score_pph / count),
+    score_stunting: Math.round(sum.score_stunting / count),
+
+    idx_ketersediaan: Math.round(sum.idx_ketersediaan / count),
+    idx_akses: Math.round(sum.idx_akses / count),
+    idx_pemanfaatan: Math.round(sum.idx_pemanfaatan / count),
+    ikp: +(sum.ikp / count).toFixed(2),
     rank: 0,
   };
 }
@@ -178,9 +196,30 @@ export default function RadarKelurahan() {
   const [compareKel, setCompareKel] = useState<string>('Warnasari');
   
   const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [dbRows, setDbRows] = useState<any[]>([]);
 
-  // Load official FSVA dataset from public/fsva_interaktif_2024_2025.xlsx for selected year
-  const currentDataset = useMemo(() => getOfficialFSVAData(selectedYear), [selectedYear]);
+  // Query Supabase db table fsva_matang
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const { data } = await supabase
+          .from('fsva_matang')
+          .select('*')
+          .eq('periode', selectedYear);
+        if (data) setDbRows(data);
+      } catch (err) {
+        console.error('[RadarKelurahan] Error fetching Supabase fsva_matang:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [selectedYear]);
+
+  // Load official FSVA dataset from Form 2.1 & 2.3
+  const currentDataset = useMemo(() => getForm2FSVAData(dbRows), [dbRows]);
   const cityAvg = useMemo(() => getCityAverageData(currentDataset), [currentDataset]);
 
   // Update selectedKel when Kecamatan changes
@@ -198,122 +237,122 @@ export default function RadarKelurahan() {
     ? (currentDataset[compareKel] || currentDataset['Warnasari']) 
     : cityAvg;
 
-  // Radar Data for Pilar 1: Ketersediaan (Official FSVA Data)
+  // Radar Data for Pilar 1: Ketersediaan (1.1 NCPR, 1.2 Energy, 1.3 Protein, 1.4 Food Reserves)
   const radarAvailability = useMemo(() => [
     {
-      subject: 'Rasio Lahan Pertanian',
-      key: 'lahan',
-      valA: dataA.score_lahan,
-      valB: dataB.score_lahan,
-      unit: 'skor',
-      scoreA: dataA.score_lahan,
-      scoreB: dataB.score_lahan,
+      subject: '1.1 Rasio NCPR Pangan',
+      key: 'ncpr',
+      valA: dataA.raw_ncpr,
+      valB: dataB.raw_ncpr,
+      unit: 'rasio',
+      scoreA: dataA.score_ncpr,
+      scoreB: dataB.score_ncpr,
     },
     {
-      subject: 'Sarana Penyedia Pangan',
-      key: 'sarana',
-      valA: dataA.score_sarana,
-      valB: dataB.score_sarana,
-      unit: 'skor',
-      scoreA: dataA.score_sarana,
-      scoreB: dataB.score_sarana,
-    },
-    {
-      subject: '% Ketersediaan Energi',
-      key: 'ake',
-      valA: dataA.ake,
-      valB: dataB.ake,
+      subject: '1.2 Ketersediaan Energi',
+      key: 'energy',
+      valA: dataA.raw_energy,
+      valB: dataB.raw_energy,
       unit: '%',
-      scoreA: Math.min(100, Math.round(dataA.ake * 0.9)),
-      scoreB: Math.min(100, Math.round(dataB.ake * 0.9)),
+      scoreA: dataA.score_energy,
+      scoreB: dataB.score_energy,
     },
     {
-      subject: '% Protein Hewani',
-      key: 'prohe',
-      valA: dataA.prohe,
-      valB: dataB.prohe,
+      subject: '1.3 Protein Hewani',
+      key: 'animal_protein',
+      valA: dataA.raw_animal_protein,
+      valB: dataB.raw_animal_protein,
       unit: '%',
-      scoreA: Math.min(100, Math.round(dataA.prohe * 0.85)),
-      scoreB: Math.min(100, Math.round(dataB.prohe * 0.85)),
+      scoreA: dataA.score_animal_protein,
+      scoreB: dataB.score_animal_protein,
+    },
+    {
+      subject: '1.4 Cadangan Pangan',
+      key: 'food_reserves',
+      valA: dataA.raw_food_reserves,
+      valB: dataB.raw_food_reserves,
+      unit: 'rasio',
+      scoreA: dataA.score_food_reserves,
+      scoreB: dataB.score_food_reserves,
     },
   ], [dataA, dataB]);
 
-  // Radar Data for Pilar 2: Keterjangkauan (Official FSVA Data)
+  // Radar Data for Pilar 2: Keterjangkauan (2.1 Poverty, 2.2 Price CV, 2.3 PoU)
   const radarAccessibility = useMemo(() => [
     {
-      subject: 'Penduduk Miskin Desil 1+2',
-      key: 'miskin',
-      valA: dataA.score_miskin,
-      valB: dataB.score_miskin,
-      unit: 'skor',
-      scoreA: dataA.score_miskin,
-      scoreB: dataB.score_miskin,
-    },
-    {
-      subject: 'Akses Jalan Penghubung',
-      key: 'jalan',
-      valA: dataA.score_jalan,
-      valB: dataB.score_jalan,
-      unit: 'skor',
-      scoreA: dataA.score_jalan,
-      scoreB: dataB.score_jalan,
-    },
-    {
-      subject: 'PoU (Kurang Energi)',
-      key: 'pou',
-      valA: dataA.pou,
-      valB: dataB.pou,
+      subject: '2.1 Penduduk Miskin (D1+2)',
+      key: 'poverty',
+      valA: dataA.raw_poverty,
+      valB: dataB.raw_poverty,
       unit: '%',
-      scoreA: Math.round(100 - (dataA.pou * 3)),
-      scoreB: Math.round(100 - (dataB.pou * 3)),
+      scoreA: dataA.score_poverty,
+      scoreB: dataB.score_poverty,
+    },
+    {
+      subject: '2.2 Stabilitas Harga (CV)',
+      key: 'price_cv',
+      valA: dataA.raw_price_cv,
+      valB: dataB.raw_price_cv,
+      unit: '%',
+      scoreA: dataA.score_price_cv,
+      scoreB: dataB.score_price_cv,
+    },
+    {
+      subject: '2.3 PoU (Kurang Energi)',
+      key: 'pou',
+      valA: dataA.raw_pou,
+      valB: dataB.raw_pou,
+      unit: '%',
+      scoreA: dataA.score_pou,
+      scoreB: dataB.score_pou,
     },
   ], [dataA, dataB]);
 
-  // Radar Data for Pilar 3: Pemanfaatan (Official FSVA Data)
+  // Radar Data for Pilar 3: Pemanfaatan (3.1 Female School, 3.2 No Water, 3.3 PPH, 3.4 Stunting)
   const radarUtilization = useMemo(() => [
     {
-      subject: 'Akses Air Bersih',
-      key: 'air',
-      valA: dataA.score_air,
-      valB: dataB.score_air,
-      unit: 'skor',
-      scoreA: dataA.score_air,
-      scoreB: dataB.score_air,
+      subject: '3.1 Lama Sekolah Perempuan',
+      key: 'female_school',
+      valA: dataA.raw_female_school,
+      valB: dataB.raw_female_school,
+      unit: 'thn',
+      scoreA: dataA.score_female_school,
+      scoreB: dataB.score_female_school,
     },
     {
-      subject: 'Rasio Tenaga Kesehatan',
-      key: 'tenkes',
-      valA: dataA.score_tenkes,
-      valB: dataB.score_tenkes,
-      unit: 'skor',
-      scoreA: dataA.score_tenkes,
-      scoreB: dataB.score_tenkes,
-    },
-    {
-      subject: 'Skor PPH Konsumsi',
-      key: 'skor_pph',
-      valA: dataA.skor_pph,
-      valB: dataB.skor_pph,
-      unit: 'skor',
-      scoreA: dataA.skor_pph,
-      scoreB: dataB.skor_pph,
-    },
-    {
-      subject: 'Prevalensi Stunting',
-      key: 'pct_stunting',
-      valA: dataA.pct_stunting,
-      valB: dataB.pct_stunting,
+      subject: '3.2 Tanpa Air Bersih',
+      key: 'no_water',
+      valA: dataA.raw_no_water,
+      valB: dataB.raw_no_water,
       unit: '%',
-      scoreA: Math.round(100 - (dataA.pct_stunting * 3)),
-      scoreB: Math.round(100 - (dataB.pct_stunting * 3)),
+      scoreA: dataA.score_no_water,
+      scoreB: dataB.score_no_water,
+    },
+    {
+      subject: '3.3 Skor PPH Konsumsi',
+      key: 'pph',
+      valA: dataA.raw_pph,
+      valB: dataB.raw_pph,
+      unit: 'skor',
+      scoreA: dataA.score_pph,
+      scoreB: dataB.score_pph,
+    },
+    {
+      subject: '3.4 Prevalensi Stunting',
+      key: 'stunting',
+      valA: dataA.raw_stunting,
+      valB: dataB.raw_stunting,
+      unit: '%',
+      scoreA: dataA.score_stunting,
+      scoreB: dataB.score_stunting,
     },
   ], [dataA, dataB]);
 
-  // Read official pillar indices from Excel
+  // Read official pillar indices from Excel Form 2.3
   const scoreAvailA = Math.round(dataA.idx_ketersediaan);
   const scoreAccessA = Math.round(dataA.idx_akses);
   const scoreUtilA = Math.round(dataA.idx_pemanfaatan);
-  const overallScoreA = Math.round(dataA.idx_komposit);
+  const overallScoreA = Math.round(dataA.ikp);
 
   // Find lowest scoring indicator dynamically
   const allIndicatorsA = [...radarAvailability, ...radarAccessibility, ...radarUtilization];
@@ -323,18 +362,18 @@ export default function RadarKelurahan() {
 
   const getDynamicPolicyAction = (indicatorKey: string, kelName: string) => {
     switch (indicatorKey) {
-      case 'air':
-        return `Percepatan fasilitas sarana air bersih dan saniter di Kelurahan ${kelName} bekerjasama dengan Dinas PUPR / Perkim.`;
-      case 'miskin':
-        return `Prioritas penyaluran bantuan pangan beras cadangan daerah dan program bantuan sosial sosial tepat sasaran bagi keluarga desil 1 & 2 di Kelurahan ${kelName}.`;
-      case 'lahan':
-        return `Optimalisasi pemanfaatan pekarangan dan konsep urban farming di Kelurahan ${kelName} guna mendukung ketersediaan pangan mandiri.`;
-      case 'sarana':
-        return `Penguatan akses ke pasar tradisional/sarana penyedia pangan dan fasilitasi rantai pasok lokal di Kelurahan ${kelName}.`;
-      case 'pct_stunting':
-        return `Penguatan intervensi spesifik PMT pangan lokal di Posyandu Kelurahan ${kelName} dan edukasi gizi balita.`;
+      case 'ncpr':
+        return `Akselerasi fasilitasi pasokan pangan pokok dan kerja sama antar daerah (KAD) untuk menjamin ketersediaan pangan di Kelurahan ${kelName}.`;
+      case 'no_water':
+        return `Percepatan pembangunan sarana air bersih dan sanitasi di Kelurahan ${kelName} bekerjasama dengan Dinas PUPR / Perkim.`;
+      case 'poverty':
+        return `Prioritas penyaluran bantuan pangan cadangan pemerintah dan bansos tepat sasaran bagi masyarakat desil 1 & 2 di Kelurahan ${kelName}.`;
+      case 'stunting':
+        return `Penguatan intervensi gizi spesifik PMT lokal Posyandu di Kelurahan ${kelName} untuk balita di bawah standar stunting.`;
+      case 'price_cv':
+        return `Penyelenggaraan Gerakan Pangan Murah (GPM) berkala untuk menjaga stabilitas harga pangan pokok di Kelurahan ${kelName}.`;
       default:
-        return `Peningkatan sinergitas program lintas sektor di Kelurahan ${kelName} guna mempertahankan pemenuhan 3 pilar ketahanan pangan.`;
+        return `Peningkatan sinergitas lintas sektor di Kelurahan ${kelName} guna meningkatkan skor pemenuhan 11 indikator FSVA.`;
     }
   };
 
@@ -342,7 +381,7 @@ export default function RadarKelurahan() {
     if (active && payload && payload.length) {
       const dataItem = payload[0].payload;
       return (
-        <div className="bg-slate-900/95 text-white p-3 rounded-lg border border-slate-700 shadow-xl text-xs space-y-1.5 min-w-[200px]">
+        <div className="bg-slate-900/95 text-white p-3 rounded-lg border border-slate-700 shadow-xl text-xs space-y-1.5 min-w-[210px]">
           <p className="font-extrabold text-emerald-400 border-b border-slate-700 pb-1">{dataItem.subject}</p>
           <div className="flex justify-between items-center gap-4 text-slate-200">
             <span>{dataA.nama}:</span>
@@ -371,13 +410,13 @@ export default function RadarKelurahan() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-400/20 text-emerald-100 rounded-full border border-emerald-300/30 text-xs font-bold mb-2">
               <Layers className="w-3.5 h-3.5" />
-              <span>Analisis Profil 3 Pilar FSVA Resmian ({selectedYear})</span>
+              <span>Analisis Profil 11 Indikator FSVA Resmian ({selectedYear})</span>
             </div>
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-white">
               Grafik Radar Ketahanan Pangan Kelurahan
             </h2>
             <p className="text-xs text-emerald-100/90 mt-1 max-w-2xl leading-relaxed font-medium">
-              Visualisasi jaring laba-laba indikator FSVA dari dokumen resmi <strong className="text-white font-extrabold">fsva_interaktif_2024_2025.xlsx</strong>.
+              Visualisasi jaring laba-laba 11 Indikator Resmi dari berkas <strong className="text-white font-extrabold">Form Penentuan Cut Off dan Analisis Komposit Baseline FSVA.xlsb</strong>.
             </p>
           </div>
 
@@ -496,8 +535,8 @@ export default function RadarKelurahan() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
-              <option value={2025}>Tahun 2025 (Resmi FSVA)</option>
-              <option value={2024}>Tahun 2024 (Resmi FSVA)</option>
+              <option value={2025}>Tahun 2025 (Resmi FSVA Form 2)</option>
+              <option value={2024}>Tahun 2024 (Resmi FSVA Form 2)</option>
             </select>
           </div>
 
@@ -507,16 +546,20 @@ export default function RadarKelurahan() {
         <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-950 flex items-center justify-between font-semibold">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Terhubung ke Sumber Data Berkas: <strong>public/fsva_interaktif_2024_2025.xlsx</strong> (Sheet {selectedYear})</span>
+            <span>Terhubung ke Sumber Data Resmi: <strong>Form Penentuan Cut Off & Baseline FSVA 2025.xlsb</strong> ({selectedYear})</span>
           </div>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-700 text-white rounded-full">43 Kelurahan Sync</span>
+          {loading ? (
+            <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+          ) : (
+            <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-700 text-white rounded-full">11 Indikator Sync</span>
+          )}
         </div>
       </div>
 
       {/* Grid 3 Radar Cards per Pilar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* 1. ASPEK KETERSEDIAAN PANGAN */}
+        {/* 1. ASPEK KETERSEDIAAN PANGAN (4 Indikator) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-emerald-300 transition-colors">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -545,17 +588,17 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Ringkasan Skor FSVA ({selectedYear}):</p>
+            <p className="font-bold text-slate-700">Rincian Indikator Ketersediaan ({selectedYear}):</p>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• Skor Lahan: <span className="font-bold text-slate-800">{dataA.score_lahan}</span></div>
-              <div>• Skor Sarana: <span className="font-bold text-slate-800">{dataA.score_sarana}</span></div>
-              <div>• AKE Energi: <span className="font-bold text-slate-800">{dataA.ake}%</span></div>
-              <div>• Protein: <span className="font-bold text-slate-800">{dataA.prohe}%</span></div>
+              <div>• 1.1 NCPR Pangan: <span className="font-bold text-slate-800">{dataA.raw_ncpr}</span></div>
+              <div>• 1.2 Energi: <span className="font-bold text-slate-800">{dataA.raw_energy}%</span></div>
+              <div>• 1.3 Protein Hewani: <span className="font-bold text-slate-800">{dataA.raw_animal_protein}%</span></div>
+              <div>• 1.4 Cadangan: <span className="font-bold text-slate-800">{dataA.raw_food_reserves}</span></div>
             </div>
           </div>
         </div>
 
-        {/* 2. ASPEK KETERJANGKAUAN PANGAN */}
+        {/* 2. ASPEK KETERJANGKAUAN PANGAN (3 Indikator) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-blue-300 transition-colors">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -584,17 +627,16 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Ringkasan Skor FSVA ({selectedYear}):</p>
+            <p className="font-bold text-slate-700">Rincian Indikator Keterjangkauan ({selectedYear}):</p>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• Skor Miskin: <span className="font-bold text-slate-800">{dataA.score_miskin}</span></div>
-              <div>• Skor Jalan: <span className="font-bold text-slate-800">{dataA.score_jalan}</span></div>
-              <div>• Rasio Miskin: <span className="font-bold text-slate-800">{dataA.pct_miskin}%</span></div>
-              <div>• PoU Energi: <span className="font-bold text-slate-800">{dataA.pou}%</span></div>
+              <div>• 2.1 Miskin (Desil 1+2): <span className="font-bold text-slate-800">{dataA.raw_poverty}%</span></div>
+              <div>• 2.2 Stabilitas CV Harga: <span className="font-bold text-slate-800">{dataA.raw_price_cv}%</span></div>
+              <div>• 2.3 PoU Energi: <span className="font-bold text-slate-800">{dataA.raw_pou}%</span></div>
             </div>
           </div>
         </div>
 
-        {/* 3. ASPEK PEMANFAATAN PANGAN */}
+        {/* 3. ASPEK PEMANFAATAN PANGAN (4 Indikator) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-colors">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -623,12 +665,12 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Ringkasan Skor FSVA ({selectedYear}):</p>
+            <p className="font-bold text-slate-700">Rincian Indikator Pemanfaatan ({selectedYear}):</p>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• Skor Air Bersih: <span className="font-bold text-slate-800">{dataA.score_air}</span></div>
-              <div>• Skor Tenkes: <span className="font-bold text-slate-800">{dataA.score_tenkes}</span></div>
-              <div>• Rasio Air: <span className="font-bold text-slate-800">{dataA.pct_no_water}%</span></div>
-              <div>• Stunting: <span className="font-bold text-slate-800">{dataA.pct_stunting}%</span></div>
+              <div>• 3.1 Sekolah Perempuan: <span className="font-bold text-slate-800">{dataA.raw_female_school} thn</span></div>
+              <div>• 3.2 Tanpa Air Bersih: <span className="font-bold text-slate-800">{dataA.raw_no_water}%</span></div>
+              <div>• 3.3 Skor PPH: <span className="font-bold text-slate-800">{dataA.raw_pph}</span></div>
+              <div>• 3.4 Stunting: <span className="font-bold text-slate-800">{dataA.raw_stunting}%</span></div>
             </div>
           </div>
         </div>
