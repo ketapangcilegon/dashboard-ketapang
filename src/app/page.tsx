@@ -30,6 +30,7 @@ const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKel
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
+const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -1871,6 +1872,10 @@ export default function DashboardPage() {
 
               {currentView === 'analisis_skpg_kelurahan' && (
                 <AnalisisSKPGKelurahan onSwitchView={(view: string) => setCurrentView(view)} />
+              )}
+
+              {currentView === 'radar_kelurahan' && (
+                <RadarKelurahan />
               )}
 
               {currentView === 'forecasting' && (

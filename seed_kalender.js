@@ -158,8 +158,8 @@ function generateCalendarRows() {
       
     rows.push({
       tanggal: formatDateString(currentDate),
-      tahun,
-      bulan,
+      tahun: year,
+      bulan: month,
       is_hbkn,
       is_ramadhan,
       is_idul_fitri,

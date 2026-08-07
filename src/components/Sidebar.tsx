@@ -49,7 +49,8 @@ export default function Sidebar({
     { label: 'Peta Tematik FSVA dan SKPG', view: 'peta_full' },
     { label: 'Forecast Harga Pangan & EWS', view: 'forecasting' },
     { label: 'Insight Ketahanan Pangan', view: 'insight' },
-    { label: 'Analisis SKPG', view: 'analisis_skpg' }
+    { label: 'Analisis SKPG', view: 'analisis_skpg' },
+    { label: 'Grafik Radar Ketahanan Pangan Kelurahan', view: 'radar_kelurahan' }
   ];
 
   const aspekPanganSub = [
