@@ -415,14 +415,11 @@ export default function RadarKelurahan() {
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-white">
               Grafik Radar Ketahanan Pangan Kelurahan
             </h2>
-            <p className="text-xs text-emerald-100/90 mt-1 max-w-2xl leading-relaxed font-medium">
-              Visualisasi jaring laba-laba 11 Indikator Resmi dari berkas <strong className="text-white font-extrabold">Form Penentuan Cut Off dan Analisis Komposit Baseline FSVA.xlsb</strong>.
-            </p>
           </div>
 
           <div className="flex items-center gap-3 bg-black/25 p-3.5 rounded-xl border border-emerald-400/30 shrink-0 shadow-inner">
             <div className="text-right">
-              <p className="text-[10px] text-emerald-200 uppercase font-black tracking-wider">SKOR KOMPOSIT FSVA</p>
+              <p className="text-[10px] text-emerald-200 font-black tracking-wider">Skor IKP Kelurahan {dataA.nama}</p>
               <p className="text-2xl font-black text-emerald-300 tabular-nums">{overallScoreA}<span className="text-xs font-normal text-emerald-200/80">/100</span></p>
             </div>
             <div className="w-10 h-10 rounded-lg bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
@@ -535,25 +532,12 @@ export default function RadarKelurahan() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
-              <option value={2025}>Tahun 2025 (Data Resmi FSVA)</option>
-              <option value={2026} disabled className="text-slate-400">Tahun 2026 (Belum Ada Data Input)</option>
-              <option value={2027} disabled className="text-slate-400">Tahun 2027 (Belum Ada Data Input)</option>
+              <option value={2025}>Tahun 2025</option>
+              <option value={2026} disabled className="text-slate-400">Tahun 2026</option>
+              <option value={2027} disabled className="text-slate-400">Tahun 2027</option>
             </select>
           </div>
 
-        </div>
-
-        {/* Database Live Status Badge */}
-        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-950 flex items-center justify-between font-semibold">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Terhubung ke Sumber Data Resmi: <strong>Form Penentuan Cut Off & Baseline FSVA 2025.xlsb</strong> ({selectedYear})</span>
-          </div>
-          {loading ? (
-            <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
-          ) : (
-            <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-700 text-white rounded-full">11 Indikator Sync</span>
-          )}
         </div>
       </div>
 
@@ -684,7 +668,7 @@ export default function RadarKelurahan() {
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-700" />
             <h3 className="font-black text-sm uppercase tracking-wider text-amber-900">
-              Evaluasi Profil Radar Ketahanan Pangan: Kelurahan {dataA.nama} (FSVA {selectedYear})
+              ANALISIS DAN INTERPRETASI GRAFIK RADAR: KELURAHAN {dataA.nama} (FSVA {selectedYear})
             </h3>
           </div>
           <span className="text-xs font-black text-amber-800 bg-amber-200/60 px-3 py-1 rounded-full border border-amber-300">
