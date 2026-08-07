@@ -535,9 +535,9 @@ export default function RadarKelurahan() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
-              <option value={2025}>Tahun 2025 (Resmi 11 Indikator FSVA)</option>
-              <option value={2026}>Tahun 2026 (Placeholder Input Admin)</option>
-              <option value={2027}>Tahun 2027 (Placeholder Input Admin)</option>
+              <option value={2025}>Tahun 2025 (Data Resmi FSVA)</option>
+              <option value={2026} disabled className="text-slate-400">Tahun 2026 (Belum Ada Data Input)</option>
+              <option value={2027} disabled className="text-slate-400">Tahun 2027 (Belum Ada Data Input)</option>
             </select>
           </div>
 
