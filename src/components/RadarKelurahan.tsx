@@ -6,7 +6,8 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
 } from 'recharts';
-import { WILAYAH, ALL_KEC } from '@/lib/wilayah';
+import { WILAYAH, ALL_KEC, ALL_KEL } from '@/lib/wilayah';
+import CustomSelect from '@/components/CustomSelect';
 import { 
   ShieldCheck, AlertCircle, Layers, Sliders, ArrowRightLeft, 
   Sparkles, CheckCircle2, TrendingUp, Calendar, FileSpreadsheet, Loader2
@@ -466,49 +467,32 @@ export default function RadarKelurahan() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           
           {/* Kecamatan Dropdown */}
-          <div>
-            <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Pilih Kecamatan</label>
-            <select
-              value={selectedKec}
-              onChange={(e) => handleKecChange(e.target.value)}
-              className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              {ALL_KEC.map(kec => (
-                <option key={kec} value={kec}>Kecamatan {kec}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Pilih Kecamatan"
+            value={selectedKec}
+            onChange={(val) => handleKecChange(String(val))}
+            options={ALL_KEC.map(kec => ({ value: kec, label: `Kecamatan ${kec}` }))}
+            variant="emerald"
+          />
 
           {/* Kelurahan A Dropdown */}
-          <div>
-            <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-              {mode === 'dual' ? 'Kelurahan Utama (A)' : 'Pilih Kelurahan'}
-            </label>
-            <select
-              value={selectedKel}
-              onChange={(e) => setSelectedKel(e.target.value)}
-              className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              {(WILAYAH[selectedKec] || []).map(kel => (
-                <option key={kel} value={kel}>Kelurahan {kel}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label={mode === 'dual' ? 'Kelurahan Utama (A)' : 'Pilih Kelurahan'}
+            value={selectedKel}
+            onChange={(val) => setSelectedKel(String(val))}
+            options={(WILAYAH[selectedKec] || []).map(kel => ({ value: kel, label: `Kelurahan ${kel}` }))}
+            variant="emerald"
+          />
 
           {/* Kelurahan B (if Dual Mode) */}
           {mode === 'dual' ? (
-            <div>
-              <label className="block text-[10px] font-black uppercase text-amber-600 mb-1">Kelurahan Pembanding (B)</label>
-              <select
-                value={compareKel}
-                onChange={(e) => setCompareKel(e.target.value)}
-                className="w-full text-xs font-bold bg-amber-50/60 border border-amber-300 rounded-lg px-3 py-2 text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              >
-                {Object.values(WILAYAH).flat().sort().map(kel => (
-                  <option key={kel} value={kel}>Kelurahan {kel}</option>
-                ))}
-              </select>
-            </div>
+            <CustomSelect
+              label="Kelurahan Pembanding (B)"
+              value={compareKel}
+              onChange={(val) => setCompareKel(String(val))}
+              options={ALL_KEL.map(kel => ({ value: kel, label: `Kelurahan ${kel}` }))}
+              variant="amber"
+            />
           ) : (
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Acuan Pembanding</label>
@@ -522,21 +506,19 @@ export default function RadarKelurahan() {
           )}
 
           {/* Tahun FSVA Selector */}
-          <div>
-            <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-emerald-600" />
-              <span>Tahun Data FSVA</span>
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              <option value={2025}>Tahun 2025</option>
-              <option value={2026} disabled className="text-slate-400">Tahun 2026</option>
-              <option value={2027} disabled className="text-slate-400">Tahun 2027</option>
-            </select>
-          </div>
+          <CustomSelect
+            label="Tahun Data FSVA"
+            value={selectedYear}
+            onChange={(val) => setSelectedYear(Number(val))}
+            options={[
+              { value: 2025, label: 'Tahun 2025' },
+              { value: 2026, label: 'Tahun 2026 (Proyeksi)', disabled: true },
+              { value: 2027, label: 'Tahun 2027 (Proyeksi)', disabled: true },
+            ]}
+            variant="emerald"
+            searchable={false}
+            icon={<Calendar className="w-3.5 h-3.5 text-emerald-600" />}
+          />
 
         </div>
       </div>

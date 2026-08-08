@@ -5,9 +5,9 @@ export const WILAYAH: Record<string, string[]> = {
   'Pulo Merak': ['Tamansari','Lebakgede','Mekarsari','Suralaya'],
   'Ciwandan':   ['Banjar Negara','Tegal Ratu','Kubangsari','Gunung Sugih','Kepuh','Randakari'],
   'Jombang':    ['Sukmajaya','Jombang Wetan','Masigit','Panggung Rawi','Gedong Dalem'],
-  'Gerogol':    ['Kotasari','Gerogol','Grogol','Rawa Arum','Gerem'],
+  'Gerogol':    ['Kotasari','Gerogol','Rawa Arum','Gerem'],
   'Purwakarta': ['Ramanuju','Kotabumi','Kebon Dalem','Purwakarta','Tegal Bunder','Pabean'],
-  'Citangkil':  ['Warnasari','Deringo','Dringo','Kebonsari','Taman Baru','Lebak Denok','Samangraya','Citangkil'],
+  'Citangkil':  ['Warnasari','Deringo','Kebonsari','Taman Baru','Lebak Denok','Samangraya','Citangkil'],
 };
 
 export const KEL_TO_KEC: Record<string, string> = {};
