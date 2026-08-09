@@ -31,6 +31,7 @@ const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { 
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
 const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ssr: false });
+const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -2098,31 +2099,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Footer with smallcounter hit counter */}
+          {/* Footer with Visit Counter */}
           <footer className="mt-12 pt-6 pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
-            {/* Smallcounter HTML Hit Counter */}
-            <div className="flex flex-col items-center justify-center text-center mt-1">
-              <a 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                href="https://smallcounter.com/cc_stats/1786109814/"
-                className="hover:opacity-90 transition-opacity"
-              >
-                <img 
-                  alt="web stats" 
-                  src="https://smallcounter.com/online/ccc.php?id=1786109814" 
-                  className="inline-block"
-                />
-              </a>
-              <a 
-                href="https://smallcounter.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-[10px] text-slate-400 hover:underline mt-0.5"
-              >
-                web stats
-              </a>
-            </div>
+            <VisitCounter />
           </footer>
         </main>
       </div>
