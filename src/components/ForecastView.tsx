@@ -326,24 +326,19 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     <div className="space-y-6 w-full animate-in fade-in duration-300">
       
       {/* Navigation & Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white py-3 px-5 sm:px-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <button 
             onClick={onBack}
-            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-500 font-black text-xs uppercase tracking-wider mb-2.5 transition-colors cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-500 font-black text-xs uppercase tracking-wider transition-colors cursor-pointer active:scale-95"
           >
             <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard Utama
           </button>
-          <h1 className="text-2xl font-black text-[#0B1E41] flex items-center gap-3 tracking-wide">
-            <TrendingUp className="w-7 h-7 text-emerald-600 animate-pulse" />
-            Food Security Intelligence & Forecast
-          </h1>
-          <p className="text-xs text-slate-500 mt-1 font-bold uppercase tracking-wider">Early Warning System (SKPG Compatible) • Kota Cilegon</p>
         </div>
-               <button
+        <button
           onClick={handleTrainModel}
           disabled={training || loading || !isAdmin}
-          className={`flex flex-col items-center justify-center gap-1 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
             training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 
             !isAdmin ? 'bg-slate-500 text-white border border-slate-600 shadow-none cursor-not-allowed opacity-85' :
             'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg cursor-pointer'

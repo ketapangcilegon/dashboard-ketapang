@@ -1184,11 +1184,13 @@ export default function DashboardPage() {
                   <MediaCarousel />
 
                   {/* Title Header for KPI Carousel */}
-                  <div className="flex items-center gap-2 px-1 print:px-0 mb-3">
-                    <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
-                    <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                      KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
-                    </h2>
+                  <div className="mt-6 sm:mt-8 mb-2.5 flex flex-col justify-end min-h-[38px] px-1 print:px-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                      <h2 className="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-widest leading-none">
+                        KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
+                      </h2>
+                    </div>
                   </div>
                   
                   {/* 1. Desktop KPI Carousel (lg:flex, print:flex, hidden on mobile) */}
