@@ -1363,8 +1363,8 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[600px] lg:h-full lg:flex-1 flex flex-col print:h-[380px] print:min-h-0">
-                          <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[250px] lg:min-h-[350px] print:h-[280px] print:min-h-0">
+                        <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] h-[420px] lg:h-full lg:flex-1 flex flex-col print:h-[380px] print:min-h-0">
+                          <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[180px] lg:min-h-[350px] print:h-[280px] print:min-h-0">
                             <MapUnified 
                               selectedKecamatan={selectedKecamatan}
                               selectedKelurahan={selectedKelurahan}

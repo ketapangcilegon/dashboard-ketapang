@@ -85,17 +85,46 @@ function MapController({
   const [expandLegend, setExpandLegend] = useState(false);
   const [expandPrioritas, setExpandPrioritas] = useState(false);
 
+  // Panel DOM refs for Leaflet event isolation
+  const layersRef = useRef<HTMLDivElement | null>(null);
+  const prioritasRef = useRef<HTMLDivElement | null>(null);
+  const legendRef = useRef<HTMLDivElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
       setExpandLegend(true);
     }
   }, []);
 
-  // Drag-to-scroll state for Prioritas Lokus list on desktop
+  // Prevent Leaflet map click/scroll propagation on custom control panels
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    import('leaflet').then((L) => {
+      [layersRef, prioritasRef, legendRef, controlsRef].forEach(ref => {
+        if (ref.current) {
+          L.DomEvent.disableClickPropagation(ref.current);
+          L.DomEvent.disableScrollPropagation(ref.current);
+        }
+      });
+    });
+  }, [expandLayers, expandPrioritas, expandLegend]);
+
+  // Helper to switch active layer and auto-collapse dropdown on mobile
+  const selectLayer = (mode: MapMode) => {
+    setActiveLayer(mode);
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setExpandLayers(false);
+    }
+  };
+
+  // Drag-to-scroll state for Prioritas Lokus list on desktop & mobile (2D touch/mouse drag)
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isScrollDragging, setIsScrollDragging] = useState(false);
+  const scrollStartX = useRef(0);
   const scrollStartY = useRef(0);
   const scrollTopVal = useRef(0);
+  const scrollLeftVal = useRef(0);
 
   // Prevent any mouse/touch/scroll events on the inner scroll list from propagating to Leaflet map container
   useEffect(() => {
@@ -112,8 +141,7 @@ function MapController({
     el.addEventListener('touchend', stopPropagation);
     el.addEventListener('pointerdown', stopPropagation);
     el.addEventListener('pointermove', stopPropagation);
-    el.addEventListener('click', stopPropagation);
-    el.addEventListener('dblclick', stopPropagation);
+    // NOTE: do NOT stopPropagation on 'click' or 'dblclick' — that would block button clicks (e.g. Download xlsx)
     el.addEventListener('wheel', stopPropagation);
 
     return () => {
@@ -123,21 +151,31 @@ function MapController({
       el.removeEventListener('touchend', stopPropagation);
       el.removeEventListener('pointerdown', stopPropagation);
       el.removeEventListener('pointermove', stopPropagation);
-      el.removeEventListener('click', stopPropagation);
-      el.removeEventListener('dblclick', stopPropagation);
       el.removeEventListener('wheel', stopPropagation);
     };
   }, [expandPrioritas]);
 
-  const handleScrollMouseDown = (e: React.MouseEvent) => {
+  const handleScrollStart = (clientX: number, clientY: number, target: HTMLElement) => {
     if (!scrollRef.current) return;
-    const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('a') || target.closest('input')) {
       return;
     }
     setIsScrollDragging(true);
-    scrollStartY.current = e.clientY;
+    scrollStartX.current = clientX;
+    scrollStartY.current = clientY;
+    scrollLeftVal.current = scrollRef.current.scrollLeft;
     scrollTopVal.current = scrollRef.current.scrollTop;
+  };
+
+  const handleScrollMouseDown = (e: React.MouseEvent) => {
+    handleScrollStart(e.clientX, e.clientY, e.target as HTMLElement);
+    e.stopPropagation();
+  };
+
+  const handleScrollTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      handleScrollStart(e.touches[0].clientX, e.touches[0].clientY, e.target as HTMLElement);
+    }
     e.stopPropagation();
   };
 
@@ -145,21 +183,37 @@ function MapController({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isScrollDragging || !scrollRef.current) return;
       e.preventDefault();
+      const deltaX = e.clientX - scrollStartX.current;
       const deltaY = e.clientY - scrollStartY.current;
+      scrollRef.current.scrollLeft = scrollLeftVal.current - deltaX;
       scrollRef.current.scrollTop = scrollTopVal.current - deltaY;
     };
 
-    const handleMouseUp = () => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isScrollDragging || !scrollRef.current || e.touches.length !== 1) return;
+      const deltaX = e.touches[0].clientX - scrollStartX.current;
+      const deltaY = e.touches[0].clientY - scrollStartY.current;
+      scrollRef.current.scrollLeft = scrollLeftVal.current - deltaX;
+      scrollRef.current.scrollTop = scrollTopVal.current - deltaY;
+    };
+
+    const handleDragEnd = () => {
       setIsScrollDragging(false);
     };
 
     if (isScrollDragging) {
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleDragEnd);
+      window.addEventListener('touchcancel', handleDragEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
+      window.removeEventListener('touchcancel', handleDragEnd);
     };
   }, [isScrollDragging]);
 
@@ -204,7 +258,8 @@ function MapController({
     setBasemap(basemap === 'light' ? 'streets' : 'light');
   };
 
-  const toggleLayers = () => {
+  const toggleLayers = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const nextVal = !expandLayers;
     setExpandLayers(nextVal);
     if (nextVal) {
@@ -213,7 +268,8 @@ function MapController({
     }
   };
 
-  const toggleLegend = () => {
+  const toggleLegend = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const nextVal = !expandLegend;
     setExpandLegend(nextVal);
     if (nextVal) {
@@ -222,7 +278,8 @@ function MapController({
     }
   };
 
-  const togglePrioritas = () => {
+  const togglePrioritas = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const nextVal = !expandPrioritas;
     setExpandPrioritas(nextVal);
     if (nextVal) {
@@ -241,10 +298,12 @@ function MapController({
       const prev = item.prevalensiRataRata !== undefined 
         ? item.prevalensiRataRata 
         : (total > 0 ? ((item.gizi_kurang || 0) + (item.gizi_sangat_kurang || 0)) / total * 100 : 0);
+      const rawIkp = fsvaRow ? parseFloat(fsvaRow.ikp) : 70;
+      const ikpVal = isNaN(rawIkp) ? 70 : rawIkp;
       return {
         kelurahan: item.nama_kelurahan || item.kelurahan,
-        ikp: fsvaRow ? parseFloat(fsvaRow.ikp) : 70,
-        prevalensi: prev
+        ikp: ikpVal,
+        prevalensi: isNaN(prev) ? 0 : prev
       };
     });
 
@@ -273,7 +332,7 @@ function MapController({
 
   const handleDownloadLokusXlsx = () => {
     const headers = [
-      ["No", "Berdasarkan Borda Count FSVA & SKPG", "Berdasarkan Gizi Buruk SKPG"]
+      ["No", "Kelurahan Borda Count (FSVA & SKPG)", "Skor Borda", "Desil Borda", "Rank Borda", "Kelurahan Gizi Buruk (SKPG)", "Prevalensi Gizi Buruk (%)"]
     ];
     
     const bordaList = getTop10Borda();
@@ -296,7 +355,11 @@ function MapController({
       rows.push([
         i + 1,
         bordaList[i] ? `Kel. ${bordaList[i].kelurahan}` : '',
-        rankedList[i] ? `Kel. ${rankedList[i].kelurahan} (${rankedList[i].prevalensi.toFixed(1)}%)` : ''
+        bordaList[i] ? bordaList[i].sum : '',
+        bordaList[i] ? `Desil ${bordaList[i].desil}` : '',
+        bordaList[i] ? `Rank ${bordaList[i].rank}` : '',
+        rankedList[i] ? `Kel. ${rankedList[i].kelurahan}` : '',
+        rankedList[i] ? `${rankedList[i].prevalensi.toFixed(1)}%` : ''
       ]);
     }
 
@@ -310,11 +373,17 @@ function MapController({
   return (
     <>
       {/* 1. FLOATING CASCADE/COLLAPSE PANEL (TOP-LEFT) */}
-      <div className="absolute top-4 left-4 z-[1000] pointer-events-auto print:hidden">
+      <div 
+        ref={layersRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute top-4 left-4 ${expandLayers ? 'z-[1010]' : 'z-[1000]'} pointer-events-auto print:hidden`}
+      >
         <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden w-[185px] transition-all duration-300">
           <button
             onClick={toggleLayers}
-            className="w-full px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-between text-xs font-black tracking-wider uppercase transition-colors"
+            className="w-full px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-between text-xs font-black tracking-wider uppercase transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-1.5">
               <Layers className="w-4 h-4" />
@@ -376,8 +445,8 @@ function MapController({
                     </div>
                   </div>
                   <button 
-                    onClick={() => setActiveLayer('fsva')}
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${activeLayer === 'fsva' ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    onClick={() => selectLayer('fsva')}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer ${activeLayer === 'fsva' ? 'bg-blue-600' : 'bg-slate-200'}`}
                   >
                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${activeLayer === 'fsva' ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
@@ -433,8 +502,8 @@ function MapController({
                     </div>
                   </div>
                   <button 
-                    onClick={() => setActiveLayer('skpg')}
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${activeLayer === 'skpg' ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    onClick={() => selectLayer('skpg')}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer ${activeLayer === 'skpg' ? 'bg-blue-600' : 'bg-slate-200'}`}
                   >
                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${activeLayer === 'skpg' ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
@@ -483,8 +552,8 @@ function MapController({
                     </div>
                   </div>
                   <button 
-                    onClick={() => setActiveLayer('borda')}
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${activeLayer === 'borda' ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    onClick={() => selectLayer('borda')}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer ${activeLayer === 'borda' ? 'bg-blue-600' : 'bg-slate-200'}`}
                   >
                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${activeLayer === 'borda' ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
@@ -497,8 +566,8 @@ function MapController({
                     <span className="text-[8px] text-slate-400 font-bold mt-0.5">Distribusi Bantuan & GPM</span>
                   </div>
                   <button 
-                    onClick={() => setActiveLayer('intervensi')}
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${activeLayer === 'intervensi' ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    onClick={() => selectLayer('intervensi')}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer ${activeLayer === 'intervensi' ? 'bg-blue-600' : 'bg-slate-200'}`}
                   >
                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${activeLayer === 'intervensi' ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
@@ -526,12 +595,18 @@ function MapController({
       </div>
 
       {/* 2. FLOATING CONTROL BUTTONS (TOP-RIGHT) */}
-      <div className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col gap-2 print:hidden">
+      <div 
+        ref={controlsRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col gap-2 print:hidden"
+      >
         {/* Locate Me */}
         <button
           onClick={handleLocateMe}
           title="Locate Me"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90"
+          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 cursor-pointer"
         >
           <Navigation className="w-4 h-4" />
         </button>
@@ -540,7 +615,7 @@ function MapController({
         <button
           onClick={toggleBasemap}
           title="Toggle Detailed Basemap"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90"
+          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 cursor-pointer"
         >
           <Map className="w-4 h-4" />
         </button>
@@ -549,7 +624,7 @@ function MapController({
         <button
           onClick={handleZoomIn}
           title="Zoom In"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold"
+          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold cursor-pointer"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -558,19 +633,25 @@ function MapController({
         <button
           onClick={handleZoomOut}
           title="Zoom Out"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold"
+          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold cursor-pointer"
         >
           <Minus className="w-4 h-4" />
         </button>
       </div>
 
       {/* 3. DYNAMIC COLLAPSABLE LEGEND (BOTTOM-RIGHT) */}
-      <div className={`absolute bottom-4 right-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
-        expandLegend ? 'w-44 sm:w-48' : 'w-[105px] sm:w-48'
-      }`}>
+      <div 
+        ref={legendRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute bottom-4 right-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
+          expandLegend ? 'w-44 sm:w-48' : 'w-[105px] sm:w-48'
+        }`}
+      >
         <button
           onClick={toggleLegend}
-          className="w-full px-2 py-2 sm:px-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[8.5px] sm:text-[9px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
+          className="w-full px-2 py-2 sm:px-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[8.5px] sm:text-[9px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-1">
             <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -642,13 +723,17 @@ function MapController({
 
       {/* 4. DYNAMIC COLLAPSABLE PRIORITAS LOKUS (BOTTOM-LEFT) */}
       <div 
-        className={`absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
+        ref={prioritasRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute bottom-4 left-4 ${expandPrioritas ? 'z-[1020]' : 'z-[1000]'} pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${
           expandPrioritas ? 'w-[224px] sm:w-[315px]' : 'w-[125px] sm:w-48'
         }`}
       >
         <button
           onClick={togglePrioritas}
-          className="w-full px-1.5 sm:px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors"
+          className="w-full px-1.5 sm:px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
@@ -661,7 +746,8 @@ function MapController({
           <div 
             ref={scrollRef}
             onMouseDown={handleScrollMouseDown}
-            className={`p-3 max-h-[286px] overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60 select-none ${
+            onTouchStart={handleScrollTouchStart}
+            className={`p-3 max-h-[286px] overflow-x-auto overflow-y-auto custom-scrollbar bg-amber-50/95 border-t border-amber-200/60 select-none ${
               isScrollDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
           >
@@ -701,7 +787,7 @@ function MapController({
                 </div>
               </div>
               <button
-                onClick={handleDownloadLokusXlsx}
+                onClick={(e) => { e.stopPropagation(); handleDownloadLokusXlsx(); }}
                 className="flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black text-emerald-850 bg-emerald-100 hover:bg-emerald-250 hover:text-white rounded-lg cursor-pointer transition-all shadow-sm active:scale-95 border border-emerald-200/60 shrink-0"
                 title="Download xlsx"
               >
@@ -712,7 +798,7 @@ function MapController({
             
             {/* Dynamic content depending on activeLayer */}
             {activeLayer === 'fsva' && (
-              <div className="space-y-1 pl-1">
+              <div className="space-y-1 pl-1 min-w-max">
                 {(() => {
                   if (!fsvaMatangData || fsvaMatangData.length === 0) {
                     return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data FSVA.</div>;
@@ -729,7 +815,7 @@ function MapController({
                   return (
                     <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
                       {sortedFsva.map((item, idx) => (
-                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Nilai IKP: ${item.ikp.toFixed(2)}`}>
+                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 whitespace-nowrap" title={`Nilai IKP: ${item.ikp.toFixed(2)}`}>
                           Kel. {item.kelurahan} <span className="text-[9px] text-slate-400 font-bold ml-1">(IKP: {item.ikp.toFixed(1)})</span>
                         </li>
                       ))}
@@ -740,7 +826,7 @@ function MapController({
             )}
 
             {activeLayer === 'skpg' && (
-              <div className="space-y-1 pl-1">
+              <div className="space-y-1 pl-1 min-w-max">
                 {(() => {
                   if (!skpgMatangData || skpgMatangData.length === 0) {
                     return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data SKPG.</div>;
@@ -765,7 +851,7 @@ function MapController({
                   return (
                     <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
                       {ranked.map((item, idx) => (
-                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Prevalensi: ${item.prevalensi.toFixed(1)}%`}>
+                        <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 whitespace-nowrap" title={`Prevalensi: ${item.prevalensi.toFixed(1)}%`}>
                           Kel. {item.kelurahan} <span className="text-[9px] text-rose-550 font-extrabold ml-1">({item.prevalensi.toFixed(1)}%)</span>
                         </li>
                       ))}
@@ -776,14 +862,14 @@ function MapController({
             )}
 
             {activeLayer === 'borda' && (
-              <div className="space-y-1 pl-1">
+              <div className="space-y-1 pl-1 min-w-max">
                 {getTop10Borda().length === 0 ? (
                   <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data untuk Borda Count.</div>
                 ) : (
                   <ol className="list-decimal list-inside space-y-1 text-[11.5px] sm:text-[12px] font-extrabold text-slate-700">
                     {getTop10Borda().map((item, idx) => (
-                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 truncate" title={`Rank Borda: ${item.rank}, Desil: ${item.desil}`}>
-                        Kel. {item.kelurahan} <span className="text-[9.5px] text-amber-600 font-black ml-1">(Skor: {item.sum} | Desil: {item.desil})</span>
+                      <li key={idx} className="border-b border-slate-200/40 pb-0.5 last:border-0 whitespace-nowrap" title={`Skor Borda: ${item.sum}, Desil: ${item.desil}, Rank: ${item.rank}`}>
+                        Kel. {item.kelurahan} <span className="text-[8px] text-amber-600 font-black ml-1">(Skor:{item.sum} | D:{item.desil})</span>
                       </li>
                     ))}
                   </ol>
