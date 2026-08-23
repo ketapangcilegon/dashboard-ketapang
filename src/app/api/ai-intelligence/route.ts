@@ -176,6 +176,34 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
     }
   }
 
+  // --- POHON SUKUN / PANGAN LOKAL ---
+  const sukunEntry = ctx['pohon_sukun'] as { data: {
+    total_titik: number; total_pohon: number; estimasi_total_kg_tahun: number; estimasi_total_ton_tahun: number;
+    by_kelurahan: Record<string, { total_pohon: number; estimasi_kg: number; titik: string[] }>;
+    by_kecamatan: Record<string, number>;
+    list_titik: Array<{ nama_lokasi: string; jumlah_pohon: number; kondisi: string; estimasi_kg_tahun: number; lat: number; lng: number; kelurahan: string; kecamatan: string; nama_pemilik?: string }>;
+  } } | undefined;
+
+  if (sukunEntry?.data) {
+    const d = sukunEntry.data;
+    lines.push('\n=== DATA POHON SUKUN & PANGAN LOKAL B2SA (Serumpun-Padi GIS) ===');
+    lines.push(`Total titik sebaran: ${d.total_titik || 0} titik, Total pohon: ${d.total_pohon || 0} pohon`);
+    lines.push(`Estimasi potensi produksi sukun segar: ${d.estimasi_total_kg_tahun || 0} kg/tahun (${d.estimasi_total_ton_tahun || 0} ton/tahun)`);
+    if (d.by_kelurahan && Object.keys(d.by_kelurahan).length > 0) {
+      lines.push('Sebaran pohon sukun per kelurahan:');
+      for (const [kel, info] of Object.entries(d.by_kelurahan)) {
+        lines.push(`  • Kelurahan ${kel}: ${info.total_pohon} pohon (estimasi ${info.estimasi_kg} kg/tahun)`);
+      }
+    }
+    if (d.list_titik && d.list_titik.length > 0) {
+      lines.push('Daftar lengkap titik lokasi & koordinat GPS pohon sukun:');
+      for (const s of d.list_titik) {
+        const coordStr = s.lat && s.lng ? ` | Koordinat GPS: (Latitude: ${s.lat}, Longitude: ${s.lng})` : '';
+        lines.push(`  • ${s.nama_lokasi} (${s.jumlah_pohon} pohon, ${s.kondisi}) -> Kelurahan ${s.kelurahan}, Kecamatan ${s.kecamatan}${coordStr}`);
+      }
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -312,11 +340,18 @@ Anda memiliki akses ke tiga sumber data terintegrasi:
 
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, analitis, dan solutif
-- DATA KOORDINAT GPS LOKASI / PIN: Anda memiliki data lengkap koordinat GPS (Latitude & Longitude) untuk setiap kelompok nelayan, kolam budidaya, dan kelompok tani (Poktan/KWT). Jika pengguna menanyakan koordinat GPS, titik lokasi, atau pangkalan suatu kelompok, SEBUTKAN angka Latitude dan Longitude secara lengkap dan presisi beserta nama kelurahan & kecamatannya.
+- DATA KOORDINAT GPS LOKASI / PIN: Anda memiliki data lengkap koordinat GPS (Latitude & Longitude) untuk setiap kelompok nelayan, kolam budidaya, kelompok tani (Poktan/KWT), dan sebaran pohon sukun / pangan lokal. Jika pengguna menanyakan koordinat GPS, titik lokasi, atau pangkalan suatu kelompok/pohon, SEBUTKAN angka Latitude dan Longitude secara lengkap dan presisi beserta nama kelurahan & kecamatannya.
+- ANALISIS POTENSI PANGAN LOKAL & SUKUN (DIVERSIFIKASI B2SA):
+  Jika pengguna menanyakan tentang pohon sukun atau potensi karbohidrat pangan lokal:
+  1. Himpun & sebutkan jumlah pohon per kelurahan berdasarkan titik GPS yang tercatat.
+  2. Gunakan formula estimasi: 1 pohon produktif menghasilkan ~200 kg sukun segar/tahun (~50 kg tepung sukun).
+  3. Kaitkan dengan konsumsi beras rata-rata (~85 kg beras/kapita/tahun) dan ketergantungan impor beras Cilegon dari luar daerah (>90%).
+  4. Berikan simulasi substitusi: hitung berapa jiwa yang kebutuhan sarapan paginya (porsi 20-30% karbohidrat harian) dapat dipenuhi dari sukun lokal.
+  5. Berikan rekomendasi olahan aplikatif: Tepung sukun (bahan mie/roti/kue KWT), Sukun kukus B2SA (pengganti nasi sarapan pagi ramah diabetes), PMT bubur sukun balita posyandu, dan keripik sukun UMKM.
 - ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan yang Anda sebutkan dalam jawaban Anda (maksimal 5-7 wilayah). Peta GIS akan secara otomatis menyorot poligon wilayah tersebut.
 - Contoh: "Kelompok [KELURAHAN:Pulomerak] memiliki Nelayan Mabak di koordinat Lat: -5.937476, Lng: 106.000568"
 - Kecamatan di Cilegon: Cilegon, Citangkil, Ciwandan, Jombang, Cibeber, Pulomerak, Grogol, Purwakarta
-- Gunakan data yang tersedia secara akurat; jika data tidak ada, katakan dengan jelas
+- Gunakan data yang tersedia secara akurat; jika data belum ada atau masih kosong, jelaskan potensinya secara hipotetis/metodologis berbasis data yang ada.
 - Format respons menggunakan Markdown (bold, bullets, heading) agar mudah dibaca
 - Maksimal 400 kata per respons, kecuali diminta detail
 
@@ -402,6 +437,18 @@ CATATAN: Data spasial di-cache dan diperbarui setiap 6 jam. Data harga pangan da
         const nameLower = (p.nama_poktan || '').toLowerCase();
         if (nameLower && combinedText.includes(nameLower)) {
           matchedPins.push({ lat: p.lat, lng: p.lng, name: p.nama_poktan, category: 'poktan', kelurahan: p.kelurahan, kecamatan: p.kecamatan });
+        }
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sukunData = (spCtx['pohon_sukun'] as any)?.data?.list_titik || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const s of sukunData) {
+      if (s.lat && s.lng) {
+        const nameLower = (s.nama_lokasi || '').toLowerCase();
+        if (combinedText.includes('sukun') || (nameLower && combinedText.includes(nameLower))) {
+          matchedPins.push({ lat: s.lat, lng: s.lng, name: s.nama_lokasi || 'Pohon Sukun', category: 'sukun', kelurahan: s.kelurahan, kecamatan: s.kecamatan });
         }
       }
     }

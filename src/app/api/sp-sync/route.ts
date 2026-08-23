@@ -261,6 +261,80 @@ async function fetchPoktanSummary(sp: any): Promise<Record<string, unknown>> {
   };
 }
 
+// Agregasi pohon_sukun (pemetaan pangan lokal)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchPohonSukunSummary(sp: any): Promise<Record<string, unknown>> {
+  try {
+    const { data, error } = await sp
+      .from('pohon_sukun')
+      .select('id, kode_titik, nama_lokasi, jumlah_pohon, kondisi, estimasi_kg_tahun, lat, lng, kelurahan, kecamatan, nama_pemilik, keterangan');
+    
+    if (error) {
+      // Jika tabel belum dibuat di SP, fallback ke data kosong yang aman
+      return {
+        total_titik: 0,
+        total_pohon: 0,
+        by_kelurahan: {},
+        by_kecamatan: {},
+        list_titik: [],
+        catatan: 'Tabel pohon_sukun siap diisi titik pin baru'
+      };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows: any[] = data || [];
+    let totalPohon = 0;
+    const byKelurahan: Record<string, { total_pohon: number; estimasi_kg: number; titik: string[] }> = {};
+    const byKecamatan: Record<string, number> = {};
+    const listTitik: Array<Record<string, unknown>> = [];
+
+    for (const r of rows) {
+      const jml = Number(r.jumlah_pohon) || 1;
+      const kgPerPohon = Number(r.estimasi_kg_tahun) || 200;
+      totalPohon += jml;
+
+      let kel = r.kelurahan || 'Tidak Diketahui';
+      let kec = r.kecamatan || 'Kota Cilegon';
+      if ((!r.kelurahan || !r.kecamatan) && r.lat && r.lng) {
+        const matched = await matchLocationToWilayah(r.lat, r.lng);
+        kel = kel === 'Tidak Diketahui' ? matched.kelurahan : kel;
+        kec = kec === 'Kota Cilegon' ? matched.kecamatan : kec;
+      }
+
+      byKecamatan[kec] = (byKecamatan[kec] || 0) + jml;
+      if (!byKelurahan[kel]) byKelurahan[kel] = { total_pohon: 0, estimasi_kg: 0, titik: [] };
+      byKelurahan[kel].total_pohon += jml;
+      byKelurahan[kel].estimasi_kg += (jml * kgPerPohon);
+      byKelurahan[kel].titik.push(`${r.nama_lokasi || 'Titik Sukun'} (${jml} pohon, Lat: ${r.lat}, Lng: ${r.lng})`);
+
+      listTitik.push({
+        id: r.id,
+        nama_lokasi: r.nama_lokasi,
+        jumlah_pohon: jml,
+        kondisi: r.kondisi || 'Produktif',
+        estimasi_kg_tahun: jml * kgPerPohon,
+        lat: r.lat,
+        lng: r.lng,
+        kelurahan: kel,
+        kecamatan: kec,
+        nama_pemilik: r.nama_pemilik
+      });
+    }
+
+    return {
+      total_titik: rows.length,
+      total_pohon: totalPohon,
+      estimasi_total_kg_tahun: totalPohon * 200,
+      estimasi_total_ton_tahun: Math.round((totalPohon * 200 / 1000) * 100) / 100,
+      by_kelurahan: byKelurahan,
+      by_kecamatan: byKecamatan,
+      list_titik: listTitik
+    };
+  } catch {
+    return { total_titik: 0, total_pohon: 0, by_kelurahan: {}, by_kecamatan: {}, list_titik: [] };
+  }
+}
+
 // Agregasi komoditas_hortikultura dan palawija (handle jika tabel kosong)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchKomoditasSummary(sp: any, tabel: string): Promise<Record<string, unknown>> {
@@ -306,7 +380,7 @@ export async function POST(request: Request) {
     }
 
     const now = Date.now();
-    const needed = ['sawah_status', 'kolam_budidaya', 'nelayan_tangkap', 'poktan_kwt', 'komoditas_hortikultura', 'komoditas_palawija'];
+    const needed = ['sawah_status', 'kolam_budidaya', 'nelayan_tangkap', 'poktan_kwt', 'pohon_sukun', 'komoditas_hortikultura', 'komoditas_palawija'];
     const stale = needed.filter(t => {
       if (forceRefresh) return true;
       const cached = cacheMap[t];
@@ -336,6 +410,9 @@ export async function POST(request: Request) {
             break;
           case 'poktan_kwt':
             summary = await fetchPoktanSummary(sp);
+            break;
+          case 'pohon_sukun':
+            summary = await fetchPohonSukunSummary(sp);
             break;
           case 'komoditas_hortikultura':
           case 'komoditas_palawija':
