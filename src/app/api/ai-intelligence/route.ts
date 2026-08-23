@@ -103,7 +103,8 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   // --- KOLAM BUDIDAYA ---
   const kolamEntry = ctx['kolam_budidaya'] as { data: {
     total_kolam: number; total_luas_ha: number;
-    by_status: Record<string, number>; jenis_ikan_dibudidaya: string[];
+    by_status: Record<string, number>; by_kecamatan: Record<string, number>; by_kelurahan: Record<string, string[]>;
+    jenis_ikan_dibudidaya: string[];
   } } | undefined;
 
   if (kolamEntry?.data) {
@@ -111,22 +112,45 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
     lines.push('\n=== DATA KOLAM BUDIDAYA (Serumpun-Padi GIS) ===');
     lines.push(`Total kolam: ${d.total_kolam}, luas: ${fmtHa(d.total_luas_ha)}`);
     lines.push(`Jenis ikan: ${(d.jenis_ikan_dibudidaya || []).join(', ') || 'tidak tercatat'}`);
-    if (d.by_status) {
-      lines.push('Status kolam: ' + Object.entries(d.by_status).map(([k, v]) => `${k}: ${v}`).join(', '));
+    if (d.by_kecamatan) {
+      lines.push('Sebaran per kecamatan: ' + Object.entries(d.by_kecamatan).map(([k, v]) => `${k} (${v} kolam)`).join(', '));
+    }
+    if (d.by_kelurahan) {
+      lines.push('Sebaran per kelurahan (berdasarkan koordinat GPS):');
+      for (const [kel, items] of Object.entries(d.by_kelurahan)) {
+        lines.push(`  • Kelurahan ${kel}: ${items.join(', ')}`);
+      }
     }
   }
 
   // --- NELAYAN TANGKAP ---
   const nelayanEntry = ctx['nelayan_tangkap'] as { data: {
-    total_nelayan: number; by_alat_tangkap: Record<string, number>; jenis_ikan_tangkap: string[];
+    total_nelayan: number; by_alat_tangkap: Record<string, number>;
+    by_kecamatan: Record<string, number>; by_kelurahan: Record<string, string[]>;
+    jenis_ikan_tangkap: string[];
+    list_nelayan: Array<{ nama_nelayan: string; kelurahan: string; kecamatan: string; alat_tangkap: string; perahu: string }>;
   } } | undefined;
 
   if (nelayanEntry?.data) {
     const d = nelayanEntry.data;
-    lines.push('\n=== DATA NELAYAN TANGKAP (Serumpun-Padi GIS) ===');
-    lines.push(`Total nelayan/unit tangkap terdaftar: ${d.total_nelayan}`);
+    lines.push('\n=== DATA KELOMPOK NELAYAN TANGKAP (Serumpun-Padi GIS) ===');
+    lines.push(`Total kelompok nelayan/unit tangkap terdaftar: ${d.total_nelayan}`);
     lines.push(`Alat tangkap: ${Object.entries(d.by_alat_tangkap || {}).map(([k, v]) => `${k}(${v})`).join(', ')}`);
-    lines.push(`Jenis ikan tangkap: ${(d.jenis_ikan_tangkap || []).join(', ') || 'tidak tercatat'}`);
+    if (d.by_kecamatan) {
+      lines.push('Sebaran kelompok nelayan per kecamatan: ' + Object.entries(d.by_kecamatan).map(([k, v]) => `${k} (${v} kelompok)`).join(', '));
+    }
+    if (d.by_kelurahan) {
+      lines.push('Sebaran kelompok nelayan per kelurahan (berdasarkan titik koordinat GPS):');
+      for (const [kel, nels] of Object.entries(d.by_kelurahan)) {
+        lines.push(`  • Kelurahan ${kel}: ${nels.join(', ')}`);
+      }
+    }
+    if (d.list_nelayan && d.list_nelayan.length > 0) {
+      lines.push('Daftar lengkap lokasi kelompok nelayan:');
+      for (const n of d.list_nelayan) {
+        lines.push(`  - ${n.nama_nelayan} -> Kelurahan: ${n.kelurahan}, Kecamatan: ${n.kecamatan}`);
+      }
+    }
   }
 
   // --- POKTAN/KWT ---
@@ -283,11 +307,10 @@ Anda memiliki akses ke tiga sumber data terintegrasi:
 
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, analitis, dan solutif
-- ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] HANYA untuk wilayah yang menjadi FOKUS UTAMA atau REKOMENDASI jawaban Anda (maksimal 3 wilayah). JANGAN tag wilayah yang hanya disebut sebagai konteks negatif, perbandingan, atau wilayah yang "tidak memiliki data".
-- Contoh BENAR: "Kecamatan dengan lahan terluas adalah [KECAMATAN:Cibeber] (239 ha)" — hanya Cibeber yang di-tag karena itu fokus jawaban
-- Contoh SALAH: Jangan tag semua kecamatan yang disebutkan dalam daftar perbandingan
+- ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan yang Anda sebutkan dalam jawaban Anda (maksimal 5-7 wilayah). Peta GIS akan secara otomatis menyorot poligon wilayah tersebut.
+- Contoh: "Kelompok nelayan berada di [KELURAHAN:Suralaya], [KELURAHAN:Warnasari], dan [KELURAHAN:Kepuh]"
 - Kecamatan di Cilegon: Cilegon, Citangkil, Ciwandan, Jombang, Cibeber, Pulomerak, Grogol, Purwakarta
-- Gunakan data yang tersedia; jika data tidak ada, katakan dengan jelas
+- Gunakan data yang tersedia secara akurat; jika data tidak ada, katakan dengan jelas
 - Format respons menggunakan Markdown (bold, bullets, heading) agar mudah dibaca
 - Maksimal 400 kata per respons, kecuali diminta detail
 

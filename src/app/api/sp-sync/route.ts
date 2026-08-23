@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { createClient } = require('@supabase/supabase-js');
 import { supabase } from '@/lib/supabase';
+import { matchLocationToWilayah } from '@/lib/spatialWilayahMatcher';
 
 // ============================================================
 // /api/sp-sync
@@ -80,7 +81,7 @@ async function fetchSawahSummary(sp: any): Promise<Record<string, unknown>> {
 async function fetchKolamSummary(sp: any): Promise<Record<string, unknown>> {
   const { data, error } = await sp
     .from('kolam_budidaya')
-    .select('jenis_ikan, luas_m2, status_kolam, jenis_kolam, jenis_ikan_pembenihan, lat, lng');
+    .select('nama_pemilik, jenis_ikan, luas_m2, status_kolam, jenis_kolam, jenis_ikan_pembenihan, lat, lng');
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,7 +89,10 @@ async function fetchKolamSummary(sp: any): Promise<Record<string, unknown>> {
   const totalLuasM2 = rows.reduce((s: number, r: any) => s + (r.luas_m2 || 0), 0);
   const byStatus: Record<string, number> = {};
   const byJenis: Record<string, number> = {};
+  const byKecamatan: Record<string, number> = {};
+  const byKelurahan: Record<string, string[]> = {};
   const allIkan: string[] = [];
+  const listKolam: Array<Record<string, unknown>> = [];
 
   for (const r of rows) {
     const st = r.status_kolam || 'tidak_diketahui';
@@ -100,6 +104,28 @@ async function fetchKolamSummary(sp: any): Promise<Record<string, unknown>> {
         if (!allIkan.includes(ik)) allIkan.push(ik);
       });
     }
+
+    // Resolusi spasial GPS lat/lng
+    let kel = 'Tidak Diketahui';
+    let kec = 'Kota Cilegon';
+    if (r.lat && r.lng) {
+      const matched = await matchLocationToWilayah(r.lat, r.lng);
+      kel = matched.kelurahan;
+      kec = matched.kecamatan;
+    }
+
+    byKecamatan[kec] = (byKecamatan[kec] || 0) + 1;
+    if (!byKelurahan[kel]) byKelurahan[kel] = [];
+    byKelurahan[kel].push(`Kolam ${r.nama_pemilik || 'Warga'} (${r.jenis_ikan || 'Ikan Air Tawar'}, ${r.luas_m2 || 0} m²)`);
+
+    listKolam.push({
+      nama_pemilik: r.nama_pemilik,
+      jenis_ikan: r.jenis_ikan,
+      luas_m2: r.luas_m2,
+      status: r.status_kolam,
+      kelurahan: kel,
+      kecamatan: kec
+    });
   }
 
   return {
@@ -108,7 +134,10 @@ async function fetchKolamSummary(sp: any): Promise<Record<string, unknown>> {
     total_luas_ha: Math.round(totalLuasM2 / 10000 * 100) / 100,
     by_status: byStatus,
     by_jenis: byJenis,
-    jenis_ikan_dibudidaya: allIkan
+    by_kecamatan: byKecamatan,
+    by_kelurahan: byKelurahan,
+    jenis_ikan_dibudidaya: allIkan,
+    list_kolam: listKolam
   };
 }
 
@@ -124,6 +153,9 @@ async function fetchNelayanSummary(sp: any): Promise<Record<string, unknown>> {
   const rows: any[] = data || [];
   const alatMap: Record<string, number> = {};
   const ikanSet: string[] = [];
+  const byKecamatan: Record<string, number> = {};
+  const byKelurahan: Record<string, string[]> = {};
+  const listNelayan: Array<Record<string, unknown>> = [];
 
   for (const r of rows) {
     if (r.alat_tangkap) {
@@ -136,12 +168,38 @@ async function fetchNelayanSummary(sp: any): Promise<Record<string, unknown>> {
         if (!ikanSet.includes(ik)) ikanSet.push(ik);
       });
     }
+
+    // Resolusi spasial GPS lat/lng ke Kelurahan & Kecamatan di Cilegon
+    let kel = 'Pesisir Cilegon';
+    let kec = 'Kota Cilegon';
+    if (r.lat && r.lng) {
+      const matched = await matchLocationToWilayah(r.lat, r.lng);
+      kel = matched.kelurahan;
+      kec = matched.kecamatan;
+    }
+
+    byKecamatan[kec] = (byKecamatan[kec] || 0) + 1;
+    if (!byKelurahan[kel]) byKelurahan[kel] = [];
+    byKelurahan[kel].push(r.nama_nelayan);
+
+    listNelayan.push({
+      nama_nelayan: r.nama_nelayan,
+      alat_tangkap: r.alat_tangkap,
+      perahu: r.perahu,
+      kelurahan: kel,
+      kecamatan: kec,
+      lat: r.lat,
+      lng: r.lng
+    });
   }
 
   return {
     total_nelayan: rows.length,
     by_alat_tangkap: alatMap,
-    jenis_ikan_tangkap: ikanSet
+    by_kecamatan: byKecamatan,
+    by_kelurahan: byKelurahan,
+    jenis_ikan_tangkap: ikanSet,
+    list_nelayan: listNelayan
   };
 }
 
