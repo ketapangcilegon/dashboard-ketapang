@@ -1,11 +1,36 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { chunkText, parseExcelToTextChunks, KnowledgeChunk } from '@/lib/knowledgeChunker';
-
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse');
+const PDFParser = require('pdf2json');
 
 export const dynamic = 'force-dynamic';
+
+function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParser = new (PDFParser as any)(null, 1);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pdfParser.on('pdfParser_dataError', (errData: any) => {
+      reject(errData?.parserError || new Error('Gagal memproses file PDF'));
+    });
+
+    pdfParser.on('pdfParser_dataReady', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawText: string = (pdfParser as any).getRawTextContent();
+      // Decode URL encoding yang biasa dihasilkan pdf2json
+      try {
+        const decoded = decodeURIComponent(rawText);
+        resolve(decoded);
+      } catch {
+        resolve(rawText || '');
+      }
+    });
+
+    pdfParser.parseBuffer(buffer);
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,11 +52,10 @@ export async function POST(request: Request) {
 
       if (lowerName.endsWith('.pdf')) {
         jenis = 'pdf';
-        const pdfData = await pdf(buffer);
-        const extractedText = pdfData.text || '';
+        const extractedText = await extractTextFromPDF(buffer);
         if (!extractedText.trim()) {
           return NextResponse.json(
-            { error: 'Gagal mengekstrak teks dari PDF. Pastikan PDF bukan hasil scan murni tanpa OCR.' },
+            { error: 'Gagal mengekstrak teks dari PDF. Pastikan PDF bukan hasil scan murni tanpa teks/OCR.' },
             { status: 400 }
           );
         }
@@ -105,7 +129,6 @@ export async function POST(request: Request) {
 
       if (chunkError) {
         console.error('Error inserting chunk batch:', chunkError);
-        // Tetap lanjutkan batch berikutnya jika memungkinkan
       }
     }
 
