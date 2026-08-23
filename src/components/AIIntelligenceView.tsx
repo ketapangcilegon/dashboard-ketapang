@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Sparkles, Map, MessageSquare, Info, RefreshCw } from 'lucide-react';
-import AIIntelligencePanel from './AIIntelligencePanel';
+import { Sparkles, Map, MessageSquare, Info, RefreshCw, MapPin } from 'lucide-react';
+import AIIntelligencePanel, { MatchedPin } from './AIIntelligencePanel';
 
 // ============================================================
 // AIIntelligenceView
@@ -25,13 +25,21 @@ const AIIntelligenceMap = dynamic(
 
 export default function AIIntelligenceView() {
   const [highlightWilayah, setHighlightWilayah] = useState<string[]>([]);
+  const [highlightPins, setHighlightPins] = useState<MatchedPin[]>([]);
   const [activeTab, setActiveTab] = useState<'split' | 'map' | 'chat'>('split');
 
   const handleWilayahHighlight = useCallback((wilayah: string[]) => {
     setHighlightWilayah(wilayah);
   }, []);
 
-  const clearHighlight = () => setHighlightWilayah([]);
+  const handlePinsHighlight = useCallback((pins: MatchedPin[]) => {
+    setHighlightPins(pins);
+  }, []);
+
+  const clearHighlight = () => {
+    setHighlightWilayah([]);
+    setHighlightPins([]);
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] min-h-[620px] max-h-[950px]">
@@ -79,11 +87,20 @@ export default function AIIntelligenceView() {
       </div>
 
       {/* Highlight info bar */}
-      {highlightWilayah.length > 0 && (
+      {(highlightWilayah.length > 0 || highlightPins.length > 0) && (
         <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] font-semibold text-amber-800 shrink-0 animate-in fade-in slide-in-from-top-1 duration-300">
-          <span className="text-amber-500">📍</span>
+          <span className="text-amber-500 font-black">📍</span>
           <span>
-            Peta menyoroti: {highlightWilayah.map(w => <strong key={w} className="font-black">{w}</strong>).reduce((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [] as React.ReactNode[])}
+            {highlightPins.length > 0 && (
+              <span className="mr-2">
+                Pin Lokasi GPS: {highlightPins.map(p => <strong key={p.name} className="font-black text-blue-800">📌 {p.name} ({p.lat.toFixed(5)}, {p.lng.toFixed(5)})</strong>).reduce((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [] as React.ReactNode[])}
+              </span>
+            )}
+            {highlightWilayah.length > 0 && (
+              <span>
+                Wilayah: {highlightWilayah.map(w => <strong key={w} className="font-black">{w}</strong>).reduce((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [] as React.ReactNode[])}
+              </span>
+            )}
           </span>
           <button
             onClick={clearHighlight}
@@ -111,15 +128,20 @@ export default function AIIntelligenceView() {
                 <span className="text-[10px] font-black text-slate-700 uppercase tracking-wide">AI GIS Intelligence</span>
               </div>
 
-              <AIIntelligenceMap highlightWilayah={highlightWilayah} />
+              <AIIntelligenceMap 
+                highlightWilayah={highlightWilayah} 
+                highlightPins={highlightPins}
+              />
 
               {/* Info hint */}
               <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
                 <Info className="w-2.5 h-2.5 text-slate-400" />
                 <span className="text-[9px] font-bold text-slate-500">
-                  {highlightWilayah.length > 0
-                    ? `${highlightWilayah.length} wilayah disorot oleh AI`
-                    : 'Tanyakan sesuatu kepada AI untuk menyorot wilayah'}
+                  {highlightPins.length > 0
+                    ? `${highlightPins.length} Pin Titik GPS aktif`
+                    : highlightWilayah.length > 0
+                      ? `${highlightWilayah.length} wilayah disorot oleh AI`
+                      : 'Tanyakan sesuatu kepada AI untuk menyorot wilayah / titik GPS'}
                 </span>
               </div>
             </div>
@@ -130,6 +152,7 @@ export default function AIIntelligenceView() {
             <div className={`h-full min-h-0 flex flex-col ${activeTab === 'split' ? 'flex-1 min-w-0' : 'w-full'}`}>
               <AIIntelligencePanel
                 onWilayahHighlight={handleWilayahHighlight}
+                onPinsHighlight={handlePinsHighlight}
                 isFullScreen={true}
               />
             </div>

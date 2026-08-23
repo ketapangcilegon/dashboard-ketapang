@@ -21,8 +21,18 @@ interface SyncStatus {
   tables: { tabel: string; age_minutes: number }[];
 }
 
+export interface MatchedPin {
+  lat: number;
+  lng: number;
+  name: string;
+  category: string;
+  kelurahan: string;
+  kecamatan: string;
+}
+
 interface AIIntelligencePanelProps {
   onWilayahHighlight?: (wilayah: string[]) => void;
+  onPinsHighlight?: (pins: MatchedPin[]) => void;
   isFullScreen?: boolean;
 }
 
@@ -108,6 +118,7 @@ function parseBold(text: string): React.ReactNode {
 
 export default function AIIntelligencePanel({
   onWilayahHighlight,
+  onPinsHighlight,
   isFullScreen = false
 }: AIIntelligencePanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -193,6 +204,11 @@ export default function AIIntelligencePanel({
         if (data.wilayah_highlight?.length > 0 && onWilayahHighlight) {
           onWilayahHighlight(data.wilayah_highlight);
         }
+
+        // Trigger highlight PIN GPS jika ada pin yang cocok
+        if (data.matched_pins && onPinsHighlight) {
+          onPinsHighlight(data.matched_pins);
+        }
       } else {
         const errMsg: Message = {
           role: 'model',
@@ -211,7 +227,7 @@ export default function AIIntelligencePanel({
     }
 
     setLoading(false);
-  }, [loading, messages, onWilayahHighlight]);
+  }, [loading, messages, onWilayahHighlight, onPinsHighlight]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

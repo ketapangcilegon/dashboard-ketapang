@@ -6,14 +6,18 @@ import { useKMZLoader } from '@/hooks/useKMZLoader';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import { Marker, Popup } from 'react-leaflet';
+import { MatchedPin } from './AIIntelligencePanel';
+
 // ============================================================
 // AIIntelligenceMap
 // Peta Leaflet ringan khusus untuk AI Intelligence View
-// Mendukung highlight wilayah berdasarkan respons AI
+// Mendukung highlight wilayah & pin lokasi GPS presisi
 // ============================================================
 
 interface AIIntelligenceMapProps {
   highlightWilayah?: string[];
+  highlightPins?: MatchedPin[];
 }
 
 function normalizeName(name: string): string {
@@ -96,10 +100,12 @@ function MapInit() {
 // ─── HighlightManager: re-style layers + fit bounds ─────────
 function HighlightManager({
   highlightWilayah,
+  highlightPins = [],
   kecLayerRef,
   kelLayerRef
 }: {
   highlightWilayah: string[];
+  highlightPins?: MatchedPin[];
   kecLayerRef: React.RefObject<L.GeoJSON[]>;
   kelLayerRef: React.RefObject<L.GeoJSON[]>;
 }) {
@@ -149,7 +155,20 @@ function HighlightManager({
       });
     }
 
-    // Fit bounds ke semua wilayah yang di-highlight
+    // 1. Jika ada PIN GPS yang spesifik, fokus langsung ke titik PIN tersebut
+    if (highlightPins.length > 0) {
+      if (highlightPins.length === 1) {
+        map.flyTo([highlightPins[0].lat, highlightPins[0].lng], 15, { animate: true, duration: 1 });
+      } else {
+        const pinBounds = L.latLngBounds(highlightPins.map(p => [p.lat, p.lng]));
+        if (pinBounds.isValid()) {
+          map.fitBounds(pinBounds, { padding: [60, 60], maxZoom: 15, animate: true });
+        }
+      }
+      return;
+    }
+
+    // 2. Fit bounds ke semua wilayah poligon yang di-highlight
     if (highlightedBounds.length > 0 && highlightWilayah.length > 0) {
       try {
         const combined = highlightedBounds.reduce((acc, b) => acc.extend(b), L.latLngBounds([]));
@@ -157,17 +176,20 @@ function HighlightManager({
           map.fitBounds(combined, { padding: [50, 50], maxZoom: 14, animate: true });
         }
       } catch { /* skip fitBounds error */ }
-    } else if (highlightWilayah.length === 0) {
+    } else if (highlightWilayah.length === 0 && highlightPins.length === 0) {
       // Reset zoom ke default saat highlight dihapus
       map.setView([-6.002, 106.003], 12, { animate: true });
     }
-  }, [highlightWilayah, map, kecLayerRef, kelLayerRef]);
+  }, [highlightWilayah, highlightPins, map, kecLayerRef, kelLayerRef]);
 
   return null;
 }
 
 // ─── Main Component ──────────────────────────────────────────
-export default function AIIntelligenceMap({ highlightWilayah = [] }: AIIntelligenceMapProps) {
+export default function AIIntelligenceMap({ 
+  highlightWilayah = [],
+  highlightPins = []
+}: AIIntelligenceMapProps) {
   const { layers, loading, loadFromURL } = useKMZLoader();
 
   // Refs untuk menyimpan referensi Leaflet GeoJSON instances
@@ -184,6 +206,29 @@ export default function AIIntelligenceMap({ highlightWilayah = [] }: AIIntellige
     kelLayerRef.current = [];
   }, [layers]);
 
+  // Custom Icon helper untuk GPS Pin Markers
+  const createPinIcon = (category: string, name: string) => {
+    const isNelayan = category === 'nelayan';
+    const isKolam = category === 'kolam';
+    const bgClass = isNelayan ? 'bg-blue-600' : isKolam ? 'bg-cyan-600' : 'bg-emerald-600';
+    const iconEmoji = isNelayan ? '⚓' : isKolam ? '🐟' : '🌱';
+
+    return L.divIcon({
+      className: 'custom-pin-marker',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+          <div style="background-color:${isNelayan ? '#2563eb' : isKolam ? '#0891b2' : '#059669'};color:white;font-weight:900;font-size:11px;padding:4px 8px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);border:2px solid white;display:flex;align-items:center;gap:4px;white-space:nowrap;animation:bounce 1s infinite alternate;">
+            <span>${iconEmoji}</span>
+            <span>${name}</span>
+          </div>
+          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${isNelayan ? '#2563eb' : isKolam ? '#0891b2' : '#059669'};"></div>
+        </div>
+      `,
+      iconSize: [120, 40],
+      iconAnchor: [60, 38]
+    });
+  };
+
   return (
     <div className="w-full h-full relative">
       <MapContainer
@@ -196,6 +241,7 @@ export default function AIIntelligenceMap({ highlightWilayah = [] }: AIIntellige
         <MapInit />
         <HighlightManager
           highlightWilayah={highlightWilayah}
+          highlightPins={highlightPins}
           kecLayerRef={kecLayerRef}
           kelLayerRef={kelLayerRef}
         />
@@ -205,6 +251,29 @@ export default function AIIntelligenceMap({ highlightWilayah = [] }: AIIntellige
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='© OpenStreetMap © CARTO'
         />
+
+        {/* GPS Pin Markers */}
+        {highlightPins.map((pin, pidx) => (
+          <Marker
+            key={`pin-${pidx}-${pin.lat}-${pin.lng}`}
+            position={[pin.lat, pin.lng]}
+            icon={createPinIcon(pin.category, pin.name)}
+          >
+            <Popup autoPan={false}>
+              <div style={{ fontFamily: 'system-ui', fontSize: '12px', padding: '4px' }}>
+                <p style={{ fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0', fontSize: '13px' }}>
+                  📌 {pin.name}
+                </p>
+                <p style={{ margin: '0 0 2px 0', color: '#475569' }}>
+                  🏛️ Kelurahan: <strong>{pin.kelurahan}</strong>, Kec: <strong>{pin.kecamatan}</strong>
+                </p>
+                <p style={{ margin: '0', color: '#2563eb', fontWeight: 700, fontSize: '11px' }}>
+                  🌐 Lat: {pin.lat.toFixed(6)}, Lng: {pin.lng.toFixed(6)}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* Layer Kecamatan */}
         {layers.kecamatan.map((f, i) => (

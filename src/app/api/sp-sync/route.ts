@@ -208,21 +208,46 @@ async function fetchNelayanSummary(sp: any): Promise<Record<string, unknown>> {
 async function fetchPoktanSummary(sp: any): Promise<Record<string, unknown>> {
   const { data, error } = await sp
     .from('poktan_kwt')
-    .select('nama_poktan, jenis, nama_ketua, jumlah_anggota, kelurahan, kecamatan, produk_unggulan, status_aktif');
+    .select('nama_poktan, jenis, nama_ketua, jumlah_anggota, kelurahan, kecamatan, produk_unggulan, status_aktif, lat, lng');
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = data || [];
   const byJenis: Record<string, number> = {};
   const byKecamatan: Record<string, number> = {};
+  const byKelurahan: Record<string, string[]> = {};
+  const listPoktan: Array<Record<string, unknown>> = [];
   const totalAnggota = rows.reduce((s: number, r: any) => s + (Number(r.jumlah_anggota) || 0), 0);
-  const aktif = rows.filter((r: any) => r.status_aktif).length;
+  const aktif = rows.filter((r: any) => r.status_aktif === 'Aktif' || r.status_aktif === true).length;
 
   for (const r of rows) {
-    const j = r.jenis || 'tidak_diketahui';
+    const j = r.jenis || 'Poktan';
     byJenis[j] = (byJenis[j] || 0) + 1;
-    const k = r.kecamatan || 'tidak_diketahui';
-    byKecamatan[k] = (byKecamatan[k] || 0) + 1;
+
+    let kel = r.kelurahan || 'Tidak Diketahui';
+    let kec = r.kecamatan || 'Kota Cilegon';
+    if ((!r.kelurahan || !r.kecamatan) && r.lat && r.lng) {
+      const matched = await matchLocationToWilayah(r.lat, r.lng);
+      kel = kel === 'Tidak Diketahui' ? matched.kelurahan : kel;
+      kec = kec === 'Kota Cilegon' ? matched.kecamatan : kec;
+    }
+
+    byKecamatan[kec] = (byKecamatan[kec] || 0) + 1;
+    if (!byKelurahan[kel]) byKelurahan[kel] = [];
+    byKelurahan[kel].push(`${r.nama_poktan} (${j}, Ketua: ${r.nama_ketua || '-'}, ${r.jumlah_anggota || 0} anggota)`);
+
+    listPoktan.push({
+      nama_poktan: r.nama_poktan,
+      jenis: j,
+      nama_ketua: r.nama_ketua,
+      jumlah_anggota: r.jumlah_anggota,
+      produk_unggulan: r.produk_unggulan,
+      status_aktif: r.status_aktif,
+      kelurahan: kel,
+      kecamatan: kec,
+      lat: r.lat,
+      lng: r.lng
+    });
   }
 
   return {
@@ -230,7 +255,9 @@ async function fetchPoktanSummary(sp: any): Promise<Record<string, unknown>> {
     poktan_aktif: aktif,
     total_anggota: totalAnggota,
     by_jenis: byJenis,
-    by_kecamatan: byKecamatan
+    by_kecamatan: byKecamatan,
+    by_kelurahan: byKelurahan,
+    list_poktan: listPoktan
   };
 }
 
