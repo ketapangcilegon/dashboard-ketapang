@@ -32,6 +32,7 @@ const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: f
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
 const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ssr: false });
 const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
+const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -2097,7 +2098,12 @@ export default function DashboardPage() {
               {currentView === 'tentang' && (
                 <TentangAplikasi onBack={() => setCurrentView('beranda')} />
               )}
-              
+
+              {currentView === 'ai_intelligence' && (
+                <div className="min-h-[calc(100vh-12rem)]">
+                  <AIIntelligenceView />
+                </div>
+              )}
             </div>
           )}
 
