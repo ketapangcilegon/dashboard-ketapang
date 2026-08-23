@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { searchKnowledgeBase, MatchedKnowledgeChunk } from '@/app/api/knowledge/search/route';
 
 // ============================================================
 // /api/ai-intelligence
@@ -259,11 +260,26 @@ export async function POST(request: Request) {
         }, '')
       : null;
 
-    // 3. Build system prompt
+    // 3. Search Knowledge Base (RAG) untuk dokumen PDF / laporan / peraturan yang diupload
+    let knowledgeNarrative = '';
+    let referencedDocs: string[] = [];
+    try {
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 4);
+      if (matchedChunks.length > 0) {
+        referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
+        const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title}]\n${c.content}`);
+        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan referensi dokumen di atas jika relevan untuk menjawab pertanyaan pengguna.`;
+      }
+    } catch (e) {
+      console.warn('Failed searching knowledge base:', e);
+    }
+
+    // 4. Build system prompt
     const systemPrompt = `Anda adalah **Food Intelligence Assistant** milik Dinas Ketahanan Pangan Kota Cilegon.
-Anda memiliki akses ke dua sumber data terintegrasi:
+Anda memiliki akses ke tiga sumber data terintegrasi:
 1. **Dashboard Ketapang** — data IKP, SKPG, FSVA, harga pangan strategis, forecast ML, dan gizi balita Kota Cilegon
 2. **Serumpun-Padi GIS** — data produksi pertanian spasial (sawah, kolam budidaya, nelayan, poktan/KWT, hortikultura, palawija)
+3. **Knowledge Base Dokumen** — kumpulan dokumen resmi (Peraturan/UU, laporan tahunan, pedoman teknis) yang telah diindeks ke sistem
 
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, analitis, dan solutif
@@ -278,7 +294,8 @@ ATURAN PENTING:
 DATA PRODUKSI TERKINI (dari Serumpun-Padi GIS):
 ${spNarrative || 'Data Serumpun-Padi belum tersinkronisasi. Gunakan data yang tersedia dari Dashboard Ketapang.'}
 
-CATATAN: Data di atas di-cache dan diperbarui setiap 6 jam. Data harga pangan dan IKP/SKPG tersedia secara real-time di Dashboard Ketapang.`;
+${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}
+CATATAN: Data spasial di-cache dan diperbarui setiap 6 jam. Data harga pangan dan IKP/SKPG tersedia secara real-time di Dashboard Ketapang.`;
 
     // 4. Panggil Gemini API
     const contents = buildGeminiContents(systemPrompt, history, userMessage);
@@ -323,6 +340,7 @@ CATATAN: Data di atas di-cache dan diperbarui setiap 6 jam. Data harga pangan da
       text: cleanText,
       wilayah_highlight: wilayahHighlight,
       source_tables: sourceTables,
+      referenced_docs: referencedDocs,
       last_sync: lastSync,
       model: GEMINI_MODEL
     });

@@ -12,6 +12,7 @@ interface Message {
   role: 'user' | 'model';
   text: string;
   wilayah?: string[];
+  referencedDocs?: string[];
   timestamp: Date;
 }
 
@@ -183,6 +184,7 @@ export default function AIIntelligencePanel({
           role: 'model',
           text: data.text,
           wilayah: data.wilayah_highlight || [],
+          referencedDocs: data.referenced_docs || [],
           timestamp: new Date()
         };
         setMessages(prev => [...prev, modelMsg]);
@@ -335,6 +337,18 @@ export default function AIIntelligencePanel({
                           {msg.wilayah.map((w, wi) => (
                             <span key={wi} className="text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
                               📍 {w}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Knowledge base referenced documents badges */}
+                      {msg.referencedDocs && msg.referencedDocs.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1 items-center pt-1.5 border-t border-slate-100">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">📚 Dokumen Rujukan:</span>
+                          {msg.referencedDocs.map((doc, di) => (
+                            <span key={di} className="text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 px-2 py-0.5 rounded-md">
+                              {doc}
                             </span>
                           ))}
                         </div>

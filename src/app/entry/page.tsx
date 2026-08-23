@@ -6,12 +6,13 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import UploadPanel from '@/components/UploadPanel';
 import AdminMediaPanel from '@/components/AdminMediaPanel';
-import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon } from 'lucide-react';
+import AdminKnowledgePanel from '@/components/AdminKnowledgePanel';
+import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon, Sparkles, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'media'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'media' | 'knowledge'>('upload');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +26,8 @@ export default function EntryPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('tab') === 'media') {
         setActiveTab('media');
+      } else if (params.get('tab') === 'knowledge') {
+        setActiveTab('knowledge');
       }
     }
   }, []);
@@ -257,14 +260,24 @@ export default function EntryPage() {
                   <ImageIcon className="w-4 h-4" />
                   <span>Manajemen Informasi & Dokumentasi</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('knowledge')}
+                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'knowledge'
+                      ? 'bg-emerald-800 text-white shadow-md'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Knowledge Base AI (Dokumen & Perda)</span>
+                </button>
               </div>
 
               {/* Tab Content */}
-              {activeTab === 'upload' ? (
-                <UploadPanel />
-              ) : (
-                <AdminMediaPanel />
-              )}
+              {activeTab === 'upload' && <UploadPanel />}
+              {activeTab === 'media' && <AdminMediaPanel />}
+              {activeTab === 'knowledge' && <AdminKnowledgePanel />}
             </div>
           )}
         </main>
