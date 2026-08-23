@@ -2100,7 +2100,7 @@ export default function DashboardPage() {
               )}
 
               {currentView === 'ai_intelligence' && (
-                <div className="min-h-[calc(100vh-12rem)]">
+                <div className="w-full">
                   <AIIntelligenceView />
                 </div>
               )}

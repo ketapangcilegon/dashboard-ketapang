@@ -34,7 +34,7 @@ export default function AIIntelligenceView() {
   const clearHighlight = () => setHighlightWilayah([]);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-[calc(100vh-8.5rem)] min-h-[620px] max-h-[950px]">
       
       {/* Page Header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
@@ -95,15 +95,15 @@ export default function AIIntelligenceView() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative">
         
         {/* Desktop: Split / Map only / Chat only */}
-        <div className="hidden md:flex h-full gap-4">
+        <div className="hidden md:flex h-full gap-4 items-stretch">
           
-          {/* Peta */}
+          {/* Peta (Ketinggian tetap & stabil) */}
           {(activeTab === 'split' || activeTab === 'map') && (
-            <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 ${
-              activeTab === 'split' ? 'w-[60%]' : 'flex-1'
+            <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full ${
+              activeTab === 'split' ? 'w-[60%]' : 'w-full'
             }`}>
               {/* Layer info overlay */}
               <div className="absolute top-3 left-3 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm">
@@ -125,9 +125,9 @@ export default function AIIntelligenceView() {
             </div>
           )}
 
-          {/* Panel chat */}
+          {/* Panel chat (Tinggi responsif mengikuti layar & scroll mandiri) */}
           {(activeTab === 'split' || activeTab === 'chat') && (
-            <div className={activeTab === 'split' ? 'flex-1 min-w-0' : 'flex-1'}>
+            <div className={`h-full min-h-0 flex flex-col ${activeTab === 'split' ? 'flex-1 min-w-0' : 'w-full'}`}>
               <AIIntelligencePanel
                 onWilayahHighlight={handleWilayahHighlight}
                 isFullScreen={true}

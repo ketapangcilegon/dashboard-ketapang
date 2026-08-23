@@ -61,7 +61,7 @@ const HIGHLIGHT_KEL_STYLE: L.PathOptions = {
   dashArray: ''
 };
 
-// ─── MapInit: set view + fix Leaflet icon ───────────────────
+// ─── MapInit: set view + fix Leaflet icon + auto-invalidate size ───
 function MapInit() {
   const map = useMap();
   useEffect(() => {
@@ -73,6 +73,22 @@ function MapInit() {
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
     });
+
+    // Invalidate size immediately and after short delays to ensure complete tile rendering
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 400);
+
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [map]);
   return null;
 }

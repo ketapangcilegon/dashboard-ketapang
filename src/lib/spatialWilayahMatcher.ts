@@ -7,8 +7,10 @@ import { WILAYAH, KEL_TO_KEC, normalizeKelurahanName } from './wilayah';
 interface WilayahPolygon {
   name: string;
   type: 'kecamatan' | 'kelurahan';
-  polygon: turf.Feature<turf.Polygon | turf.MultiPolygon>;
-  center: turf.Feature<turf.Point>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  polygon: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  center: any;
 }
 
 let cachedPolygons: WilayahPolygon[] | null = null;
