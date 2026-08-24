@@ -117,19 +117,27 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. CALL GEMINI API (MENGGUNAKAN MODEL MURAH & GRATIS: gemini-2.5-flash-lite)
-    const model = 'gemini-2.5-flash-lite';
+    // 2. CALL GEMINI API WITH MULTI-MODEL FALLBACK
+    const models = [
+      'gemini-flash-lite-latest',
+      'gemini-2.5-flash-lite',
+      'gemini-3.1-flash-lite',
+      'gemini-flash-latest',
+      'gemini-2.5-flash'
+    ];
     let generatedText = '';
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
+
+    for (const model of models) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
 Tugas Anda adalah membaca data indikator ketahanan pangan real-time yang sedang ditampilkan di dashboard Ketapang berikut ini, lalu berikan laporan analisis/insight eksekutif yang tajam, solutif, profesional, dan kaya akan insight metodologis (tuliskan dalam Bahasa Indonesia yang formal dan terstruktur dengan rapi menggunakan Markdown).
 Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 280-320 kata) agar tetap ringkas namun mencakup semua instruksi penting.
 
@@ -167,22 +175,27 @@ STRUKTUR LAPORAN HARUS TERDIRI DARI:
   3. Kerja Sama Antar Daerah (KAD) dengan produsen utama pangan strategis untuk menjamin pasokan pangan jangka menengah dan menghindari gejolak spekulasi pasar.
 
 Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Jangan gunakan placeholder.`
-            }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 600 // Pembatasan output token untuk meminimalkan konsumsi biaya / aman di Free Tier!
-          }
-        })
-      });
+              }]
+            }],
+            generationConfig: {
+              maxOutputTokens: 600
+            }
+          })
+        });
 
-      if (response.ok) {
-        const result = await response.json();
-        generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      } else {
-        console.warn(`Gemini API error status: ${response.status} ${response.statusText}`);
+        if (response.ok) {
+          const result = await response.json();
+          generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (generatedText) break;
+        } else {
+          console.warn(`[AI Insight] Model ${model} returned status: ${response.status}`);
+          if (response.status === 429) {
+            await new Promise(r => setTimeout(r, 400));
+          }
+        }
+      } catch (err) {
+        console.warn(`[AI Insight] Model ${model} network error:`, err);
       }
-    } catch (err) {
-      console.warn('Network error while fetching Gemini API:', err);
     }
 
     if (generatedText) {

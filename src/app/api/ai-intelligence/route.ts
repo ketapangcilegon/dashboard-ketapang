@@ -9,8 +9,77 @@ import { searchKnowledgeBase, MatchedKnowledgeChunk } from '@/app/api/knowledge/
 // Output: { text, wilayah_highlight, source_tables }
 // ============================================================
 
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+  'gemini-2.5-flash'
+];
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+async function callGeminiWithFallback(
+  apiKey: string,
+  contents: object[],
+  systemInstruction?: string,
+  maxOutputTokens = 800
+): Promise<{ text: string; model: string }> {
+  let lastErrorStatus = 0;
+  let lastErrorMessage = '';
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const payload: Record<string, unknown> = {
+        contents,
+        generationConfig: {
+          maxOutputTokens,
+          temperature: 0.7
+        }
+      };
+
+      if (systemInstruction) {
+        payload.system_instruction = {
+          parts: [{ text: systemInstruction }]
+        };
+      }
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          return { text, model };
+        }
+      } else {
+        lastErrorStatus = res.status;
+        const errBody = await res.text().catch(() => '');
+        console.warn(`[Gemini AI Intelligence] Model ${model} returned ${res.status}:`, errBody.substring(0, 150));
+        if (res.status === 429) {
+          // Pause slightly before trying next fallback model
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    } catch (err: unknown) {
+      const e = err as Error;
+      lastErrorMessage = e.message;
+      console.warn(`[Gemini AI Intelligence] Model ${model} error:`, e.message);
+    }
+  }
+
+  throw new Error(
+    lastErrorStatus === 429
+      ? 'Layanan AI Gemini sedang menerima banyak permintaan (Rate Limit 429). Silakan coba kirim kembali dalam beberapa detik.'
+      : (lastErrorMessage || `Gemini API error: ${lastErrorStatus || 502}`)
+  );
+}
 
 // Ambil semua cache SP yang tersedia
 async function getSpContextData(): Promise<Record<string, unknown>> {
@@ -232,38 +301,25 @@ function cleanResponseText(text: string): string {
 type Message = { role: 'user' | 'model'; text: string };
 
 function buildGeminiContents(
-  systemPrompt: string,
   history: Message[],
   userMessage: string
 ) {
   const contents = [];
 
-  // Gemini tidak punya "system" role — masukkan sebagai bagian dari user turn pertama
-  if (history.length === 0) {
-    contents.push({
-      role: 'user',
-      parts: [{ text: systemPrompt + '\n\n' + userMessage }]
-    });
-  } else {
-    // Turn pertama sudah ada dalam history — prepend system ke turn pertama
-    const firstUserMsg = history[0];
-    contents.push({
-      role: 'user',
-      parts: [{ text: systemPrompt + '\n\n' + firstUserMsg.text }]
-    });
-    // Sisa history
-    for (let i = 1; i < history.length; i++) {
+  for (const h of history) {
+    if (h.text && h.text.trim()) {
       contents.push({
-        role: history[i].role === 'user' ? 'user' : 'model',
-        parts: [{ text: history[i].text }]
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.text }]
       });
     }
-    // Pesan user saat ini
-    contents.push({
-      role: 'user',
-      parts: [{ text: userMessage }]
-    });
   }
+
+  // Pesan user saat ini
+  contents.push({
+    role: 'user',
+    parts: [{ text: userMessage }]
+  });
 
   return contents;
 }
@@ -361,35 +417,9 @@ ${spNarrative || 'Data Serumpun-Padi belum tersinkronisasi. Gunakan data yang te
 ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}
 CATATAN: Data spasial di-cache dan diperbarui setiap 6 jam. Data harga pangan dan IKP/SKPG tersedia secara real-time di Dashboard Ketapang.`;
 
-    // 4. Panggil Gemini API
-    const contents = buildGeminiContents(systemPrompt, history, userMessage);
-
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            maxOutputTokens: 800,
-            temperature: 0.7
-          }
-        })
-      }
-    );
-
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error('Gemini API error:', geminiResponse.status, errText);
-      return NextResponse.json(
-        { error: `Gemini API error: ${geminiResponse.status}` },
-        { status: 502 }
-      );
-    }
-
-    const geminiResult = await geminiResponse.json();
-    const rawText: string = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // 4. Panggil Gemini API dengan automatic multi-model fallback
+    const contents = buildGeminiContents(history, userMessage);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 800);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });
@@ -461,7 +491,7 @@ CATATAN: Data spasial di-cache dan diperbarui setiap 6 jam. Data harga pangan da
       source_tables: sourceTables,
       referenced_docs: referencedDocs,
       last_sync: lastSync,
-      model: GEMINI_MODEL
+      model: usedModel
     });
 
   } catch (e: unknown) {

@@ -961,10 +961,52 @@ export default function DashboardPage() {
     return 3.65;
   };
 
+  // Helper to dynamically get the latest completed month's CV value and label
+  const getCVBulananInfo = () => {
+    const MONTH_NAMES = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    // 1. Pick latest record from database cv_beras_bulanan if available
+    if (cvBerasBulananList && cvBerasBulananList.length > 0) {
+      const sorted = [...cvBerasBulananList].sort((a, b) => {
+        if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+        return b.bulan - a.bulan;
+      });
+      const latest = sorted[0];
+      const mName = MONTH_NAMES[(latest.bulan - 1)] || `Bulan ${latest.bulan}`;
+      return {
+        value: parseFloat(latest.cilegon),
+        label: `${mName} ${latest.tahun}`,
+        bulan: latest.bulan,
+        tahun: latest.tahun
+      };
+    }
+
+    // 2. Dynamic fallback to previous elapsed month relative to current date
+    const now = new Date();
+    let prevMonth = now.getMonth(); // In August (index 7), prevMonth = 7 -> Month 7 (Juli)
+    let prevYear = now.getFullYear();
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    const mName = MONTH_NAMES[prevMonth - 1] || 'Juli';
+    return {
+      value: 0.90, // Calculated 3-market (Kranggot, Blok F, Merak) CV for July 2026
+      label: `${mName} ${prevYear}`,
+      bulan: prevMonth,
+      tahun: prevYear
+    };
+  };
+
   const getCVBulananValue = () => {
-    let entry = cvBerasBulananList.find(x => x.tahun === 2026 && x.bulan === 6);
-    if (entry) return parseFloat(entry.cilegon);
-    return 2.08;
+    return getCVBulananInfo().value;
+  };
+
+  const getCVBulananLabel = () => {
+    return getCVBulananInfo().label;
   };
 
   const getPPHValue = () => {
@@ -1231,7 +1273,7 @@ export default function DashboardPage() {
                         }}
                       >
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <CVGauge value={getCVBulananValue()} year="Juni 2026" isBulanan={true} />
+                          <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
                         </div>
                         <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
                           <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
@@ -1282,7 +1324,7 @@ export default function DashboardPage() {
                     >
                       {/* Card 1 */}
                       <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <CVGauge value={getCVBulananValue()} year="Juni 2026" isBulanan={true} />
+                        <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
                       </div>
                       
                       {/* Card 2 */}
