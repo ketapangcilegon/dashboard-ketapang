@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import CVGauge from '@/components/CVGauge';
@@ -231,6 +231,16 @@ const loadingTips = [
 export default function DashboardPage() {
   // Navigation State
   const [currentView, setCurrentViewRaw] = useState<string>('beranda');
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [currentView]);
   
   const setCurrentView = (newView: string) => {
     setCurrentViewRaw(newView);
@@ -1137,7 +1147,7 @@ export default function DashboardPage() {
           />
         </div>
         
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
+        <main ref={mainRef} className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
           {loading ? (
             <div className="w-full h-full flex flex-col items-center justify-center min-h-[500px] px-4">
               <style>{`
@@ -2108,9 +2118,11 @@ export default function DashboardPage() {
           )}
 
           {/* Footer with Visit Counter */}
-          <footer className="mt-12 pt-6 pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
-            <VisitCounter />
-          </footer>
+          {currentView !== 'ai_intelligence' && (
+            <footer className="mt-12 pt-6 pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
+              <VisitCounter />
+            </footer>
+          )}
         </main>
       </div>
 

@@ -257,7 +257,7 @@ export default function AIIntelligencePanel({
             <Sparkles className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-white font-black text-[13px] tracking-wide">Food Intelligence AI</h3>
+            <h3 className="text-white font-black text-[13px] tracking-wide uppercase">Food Security Intelligence</h3>
             <p className="text-emerald-400/80 text-[10px] font-bold tracking-wider uppercase">
               Serumpun-Padi × Dashboard Ketapang
             </p>
@@ -297,8 +297,8 @@ export default function AIIntelligencePanel({
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h4 className="text-slate-800 font-black text-[14px]">Food Intelligence AI</h4>
-              <p className="text-slate-500 text-[11px] font-medium mt-1 max-w-[220px]">
+              <h4 className="text-slate-800 font-black text-[14px]">Food Security Intelligence</h4>
+              <p className="text-slate-500 text-[11px] font-medium mt-1 max-w-[240px]">
                 Tanyakan apa saja tentang ketahanan pangan & produksi pertanian Kota Cilegon
               </p>
             </div>

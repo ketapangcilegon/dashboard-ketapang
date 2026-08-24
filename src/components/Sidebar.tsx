@@ -197,7 +197,7 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* AI INTELLIGENCE (Diposisikan di atas Link External) */}
+          {/* FOOD SECURITY INTELLIGENCE (Diposisikan di atas Link External) */}
           <a
             href="/?view=ai_intelligence"
             onClick={(e) => handleNavClick(e, 'ai_intelligence')}
@@ -206,16 +206,16 @@ export default function Sidebar({
                 ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm'
                 : 'hover:bg-emerald-900/40'
             } ${isCollapsed ? 'justify-center px-0' : ''}`}
-            title={isCollapsed ? "AI INTELLIGENCE" : undefined}
+            title={isCollapsed ? "FOOD SECURITY INTELLIGENCE" : undefined}
           >
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
             {!isCollapsed && (
-              <span className="flex items-center gap-2 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words">
-                AI Intelligence
-                <span className="text-[8px] font-black bg-amber-500/80 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">
+                <span>FOOD SECURITY INTELLIGENCE</span>
+                <span className="text-[8px] font-black bg-amber-500/80 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-block">
                   BETA
                 </span>
-              </span>
+              </div>
             )}
           </a>
 
