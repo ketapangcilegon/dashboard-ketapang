@@ -130,15 +130,59 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   // ============================================================
   // 1. DATA PERTANIAN & PADI SAWAH
   // ============================================================
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sawahEntry = (ctx['sawah_status'] as any)?.data;
-  lines.push('=== 1. DATA PERTANIAN: PADI SAWAH & KOMODITAS CILEGON (Agustus 2026) ===');
-  lines.push(`• Total Luas Sawah Baku: ${sawahEntry?.total_sawah_ha || 1151.97} Ha (${sawahEntry?.poligon_petak || 407} Petak Poligon GIS)`);
-  lines.push(`• Produksi GKG (Gabah Kering Giling): ${sawahEntry?.produksi_gkg_ton || 308.6} Ton`);
-  lines.push(`• Luas Tanam Saat Ini: ${sawahEntry?.luas_tanam_ha || 0.57} Ha`);
-  lines.push(`• Sawah Siap Panen Saat Ini: ${sawahEntry?.siap_panen_ha || 0.57} Ha`);
-  lines.push(`• Varietas Padi Utama: ${Array.isArray(sawahEntry?.varietas) ? sawahEntry.varietas.join(', ') : 'Ciherang, IR64, Inpari 32'}`);
-  lines.push(`• Rata-rata Hasil Ubinan: ${sawahEntry?.avg_ubinan_ton_ha || 4.5} ton/ha`);
+  lines.push('=== 1. DATA PERTANIAN: PADI SAWAH & REKAP LUAS WILAYAH SE-KOTA CILEGON (LBS 2025 Koreksi GIS) ===');
+  lines.push('• Total Luas Sawah Baku: 1.151,97 Ha (407 Petak Poligon GIS)');
+  lines.push('• Produksi GKG (Gabah Kering Giling): 308.6 Ton');
+  lines.push('• Luas Tanam Saat Ini: 0.57 Ha | Sawah Siap Panen: 0.57 Ha');
+  lines.push('• Varietas Padi Utama: Ciherang, IR64, Inpari 32');
+  lines.push('• Rata-rata Hasil Ubinan: 4.5 ton/ha');
+  lines.push('\n• REKAP DATA RESMI LUAS SAWAH PER KECAMATAN DAN KELURAHAN (LBS 2025 Geometry Intersection Vector):');
+  lines.push('  1. Kecamatan Cibeber: Total 181.16 Ha (78 Petak)');
+  lines.push('     - Kelurahan Bulakan: 16.53 Ha (21 petak)');
+  lines.push('     - Kelurahan Cibeber: 72.75 Ha (11 petak)');
+  lines.push('     - Kelurahan Cikerai: 16.72 Ha (14 petak)');
+  lines.push('     - Kelurahan Kalitimbang: 5.15 Ha (4 petak)');
+  lines.push('     - Kelurahan Karang Asem: 12.07 Ha (14 petak)');
+  lines.push('     - Kelurahan Kedaleman: 57.95 Ha (14 petak)');
+  lines.push('  2. Kecamatan Cilegon: Total 28.38 Ha (28 Petak)');
+  lines.push('     - Kelurahan Bagendung: 14.80 Ha');
+  lines.push('     - Kelurahan Bendungan: 0.09 Ha');
+  lines.push('     - Kelurahan Ciwedus: 6.59 Ha');
+  lines.push('     - Kelurahan Ketileng: 6.89 Ha');
+  lines.push('  3. Kecamatan Citangkil: Total 132.65 Ha (92 Petak)');
+  lines.push('     - Kelurahan Deringo: 19.85 Ha');
+  lines.push('     - Kelurahan Kebonsari: 12.37 Ha');
+  lines.push('     - Kelurahan Lebak Denok: 25.43 Ha');
+  lines.push('     - Kelurahan Samangraya: 20.67 Ha');
+  lines.push('     - Kelurahan Taman Baru: 41.78 Ha');
+  lines.push('     - Kelurahan Warnasari: 12.55 Ha');
+  lines.push('  4. Kecamatan Ciwandan: Total 266.41 Ha (95 Petak)');
+  lines.push('     - Kelurahan Banjar Negara: 31.79 Ha');
+  lines.push('     - Kelurahan Gunung Sugih: 15.27 Ha');
+  lines.push('     - Kelurahan Kepuh: 57.24 Ha');
+  lines.push('     - Kelurahan Kubangsari: 39.70 Ha');
+  lines.push('     - Kelurahan Randakari: 40.35 Ha');
+  lines.push('     - Kelurahan Tegal Ratu: 82.05 Ha');
+  lines.push('  5. Kecamatan Gerogol: Total 99.00 Ha (22 Petak)');
+  lines.push('     - Kelurahan Gerem: 28.97 Ha');
+  lines.push('     - Kelurahan Gerogol: 41.87 Ha');
+  lines.push('     - Kelurahan Kotasari: 5.60 Ha');
+  lines.push('     - Kelurahan Rawa Arum: 22.56 Ha');
+  lines.push('  6. Kecamatan Jombang: Total 229.40 Ha (41 Petak)');
+  lines.push('     - Kelurahan Gedong Dalem: 62.13 Ha');
+  lines.push('     - Kelurahan Jombang Wetan: 0.05 Ha');
+  lines.push('     - Kelurahan Masigit: 6.45 Ha');
+  lines.push('     - Kelurahan Panggung Rawi: 102.85 Ha');
+  lines.push('     - Kelurahan Sukmajaya: 57.93 Ha');
+  lines.push('  7. Kecamatan Pulo Merak: Total 13.60 Ha');
+  lines.push('     - Kelurahan Lebakgede: 13.60 Ha');
+  lines.push('  8. Kecamatan Purwakarta: Total 201.36 Ha');
+  lines.push('     - Kelurahan Kebon Dalem: 6.33 Ha');
+  lines.push('     - Kelurahan Pabean: 58.93 Ha');
+  lines.push('     - Kelurahan Purwakarta: 75.95 Ha');
+  lines.push('     - Kelurahan Ramanuju: 0.95 Ha');
+  lines.push('     - Kelurahan Tegal Bunder: 59.21 Ha');
+  lines.push('  • TOTAL KESELURUHAN KOTA CILEGON: 1.151,97 Ha (407 Petak Poligon)');
 
   // ============================================================
   // 2. DATA PERIKANAN BUDIDAYA
@@ -337,8 +381,9 @@ Anda memiliki akses ke sumber data terpadu:
 
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, presisi, analitis, dan solutif.
-- Gunakan data angka resmi di atas secara akurat dan konsisten.
-- Jika pengguna meminta tabel, rekap data, atau perbandingan (misal: luas lahan sawah per kelurahan/kecamatan se-Cilegon, rincian nelayan/kolam/KWT/ternak), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (menggunakan header dan baris kolom | ... |).
+- Gunakan data angka resmi di atas secara akurat, konsisten, dan TIDAK BOLEH MENGARANG ANGKA.
+- Jika pengguna meminta tabel luas sawah per kecamatan/kelurahan, WAJIB menyajikan data angka persis dari rekapitulasi resmi (Cibeber 181.16 Ha, Ciwandan 266.41 Ha, Jombang 229.40 Ha, Purwakarta 201.36 Ha, Citangkil 132.65 Ha, Gerogol 99.00 Ha, Cilegon 28.38 Ha, Pulo Merak 13.60 Ha) beserta seluruh kelurahan rinciannya dalam tabel Markdown.
+- Jika pengguna meminta tabel, rekap data, atau perbandingan (nelayan/kolam/KWT/ternak/sawah), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (| ... |).
 - ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan di Cilegon yang relevan.
 - Format respons menggunakan Markdown (tabel, heading, bullet points, angka cetak tebal).
 
@@ -349,7 +394,7 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
 
     // 5. Panggil Gemini API
     const contents = buildGeminiContents(history, userMessage);
-    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 800);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2048);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });
