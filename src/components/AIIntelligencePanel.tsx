@@ -71,58 +71,125 @@ function formatTime(d: Date): string {
 function renderMarkdown(text: string): React.ReactNode {
   if (!text) return null;
   const lines = text.split('\n');
-  return lines.map((line, idx) => {
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
     const trimmed = line.trim();
 
+    // Deteksi tabel Markdown (| Kolom 1 | Kolom 2 |)
+    if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].includes('---')) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+
+      if (tableLines.length >= 2) {
+        const headerCols = tableLines[0].split('|').slice(1, -1).map(c => c.trim());
+        const rowLines = tableLines.slice(2);
+
+        elements.push(
+          <div key={`table-${i}`} className="my-3 overflow-x-auto rounded-xl border border-slate-200 shadow-xs custom-scrollbar">
+            <table className="min-w-full text-[12px] text-left border-collapse bg-white">
+              <thead className="bg-emerald-800 text-white font-extrabold uppercase text-[10px] tracking-wider">
+                <tr>
+                  {headerCols.map((col, ci) => (
+                    <th key={ci} className="px-3 py-2 border-b border-emerald-900 whitespace-nowrap">
+                      {parseBold(col)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {rowLines.map((r, ri) => {
+                  const cells = r.split('|').slice(1, -1).map(c => c.trim());
+                  return (
+                    <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/80 hover:bg-emerald-50/50'}>
+                      {cells.map((cell, cidx) => (
+                        <td key={cidx} className="px-3 py-2 text-slate-800 font-medium whitespace-normal">
+                          {parseBold(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+        continue;
+      }
+    }
+
     if (trimmed.startsWith('### ')) {
-      return (
-        <h4 key={idx} className="text-[13px] font-extrabold text-emerald-800 mt-3 mb-1 uppercase tracking-wide border-b border-emerald-100 pb-0.5">
+      elements.push(
+        <h4 key={i} className="text-[13px] font-extrabold text-emerald-800 mt-3 mb-1 uppercase tracking-wide border-b border-emerald-100 pb-0.5">
           {trimmed.replace(/^###\s*/, '')}
         </h4>
       );
+      i++;
+      continue;
     }
     if (trimmed.startsWith('## ')) {
-      return (
-        <h3 key={idx} className="text-[14px] font-black text-slate-800 mt-3.5 mb-1 uppercase tracking-wide">
+      elements.push(
+        <h3 key={i} className="text-[14px] font-black text-slate-800 mt-3.5 mb-1 uppercase tracking-wide">
           {trimmed.replace(/^##\s*/, '')}
         </h3>
       );
+      i++;
+      continue;
     }
     if (trimmed.startsWith('# ')) {
-      return (
-        <h2 key={idx} className="text-[15px] font-black text-slate-900 mt-3.5 mb-1.5">
+      elements.push(
+        <h2 key={i} className="text-[15px] font-black text-slate-900 mt-3.5 mb-1.5">
           {trimmed.replace(/^#\s*/, '')}
         </h2>
       );
+      i++;
+      continue;
     }
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      return (
-        <div key={idx} className="flex gap-2 mb-1 ml-2 items-start">
+      elements.push(
+        <div key={i} className="flex gap-2 mb-1 ml-2 items-start">
           <span className="text-emerald-600 font-bold mt-0.5 shrink-0">•</span>
           <span className="text-[12.5px] text-slate-700 font-medium leading-relaxed">
             {parseBold(trimmed.substring(2))}
           </span>
         </div>
       );
+      i++;
+      continue;
     }
     const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
     if (numMatch) {
-      return (
-        <div key={idx} className="flex gap-2 mb-1 ml-2 items-start">
+      elements.push(
+        <div key={i} className="flex gap-2 mb-1 ml-2 items-start">
           <span className="text-emerald-700 font-extrabold text-[12px] shrink-0 mt-0.5">{numMatch[1]}.</span>
           <span className="text-[12.5px] text-slate-700 font-medium leading-relaxed">
             {parseBold(numMatch[2])}
           </span>
         </div>
       );
+      i++;
+      continue;
     }
-    if (trimmed === '') return <div key={idx} className="h-1.5" />;
-    return (
-      <p key={idx} className="text-[12.5px] text-slate-700 font-medium leading-relaxed mb-1.5">
+    if (trimmed === '') {
+      elements.push(<div key={i} className="h-1.5" />);
+      i++;
+      continue;
+    }
+
+    elements.push(
+      <p key={i} className="text-[12.5px] text-slate-700 font-medium leading-relaxed mb-1.5">
         {parseBold(line)}
       </p>
     );
-  });
+    i++;
+  }
+
+  return elements;
 }
 
 function parseBold(text: string): React.ReactNode {

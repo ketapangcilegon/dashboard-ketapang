@@ -338,8 +338,9 @@ Anda memiliki akses ke sumber data terpadu:
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, presisi, analitis, dan solutif.
 - Gunakan data angka resmi di atas secara akurat dan konsisten.
+- Jika pengguna meminta tabel, rekap data, atau perbandingan (misal: luas lahan sawah per kelurahan/kecamatan se-Cilegon, rincian nelayan/kolam/KWT/ternak), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (menggunakan header dan baris kolom | ... |).
 - ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan di Cilegon yang relevan.
-- Format respons menggunakan Markdown (heading, bullet points, angka cetak tebal).
+- Format respons menggunakan Markdown (tabel, heading, bullet points, angka cetak tebal).
 
 DATA LENGKAP DETAIL PANEL (Serumpun-Padi × Dashboard Ketapang):
 ${spNarrative}
