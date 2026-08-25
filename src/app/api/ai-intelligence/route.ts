@@ -128,61 +128,66 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   const lines: string[] = [];
 
   // ============================================================
-  // 1. DATA PERTANIAN & PADI SAWAH
+  // 1. DATA PERTANIAN & KEPENDUDUKAN SE-KOTA CILEGON (LBS 2025 GIS & FSVA 2025)
   // ============================================================
-  lines.push('=== 1. DATA PERTANIAN: PADI SAWAH & REKAP LUAS WILAYAH SE-KOTA CILEGON (LBS 2025 Koreksi GIS) ===');
+  lines.push('=== 1. DATA PERTANIAN (SAWAH) & JUMLAH PENDUDUK PER KECAMATAN & KELURAHAN (LBS 2025 GIS & FSVA 2025) ===');
   lines.push('• Total Luas Sawah Baku: 1.151,97 Ha (407 Petak Poligon GIS)');
-  lines.push('• Produksi GKG (Gabah Kering Giling): 308.6 Ton');
-  lines.push('• Luas Tanam Saat Ini: 0.57 Ha | Sawah Siap Panen: 0.57 Ha');
-  lines.push('• Varietas Padi Utama: Ciherang, IR64, Inpari 32');
-  lines.push('• Rata-rata Hasil Ubinan: 4.5 ton/ha');
-  lines.push('\n• REKAP DATA RESMI LUAS SAWAH PER KECAMATAN DAN KELURAHAN (LBS 2025 Geometry Intersection Vector):');
-  lines.push('  1. Kecamatan Cibeber: Total 181.16 Ha (78 Petak)');
-  lines.push('     - Kelurahan Bulakan: 16.53 Ha (21 petak)');
-  lines.push('     - Kelurahan Cibeber: 72.75 Ha (11 petak)');
-  lines.push('     - Kelurahan Cikerai: 16.72 Ha (14 petak)');
-  lines.push('     - Kelurahan Kalitimbang: 5.15 Ha (4 petak)');
-  lines.push('     - Kelurahan Karang Asem: 12.07 Ha (14 petak)');
-  lines.push('     - Kelurahan Kedaleman: 57.95 Ha (14 petak)');
-  lines.push('  2. Kecamatan Cilegon: Total 28.38 Ha (28 Petak)');
-  lines.push('     - Kelurahan Bagendung: 14.80 Ha');
-  lines.push('     - Kelurahan Bendungan: 0.09 Ha');
-  lines.push('     - Kelurahan Ciwedus: 6.59 Ha');
-  lines.push('     - Kelurahan Ketileng: 6.89 Ha');
-  lines.push('  3. Kecamatan Citangkil: Total 132.65 Ha (92 Petak)');
-  lines.push('     - Kelurahan Deringo: 19.85 Ha');
-  lines.push('     - Kelurahan Kebonsari: 12.37 Ha');
-  lines.push('     - Kelurahan Lebak Denok: 25.43 Ha');
-  lines.push('     - Kelurahan Samangraya: 20.67 Ha');
-  lines.push('     - Kelurahan Taman Baru: 41.78 Ha');
-  lines.push('     - Kelurahan Warnasari: 12.55 Ha');
-  lines.push('  4. Kecamatan Ciwandan: Total 266.41 Ha (95 Petak)');
-  lines.push('     - Kelurahan Banjar Negara: 31.79 Ha');
-  lines.push('     - Kelurahan Gunung Sugih: 15.27 Ha');
-  lines.push('     - Kelurahan Kepuh: 57.24 Ha');
-  lines.push('     - Kelurahan Kubangsari: 39.70 Ha');
-  lines.push('     - Kelurahan Randakari: 40.35 Ha');
-  lines.push('     - Kelurahan Tegal Ratu: 82.05 Ha');
-  lines.push('  5. Kecamatan Gerogol: Total 99.00 Ha (22 Petak)');
-  lines.push('     - Kelurahan Gerem: 28.97 Ha');
-  lines.push('     - Kelurahan Gerogol: 41.87 Ha');
-  lines.push('     - Kelurahan Kotasari: 5.60 Ha');
-  lines.push('     - Kelurahan Rawa Arum: 22.56 Ha');
-  lines.push('  6. Kecamatan Jombang: Total 229.40 Ha (41 Petak)');
-  lines.push('     - Kelurahan Gedong Dalem: 62.13 Ha');
-  lines.push('     - Kelurahan Jombang Wetan: 0.05 Ha');
-  lines.push('     - Kelurahan Masigit: 6.45 Ha');
-  lines.push('     - Kelurahan Panggung Rawi: 102.85 Ha');
-  lines.push('     - Kelurahan Sukmajaya: 57.93 Ha');
-  lines.push('  7. Kecamatan Pulo Merak: Total 13.60 Ha');
-  lines.push('     - Kelurahan Lebakgede: 13.60 Ha');
-  lines.push('  8. Kecamatan Purwakarta: Total 201.36 Ha');
-  lines.push('     - Kelurahan Kebon Dalem: 6.33 Ha');
-  lines.push('     - Kelurahan Pabean: 58.93 Ha');
-  lines.push('     - Kelurahan Purwakarta: 75.95 Ha');
-  lines.push('     - Kelurahan Ramanuju: 0.95 Ha');
-  lines.push('     - Kelurahan Tegal Bunder: 59.21 Ha');
-  lines.push('  • TOTAL KESELURUHAN KOTA CILEGON: 1.151,97 Ha (407 Petak Poligon)');
+  lines.push('• Total Jumlah Penduduk Kota Cilegon: 480.378 Jiwa');
+  lines.push('• Produksi GKG (Gabah Kering Giling): 308.6 Ton | Luas Tanam: 0.57 Ha | Siap Panen: 0.57 Ha');
+  lines.push('• Varietas Padi Utama: Ciherang, IR64, Inpari 32 (Rata-rata Ubinan: 4.5 ton/ha)');
+  lines.push('\n• REKAP DATA LENGKAP LUAS SAWAH & JUMLAH PENDUDUK PER KECAMATAN & KELURAHAN (WAJIB DIGUNAKAN SECARA PERSIS):');
+  lines.push('  1. Kecamatan Cibeber: Sawah 181.16 Ha (78 Petak) | Penduduk: 67.220 Jiwa');
+  lines.push('     - Kelurahan Bulakan: Sawah 16.53 Ha (21 petak) | Penduduk: 6.541 Jiwa');
+  lines.push('     - Kelurahan Cibeber: Sawah 72.75 Ha (11 petak) | Penduduk: 23.331 Jiwa');
+  lines.push('     - Kelurahan Cikerai: Sawah 16.72 Ha (14 petak) | Penduduk: 4.498 Jiwa');
+  lines.push('     - Kelurahan Kalitimbang: Sawah 5.15 Ha (4 petak) | Penduduk: 8.694 Jiwa');
+  lines.push('     - Kelurahan Karang Asem: Sawah 12.07 Ha (14 petak) | Penduduk: 13.460 Jiwa');
+  lines.push('     - Kelurahan Kedaleman: Sawah 57.95 Ha (14 petak) | Penduduk: 10.696 Jiwa');
+  lines.push('  2. Kecamatan Cilegon: Sawah 28.38 Ha (28 Petak) | Penduduk: 54.711 Jiwa');
+  lines.push('     - Kelurahan Bagendung: Sawah 14.80 Ha | Penduduk: 8.895 Jiwa');
+  lines.push('     - Kelurahan Bendungan: Sawah 0.09 Ha | Penduduk: 10.980 Jiwa');
+  lines.push('     - Kelurahan Ciwaduk: Sawah 0.00 Ha | Penduduk: 12.794 Jiwa');
+  lines.push('     - Kelurahan Ciwedus: Sawah 6.59 Ha | Penduduk: 14.198 Jiwa');
+  lines.push('     - Kelurahan Ketileng: Sawah 6.89 Ha | Penduduk: 7.844 Jiwa');
+  lines.push('  3. Kecamatan Citangkil: Sawah 132.65 Ha (92 Petak) | Penduduk: 87.885 Jiwa');
+  lines.push('     - Kelurahan Citangkil: Sawah 0.00 Ha | Penduduk: 16.751 Jiwa');
+  lines.push('     - Kelurahan Deringo: Sawah 19.85 Ha | Penduduk: 10.465 Jiwa');
+  lines.push('     - Kelurahan Kebonsari: Sawah 12.37 Ha | Penduduk: 12.218 Jiwa');
+  lines.push('     - Kelurahan Lebak Denok: Sawah 25.43 Ha | Penduduk: 13.322 Jiwa');
+  lines.push('     - Kelurahan Samangraya: Sawah 20.67 Ha | Penduduk: 10.697 Jiwa');
+  lines.push('     - Kelurahan Taman Baru: Sawah 41.78 Ha | Penduduk: 9.930 Jiwa');
+  lines.push('     - Kelurahan Warnasari: Sawah 12.55 Ha | Penduduk: 14.502 Jiwa');
+  lines.push('  4. Kecamatan Ciwandan: Sawah 266.41 Ha (95 Petak) | Penduduk: 54.606 Jiwa');
+  lines.push('     - Kelurahan Banjar Negara: Sawah 31.79 Ha | Penduduk: 8.475 Jiwa');
+  lines.push('     - Kelurahan Gunung Sugih: Sawah 15.27 Ha | Penduduk: 6.740 Jiwa');
+  lines.push('     - Kelurahan Kepuh: Sawah 57.24 Ha | Penduduk: 9.326 Jiwa');
+  lines.push('     - Kelurahan Kubangsari: Sawah 39.70 Ha | Penduduk: 8.233 Jiwa');
+  lines.push('     - Kelurahan Randakari: Sawah 40.35 Ha | Penduduk: 9.845 Jiwa');
+  lines.push('     - Kelurahan Tegal Ratu: Sawah 82.05 Ha | Penduduk: 11.987 Jiwa');
+  lines.push('  5. Kecamatan Gerogol: Sawah 99.00 Ha (22 Petak) | Penduduk: 46.910 Jiwa');
+  lines.push('     - Kelurahan Gerem: Sawah 28.97 Ha | Penduduk: 15.753 Jiwa');
+  lines.push('     - Kelurahan Gerogol: Sawah 41.87 Ha | Penduduk: 5.040 Jiwa');
+  lines.push('     - Kelurahan Kotasari: Sawah 5.60 Ha | Penduduk: 9.632 Jiwa');
+  lines.push('     - Kelurahan Rawa Arum: Sawah 22.56 Ha | Penduduk: 16.485 Jiwa');
+  lines.push('  6. Kecamatan Jombang: Sawah 229.40 Ha (41 Petak) | Penduduk: 73.046 Jiwa');
+  lines.push('     - Kelurahan Gedong Dalem: Sawah 62.13 Ha | Penduduk: 9.038 Jiwa');
+  lines.push('     - Kelurahan Jombang Wetan: Sawah 0.05 Ha | Penduduk: 22.265 Jiwa');
+  lines.push('     - Kelurahan Masigit: Sawah 6.45 Ha | Penduduk: 15.798 Jiwa');
+  lines.push('     - Kelurahan Panggung Rawi: Sawah 102.85 Ha | Penduduk: 11.372 Jiwa');
+  lines.push('     - Kelurahan Sukmajaya: Sawah 57.93 Ha | Penduduk: 14.573 Jiwa');
+  lines.push('  7. Kecamatan Pulo Merak: Sawah 13.60 Ha | Penduduk: 51.300 Jiwa');
+  lines.push('     - Kelurahan Lebakgede: Sawah 13.60 Ha | Penduduk: 14.203 Jiwa');
+  lines.push('     - Kelurahan Mekarsari: Sawah 0.00 Ha | Penduduk: 13.679 Jiwa');
+  lines.push('     - Kelurahan Suralaya: Sawah 0.00 Ha | Penduduk: 7.306 Jiwa');
+  lines.push('     - Kelurahan Tamansari: Sawah 0.00 Ha | Penduduk: 16.112 Jiwa');
+  lines.push('  8. Kecamatan Purwakarta: Sawah 201.36 Ha | Penduduk: 44.700 Jiwa');
+  lines.push('     - Kelurahan Kebon Dalem: Sawah 6.33 Ha | Penduduk: 15.996 Jiwa');
+  lines.push('     - Kelurahan Kotabumi: Sawah 0.00 Ha | Penduduk: 9.278 Jiwa');
+  lines.push('     - Kelurahan Pabean: Sawah 58.93 Ha | Penduduk: 3.921 Jiwa');
+  lines.push('     - Kelurahan Purwakarta: Sawah 75.95 Ha | Penduduk: 7.489 Jiwa');
+  lines.push('     - Kelurahan Ramanuju: Sawah 0.95 Ha | Penduduk: 2.100 Jiwa');
+  lines.push('     - Kelurahan Tegal Bunder: Sawah 59.21 Ha | Penduduk: 5.916 Jiwa');
+  lines.push('  • TOTAL KOTA CILEGON: Luas Sawah Baku 1.151,97 Ha (407 Petak Poligon) | Total Penduduk 480.378 Jiwa');
 
   // ============================================================
   // 2. DATA PERIKANAN BUDIDAYA
@@ -372,7 +377,7 @@ export async function POST(request: Request) {
 Anda memiliki akses ke sumber data terpadu:
 1. **Dashboard Ketapang** — data IKP, SKPG, FSVA, harga pangan strategis, forecast ML, dan gizi balita Kota Cilegon
 2. **Serumpun-Padi GIS & Panel Terkini (Agustus 2026)** — data lengkap terverifikasi untuk seluruh panel sektor:
-   - **Pertanian & Sawah**: Total Luas Sawah 1.151,97 Ha (407 Petak Poligon), Produksi GKG 308.6 Ton, Luas Tanam 0,57 Ha, Siap Panen 0,57 Ha, Varietas Ciherang, IR64, Inpari 32, Ubinan 4.5 ton/ha.
+   - **Pertanian, Sawah & Kependudukan**: Total Luas Sawah 1.151,97 Ha (407 Petak Poligon GIS), Total Penduduk Kota Cilegon 480.378 Jiwa (FSVA 2025 / Dukcapil 2025), Produksi GKG 308.6 Ton, Luas Tanam 0,57 Ha, Siap Panen 0,57 Ha, Varietas Ciherang, IR64, Inpari 32, Ubinan 4.5 ton/ha.
    - **Perikanan Tangkap**: 715 Nelayan, 9 Pangkalan/TPI, 410 Kapal Motor Tempel, Produksi Bulanan 73 Kg, Omset Bulanan Rp 2.555.000, Produksi 2026 136 Kg, Omset 2026 Rp 4.760.000. Ikan Kuwe (50kg @ Rp 35rb di Tanjung Leneng), Kerapu (23kg @ Rp 80rb di Medaksa), Tenggiri (63kg @ Rp 80rb di Terate). Pangkalan: Tanjung Peni, Lelean, Kaltex, Mabak, Suralaya, Lebak Gede, Tanjung Leneng, Medaksa, Terate.
    - **Perikanan Budidaya**: 2 Unit Pembudidaya Aktif, Luas Kolam 270 m² (Kolam Tanah 120 m², Kolam Terpal 150 m²), Produksi Bulanan 55 Kg, Omset Bulanan Rp 200.000, Produksi 2026 375 Kg. Pembenihan Gurame 1.000 ekor @ Rp 200 (Omset Rp 200.000), Pembesaran Lele 55 kg. Pembudidaya Nurholis (170 m² di Citangkil/Cilegon) dan tes (100 m²).
    - **KWT (Kelompok Wanita Tani)**: 3 KWT, 79 Anggota, Luas Lahan 0,02 Ha (200 m²), Produksi Bulanan 7 Kg, Omset Bulanan Rp 140.000. KWT Gerogol (23 anggota, lahan 150 m², Cabai 2 kg @ Rp 45.000 -> Omset Rp 90.000), KWT Gerem (23 anggota, lahan 50 m², Sayuran 5 kg @ Rp 10.000 -> Omset Rp 50.000), KWT Kotabumi (33 anggota).
@@ -382,8 +387,8 @@ Anda memiliki akses ke sumber data terpadu:
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, presisi, analitis, dan solutif.
 - Gunakan data angka resmi di atas secara akurat, konsisten, dan TIDAK BOLEH MENGARANG ANGKA.
-- Jika pengguna meminta tabel luas sawah per kecamatan/kelurahan, WAJIB menyajikan data angka persis dari rekapitulasi resmi (Cibeber 181.16 Ha, Ciwandan 266.41 Ha, Jombang 229.40 Ha, Purwakarta 201.36 Ha, Citangkil 132.65 Ha, Gerogol 99.00 Ha, Cilegon 28.38 Ha, Pulo Merak 13.60 Ha) beserta seluruh kelurahan rinciannya dalam tabel Markdown.
-- Jika pengguna meminta tabel, rekap data, atau perbandingan (nelayan/kolam/KWT/ternak/sawah), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (| ... |).
+- Jika pengguna meminta tabel luas lahan sawah dan/atau jumlah penduduk per kelurahan dan kecamatan, WAJIB menyajikan tabel Markdown lengkap merinci seluruh 8 kecamatan dan seluruh kelurahannya dengan kolom: No, Kecamatan, Kelurahan, Luas Sawah (Ha), Jumlah Petak, dan Jumlah Penduduk (Jiwa) sesuai angka resmi.
+- Jika pengguna meminta tabel, rekap data, atau perbandingan (nelayan/kolam/KWT/ternak/sawah/penduduk), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (| ... |).
 - ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan di Cilegon yang relevan.
 - Format respons menggunakan Markdown (tabel, heading, bullet points, angka cetak tebal).
 
