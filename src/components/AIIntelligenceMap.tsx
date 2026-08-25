@@ -58,61 +58,48 @@ const HIGHLIGHT_STYLE: L.PathOptions = {
 };
 
 const HIGHLIGHT_KEL_STYLE: L.PathOptions = {
-  color: '#f59e0b',
-  weight: 2.5,
-  fillColor: '#fef08a',
+  color: '#d97706',
+  weight: 3,
+  fillColor: '#fde68a',
   fillOpacity: 0.7,
   dashArray: ''
 };
 
-// ─── MapInit: set view + fix Leaflet icon + auto-invalidate size ───
+// Inisialisasi peta sekali
 function MapInit() {
   const map = useMap();
   useEffect(() => {
-    map.setView([-6.002, 106.003], 12);
-    // @ts-ignore
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    });
-
-    // Invalidate size immediately and after short delays to ensure complete tile rendering
-    map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 150);
-    const t2 = setTimeout(() => map.invalidateSize(), 400);
-
-    const handleResize = () => {
-      map.invalidateSize();
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      window.removeEventListener('resize', handleResize);
-    };
+    if (map) {
+      setTimeout(() => {
+        try {
+          map.invalidateSize();
+        } catch { /* ignore */ }
+      }, 200);
+    }
   }, [map]);
   return null;
 }
 
-// ─── HighlightManager: re-style layers + fit bounds ─────────
+// Sub-komponen pengelola highlight wilayah & FlyTo titik PIN GPS
 function HighlightManager({
-  highlightWilayah,
+  highlightWilayah = [],
   highlightPins = [],
   kecLayerRef,
   kelLayerRef
 }: {
   highlightWilayah: string[];
-  highlightPins?: MatchedPin[];
+  highlightPins: MatchedPin[];
   kecLayerRef: React.RefObject<L.GeoJSON[]>;
   kelLayerRef: React.RefObject<L.GeoJSON[]>;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!kecLayerRef.current && !kelLayerRef.current) return;
+    if (!map) return;
+
+    const validPins = (highlightPins || []).filter(
+      p => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
+    );
 
     const highlightedBounds: L.LatLngBounds[] = [];
 
@@ -126,10 +113,8 @@ function HighlightManager({
           const name = path.feature.properties?.name || path.feature.properties?.Name || '';
           const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(name, highlightWilayah);
           path.setStyle(isHighlighted ? HIGHLIGHT_STYLE : DEFAULT_STYLE);
-
           if (isHighlighted) {
             try {
-              // L.Polygon/Polyline memiliki getBounds, L.Path tidak
               const poly = sub as L.Polygon;
               if (typeof poly.getBounds === 'function') {
                 const b = poly.getBounds();
@@ -156,15 +141,17 @@ function HighlightManager({
     }
 
     // 1. Jika ada PIN GPS yang spesifik, fokus langsung ke titik PIN tersebut
-    if (highlightPins.length > 0) {
-      if (highlightPins.length === 1) {
-        map.flyTo([highlightPins[0].lat, highlightPins[0].lng], 15, { animate: true, duration: 1 });
-      } else {
-        const pinBounds = L.latLngBounds(highlightPins.map(p => [p.lat, p.lng]));
-        if (pinBounds.isValid()) {
-          map.fitBounds(pinBounds, { padding: [60, 60], maxZoom: 15, animate: true });
+    if (validPins.length > 0) {
+      try {
+        if (validPins.length === 1) {
+          map.flyTo([validPins[0].lat, validPins[0].lng], 15, { animate: true, duration: 1 });
+        } else {
+          const pinBounds = L.latLngBounds(validPins.map(p => [p.lat, p.lng]));
+          if (pinBounds.isValid()) {
+            map.fitBounds(pinBounds, { padding: [60, 60], maxZoom: 15, animate: true });
+          }
         }
-      }
+      } catch { /* skip */ }
       return;
     }
 
@@ -176,9 +163,11 @@ function HighlightManager({
           map.fitBounds(combined, { padding: [50, 50], maxZoom: 14, animate: true });
         }
       } catch { /* skip fitBounds error */ }
-    } else if (highlightWilayah.length === 0 && highlightPins.length === 0) {
+    } else if (highlightWilayah.length === 0 && validPins.length === 0) {
       // Reset zoom ke default saat highlight dihapus
-      map.setView([-6.002, 106.003], 12, { animate: true });
+      try {
+        map.setView([-6.002, 106.003], 12, { animate: true });
+      } catch { /* skip */ }
     }
   }, [highlightWilayah, highlightPins, map, kecLayerRef, kelLayerRef]);
 
@@ -192,7 +181,6 @@ export default function AIIntelligenceMap({
 }: AIIntelligenceMapProps) {
   const { layers, loading, loadFromURL } = useKMZLoader();
 
-  // Refs untuk menyimpan referensi Leaflet GeoJSON instances
   const kecLayerRef = useRef<L.GeoJSON[]>([]);
   const kelLayerRef = useRef<L.GeoJSON[]>([]);
 
@@ -200,32 +188,37 @@ export default function AIIntelligenceMap({
     loadFromURL();
   }, [loadFromURL]);
 
-  // Reset refs saat layers berubah
   useEffect(() => {
     kecLayerRef.current = [];
     kelLayerRef.current = [];
   }, [layers]);
 
+  // Validasi pins
+  const validPins = (highlightPins || []).filter(
+    p => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
+  );
+
   // Custom Icon helper untuk GPS Pin Markers
   const createPinIcon = (category: string, name: string) => {
     const isNelayan = category === 'nelayan';
     const isKolam = category === 'kolam';
-    const bgClass = isNelayan ? 'bg-blue-600' : isKolam ? 'bg-cyan-600' : 'bg-emerald-600';
-    const iconEmoji = isNelayan ? '⚓' : isKolam ? '🐟' : '🌱';
+    const isTernak = category === 'ternak';
+    const bgClass = isNelayan ? '#2563eb' : isKolam ? '#0891b2' : isTernak ? '#d97706' : '#059669';
+    const iconEmoji = isNelayan ? '⚓' : isKolam ? '🐟' : isTernak ? '🐄' : '🌱';
 
     return L.divIcon({
       className: 'custom-pin-marker',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
-          <div style="background-color:${isNelayan ? '#2563eb' : isKolam ? '#0891b2' : '#059669'};color:white;font-weight:900;font-size:11px;padding:4px 8px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);border:2px solid white;display:flex;align-items:center;gap:4px;white-space:nowrap;animation:bounce 1s infinite alternate;">
+          <div style="background-color:${bgClass};color:white;font-weight:900;font-size:11px;padding:3px 8px;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,0.3);border:2px solid white;display:flex;align-items:center;gap:4px;white-space:nowrap;">
             <span>${iconEmoji}</span>
-            <span>${name}</span>
+            <span>${name || 'Lokasi'}</span>
           </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${isNelayan ? '#2563eb' : isKolam ? '#0891b2' : '#059669'};"></div>
+          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${bgClass};"></div>
         </div>
       `,
-      iconSize: [120, 40],
-      iconAnchor: [60, 38]
+      iconSize: [120, 36],
+      iconAnchor: [60, 34]
     });
   };
 
@@ -241,7 +234,7 @@ export default function AIIntelligenceMap({
         <MapInit />
         <HighlightManager
           highlightWilayah={highlightWilayah}
-          highlightPins={highlightPins}
+          highlightPins={validPins}
           kecLayerRef={kecLayerRef}
           kelLayerRef={kelLayerRef}
         />
@@ -253,7 +246,7 @@ export default function AIIntelligenceMap({
         />
 
         {/* GPS Pin Markers */}
-        {highlightPins.map((pin, pidx) => (
+        {validPins.map((pin, pidx) => (
           <Marker
             key={`pin-${pidx}-${pin.lat}-${pin.lng}`}
             position={[pin.lat, pin.lng]}
@@ -265,10 +258,10 @@ export default function AIIntelligenceMap({
                   📌 {pin.name}
                 </p>
                 <p style={{ margin: '0 0 2px 0', color: '#475569' }}>
-                  🏛️ Kelurahan: <strong>{pin.kelurahan}</strong>, Kec: <strong>{pin.kecamatan}</strong>
+                  🏛️ Kelurahan: <strong>{pin.kelurahan || '-'}</strong>, Kec: <strong>{pin.kecamatan || '-'}</strong>
                 </p>
                 <p style={{ margin: '0', color: '#2563eb', fontWeight: 700, fontSize: '11px' }}>
-                  🌐 Lat: {pin.lat.toFixed(6)}, Lng: {pin.lng.toFixed(6)}
+                  🌐 Lat: {pin.lat.toFixed(5)}, Lng: {pin.lng.toFixed(5)}
                 </p>
               </div>
             </Popup>
@@ -327,19 +320,6 @@ export default function AIIntelligenceMap({
             <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
             Memuat layer peta…
           </div>
-        </div>
-      )}
-
-      {/* Highlight legend */}
-      {highlightWilayah.length > 0 && (
-        <div className="absolute bottom-8 right-3 z-[500] bg-white/95 backdrop-blur-sm border border-amber-200 rounded-xl px-3 py-2.5 shadow-md">
-          <p className="text-[9px] font-black text-amber-700 uppercase tracking-wider mb-1.5">📍 Sorotan AI</p>
-          {highlightWilayah.map(w => (
-            <div key={w} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 mb-0.5">
-              <div className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-400 shrink-0" />
-              {w}
-            </div>
-          ))}
         </div>
       )}
     </div>

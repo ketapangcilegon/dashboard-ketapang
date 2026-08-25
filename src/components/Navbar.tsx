@@ -87,48 +87,30 @@ export default function Navbar({
 
         <div className="h-8 w-px bg-white/20 mx-2 hidden md:block"></div>
 
-        {/* Mobile Profile Display (Mockup 1 Match) */}
-        <div className="flex md:hidden flex-col items-end justify-center text-right shrink-0 select-none">
-          {/* Teks kecil putih Admin */}
-          <span className="text-[9px] text-white/95 font-medium leading-none mb-0.5 tracking-tight">Admin</span>
-          
-          {/* Ikon Admin 50% ukuran (w-4.5 h-4.5) */}
-          <a href="/entry" className="block my-0.5 cursor-pointer hover:opacity-90 transition-opacity">
-            <div className="w-4.5 h-4.5 rounded bg-slate-100 overflow-hidden border border-emerald-300 shadow-sm flex items-center justify-center">
+        {/* Mobile Admin Icon Link */}
+        <div className="flex md:hidden items-center shrink-0">
+          <a
+            href="/entry"
+            className="block p-1 rounded-full hover:bg-white/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-sm"
+            title="Portal Admin"
+          >
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-emerald-300/80 shadow-sm flex items-center justify-center">
               <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
             </div>
           </a>
-
-          {/* Guest mode / Mode Tamu (Lampu Merah disable saat Admin login) */}
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className={`w-2.5 h-2.5 rounded-full border transition-all duration-300 shrink-0 inline-block ${
-              isAdminLoggedIn
-                ? 'bg-emerald-500 border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.9)]'
-                : 'bg-red-600 border-red-200 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse'
-            }`}></span>
-            <span className="text-[9px] text-white font-medium leading-none tracking-tight whitespace-nowrap">
-              {isAdminLoggedIn ? 'Mode Admin' : 'Mode Tamu'}
-            </span>
-          </div>
         </div>
 
-        {/* Desktop Profile Display */}
-        <div className="hidden md:flex flex-col items-end gap-1">
-          <a href="/entry" className="flex items-center gap-2.5 ml-1 cursor-pointer bg-white py-1 px-1 pr-4 rounded-full shadow-md border border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] transition-all">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-emerald-300 shadow-sm">
+        {/* Desktop Admin Icon Link */}
+        <div className="hidden md:flex items-center shrink-0">
+          <a
+            href="/entry"
+            className="block p-1 rounded-full hover:bg-white/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-sm"
+            title="Portal Admin"
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-emerald-300/80 shadow-sm flex items-center justify-center">
               <img src="/cowboy_admin.png" alt="Admin" className="w-full h-full object-cover" />
             </div>
-            <div className="text-left">
-              <p className="text-xs font-black text-slate-800 leading-none">ADMIN</p>
-            </div>
           </a>
-          <span className={`text-[8px] font-black tracking-wider uppercase px-2 py-0.5 rounded shadow-sm mr-2 border transition-all duration-300 ${
-            isAdminLoggedIn 
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-              : 'bg-rose-50 text-rose-700 border-rose-200'
-          }`}>
-            {isAdminLoggedIn ? 'MODE ADMIN' : 'MODE TAMU'}
-          </span>
         </div>
       </div>
     </header>

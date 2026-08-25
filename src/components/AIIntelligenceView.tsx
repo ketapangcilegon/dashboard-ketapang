@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Sparkles, Map, MessageSquare, Info, RefreshCw, MapPin } from 'lucide-react';
+import { Sparkles, Map, MessageSquare, Info, RefreshCw, MapPin, Grid, Layers } from 'lucide-react';
 import AIIntelligencePanel, { MatchedPin } from './AIIntelligencePanel';
 
 // ============================================================
@@ -48,41 +48,41 @@ export default function AIIntelligenceView() {
   };
 
   return (
-    <div className="flex flex-col md:h-[calc(100dvh-7.5rem)] md:min-h-[520px] min-h-0 w-full">
+    <div className="flex flex-col md:h-[calc(100dvh-7.5rem)] md:min-h-[540px] min-h-0 w-full">
       
-      {/* Page Header */}
+      {/* Page Header (Matching Mockup 1) */}
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div className="flex items-stretch gap-3">
           <div className="w-1 bg-gradient-to-b from-emerald-500 to-emerald-700 rounded-full shrink-0" />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-black text-slate-800 text-base sm:text-lg uppercase tracking-wide leading-snug">
+              <h2 className="font-extrabold text-slate-800 text-sm sm:text-base uppercase tracking-wide leading-snug">
                 FOOD SECURITY INTELLIGENCE
               </h2>
-              <span className="text-[9px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">
+              <span className="text-[8.5px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest leading-none">
                 BETA
               </span>
             </div>
-            <p className="text-slate-500 font-semibold text-xs mt-0.5">
+            <p className="text-slate-500 font-medium text-[11px] sm:text-xs mt-0.5">
               Analisis spasial ketahanan pangan berbasis GIS × AI — Kota Cilegon
             </p>
           </div>
         </div>
 
-        {/* Layout tabs (desktop) */}
-        <div className="hidden md:flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+        {/* Layout Tabs Toggle (desktop - Sesuai Mockup 1) */}
+        <div className="hidden md:flex items-center gap-1 bg-slate-100 border border-slate-200/80 rounded-xl p-1 shadow-sm">
           {[
-            { key: 'split', label: 'Split', icon: <span className="text-[10px]">⊞</span> },
-            { key: 'map', label: 'Peta', icon: <Map className="w-3 h-3" /> },
-            { key: 'chat', label: 'Chat', icon: <MessageSquare className="w-3 h-3" /> },
+            { key: 'split', label: 'SPLIT', icon: <span className="text-[11px] font-bold">⊞</span> },
+            { key: 'map', label: 'PETA', icon: <Layers className="w-3 h-3" /> },
+            { key: 'chat', label: 'CHAT', icon: <MessageSquare className="w-3 h-3" /> },
           ].map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === tab.key
-                  ? 'bg-white text-emerald-700 shadow-sm border border-slate-200'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-emerald-800 shadow-sm border border-slate-200 font-black'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               {tab.icon}
@@ -92,49 +92,32 @@ export default function AIIntelligenceView() {
         </div>
       </div>
 
-      {/* Highlight info bar */}
-      {(highlightWilayah.length > 0 || highlightPins.length > 0) && (
-        <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] font-semibold text-amber-800 shrink-0 animate-in fade-in slide-in-from-top-1 duration-300">
-          <span className="text-amber-500 font-black">📍</span>
-          <span>
-            {highlightPins.length > 0 && (
-              <span className="mr-2">
-                Pin Lokasi GPS: {highlightPins.map(p => <strong key={p.name} className="font-black text-blue-800">📌 {p.name} ({p.lat.toFixed(5)}, {p.lng.toFixed(5)})</strong>).reduce((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [] as React.ReactNode[])}
-              </span>
-            )}
-            {highlightWilayah.length > 0 && (
-              <span>
-                Wilayah: {highlightWilayah.map(w => <strong key={w} className="font-black">{w}</strong>).reduce((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [] as React.ReactNode[])}
-              </span>
-            )}
-          </span>
-          <button
-            onClick={clearHighlight}
-            className="ml-auto text-amber-600 hover:text-amber-800 font-black cursor-pointer flex items-center gap-1"
-          >
-            <RefreshCw className="w-3 h-3" /> Reset
-          </button>
-        </div>
-      )}
 
-      {/* Main content */}
+      {/* Main Content Area */}
       <div className="flex-1 min-h-0 relative">
         
-        {/* Desktop: Split / Map only / Chat only */}
+        {/* Desktop Split View: Map Left | Chat Right */}
         <div className="hidden md:flex h-full gap-4 items-stretch">
           
-          {/* Peta (Ketinggian tetap & stabil) */}
+          {/* Peta GIS (Ketinggian tetap & stabil permanen) */}
           {(activeTab === 'split' || activeTab === 'map') && (
             <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full ${
-              activeTab === 'split' ? 'w-[60%]' : 'w-full'
+              activeTab === 'split' ? 'w-[58%] lg:w-[60%]' : 'w-full'
             }`}>
               <AIIntelligenceMap 
                 highlightWilayah={highlightWilayah} 
                 highlightPins={highlightPins}
               />
 
-              {/* Info hint */}
-              <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
+              {/* Floating Badge Top-Left Sesuai Mockup 1 */}
+              <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
+                <span className="text-[10px] font-black text-slate-800 tracking-wider uppercase">
+                  + AI GIS INTELLIGENCE
+                </span>
+              </div>
+
+              {/* Info hint Bottom-Left Sesuai Mockup 1 */}
+              <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
                 <Info className="w-2.5 h-2.5 text-slate-400" />
                 <span className="text-[9px] font-bold text-slate-500">
                   {highlightPins.length > 0
@@ -147,7 +130,7 @@ export default function AIIntelligenceView() {
             </div>
           )}
 
-          {/* Panel chat (Tinggi responsif mengikuti layar & scroll mandiri) */}
+          {/* Panel Chat AI (ChatGPT UI/UX Style - Permanen di Kanan) */}
           {(activeTab === 'split' || activeTab === 'chat') && (
             <div className={`h-full min-h-0 flex flex-col ${activeTab === 'split' ? 'flex-1 min-w-0' : 'w-full'}`}>
               <AIIntelligencePanel
@@ -159,35 +142,62 @@ export default function AIIntelligenceView() {
           )}
         </div>
 
-        {/* Mobile: Stack vertikal — Chat AI di atas (tinggi 70vh), Peta di bawah */}
+        {/* Mobile View: Stack Vertikal Teratur */}
         <div className="flex md:hidden flex-col gap-4 w-full pb-6">
-          {/* Panel Chat AI (70% tinggi layar mobile) */}
-          <div className="h-[70vh] min-h-[450px] max-h-[750px] w-full shrink-0">
-            <AIIntelligencePanel
-              onWilayahHighlight={handleWilayahHighlight}
-              onPinsHighlight={handlePinsHighlight}
-              isFullScreen={true}
-            />
+          {/* Mobile Tab Selector */}
+          <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1 shadow-sm">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 py-1.5 rounded-lg text-[11px] font-black text-center uppercase tracking-wider transition-all ${
+                activeTab === 'chat' || activeTab === 'split' ? 'bg-white text-emerald-800 shadow-sm border border-slate-200' : 'text-slate-500'
+              }`}
+            >
+              💬 Chat AI
+            </button>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`flex-1 py-1.5 rounded-lg text-[11px] font-black text-center uppercase tracking-wider transition-all ${
+                activeTab === 'map' ? 'bg-white text-emerald-800 shadow-sm border border-slate-200' : 'text-slate-500'
+              }`}
+            >
+              🗺️ Peta GIS
+            </button>
           </div>
 
-          {/* Peta GIS di bawah Chat */}
-          <div className="h-[320px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 relative shrink-0 w-full">
-            <AIIntelligenceMap 
-              highlightWilayah={highlightWilayah} 
-              highlightPins={highlightPins}
-            />
-            {/* Info hint mobile */}
-            <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/85 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-              <Info className="w-2.5 h-2.5 text-slate-400" />
-              <span className="text-[9px] font-bold text-slate-500">
-                {highlightPins.length > 0
-                  ? `${highlightPins.length} Pin Titik GPS`
-                  : highlightWilayah.length > 0
-                    ? `${highlightWilayah.length} wilayah aktif`
-                    : 'Peta Spasial AI'}
-              </span>
+          {/* Mobile Content Display */}
+          {(activeTab === 'chat' || activeTab === 'split') && (
+            <div className="h-[68vh] min-h-[460px] max-h-[700px] w-full shrink-0">
+              <AIIntelligencePanel
+                onWilayahHighlight={handleWilayahHighlight}
+                onPinsHighlight={handlePinsHighlight}
+                isFullScreen={true}
+              />
             </div>
-          </div>
+          )}
+
+          {(activeTab === 'map' || activeTab === 'split') && (
+            <div className="h-[320px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 relative shrink-0 w-full">
+              <AIIntelligenceMap 
+                highlightWilayah={highlightWilayah} 
+                highlightPins={highlightPins}
+              />
+              <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm">
+                <span className="text-[9px] font-black text-slate-800 tracking-wider uppercase">
+                  + AI GIS INTELLIGENCE
+                </span>
+              </div>
+              <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/85 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+                <Info className="w-2.5 h-2.5 text-slate-400" />
+                <span className="text-[9px] font-bold text-slate-500">
+                  {highlightPins.length > 0
+                    ? `${highlightPins.length} Pin Titik GPS`
+                    : highlightWilayah.length > 0
+                      ? `${highlightWilayah.length} wilayah aktif`
+                      : 'Peta Spasial AI'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
