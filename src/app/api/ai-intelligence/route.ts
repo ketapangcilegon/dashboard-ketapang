@@ -409,27 +409,77 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
     const wilayahHighlight = extractWilayahHighlights(rawText);
     const cleanText = cleanResponseText(rawText);
 
-    // 7. Ekstrak pin lokasi jika cocok
+    // 7. Ekstrak pin lokasi tematik Serumpun Padi jika cocok dengan pertanyaan / jawaban
     const matchedPins: Array<{ lat: number; lng: number; name: string; category: string; kelurahan: string; kecamatan: string }> = [];
-    const combinedText = (userMessage + ' ' + rawText).toLowerCase();
+    const userQueryLower = userMessage.toLowerCase();
+    const rawTextLower = rawText.toLowerCase();
+    const combinedText = userQueryLower + ' ' + rawTextLower;
 
-    // Default pin locations
-    const defaultPins = [
-      { lat: -6.02121, lng: 105.95186, name: 'Nelayan Tanjung Leneng', category: 'nelayan', kelurahan: 'Ciwandan', kecamatan: 'Ciwandan' },
-      { lat: -5.94000, lng: 105.99996, name: 'Nelayan Medaksa', category: 'nelayan', kelurahan: 'Pulomerak', kecamatan: 'Pulomerak' },
-      { lat: -6.00265, lng: 106.08792, name: 'Nelayan Terate', category: 'nelayan', kelurahan: 'Terate', kecamatan: 'Pesisir' },
-      { lat: -5.98419, lng: 105.99079, name: 'Nelayan Tanjung Peni', category: 'nelayan', kelurahan: 'Ciwandan', kecamatan: 'Ciwandan' },
-      { lat: -5.89686, lng: 106.01774, name: 'Nelayan Suralaya', category: 'nelayan', kelurahan: 'Suralaya', kecamatan: 'Pulomerak' },
-      { lat: -6.02954, lng: 106.00843, name: 'Kolam Nurholis', category: 'kolam', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
-      { lat: -5.97323, lng: 106.03231, name: 'KWT Gerogol', category: 'poktan', kelurahan: 'Gerogol', kecamatan: 'Grogol' },
-      { lat: -5.95625, lng: 106.03523, name: 'KWT Gerem', category: 'poktan', kelurahan: 'Gerem', kecamatan: 'Grogol' },
-      { lat: -6.00723, lng: 106.05795, name: 'Peternakan Masigit', category: 'ternak', kelurahan: 'Masigit', kecamatan: 'Jombang' }
+    // Database lengkap Pin Tematik Serumpun Padi Cilegon
+    const allThematicPins = [
+      // ─── Pangkalan Nelayan ───
+      { lat: -6.02121, lng: 105.95186, name: 'Pangkalan Nelayan Tanjung Leneng', category: 'nelayan', kelurahan: 'Tanjung Leneng', kecamatan: 'Ciwandan' },
+      { lat: -5.94000, lng: 105.99996, name: 'Pangkalan Nelayan Medaksa', category: 'nelayan', kelurahan: 'Tamansari', kecamatan: 'Pulomerak' },
+      { lat: -6.00265, lng: 106.08792, name: 'Pangkalan Nelayan Terate', category: 'nelayan', kelurahan: 'Terate', kecamatan: 'Pesisir' },
+      { lat: -5.98419, lng: 105.99079, name: 'Pangkalan Nelayan Tanjung Peni', category: 'nelayan', kelurahan: 'Warnasari', kecamatan: 'Ciwandan' },
+      { lat: -5.89686, lng: 106.01774, name: 'Pangkalan Nelayan Suralaya', category: 'nelayan', kelurahan: 'Suralaya', kecamatan: 'Pulomerak' },
+      { lat: -5.92845, lng: 105.99612, name: 'Pangkalan Nelayan Mabak', category: 'nelayan', kelurahan: 'Mekarsari', kecamatan: 'Pulomerak' },
+      { lat: -5.93412, lng: 105.99841, name: 'Pangkalan Nelayan Kaltex', category: 'nelayan', kelurahan: 'Tamansari', kecamatan: 'Pulomerak' },
+      { lat: -5.90874, lng: 106.00421, name: 'Pangkalan Nelayan Lebak Gede', category: 'nelayan', kelurahan: 'Lebakgede', kecamatan: 'Pulomerak' },
+      { lat: -6.00891, lng: 105.97234, name: 'Pangkalan Nelayan Lelean', category: 'nelayan', kelurahan: 'Pesisir', kecamatan: 'Ciwandan' },
+
+      // ─── KWT & Poktan ───
+      { lat: -5.97323, lng: 106.03231, name: 'KWT Gerogol (Cabai)', category: 'kwt', kelurahan: 'Gerogol', kecamatan: 'Gerogol' },
+      { lat: -5.95625, lng: 106.03523, name: 'KWT Gerem (Sayuran Segar)', category: 'kwt', kelurahan: 'Gerem', kecamatan: 'Gerogol' },
+      { lat: -5.98912, lng: 106.04215, name: 'KWT Kotabumi', category: 'kwt', kelurahan: 'Kotabumi', kecamatan: 'Purwakarta' },
+      { lat: -5.97323, lng: 106.03231, name: 'Poktan Gerogol', category: 'poktan', kelurahan: 'Gerogol', kecamatan: 'Gerogol' },
+
+      // ─── Perikanan Budidaya (Kolam) ───
+      { lat: -6.02954, lng: 106.00843, name: 'Kolam Nurholis (Lele/Nila/Gurame)', category: 'kolam', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.01145, lng: 106.05094, name: 'Kolam Budidaya Nila Masigit', category: 'kolam', kelurahan: 'Masigit', kecamatan: 'Jombang' },
+
+      // ─── Peternakan ───
+      { lat: -6.00723, lng: 106.05795, name: 'Peternakan Sapi (Masigit)', category: 'ternak', kelurahan: 'Masigit', kecamatan: 'Jombang' },
+      { lat: -6.00845, lng: 106.05912, name: 'Peternakan Kambing (Masigit)', category: 'ternak', kelurahan: 'Masigit', kecamatan: 'Jombang' },
+
+      // ─── Hortikultura & Palawija ───
+      { lat: -6.01452, lng: 106.04123, name: 'Kebun Hortikultura Cibeber', category: 'horti', kelurahan: 'Cibeber', kecamatan: 'Cibeber' },
+      { lat: -5.99214, lng: 106.06231, name: 'Lahan Palawija Jombang', category: 'palawija', kelurahan: 'Sukmajaya', kecamatan: 'Jombang' }
     ];
 
-    for (const p of defaultPins) {
-      const nameKey = p.name.toLowerCase();
-      if (combinedText.includes(nameKey) || combinedText.includes(p.category) || (p.kelurahan && combinedText.includes(p.kelurahan.toLowerCase()))) {
-        matchedPins.push(p);
+    // Cek kecocokan spesifik: nama pangkalan / KWT / kata kunci kategori
+    for (const p of allThematicPins) {
+      const nameLower = p.name.toLowerCase();
+      const kelLower = p.kelurahan.toLowerCase();
+      const kecLower = p.kecamatan.toLowerCase();
+
+      const nameMatch = userQueryLower.includes(nameLower) || rawTextLower.includes(nameLower);
+      const isNelayanQuery = (userQueryLower.includes('nelayan') || userQueryLower.includes('pangkalan') || userQueryLower.includes('tpi')) && p.category === 'nelayan';
+      const isKwtQuery = (userQueryLower.includes('kwt') || userQueryLower.includes('wanita tani')) && p.category === 'kwt';
+      const isPoktanQuery = (userQueryLower.includes('poktan') || userQueryLower.includes('kelompok tani')) && (p.category === 'poktan' || p.category === 'kwt');
+      const isKolamQuery = (userQueryLower.includes('kolam') || userQueryLower.includes('budidaya') || userQueryLower.includes('ikan')) && p.category === 'kolam';
+      const isTernakQuery = (userQueryLower.includes('ternak') || userQueryLower.includes('sapi') || userQueryLower.includes('kambing')) && p.category === 'ternak';
+      const isHortiQuery = (userQueryLower.includes('hortikultura') || userQueryLower.includes('cabai') || userQueryLower.includes('sayur')) && (p.category === 'horti' || p.category === 'kwt');
+
+      const kelurahanMatch = (userQueryLower.includes(kelLower) || userQueryLower.includes(kecLower)) && (isNelayanQuery || isKwtQuery || isPoktanQuery || isKolamQuery || isTernakQuery || isHortiQuery);
+
+      if (nameMatch || kelurahanMatch || (userQueryLower.includes(p.category) && (userQueryLower.includes(kelLower) || userQueryLower.includes(kecLower)))) {
+        if (!matchedPins.some(mp => mp.name === p.name)) {
+          matchedPins.push(p);
+        }
+      }
+    }
+
+    // Jika user menanyakan kategori umum tanpa filter kelurahan (misal "tampilkan pangkalan nelayan" atau "mana saja KWT"), ambil semua pin kategori tersebut
+    if (matchedPins.length === 0) {
+      if (userQueryLower.includes('nelayan') || userQueryLower.includes('pangkalan')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'nelayan'));
+      } else if (userQueryLower.includes('kwt') || userQueryLower.includes('wanita tani')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'kwt'));
+      } else if (userQueryLower.includes('kolam') || userQueryLower.includes('budidaya')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'kolam'));
+      } else if (userQueryLower.includes('ternak') || userQueryLower.includes('peternakan')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'ternak'));
       }
     }
 
@@ -437,7 +487,7 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
       success: true,
       text: cleanText,
       wilayah_highlight: wilayahHighlight,
-      matched_pins: matchedPins.slice(0, 5),
+      matched_pins: matchedPins.slice(0, 10),
       source_tables: sourceTables.length > 0 ? sourceTables : ['sawah_status', 'kolam_budidaya', 'nelayan_tangkap', 'poktan_kwt', 'peternakan'],
       referenced_docs: referencedDocs,
       last_sync: lastSync,
