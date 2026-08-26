@@ -33,6 +33,7 @@ const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecast
 const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ssr: false });
 const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
 const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView'), { ssr: false });
+const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -2156,11 +2157,17 @@ export default function DashboardPage() {
                   <AIIntelligenceView />
                 </div>
               )}
+
+              {currentView === 'kamera_cerdas' && (
+                <div className="w-full h-[calc(100vh-80px)] min-h-[520px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+                  <KameraCerdasView />
+                </div>
+              )}
             </div>
           )}
 
           {/* Footer with Visit Counter */}
-          {currentView !== 'ai_intelligence' && (
+          {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && (
             <footer className="mt-12 pt-6 pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
               <VisitCounter />
             </footer>
