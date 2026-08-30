@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut } from 'lucide-react';
 import GuidanceOverlay from './GuidanceOverlay';
 import KonfirmasiPasokanModal from './KonfirmasiPasokanModal';
 import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
@@ -9,10 +9,81 @@ import KameraCerdasMap from './KameraCerdasMap';
 import KameraAgregasiDashboard from './KameraAgregasiDashboard';
 import { cariKelurahanTerdekat } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { supabase } from '@/lib/supabase';
 
 export default function KameraCerdasView() {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'camera' | 'map' | 'analytics'>('camera');
+  
+  // Governance & Admin State
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminEmail, setAdminEmail] = useState<string>('');
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [loginEmail, setLoginEmail] = useState<string>('');
+  const [loginPassword, setLoginPassword] = useState<string>('');
+  const [loginError, setLoginError] = useState<string>('');
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // Verifikasi Sesi Admin
+  useEffect(() => {
+    const checkAuth = async () => {
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const hasAdmin = sessionActive || !!session?.user;
+        setIsAdmin(hasAdmin);
+        if (session?.user?.email) {
+          setAdminEmail(session.user.email);
+        } else if (sessionActive) {
+          setAdminEmail('admin@cilegon.go.id');
+        }
+      } catch {
+        setIsAdmin(sessionActive);
+      }
+    };
+    checkAuth();
+    const interval = setInterval(checkAuth, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLoginAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError('');
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword
+      });
+      if (!error && data.user) {
+        sessionStorage.setItem('adminSession', 'active');
+        setIsAdmin(true);
+        setAdminEmail(data.user.email || 'admin@cilegon.go.id');
+        setShowLoginModal(false);
+        setLoginPassword('');
+      } else {
+        setLoginError(error ? 'Akses ditolak: ' + error.message : 'Email atau kata sandi tidak sesuai.');
+      }
+    } catch (err: any) {
+      setLoginError('Terjadi kesalahan jaringan: ' + (err.message || 'Error'));
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    sessionStorage.removeItem('adminSession');
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    setIsAdmin(false);
+    setAdminEmail('');
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
   
   // Camera & Mode State
   const [mode, setMode] = useState<'pasokan_beras' | 'tanaman_pangan'>('pasokan_beras');
@@ -171,7 +242,7 @@ export default function KameraCerdasView() {
   }, [isCameraActive]);
 
   useEffect(() => {
-    if (activeTab === 'camera') {
+    if (activeTab === 'camera' && isAdmin) {
       startCamera();
     } else {
       if (streamRef.current) {
@@ -186,7 +257,7 @@ export default function KameraCerdasView() {
         streamRef.current.getTracks().forEach(t => t.stop());
       }
     };
-  }, [activeTab, startCamera]);
+  }, [activeTab, isAdmin, startCamera]);
 
   // Flip Camera
   const toggleCameraFacing = () => {
@@ -422,7 +493,11 @@ export default function KameraCerdasView() {
       const res = await fetch('/api/kamera-cerdas/observasi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalData)
+        body: JSON.stringify({
+          ...finalData,
+          petugas_nama: adminEmail || 'Admin DKPP Cilegon',
+          status_verifikasi: 'TERVERIFIKASI_ADMIN'
+        })
       });
 
       if (res.ok) {
@@ -447,7 +522,7 @@ export default function KameraCerdasView() {
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 relative overflow-hidden select-none">
       
       {/* ── Top App Bar Navigation ── */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between z-30 shrink-0 shadow-md">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-900/50">
             <Camera className="w-4 h-4" />
@@ -455,45 +530,78 @@ export default function KameraCerdasView() {
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className="text-sm font-black text-white tracking-wide uppercase">Kamera Cerdas</h2>
-              <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.2 rounded-full tracking-widest leading-none">
-                BETA
+              <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
+                isAdmin ? 'bg-emerald-500 text-white' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }`}>
+                {isAdmin ? 'PETUGAS' : 'KHUSUS ADMIN'}
               </span>
             </div>
             <p className="text-[10px] text-slate-400">Field Data Collection & Geospatial Intelligence</p>
           </div>
         </div>
 
-        {/* Top View Switcher Tabs */}
-        <div className="flex bg-slate-800 p-0.5 rounded-xl border border-slate-700/80 text-xs font-bold">
-          <button
-            onClick={() => setActiveTab('camera')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'camera' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Ambil Foto</span>
-          </button>
+        {/* Top View Switcher Tabs & Admin Status */}
+        <div className="flex items-center gap-2">
+          <div className="flex bg-slate-800 p-0.5 rounded-xl border border-slate-700/80 text-xs font-bold">
+            <button
+              onClick={() => setActiveTab('camera')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'camera' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {isAdmin ? <Camera className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+              <span className="hidden sm:inline">Ambil Foto</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('map')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'map' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Peta Lapangan ({observasiList.length})</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'map' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Peta Lapangan ({observasiList.length})</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'analytics' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Agregasi</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'analytics' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Agregasi</span>
+            </button>
+          </div>
+
+          {/* Admin Indicator / Login Trigger */}
+          {isAdmin ? (
+            <div className="flex items-center gap-1.5">
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="truncate max-w-[130px]">{adminEmail || 'Petugas DKPP'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg border border-slate-700 hover:border-rose-700/50 transition-all flex items-center gap-1 cursor-pointer"
+                title="Keluar Sesi Admin"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowLoginModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-black transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Login Petugas DKPP"
+            >
+              <KeyRound className="w-3 h-3" />
+              <span>Login Admin</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -507,6 +615,79 @@ export default function KameraCerdasView() {
 
       {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
       {activeTab === 'camera' && (
+        !isAdmin ? (
+          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-black text-center relative overflow-y-auto">
+            <div className="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-5 my-auto">
+              
+              {/* Security Shield Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/35 flex items-center justify-center text-amber-400 mx-auto shadow-inner">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Lock className="w-2.5 h-2.5" /> Tata Kelola Data • Akses Terbatas
+                </span>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">
+                  Khusus Petugas & Admin DKPP
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Modul Kamera Cerdas merupakan instrumen pengumpulan data primer lapangan untuk verifikasi pasokan beras dan tanaman pangan. Untuk menjaga integritas data statistik daerah, fitur perekaman foto dan AI Vision saat ini <strong>hanya dapat dioperasikan oleh Surveyor / Petugas Resmi DKPP Kota Cilegon</strong>.
+                </p>
+              </div>
+
+              {/* Scope Matrix */}
+              <div className="bg-slate-950/70 rounded-2xl p-4 border border-slate-800/80 text-left space-y-2.5 text-xs">
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Ambil Foto & AI Vision Lapangan</span>
+                  </span>
+                  <span className="text-[9.5px] font-black text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">KHUSUS ADMIN</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-300 border-t border-slate-800/60 pt-2.5">
+                  <span className="flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Peta Sebaran Spasial Lapangan</span>
+                  </span>
+                  <span className="text-[9.5px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">PUBLIK (TERBUKA)</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-300 border-t border-slate-800/60 pt-2.5">
+                  <span className="flex items-center gap-2">
+                    <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Dashboard Agregasi Data Pangan</span>
+                  </span>
+                  <span className="text-[9.5px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">PUBLIK (TERBUKA)</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(true)}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Masuk sebagai Petugas / Admin</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Lihat Peta Lapangan ({observasiList.length} Observasi)</span>
+                </button>
+              </div>
+
+              <div className="text-[10px] text-slate-500 pt-1">
+                Atau login melalui <a href="/entry" className="text-emerald-400 hover:underline font-bold">Portal Admin Utama</a>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-black overflow-hidden">
           
           {/* Live Video Stream Viewport */}
@@ -569,7 +750,7 @@ export default function KameraCerdasView() {
             {/* Flip Camera Button */}
             <button
               onClick={toggleCameraFacing}
-              className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg hover:bg-black/80 transition-all active:scale-95"
+              className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg hover:bg-black/80 transition-all active:scale-95 cursor-pointer"
               title="Putar Kamera (Depan / Belakang)"
             >
               <SwitchCamera className="w-4 h-4" />
@@ -597,7 +778,7 @@ export default function KameraCerdasView() {
               <button
                 type="button"
                 onClick={() => setMode('pasokan_beras')}
-                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                   mode === 'pasokan_beras'
                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-900/40'
                     : 'text-slate-400 hover:text-white'
@@ -610,7 +791,7 @@ export default function KameraCerdasView() {
               <button
                 type="button"
                 onClick={() => setMode('tanaman_pangan')}
-                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                   mode === 'tanaman_pangan'
                     ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-900/40'
                     : 'text-slate-400 hover:text-white'
@@ -628,7 +809,7 @@ export default function KameraCerdasView() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all"
+                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
                 title="Pilih Foto dari Galeri"
               >
                 <ImageIcon className="w-5 h-5" />
@@ -646,7 +827,7 @@ export default function KameraCerdasView() {
                 type="button"
                 onClick={handleCapturePhoto}
                 disabled={!isCameraActive || isAnalyzing}
-                className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-transparent p-1 active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.4)] disabled:opacity-40"
+                className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-transparent p-1 active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.4)] disabled:opacity-40 cursor-pointer"
                 title="Ambil Foto"
               >
                 <div className="w-full h-full rounded-full bg-white hover:bg-emerald-400 transition-colors shadow-inner flex items-center justify-center text-slate-900">
@@ -658,7 +839,7 @@ export default function KameraCerdasView() {
               <button
                 type="button"
                 onClick={() => setActiveTab('map')}
-                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all"
+                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
                 title="Lihat Peta Hasil Observasi"
               >
                 <Layers className="w-5 h-5 text-emerald-400" />
@@ -671,6 +852,7 @@ export default function KameraCerdasView() {
           </div>
 
         </div>
+        )
       )}
 
       {/* ── Tab 2: Peta Spasial Hasil Observasi ── */}
@@ -732,6 +914,81 @@ export default function KameraCerdasView() {
           }}
           isSaving={isSaving}
         />
+      )}
+
+      {/* ── Modal Login Petugas / Admin (DKPP Governance) ── */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-100 relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <ShieldCheck className="w-5 h-5" />
+                <h3 className="font-extrabold text-sm uppercase tracking-wide text-white">Login Petugas DKPP</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(false)}
+                className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Gunakan akun resmi administrator / petugas DKPP Kota Cilegon untuk membuka modul perekaman Kamera Cerdas.
+            </p>
+
+            {loginError && (
+              <div className="mb-4 p-3 bg-rose-950/60 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-semibold">
+                {loginError}
+              </div>
+            )}
+
+            <form onSubmit={handleLoginAdmin} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Email Petugas</label>
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="admin@cilegon.go.id"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Kata Sandi</label>
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full mt-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Memverifikasi...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4" />
+                    <span>Verifikasi & Aktifkan Kamera</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

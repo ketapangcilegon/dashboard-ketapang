@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Home, Layers, PieChart, ExternalLink, Database, Info, Download, Leaf, ChevronsLeft, ChevronsRight, ChevronDown, ChevronRight, Sparkles, Camera } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Home, Layers, PieChart, ExternalLink, Database, Info, Download, Leaf, ChevronsLeft, ChevronsRight, ChevronDown, ChevronRight, Sparkles, Camera, Lock } from 'lucide-react';
 
 interface SidebarProps {
   currentView?: string;
@@ -20,6 +20,17 @@ export default function Sidebar({
   isMobile = false,
   onCloseMobile = () => {}
 }: SidebarProps) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      setIsAdmin(sessionActive);
+    };
+    checkAuth();
+    const interval = setInterval(checkAuth, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     fiturUtama: true,
@@ -219,7 +230,7 @@ export default function Sidebar({
             )}
           </a>
 
-          {/* 📷 KAMERA CERDAS (BETA) */}
+          {/* 📷 KAMERA CERDAS (KHUSUS ADMIN) */}
           <a
             href="/?view=kamera_cerdas"
             onClick={(e) => handleNavClick(e, 'kamera_cerdas')}
@@ -228,14 +239,24 @@ export default function Sidebar({
                 ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm'
                 : 'hover:bg-emerald-900/40'
             } ${isCollapsed ? 'justify-center px-0' : ''}`}
-            title={isCollapsed ? "KAMERA CERDAS (BETA)" : undefined}
+            title={isCollapsed ? (isAdmin ? "KAMERA CERDAS (ADMIN)" : "KAMERA CERDAS (KHUSUS ADMIN)") : undefined}
           >
-            <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="relative shrink-0 flex items-center justify-center">
+              <Camera className="w-4 h-4 text-emerald-400" />
+              {!isAdmin && (
+                <Lock className="w-2.5 h-2.5 text-amber-400 absolute -top-1.5 -right-1.5 drop-shadow-sm" />
+              )}
+            </div>
             {!isCollapsed && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">
                 <span>KAMERA CERDAS</span>
-                <span className="text-[8px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-block">
-                  BETA
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-flex items-center gap-1 ${
+                  isAdmin 
+                    ? 'bg-emerald-500 text-white' 
+                    : 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                }`}>
+                  {!isAdmin && <Lock className="w-2 h-2 shrink-0" />}
+                  {isAdmin ? 'ADMIN' : 'ADMIN ONLY'}
                 </span>
               </div>
             )}

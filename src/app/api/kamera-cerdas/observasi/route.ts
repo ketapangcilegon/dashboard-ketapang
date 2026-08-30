@@ -109,7 +109,8 @@ export async function POST(request: Request) {
       id: body.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : undefined),
       created_at: body.created_at || new Date().toISOString(),
       kota: body.kota || 'Kota Cilegon',
-      status_verifikasi: body.status_verifikasi || 'terverifikasi_pengguna'
+      status_verifikasi: body.status_verifikasi || 'TERVERIFIKASI_ADMIN',
+      petugas_nama: body.petugas_nama || 'Admin DKPP Cilegon'
     };
 
     // 1. Simpan ke tabel kamera_cerdas_observasi
