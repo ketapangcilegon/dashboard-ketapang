@@ -45,6 +45,17 @@ interface RawDatasetRow {
   hari_menuju_idul_fitri: number | null;
   hari_menuju_idul_adha: number | null;
   is_hbkn?: boolean;
+  // Fitur ENSO Global (BMKG / NOAA)
+  indeks_nino34?: number | null;
+  is_el_nino?: number | null;
+  is_la_nina?: number | null;
+  anomali_sst_c?: number | null;
+  indeks_iod?: number | null;
+  // Fitur Suplai Produksi Padi (DKPP Cilegon)
+  tanam_padi_ha?: number | null;
+  panen_padi_ha?: number | null;
+  produksi_padi_ton?: number | null;
+  produktivitas_padi_ku_ha?: number | null;
 }
 
 interface EngineeredSample {
@@ -60,7 +71,10 @@ const FEATURE_NAMES = [
   'bulan', 'quarter', 'is_hbkn', 'trend_3', 'growth_yoy', 'cv_12',
   'ihk', 'inflasi_mtm', 'inflasi_yoy', 'curah_hujan_mm', 'suhu_c',
   'kelembapan', 'hari_hujan', 'ramadhan', 'idul_fitri', 'idul_adha',
-  'nataru', 'hari_menuju_idul_fitri', 'hari_menuju_idul_adha'
+  'nataru', 'hari_menuju_idul_fitri', 'hari_menuju_idul_adha',
+  // New Features: ENSO BMKG & Produksi Padi Cilegon
+  'indeks_nino34', 'is_el_nino', 'is_la_nina', 'indeks_iod',
+  'panen_padi_ha', 'produksi_padi_ton'
 ];
 
 // Helper to compute features for a given commodity at row index `t`
@@ -130,7 +144,13 @@ function computeFeatures(rawRows: RawDatasetRow[], t: number, commodity: string)
     idul_adha: currentRow.idul_adha || 0,
     nataru: currentRow.nataru || 0,
     hari_menuju_idul_fitri: currentRow.hari_menuju_idul_fitri || 365,
-    hari_menuju_idul_adha: currentRow.hari_menuju_idul_adha || 365
+    hari_menuju_idul_adha: currentRow.hari_menuju_idul_adha || 365,
+    indeks_nino34: currentRow.indeks_nino34 !== undefined && currentRow.indeks_nino34 !== null ? Number(currentRow.indeks_nino34) : 0,
+    is_el_nino: currentRow.is_el_nino ? 1 : 0,
+    is_la_nina: currentRow.is_la_nina ? 1 : 0,
+    indeks_iod: currentRow.indeks_iod !== undefined && currentRow.indeks_iod !== null ? Number(currentRow.indeks_iod) : 0,
+    panen_padi_ha: currentRow.panen_padi_ha ? Number(currentRow.panen_padi_ha) : 0,
+    produksi_padi_ton: currentRow.produksi_padi_ton ? Number(currentRow.produksi_padi_ton) : 0
   };
 }
 
@@ -438,7 +458,13 @@ function runWalkForwardValidation(
         idul_adha: tRow.idul_adha || 0,
         nataru: tRow.nataru || 0,
         hari_menuju_idul_fitri: tRow.hari_menuju_idul_fitri || 365,
-        hari_menuju_idul_adha: tRow.hari_menuju_idul_adha || 365
+        hari_menuju_idul_adha: tRow.hari_menuju_idul_adha || 365,
+        indeks_nino34: tRow.indeks_nino34 !== undefined && tRow.indeks_nino34 !== null ? Number(tRow.indeks_nino34) : 0,
+        is_el_nino: tRow.is_el_nino ? 1 : 0,
+        is_la_nina: tRow.is_la_nina ? 1 : 0,
+        indeks_iod: tRow.indeks_iod !== undefined && tRow.indeks_iod !== null ? Number(tRow.indeks_iod) : 0,
+        panen_padi_ha: tRow.panen_padi_ha ? Number(tRow.panen_padi_ha) : 0,
+        produksi_padi_ton: tRow.produksi_padi_ton ? Number(tRow.produksi_padi_ton) : 0
       };
     };
     

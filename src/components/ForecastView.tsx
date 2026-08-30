@@ -301,6 +301,9 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     const cv = f?.cv !== undefined && f?.cv !== null ? Number(f.cv) : 0;
     const growthYoY = f?.growth_yoy !== undefined && f?.growth_yoy !== null ? Number(f.growth_yoy) : 0;
     const confidence = f?.confidence || 0;
+    const perubahanPct = f?.perubahan_pct !== undefined && f?.perubahan_pct !== null
+      ? Number(f.perubahan_pct)
+      : (hargaKini > 0 ? ((forecast1m - hargaKini) / hargaKini) * 100 : 0);
     
     const overallStatus = getOverallStatus(statusForecast, statusCV, statusSKPG);
 
@@ -316,6 +319,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       cv,
       growthYoY,
       confidence,
+      perubahanPct,
       overallStatus
     };
   }).sort((a, b) => {
@@ -400,25 +404,25 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-slate-600 font-extrabold uppercase tracking-wider text-[9px] sm:text-[10px]">
-                    <th className="p-3">Komoditas</th>
-                    <th className="p-3 text-right">
+                  <tr className="text-slate-700 font-extrabold uppercase tracking-wide text-[11px]">
+                    <th className="p-3 whitespace-normal">Komoditas</th>
+                    <th className="p-3 text-right whitespace-normal">
                       <div className="leading-tight">Harga Aktual</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                      <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
                     </th>
-                    <th className="p-3 text-right">
+                    <th className="p-3 text-right whitespace-normal">
                       <div className="leading-tight">Peramalan +1 Bulan</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
+                      <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
                     </th>
-                    <th className="p-3 text-right">
+                    <th className="p-3 text-right whitespace-normal">
                       <div className="leading-tight">Peramalan +3 Bulan</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
+                      <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                     </th>
-                    <th className="p-3 text-center">
+                    <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>ARAH TREN +1 BULAN</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L1)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
@@ -432,11 +436,11 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </button>
                       </div>
                     </th>
-                    <th className="p-3 text-center">
+                    <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>KOEFISIEN VARIASI</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L2)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L2)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
@@ -450,11 +454,11 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </button>
                       </div>
                     </th>
-                    <th className="p-3 text-center">
+                    <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>PERUBAHAN YoY</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L3)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L3)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
@@ -468,7 +472,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </button>
                       </div>
                     </th>
-                    <th className="p-3 text-center">
+                    <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="leading-tight">Akurasi (100%-MAPE)</span>
                         <button 
@@ -483,11 +487,11 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </button>
                       </div>
                     </th>
-                    <th className="p-3 text-center">
+                    <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>STATUS</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1 + L2 + L3)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L1 + L2 + L3)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
@@ -525,10 +529,11 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                       
                       {/* Layer 1 Status */}
                       <td className="p-3 text-center font-bold">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
                           row.statusForecast === 'Naik' ? 'bg-rose-50 text-rose-700 border border-rose-200' : row.statusForecast === 'Turun' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
-                          {row.statusForecast}
+                          <span>{row.statusForecast}</span>
+                          <span className="font-mono text-[9px] font-bold opacity-90">({row.perubahanPct > 0 ? `+${row.perubahanPct.toFixed(1)}%` : `${row.perubahanPct.toFixed(1)}%`})</span>
                         </span>
                       </td>
                       

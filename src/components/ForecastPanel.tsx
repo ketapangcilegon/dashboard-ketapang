@@ -78,6 +78,7 @@ interface ForecastItem {
   cv: number;
   isWarning: boolean;
   trend: 'up' | 'down' | 'stable';
+  changePct: number;
   rekomendasi: string[];
 }
 
@@ -201,6 +202,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
             status_forecast: string;
             status_cv: string;
             status_skpg: string;
+            perubahan_pct?: number;
             rekomendasi: string[];
           }
           const mapped: ForecastItem[] = (data as unknown as DBForecastResult[]).map((item) => {
@@ -211,15 +213,22 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
             if (item.status_forecast === 'Naik') trend = 'up';
             else if (item.status_forecast === 'Turun') trend = 'down';
             
+            const current = Number(item.harga_aktual) || 0;
+            const month1 = Number(item.forecast_1m) || 0;
+            const changePct = item.perubahan_pct !== undefined && item.perubahan_pct !== null
+              ? Number(item.perubahan_pct)
+              : (current > 0 ? ((month1 - current) / current) * 100 : 0);
+
             return {
               id: item.komoditas,
               name: COMMODITY_MAP[item.komoditas] || item.komoditas,
-              current: Number(item.harga_aktual) || 0,
-              month1: Number(item.forecast_1m) || 0,
+              current,
+              month1,
               month3: Number(item.forecast_3m) || 0,
               cv: Number(item.cv) || 0,
               isWarning,
               trend,
+              changePct,
               rekomendasi: item.rekomendasi || []
             };
           });
@@ -240,6 +249,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
             cv: 3.5,
             isWarning: false,
             trend: 'stable' as const,
+            changePct: 2.67,
             rekomendasi: ["monitoring rutin"]
           }));
           setForecasts(fallback);
@@ -305,23 +315,23 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
               ) : (
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 shadow-sm">
-                    <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[9px] uppercase tracking-wider">
-                      <th className="p-2 py-3 bg-emerald-50/50 align-middle">Komoditas</th>
-                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                    <tr className="text-[#0B4D3C] font-extrabold border-b border-emerald-100/50 text-[11px] uppercase tracking-wide">
+                      <th className="p-2 py-3 bg-emerald-50/50 align-middle whitespace-normal">KOMODITAS</th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">HARGA AKTUAL</div>
-                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
                       </th>
-                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">PERAMALAN +1 BULAN</div>
-                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getT1MonthStr()}</div>
                       </th>
-                      <th className="p-2 py-3 bg-emerald-50/50 text-right">
+                      <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">PERAMALAN +3 BULAN</div>
-                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                       </th>
-                      <th className="p-2 py-3 bg-emerald-50/50 text-center align-middle">
+                      <th className="p-2 py-3 bg-emerald-50/50 text-center align-middle whitespace-normal">
                         <div className="leading-tight">ARAH TREN +1 BULAN</div>
-                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1)</div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L1)</div>
                       </th>
                     </tr>
                   </thead>
@@ -341,10 +351,21 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                         <td className={`p-2 text-right font-black text-xs ${item.month3 > item.current ? 'text-red-500' : 'text-emerald-600'}`}>
                           Rp{item.month3.toLocaleString('id-ID')}
                         </td>
-                        <td className="p-2 text-center">
-                          {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500 mx-auto" />}
-                          {item.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500 mx-auto" />}
-                          {item.trend === 'stable' && <Minus className="w-4 h-4 text-amber-500 mx-auto" />}
+                        <td className="p-2 text-center whitespace-nowrap">
+                          <div className={`inline-flex items-center justify-center gap-1 font-bold text-[11px] ${
+                            item.trend === 'up' 
+                              ? 'text-red-500' 
+                              : item.trend === 'down' 
+                              ? 'text-emerald-600' 
+                              : 'text-amber-500'
+                          }`}>
+                            {item.trend === 'up' && <TrendingUp className="w-3.5 h-3.5 shrink-0" />}
+                            {item.trend === 'down' && <TrendingDown className="w-3.5 h-3.5 shrink-0" />}
+                            {item.trend === 'stable' && <Minus className="w-3.5 h-3.5 shrink-0" />}
+                            <span className="font-mono text-[10.5px]">
+                              {item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}

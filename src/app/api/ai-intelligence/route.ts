@@ -190,6 +190,42 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   lines.push('  • TOTAL KOTA CILEGON: Luas Sawah Baku 1.151,97 Ha (407 Petak Poligon) | Total Penduduk 480.378 Jiwa');
 
   // ============================================================
+  // 1B. DATA HISTORIS PRODUKSI PADI & PALAWIJA KOTA CILEGON (2014–2025 / 12 TAHUN)
+  // ============================================================
+  lines.push('\n=== 1B. DATA HISTORIS TIME SERIES PRODUKSI PADI & PALAWIJA KOTA CILEGON (2014–2025 / 12 TAHUN) ===');
+  lines.push('Data resmi realisasi produksi Dinas Ketahanan Pangan dan Pertanian (DKPP) Kota Cilegon mencakup 11 komoditas di 8 kecamatan:');
+  lines.push('• REKAP PRODUKSI PADI SAWAH KOTA CILEGON (2014–2025):');
+  lines.push('  - 2014: Panen 1.681 Ha | Produksi 10.325 Ton GKG | Produktivitas 61.4 Ku/Ha');
+  lines.push('  - 2015: Panen 2.286 Ha | Produksi 14.734 Ton GKG | Produktivitas 64.5 Ku/Ha');
+  lines.push('  - 2016: Panen 2.418 Ha | Produksi 15.094 Ton GKG | Produktivitas 62.4 Ku/Ha');
+  lines.push('  - 2017: Panen 2.397 Ha | Produksi 15.190 Ton GKG | Produktivitas 63.4 Ku/Ha (Puncak Produksi Sawah)');
+  lines.push('  - 2018: Panen 2.267 Ha | Produksi 14.004 Ton GKG | Produktivitas 61.8 Ku/Ha');
+  lines.push('  - 2019: Panen 2.073 Ha | Produksi 12.402 Ton GKG | Produktivitas 59.8 Ku/Ha');
+  lines.push('  - 2020: Panen 2.068 Ha | Produksi 12.417 Ton GKG | Produktivitas 60.0 Ku/Ha');
+  lines.push('  - 2021: Panen 2.039 Ha | Produksi 11.687 Ton GKG | Produktivitas 57.3 Ku/Ha');
+  lines.push('  - 2022: Panen 1.927 Ha | Produksi 11.401 Ton GKG | Produktivitas 59.2 Ku/Ha');
+  lines.push('  - 2023: Panen 1.726 Ha | Produksi 9.852 Ton GKG  | Produktivitas 57.1 Ku/Ha (Anjlok akibat El Niño Kuat)');
+  lines.push('  - 2024: Panen 1.808 Ha | Produksi 10.461 Ton GKG | Produktivitas 57.8 Ku/Ha');
+  lines.push('  - 2025: Panen 2.428 Ha | Produksi 13.772 Ton GKG | Produktivitas 56.7 Ku/Ha (Pemulihan panen)');
+  lines.push('• REKAP PRODUKSI UBI KAYU / SINGKONG (KOMODITAS DIVERSIFIKASI KARBOHIDRAT UTAMA):');
+  lines.push('  - Singkong adalah komoditas palawija karbohidrat terbesar di Cilegon dengan produktivitas tinggi (>100 Ku/Ha).');
+  lines.push('  - 2014-2015: Panen 20 Ha | Produksi 183 Ton (Produktivitas 91.5 Ku/Ha)');
+  lines.push('  - 2016: Panen 56 Ha | Produksi 703 Ton (125.5 Ku/Ha)');
+  lines.push('  - 2017: Panen 45 Ha | Produksi 465 Ton (103.3 Ku/Ha)');
+  lines.push('  - 2018: Panen 35 Ha | Produksi 363.6 Ton (103.9 Ku/Ha)');
+  lines.push('  - 2019: Panen 78 Ha | Produksi 847 Ton (108.6 Ku/Ha)');
+  lines.push('  - 2020: Panen 20 Ha | Produksi 263.8 Ton (131.9 Ku/Ha)');
+  lines.push('  - 2021: Panen 211.8 Ha | Produksi 2.853.8 Ton (134.7 Ku/Ha - Rekor Panen Terbesar)');
+  lines.push('  - 2022: Panen 62.3 Ha | Produksi 700.2 Ton (112.4 Ku/Ha)');
+  lines.push('  - 2023: Panen 77.5 Ha | Produksi 896.5 Ton (115.7 Ku/Ha)');
+  lines.push('  - 2024: Panen 61.1 Ha | Produksi 848.2 Ton (138.8 Ku/Ha)');
+  lines.push('  - 2025: Panen 167.3 Ha | Produksi 2.007.6 Ton (120.0 Ku/Ha)');
+  lines.push('• REKAP JAGUNG: Produksi berkisar 10 - 934 Ton (puncak pada tahun 2018 dengan produksi 934 Ton dari 262 Ha panen).');
+  lines.push('• KOMODITAS PALAWIJA LAINNYA: Ubi Jalar, Kacang Tanah, Kedelai, Kacang Hijau, serta komoditas adaptif baru: Talas, Sorgum, dan Porang.');
+  lines.push('• SENTRA KECAMATAN: Padi Sawah dominan di Cibeber (2.176 Ton pada 2014), Jombang (2.064 Ton), Citangkil (2.032 Ton), Ciwandan, dan Purwakarta. Singkong dominan di Cibeber, Pulomerak, Purwakarta, dan Ciwandan.');
+  lines.push('• INSIGHT KETAHANAN PANGAN: Penurunan luas panen padi dari puncak 2016-2017 ke 2023 dipengaruhi kombinasi alih fungsi lahan industri perkotaan dan anomali kekeringan El Niño 2023, namun pulih kembali pada 2025. Ubi kayu berperan krusial sebagai buffer ketahanan pangan lokal.');
+
+  // ============================================================
   // 2. DATA PERIKANAN BUDIDAYA
   // ============================================================
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
