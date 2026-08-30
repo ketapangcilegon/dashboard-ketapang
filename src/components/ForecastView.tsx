@@ -416,14 +416,17 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">Arah Tren</span>
+                        <div className="leading-tight text-center">
+                          <div>ARAH TREN +1 BULAN</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1)</div>
+                        </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Arah Tren (Proyeksi Tren)',
+                            title: 'Arah Tren +1 Bulan (L1)',
                             content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 1 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun (menguntungkan bagi konsumen).\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 2%.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Arah Tren"
+                          title="Penjelasan Arah Tren +1 Bulan (L1)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -433,15 +436,15 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>KOEFISIEN VARIASI</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(CV)</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L2)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Koefisien Variasi (CV)',
+                            title: 'Koefisien Variasi (L2)',
                             content: 'Tingkat kestabilan harga historis selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi / Rata-rata) * 100.\n• Bulatan Hijau (Aman): Fluktuasi harga sangat rendah (< 10%).\n• Bulatan Kuning (Waspada): Fluktuasi harga sedang (10-20%).\n• Bulatan Merah (Rentan): Fluktuasi harga tinggi (> 20%).\n*Catatan: Jika tren diproyeksikan Turun, maka status CV dinilai AMAN untuk melindungi daya beli konsumen.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Koefisien Variasi (CV)"
+                          title="Penjelasan Koefisien Variasi (L2)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -450,16 +453,16 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
-                          <div>YoY COMPARISON</div>
-                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(SKPG)</div>
+                          <div>PERUBAHAN YoY</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L3)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'YoY Comparison / Pertumbuhan Tahunan (SKPG)',
+                            title: 'Perubahan YoY (L3)',
                             content: 'Indikator kerentanan pangan sektoral berbasis perbandingan pertumbuhan harga bulanan terhadap tahun lalu (Year-on-Year Growth).\n• Bulatan Hijau (Aman): Pertumbuhan harga tahunan rendah/terkendali (< 5-10%).\n• Bulatan Kuning (Waspada): Pertumbuhan harga tahunan mulai meningkat (5-15%).\n• Bulatan Merah (Rentan): Lonjakan harga tahunan di atas ambang batas (> 10-15%).\n*Catatan: Jika tren diproyeksikan Turun, maka status SKPG dinilai AMAN untuk melindungi daya beli konsumen.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan YoY Comparison (SKPG)"
+                          title="Penjelasan Perubahan YoY (L3)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -482,14 +485,17 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">Status</span>
+                        <div className="leading-tight text-center">
+                          <div>STATUS</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1 + L2 + L3)</div>
+                        </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Status (EWS Pangan)',
-                            content: 'Status akhir kesiapsiagaan kerawanan pangan (Early Warning System) yang menggabungkan L1 (Tren), L2 (CV), dan L3 (SKPG).\nJika tren diproyeksikan Turun, maka status akhir otomatis diatur menjadi AMAN bagi konsumen.'
+                            title: 'Status (L1 + L2 + L3)',
+                            content: 'Status akhir kesiapsiagaan kerawanan pangan (Early Warning System) yang menggabungkan L1 (Tren +1 Bulan), L2 (Koefisien Variasi), dan L3 (Perubahan YoY).\nJika tren diproyeksikan Turun, maka status akhir otomatis diatur menjadi AMAN bagi konsumen.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Status EWS"
+                          title="Penjelasan Status (L1 + L2 + L3)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>

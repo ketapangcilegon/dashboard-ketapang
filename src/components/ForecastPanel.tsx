@@ -319,7 +319,10 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                         <div className="leading-tight">PERAMALAN +3 BULAN</div>
                         <div className="text-[8px] font-bold text-slate-400 mt-0.5">{getT3MonthStr()}</div>
                       </th>
-                      <th className="p-2 py-3 bg-emerald-50/50 text-center align-middle">ARAH TREN</th>
+                      <th className="p-2 py-3 bg-emerald-50/50 text-center align-middle">
+                        <div className="leading-tight">ARAH TREN +1 BULAN</div>
+                        <div className="text-[8px] font-bold text-slate-400 mt-0.5">(L1)</div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="font-medium">

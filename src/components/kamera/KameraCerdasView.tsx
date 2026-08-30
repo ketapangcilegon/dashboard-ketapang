@@ -112,26 +112,46 @@ export default function KameraCerdasView() {
     setCameraError(null);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Kamera langsung tidak didukung browser ini. Gunakan tombol upload file.');
+        throw new Error('Kamera langsung tidak didukung browser ini. Gunakan tombol upload foto.');
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: facingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
-      });
+      // Gunakan constraints ideal agar kompatibel dengan berbagai sensor kamera Android (portrait/landscape)
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 }
+          },
+          audio: false
+        });
+      } catch (errConstraint) {
+        console.warn('Initial camera constraints failed, attempting fallback:', errConstraint);
+        // Fallback untuk perangkat Android tertentu yang menolak resolusi spesifik
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facingMode } },
+          audio: false
+        });
+      }
 
       streamRef.current = stream;
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.onloadedmetadata = () => {
+          video.play().catch(e => console.warn('video play on metadata error:', e));
+        };
+        video.play().catch(e => console.warn('video play error:', e));
       }
       setIsCameraActive(true);
     } catch (err: any) {
@@ -140,6 +160,15 @@ export default function KameraCerdasView() {
       setCameraError(err.message || 'Izin kamera belum diberikan.');
     }
   }, [facingMode]);
+
+  // Sinkronkan stream ke video element jika terjadi re-render
+  useEffect(() => {
+    if (videoRef.current && streamRef.current && videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
 
   useEffect(() => {
     if (activeTab === 'camera') {
@@ -175,10 +204,14 @@ export default function KameraCerdasView() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return resolve('');
 
+      // Pastikan dimensi valid
+      let srcW = originalWidth > 0 ? originalWidth : 1280;
+      let srcH = originalHeight > 0 ? originalHeight : 720;
+
       // Resize max dimension to 1600px for optimal AI quality & < 1 MB file size
       const maxDim = 1600;
-      let targetW = originalWidth;
-      let targetH = originalHeight;
+      let targetW = srcW;
+      let targetH = srcH;
 
       if (targetW > maxDim || targetH > maxDim) {
         if (targetW > targetH) {
@@ -237,18 +270,93 @@ export default function KameraCerdasView() {
 
   // 5. Trigger Photo Capture from Video Stream
   const handleCapturePhoto = async () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    
-    // Process with Watermark & Compress
-    const processedUrl = await processImageWithWatermarkAndCompress(
-      video,
-      video.videoWidth || 1280,
-      video.videoHeight || 720
-    );
+    try {
+      const stream = streamRef.current;
+      const track = stream?.getVideoTracks()[0];
+      
+      let capturedSource: CanvasImageSource | null = null;
+      let width = 1280;
+      let height = 720;
+      let isBitmap = false;
 
-    setCapturedPhoto(processedUrl);
-    analyzePhotoWithAI(processedUrl);
+      // 1. Android/Chrome First: Gunakan ImageCapture API
+      // Ini menyelesaikan bug layar hitam di browser Android (akibat kegagalan readback GPU texture video ke canvas)
+      if (track && typeof window !== 'undefined' && 'ImageCapture' in window) {
+        try {
+          const imageCapture = new (window as any).ImageCapture(track);
+          // Coba takePhoto terlebih dahulu untuk resolusi sensor perangkat penuh
+          const blob = await imageCapture.takePhoto().catch(() => null);
+          if (blob && blob.size > 0) {
+            const bitmap = await createImageBitmap(blob);
+            capturedSource = bitmap;
+            width = bitmap.width;
+            height = bitmap.height;
+            isBitmap = true;
+          } else {
+            // Fallback ke grabFrame jika takePhoto ditolak oleh driver kamera Android
+            const frameBitmap = await imageCapture.grabFrame().catch(() => null);
+            if (frameBitmap && frameBitmap.width > 0) {
+              capturedSource = frameBitmap;
+              width = frameBitmap.width;
+              height = frameBitmap.height;
+              isBitmap = true;
+            }
+          }
+        } catch (icErr) {
+          console.warn('ImageCapture exception, fallback ke video element:', icErr);
+        }
+      }
+
+      // 2. Fallback ke <video> element (untuk Desktop / Laptop / Browser tanpa ImageCapture)
+      if (!capturedSource && videoRef.current) {
+        const video = videoRef.current;
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          width = video.videoWidth;
+          height = video.videoHeight;
+          capturedSource = video;
+        } else {
+          // Tunggu frame berikutnya ready
+          await new Promise<void>((resolve) => {
+            if ('requestVideoFrameCallback' in video) {
+              (video as any).requestVideoFrameCallback(() => resolve());
+            } else {
+              setTimeout(resolve, 200);
+            }
+          });
+          width = video.videoWidth || 1280;
+          height = video.videoHeight || 720;
+          capturedSource = video;
+        }
+      }
+
+      if (!capturedSource) {
+        alert('Kamera belum siap mengambil gambar. Pastikan live preview video sudah muncul.');
+        return;
+      }
+
+      // Process with Watermark & Compress
+      const processedUrl = await processImageWithWatermarkAndCompress(
+        capturedSource,
+        width,
+        height
+      );
+
+      // Bebaskan memori ImageBitmap jika dipakai
+      if (isBitmap && capturedSource && 'close' in (capturedSource as any)) {
+        (capturedSource as any).close();
+      }
+
+      if (!processedUrl) {
+        alert('Gagal memproses foto. Silakan coba lagi.');
+        return;
+      }
+
+      setCapturedPhoto(processedUrl);
+      analyzePhotoWithAI(processedUrl);
+    } catch (err: any) {
+      console.error('Error capturing photo:', err);
+      alert('Gagal mengambil foto: ' + (err.message || 'Error'));
+    }
   };
 
   // Trigger from File Upload Fallback
@@ -402,27 +510,28 @@ export default function KameraCerdasView() {
         <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-black overflow-hidden">
           
           {/* Live Video Stream Viewport */}
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-            {isCameraActive ? (
-              <video
-                ref={videoRef}
-                playsInline
-                autoPlay
-                muted
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 max-w-sm">
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black">
+            <video
+              ref={videoRef}
+              playsInline
+              autoPlay
+              muted
+              className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`}
+            />
+
+            {!isCameraActive && (
+              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 max-w-sm z-10">
                 <Camera className="w-12 h-12 text-slate-600 mb-3 animate-pulse" />
                 <p className="text-sm font-bold text-slate-300 mb-1">
                   {cameraError || 'Menghubungkan ke kamera smartphone...'}
                 </p>
                 <p className="text-xs text-slate-500 mb-4">
-                  Pastikan izin kamera telah diberikan pada browser Anda, atau gunakan tombol upload foto galeri di bawah.
+                  Pastikan izin kamera telah diberikan pada browser Anda, atau gunakan tombol upload foto/galeri di bawah.
                 </p>
                 <button
+                  type="button"
                   onClick={startCamera}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-2"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Coba Buka Kamera Lagi</span>
@@ -528,7 +637,6 @@ export default function KameraCerdasView() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={handleFileUpload}
               />
