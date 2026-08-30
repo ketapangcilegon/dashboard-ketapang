@@ -298,6 +298,8 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     const statusForecast = f?.status_forecast || 'Stabil';
     const statusCV = f?.status_cv || 'AMAN';
     const statusSKPG = f?.status_skpg || 'AMAN';
+    const cv = f?.cv !== undefined && f?.cv !== null ? Number(f.cv) : 0;
+    const growthYoY = f?.growth_yoy !== undefined && f?.growth_yoy !== null ? Number(f.growth_yoy) : 0;
     const confidence = f?.confidence || 0;
     
     const overallStatus = getOverallStatus(statusForecast, statusCV, statusSKPG);
@@ -311,6 +313,8 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       statusForecast,
       statusCV,
       statusSKPG,
+      cv,
+      growthYoY,
       confidence,
       overallStatus
     };
@@ -427,14 +431,17 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">CV</span>
+                        <div className="leading-tight text-center">
+                          <div>KOEFISIEN VARIASI</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(CV)</div>
+                        </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'CV (Koefisien Variasi)',
-                            content: 'Tingkat kestabilan harga historis selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi / Rata-rata) * 100.\n• AMAN: Fluktuasi harga sangat rendah (< 10%).\n• WASPADA: Fluktuasi harga sedang (10-20%).\n• RENTAN: Fluktuasi harga tinggi (> 20%).\n*Catatan: Jika tren diproyeksikan Turun, maka status CV dinilai AMAN untuk melindungi daya beli konsumen.'
+                            title: 'Koefisien Variasi (CV)',
+                            content: 'Tingkat kestabilan harga historis selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi / Rata-rata) * 100.\n• Bulatan Hijau (Aman): Fluktuasi harga sangat rendah (< 10%).\n• Bulatan Kuning (Waspada): Fluktuasi harga sedang (10-20%).\n• Bulatan Merah (Rentan): Fluktuasi harga tinggi (> 20%).\n*Catatan: Jika tren diproyeksikan Turun, maka status CV dinilai AMAN untuk melindungi daya beli konsumen.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan CV"
+                          title="Penjelasan Koefisien Variasi (CV)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -442,14 +449,17 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     </th>
                     <th className="p-3 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="leading-tight">SKPG</span>
+                        <div className="leading-tight text-center">
+                          <div>YoY COMPARISON</div>
+                          <div className="text-[8px] font-bold text-slate-400 mt-0.5">(SKPG)</div>
+                        </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'SKPG (Sistem Kewaspadaan Pangan & Gizi)',
-                            content: 'Indikator kerentanan pangan sektoral berbasis pertumbuhan harga bulanan dibandingkan tahun lalu (YoY Growth).\n• AMAN: Pertumbuhan harga di bawah batas toleransi.\n• WASPADA/RENTAN: Pertumbuhan harga melonjak tinggi.\n*Catatan: Jika tren diproyeksikan Turun, maka status SKPG dinilai AMAN untuk melindungi daya beli konsumen.'
+                            title: 'YoY Comparison / Pertumbuhan Tahunan (SKPG)',
+                            content: 'Indikator kerentanan pangan sektoral berbasis perbandingan pertumbuhan harga bulanan terhadap tahun lalu (Year-on-Year Growth).\n• Bulatan Hijau (Aman): Pertumbuhan harga tahunan rendah/terkendali (< 5-10%).\n• Bulatan Kuning (Waspada): Pertumbuhan harga tahunan mulai meningkat (5-15%).\n• Bulatan Merah (Rentan): Lonjakan harga tahunan di atas ambang batas (> 10-15%).\n*Catatan: Jika tren diproyeksikan Turun, maka status SKPG dinilai AMAN untuk melindungi daya beli konsumen.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan SKPG"
+                          title="Penjelasan YoY Comparison (SKPG)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -516,22 +526,56 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </span>
                       </td>
                       
-                      {/* Layer 2 Status */}
-                      <td className="p-3 text-center font-bold">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                          row.statusCV === 'RENTAN' ? 'bg-rose-50 text-rose-700 border border-rose-200' : row.statusCV === 'WASPADA' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }`}>
-                          {row.statusCV}
-                        </span>
+                      {/* Layer 2: Koefisien Variasi (CV) */}
+                      <td className="p-3 text-center">
+                        {row.forecast1m > 0 ? (
+                          <span 
+                            title={`Status: ${row.statusCV} (CV: ${row.cv.toFixed(1)}%)`}
+                            className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                              row.statusCV === 'RENTAN' 
+                                ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                                : row.statusCV === 'WASPADA' 
+                                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${
+                              row.statusCV === 'RENTAN' 
+                                ? 'bg-rose-500' 
+                                : row.statusCV === 'WASPADA' 
+                                ? 'bg-amber-500' 
+                                : 'bg-emerald-500'
+                            }`} />
+                            <span className="font-mono">{row.cv.toFixed(1)}%</span>
+                          </span>
+                        ) : '-'}
                       </td>
                       
-                      {/* Layer 3 Status */}
-                      <td className="p-3 text-center font-bold">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                          row.statusSKPG === 'RENTAN' ? 'bg-rose-50 text-rose-700 border border-rose-200' : row.statusSKPG === 'WASPADA' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }`}>
-                          {row.statusSKPG}
-                        </span>
+                      {/* Layer 3: YoY Comparison (SKPG) */}
+                      <td className="p-3 text-center">
+                        {row.forecast1m > 0 ? (
+                          <span 
+                            title={`Status: ${row.statusSKPG} (YoY: ${row.growthYoY > 0 ? '+' : ''}${row.growthYoY.toFixed(1)}%)`}
+                            className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                              row.statusSKPG === 'RENTAN' 
+                                ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                                : row.statusSKPG === 'WASPADA' 
+                                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${
+                              row.statusSKPG === 'RENTAN' 
+                                ? 'bg-rose-500' 
+                                : row.statusSKPG === 'WASPADA' 
+                                ? 'bg-amber-500' 
+                                : 'bg-emerald-500'
+                            }`} />
+                            <span className="font-mono">
+                              {row.growthYoY > 0 ? `+${row.growthYoY.toFixed(1)}%` : `${row.growthYoY.toFixed(1)}%`}
+                            </span>
+                          </span>
+                        ) : '-'}
                       </td>
                       
                       <td className="p-3 text-center font-mono font-bold text-slate-600">
@@ -647,7 +691,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                   </div>
 
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-bold">L2: Volatilitas (CV-12)</span>
+                    <span className="text-slate-500 font-bold">L2: Koefisien Variasi (CV)</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                       activeForecast.status_cv === 'RENTAN' ? 'text-rose-600 font-black' : activeForecast.status_cv === 'WASPADA' ? 'text-amber-600 font-black' : 'text-emerald-600 font-black'
                     }`}>
@@ -656,11 +700,11 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                   </div>
 
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-bold">L3: SKPG (YoY Growth)</span>
+                    <span className="text-slate-500 font-bold">L3: YoY Comparison (SKPG)</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                       activeForecast.status_skpg === 'RENTAN' ? 'text-rose-600 font-black' : activeForecast.status_skpg === 'WASPADA' ? 'text-amber-600 font-black' : 'text-emerald-600 font-black'
                     }`}>
-                      {activeForecast.status_skpg} ({activeForecast.growth_yoy.toFixed(1)}%)
+                      {activeForecast.status_skpg} ({activeForecast.growth_yoy > 0 ? `+${activeForecast.growth_yoy.toFixed(1)}%` : `${activeForecast.growth_yoy.toFixed(1)}%`})
                     </span>
                   </div>
                 </div>
