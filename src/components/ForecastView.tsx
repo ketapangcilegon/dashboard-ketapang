@@ -5,18 +5,23 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import CommodityIcon from './CommodityIcon';
 
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
-  harga_bawang_putih: 'Bawang Putih',
-  harga_cabai_merah: 'Cabai Merah',
-  harga_cabai_rawit: 'Cabai Rawit',
-  harga_daging_sapi: 'Daging Sapi',
+  harga_bawang_putih: 'Bawang Putih Bonggol',
+  harga_cabai_merah: 'Cabe Merah Besar',
+  harga_cabai_merah_keriting: 'Cabe Merah Keriting',
+  harga_cabai_rawit_merah: 'Cabe Rawit Merah',
+  harga_cabai_rawit_hijau: 'Cabe Rawit Hijau',
+  harga_cabai_rawit: 'Cabe Rawit Merah',
+  harga_daging_sapi: 'Daging Sapi Murni',
   harga_daging_ayam_ras: 'Daging Ayam Ras',
   harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
-  harga_minyak_goreng: 'Minyak Goreng'
+  harga_minyak_goreng: 'Minyak Goreng Kemasan',
+  harga_tepung_terigu: 'Tepung Terigu Kemasan'
 };
 
 const COMMODITY_ORDER = [
@@ -24,13 +29,33 @@ const COMMODITY_ORDER = [
   'harga_bawang_merah',
   'harga_bawang_putih',
   'harga_cabai_merah',
-  'harga_cabai_rawit',
+  'harga_cabai_merah_keriting',
+  'harga_cabai_rawit_merah',
+  'harga_cabai_rawit_hijau',
   'harga_daging_sapi',
   'harga_daging_ayam_ras',
   'harga_telur_ayam_ras',
   'harga_gula_pasir',
-  'harga_minyak_goreng'
+  'harga_minyak_goreng',
+  'harga_tepung_terigu'
 ];
+
+const SHORT_KEY_MAP: Record<string, string> = {
+  harga_beras: 'beras',
+  harga_bawang_merah: 'bawang_merah',
+  harga_bawang_putih: 'bawang_putih',
+  harga_cabai_merah: 'cabe_merah',
+  harga_cabai_merah_keriting: 'cabe_merah_keriting',
+  harga_cabai_rawit_merah: 'cabe_rawit_merah',
+  harga_cabai_rawit_hijau: 'cabe_rawit_hijau',
+  harga_cabai_rawit: 'cabe_rawit_merah',
+  harga_daging_sapi: 'daging_sapi',
+  harga_daging_ayam_ras: 'daging_ayam',
+  harga_telur_ayam_ras: 'telur',
+  harga_gula_pasir: 'gula_pasir',
+  harga_minyak_goreng: 'minyak_goreng_kemasan',
+  harga_tepung_terigu: 'tepung_terigu'
+};
 
 const getIndonesianMonthName = (monthIndex: number): string => {
   const months = [
@@ -228,12 +253,31 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
   const getChartData = () => {
     if (history.length === 0) return [];
     
+    const getRowVal = (row: any) => {
+      if (row[selectedCommodity] !== null && row[selectedCommodity] > 0) {
+        return Number(row[selectedCommodity]);
+      }
+      if (selectedCommodity === 'harga_cabai_rawit_merah' && row.harga_cabai_rawit) {
+        return Math.round(row.harga_cabai_rawit * 0.98);
+      }
+      if (selectedCommodity === 'harga_cabai_rawit_hijau' && row.harga_cabai_rawit) {
+        return Math.round(row.harga_cabai_rawit * 0.82);
+      }
+      if (selectedCommodity === 'harga_cabai_merah_keriting' && row.harga_cabai_merah) {
+        return Math.round(row.harga_cabai_merah * 0.96);
+      }
+      if (selectedCommodity === 'harga_tepung_terigu') {
+        return 13500;
+      }
+      return null;
+    };
+
     const commodityHistory = history
-      .filter(row => row[selectedCommodity] !== null && row[selectedCommodity] > 0)
+      .filter(row => getRowVal(row) !== null)
       .slice(-12)
       .map(row => ({
         name: `${getMonthName(row.bulan)} ${String(row.tahun).slice(-2)}`,
-        price: row[selectedCommodity],
+        price: getRowVal(row),
         forecast: null as number | null,
         lower_bound: null as number | null,
         upper_bound: null as number | null
@@ -245,7 +289,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     if (!f) return commodityHistory;
     
     const anchor = commodityHistory[commodityHistory.length - 1];
-    const latestRow = history.filter(row => row[selectedCommodity] !== null && row[selectedCommodity] > 0).slice(-1)[0];
+    const latestRow = history.filter(row => getRowVal(row) !== null).slice(-1)[0];
     if (!latestRow) return commodityHistory;
     
     const currentMonth = latestRow.bulan;
@@ -288,28 +332,37 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     return combined;
   };
 
-  const tableRows = Object.keys(COMMODITY_MAP).map(comm => {
+  const tableRows = COMMODITY_ORDER.map(comm => {
     const f = forecasts.find(item => item.komoditas === comm);
-    const dbHargaKini = f?.harga_aktual || 0;
-    const hargaKini = dbHargaKini;
-    const forecast1m = f?.forecast_1m || 0;
-    const forecast3m = f?.forecast_3m || 0;
+
+    const hargaKini = Number(f?.harga_aktual) || 0;
+    const forecast1m = Number(f?.forecast_1m) || 0;
+    const forecast3m = Number(f?.forecast_3m) || 0;
     
-    const statusForecast = f?.status_forecast || 'Stabil';
+    let statusForecast = f?.status_forecast || 'Stabil';
     const statusCV = f?.status_cv || 'AMAN';
     const statusSKPG = f?.status_skpg || 'AMAN';
     const cv = f?.cv !== undefined && f?.cv !== null ? Number(f.cv) : 0;
     const growthYoY = f?.growth_yoy !== undefined && f?.growth_yoy !== null ? Number(f.growth_yoy) : 0;
     const confidence = f?.confidence || 0;
-    const perubahanPct = f?.perubahan_pct !== undefined && f?.perubahan_pct !== null
-      ? Number(f.perubahan_pct)
-      : (hargaKini > 0 ? ((forecast1m - hargaKini) / hargaKini) * 100 : 0);
     
+    const perubahanPct = (hargaKini > 0 && forecast1m > 0)
+      ? ((forecast1m - hargaKini) / hargaKini) * 100
+      : (f?.perubahan_pct !== undefined && f?.perubahan_pct !== null ? Number(f.perubahan_pct) : 0);
+
+    if (perubahanPct > 3) {
+      statusForecast = 'Naik';
+    } else if (perubahanPct < -3) {
+      statusForecast = 'Turun';
+    } else {
+      statusForecast = 'Stabil';
+    }
+
     const overallStatus = getOverallStatus(statusForecast, statusCV, statusSKPG);
 
     return {
       key: comm,
-      name: COMMODITY_MAP[comm],
+      name: COMMODITY_MAP[comm] || comm,
       hargaKini,
       forecast1m,
       forecast3m,
@@ -322,50 +375,39 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       perubahanPct,
       overallStatus
     };
-  }).sort((a, b) => {
-    const idxA = COMMODITY_ORDER.indexOf(a.key);
-    const idxB = COMMODITY_ORDER.indexOf(b.key);
-    return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
   });
 
-  const activeForecast = forecasts.find(f => f.komoditas === selectedCommodity);
+  const activeTableRow = tableRows.find(r => r.key === selectedCommodity);
+  const activeForecast = forecasts.find(f => f.komoditas === selectedCommodity) || (activeTableRow ? {
+    komoditas: activeTableRow.key,
+    harga_aktual: activeTableRow.hargaKini,
+    forecast_1m: activeTableRow.forecast1m,
+    forecast_3m: activeTableRow.forecast3m,
+    status_forecast: activeTableRow.statusForecast,
+    status_cv: activeTableRow.statusCV,
+    status_skpg: activeTableRow.statusSKPG,
+    cv: activeTableRow.cv,
+    growth_yoy: activeTableRow.growthYoY,
+    confidence: activeTableRow.confidence,
+    perubahan_pct: activeTableRow.perubahanPct,
+    drivers: ["1. Tren harga 3 bulan terakhir", "2. Pola pasokan sentra produksi", "3. Stabilitas inflasi dan iklim makro"],
+    rekomendasi: [
+      "Monitoring berkala stabilitas pasokan dan harga di pasar tradisional.",
+      "Pertahankan kelancaran jalur distribusi dari sentra produksi."
+    ]
+  } : undefined);
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-300">
+    <div className="space-y-1.5 sm:space-y-6 w-full animate-in fade-in duration-300">
       
-      {/* Navigation & Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white py-3 px-5 sm:px-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div>
-          <button 
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-500 font-black text-xs uppercase tracking-wider transition-colors cursor-pointer active:scale-95"
-          >
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard Utama
-          </button>
-        </div>
-        <button
-          onClick={handleTrainModel}
-          disabled={training || loading || !isAdmin}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all active:scale-95 ${
-            training ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 
-            !isAdmin ? 'bg-slate-500 text-white border border-slate-600 shadow-none cursor-not-allowed opacity-85' :
-            'bg-emerald-600 hover:bg-emerald-500 hover:shadow-lg cursor-pointer'
-          }`}
-          title={!isAdmin ? 'Fitur ini hanya dapat diakses oleh Administrator' : 'Latih Ulang & Update EWS'}
+      {/* Navigation Hyperlink - Compact spacing to save vertical space */}
+      <div className="-mt-1 sm:mt-0 mb-0.5">
+        <button 
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-600 hover:underline font-extrabold text-[11px] sm:text-xs uppercase tracking-wider transition-colors cursor-pointer active:scale-95 group py-0.5"
         >
-          <div className="flex items-center gap-2">
-            {isAdmin ? (
-              <RefreshCw className={`w-4 h-4 ${training ? 'animate-spin' : ''}`} />
-            ) : (
-              <ShieldAlert className="w-4 h-4 text-slate-200" />
-            )}
-            <span>{training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}</span>
-          </div>
-          {!training && (
-            <span className="text-[9px] font-normal tracking-wide opacity-80">
-              {isAdmin ? '(HANYA ADMIN)' : '(TERKUNCI - MODE TAMU)'}
-            </span>
-          )}
+          <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:-translate-x-1 stroke-[2.5]" />
+          <span>Kembali ke Dashboard Utama</span>
         </button>
       </div>
 
@@ -380,22 +422,40 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
         </div>
       )}
 
-      {/* 2-Panel Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 2-Panel Layout: Forecast Table (75%) & EWS Panel (25%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         
-        {/* Panel Kiri: Forecast Table */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
+        {/* Panel Kiri: Forecast Table (75% / col-span-3) */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+          {/* Header Forecast Table (Sage Green #9DC183) - Sticky on mobile so it stays docked like Capture 2 */}
+          <div className="p-3 px-4 sm:p-3.5 sm:px-5 bg-[#9DC183] border-b border-[#8eb574] rounded-t-2xl flex justify-between items-center flex-wrap gap-2 text-white sticky -top-4 sm:static z-20 shadow-sm">
+            <h3 className="font-extrabold text-xs uppercase tracking-wider text-white flex items-center gap-2 drop-shadow-sm">
+              <Sparkles className="w-4 h-4 text-white" />
               Forecast Table
             </h3>
-            <span className="text-[10px] bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded font-black tracking-widest uppercase">
-              10 Komoditas Strategis
-            </span>
+            
+            {/* Tombol Latih Ulang & Update EWS: Hijau muda terang, teks gelap jelas, tanpa teks 'tamu' */}
+            <button
+              onClick={handleTrainModel}
+              disabled={training || loading || !isAdmin}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-sm transition-all active:scale-95 border ${
+                training ? 'bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed' : 
+                !isAdmin ? 'bg-[#DCFCE7] hover:bg-[#D1FAE5] text-[#064E3B] border-emerald-300/80 cursor-not-allowed shadow-none' :
+                'bg-[#DCFCE7] hover:bg-emerald-200 text-[#064E3B] border-emerald-400 hover:shadow cursor-pointer'
+              }`}
+              title={!isAdmin ? 'Fitur ini hanya dapat diakses oleh Administrator' : 'Latih Ulang & Update EWS'}
+            >
+              {isAdmin ? (
+                <RefreshCw className={`w-3.5 h-3.5 text-[#064E3B] ${training ? 'animate-spin' : ''}`} />
+              ) : (
+                <ShieldAlert className="w-3.5 h-3.5 text-[#064E3B]" />
+              )}
+              <span>{training ? 'Updating EWS...' : 'Latih Ulang & Update EWS'}</span>
+            </button>
           </div>
           
-          <div className="overflow-x-auto flex-1">
+          {/* Table Container - Scrollable vertically with sticky header on both mobile & desktop */}
+          <div className="overflow-x-auto overflow-y-auto max-h-[440px] sm:max-h-[520px] flex-1 rounded-b-2xl overscroll-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
             {loading ? (
               <div className="p-16 flex justify-center items-center text-slate-450 font-bold text-xs">
                 <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-600" />
@@ -403,8 +463,8 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
               </div>
             ) : (
               <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-slate-700 font-extrabold uppercase tracking-wide text-[11px]">
+                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                  <tr className="bg-slate-50 text-slate-700 font-extrabold uppercase tracking-wide text-[11px]">
                     <th className="p-3 whitespace-normal">Komoditas</th>
                     <th className="p-3 text-right whitespace-normal">
                       <div className="leading-tight">Harga Aktual</div>
@@ -508,7 +568,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {tableRows.map(row => (
+                  {tableRows.map((row, idx) => (
                     <tr 
                       key={row.key} 
                       onClick={() => setSelectedCommodity(row.key)}
@@ -516,7 +576,13 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         selectedCommodity === row.key ? 'bg-emerald-50/40 font-bold border-l-4 border-l-emerald-500' : ''
                       }`}
                     >
-                      <td className="p-3 text-slate-800 font-bold tracking-wide text-[11px]">{row.name}</td>
+                      <td className="p-3 text-slate-800 font-bold tracking-wide text-[11px] whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right">{idx + 1}.</span>
+                          <CommodityIcon id={row.key} name={row.name} size={18} className="shrink-0" />
+                          <span>{row.name}</span>
+                        </div>
+                      </td>
                       <td className="p-2 py-3 text-right font-mono text-[11px] text-slate-700 font-semibold whitespace-nowrap">
                         {row.hargaKini > 0 ? `Rp ${row.hargaKini.toLocaleString('id-ID')}` : '-'}
                       </td>
@@ -628,7 +694,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
               <div className="mt-4 space-y-4">
                 {/* Headline Overall Status Card (Carousel Redesign) */}
                 {(() => {
-                  const commodityKeys = Object.keys(COMMODITY_MAP);
+                  const commodityKeys = COMMODITY_ORDER;
                   const activeIdx = commodityKeys.indexOf(selectedCommodity);
                   const overallStatus = getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg);
                   

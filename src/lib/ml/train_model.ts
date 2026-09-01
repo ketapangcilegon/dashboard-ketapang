@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { XGBoostRegressor, RandomForestRegressor, ProphetRegressor } from './algorithms';
+import { XGBoostRegressor, RandomForestRegressor, OLSRegressor } from './algorithms';
 import { evaluatePredictions } from './evaluate';
 import { explainPrediction } from './explain';
 import { createClient } from '@supabase/supabase-js';
@@ -9,27 +9,36 @@ const COMMODITIES = [
   'harga_bawang_merah',
   'harga_bawang_putih',
   'harga_cabai_merah',
+  'harga_cabai_merah_keriting',
+  'harga_cabai_rawit_merah',
+  'harga_cabai_rawit_hijau',
   'harga_cabai_rawit',
   'harga_daging_sapi',
   'harga_daging_ayam_ras',
   'harga_telur_ayam_ras',
   'harga_gula_pasir',
-  'harga_minyak_goreng'
+  'harga_minyak_goreng',
+  'harga_tepung_terigu'
 ];
 
 interface RawDatasetRow {
+  [key: string]: any;
   tahun: number;
   bulan: number;
   harga_beras: number | null;
   harga_bawang_merah: number | null;
   harga_bawang_putih: number | null;
   harga_cabai_merah: number | null;
+  harga_cabai_merah_keriting?: number | null;
+  harga_cabai_rawit_merah?: number | null;
+  harga_cabai_rawit_hijau?: number | null;
   harga_cabai_rawit: number | null;
   harga_daging_sapi: number | null;
   harga_daging_ayam_ras: number | null;
   harga_telur_ayam_ras: number | null;
   harga_gula_pasir: number | null;
   harga_minyak_goreng: number | null;
+  harga_tepung_terigu?: number | null;
   ihk: number | null;
   inflasi_mtm: number | null;
   inflasi_yoy: number | null;
@@ -239,7 +248,7 @@ interface WalkForwardMetrics {
  */
 function runWalkForwardValidation(
   samples: EngineeredSample[],
-  modelType: 'xgboost' | 'prophet' | 'randomforest'
+  modelType: 'xgboost' | 'ols' | 'randomforest'
 ): WalkForwardMetrics {
   const years = Array.from(new Set(samples.map(s => s.tahun))).sort((a, b) => a - b);
 
@@ -250,9 +259,9 @@ function runWalkForwardValidation(
     const valX = samples.slice(trainCount).map(s => s.features);
     const valY = samples.slice(trainCount).map(s => s.y);
 
-    let model: XGBoostRegressor | ProphetRegressor | RandomForestRegressor;
+    let model: XGBoostRegressor | OLSRegressor | RandomForestRegressor;
     if (modelType === 'xgboost') model = new XGBoostRegressor(12, 3, 0.1);
-    else if (modelType === 'prophet') model = new ProphetRegressor();
+    else if (modelType === 'ols') model = new OLSRegressor();
     else model = new RandomForestRegressor(10, 4);
 
     model.fit(trainX, trainY);
@@ -278,9 +287,9 @@ function runWalkForwardValidation(
     const testX = testSamples.map(s => s.features);
     const testY = testSamples.map(s => s.y);
 
-    let model: XGBoostRegressor | ProphetRegressor | RandomForestRegressor;
+    let model: XGBoostRegressor | OLSRegressor | RandomForestRegressor;
     if (modelType === 'xgboost') model = new XGBoostRegressor(12, 3, 0.1);
-    else if (modelType === 'prophet') model = new ProphetRegressor();
+    else if (modelType === 'ols') model = new OLSRegressor();
     else model = new RandomForestRegressor(10, 4);
 
     model.fit(trainX, trainY);
@@ -307,16 +316,16 @@ function runWalkForwardValidation(
 
     // 3. Walk-Forward Cross Validation across expanding time windows
     const xgbMetrics = runWalkForwardValidation(samples, 'xgboost');
-    const prophetMetrics = runWalkForwardValidation(samples, 'prophet');
+    const olsMetrics = runWalkForwardValidation(samples, 'ols');
     const rfMetrics = runWalkForwardValidation(samples, 'randomforest');
     
     // Select champion model with the lowest aggregated Walk-Forward MAPE
-    let bestModelType: 'xgboost' | 'prophet' | 'randomforest' = 'xgboost';
+    let bestModelType: 'xgboost' | 'ols' | 'randomforest' = 'xgboost';
     let bestMetrics = xgbMetrics;
     
-    if (prophetMetrics.mape < bestMetrics.mape) {
-      bestModelType = 'prophet';
-      bestMetrics = prophetMetrics;
+    if (olsMetrics.mape < bestMetrics.mape) {
+      bestModelType = 'ols';
+      bestMetrics = olsMetrics;
     }
     if (rfMetrics.mape < bestMetrics.mape) {
       bestModelType = 'randomforest';
@@ -342,12 +351,12 @@ function runWalkForwardValidation(
     const allX = samples.map(s => s.features);
     const allY = samples.map(s => s.y);
     
-    let championModel: XGBoostRegressor | ProphetRegressor | RandomForestRegressor;
+    let championModel: XGBoostRegressor | OLSRegressor | RandomForestRegressor;
     if (bestModelType === 'xgboost') {
       championModel = new XGBoostRegressor(12, 3, 0.1);
       championModel.fit(allX, allY);
-    } else if (bestModelType === 'prophet') {
-      championModel = new ProphetRegressor();
+    } else if (bestModelType === 'ols') {
+      championModel = new OLSRegressor();
       championModel.fit(allX, allY);
     } else {
       championModel = new RandomForestRegressor(10, 4);

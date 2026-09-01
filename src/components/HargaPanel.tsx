@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import CommodityIcon from './CommodityIcon';
 
 interface HargaPanelProps {
   hargaData: any[];
@@ -261,7 +262,8 @@ export default function HargaPanel({
               return (
                 <tr key={i} className="hover:bg-white/40 transition-colors">
                   <td className="py-1 flex items-center gap-1.5 text-slate-700 text-[10px] sm:text-xs font-bold whitespace-normal break-words leading-tight">
-                    <span className="text-xs sm:text-sm shrink-0">{c.emoji}</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 font-mono w-3.5 shrink-0 text-right">{i + 1}.</span>
+                    <CommodityIcon name={c.name} size={16} className="shrink-0" />
                     <span>{c.name}</span>
                   </td>
                   <td className="py-1 text-right font-extrabold text-slate-800 text-[10px] sm:text-xs whitespace-nowrap">

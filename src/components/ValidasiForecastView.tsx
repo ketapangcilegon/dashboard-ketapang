@@ -4,18 +4,22 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Award, Calendar, CheckCircle2, TrendingUp, RefreshCw, AlertCircle, BarChart3, Filter } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// Map commodity raw name to display name
+// Map commodity raw name to display name matching HargaPanel.tsx
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
-  harga_bawang_putih: 'Bawang Putih',
-  harga_cabai_merah: 'Cabai Merah',
-  harga_cabai_rawit: 'Cabai Rawit',
-  harga_daging_sapi: 'Daging Sapi',
-  harga_daging_ayam_ras: 'Daging Ayam',
+  harga_bawang_putih: 'Bawang Putih Bonggol',
+  harga_cabai_merah: 'Cabe Merah Besar',
+  harga_cabai_merah_keriting: 'Cabe Merah Keriting',
+  harga_cabai_rawit_merah: 'Cabe Rawit Merah',
+  harga_cabai_rawit_hijau: 'Cabe Rawit Hijau',
+  harga_cabai_rawit: 'Cabe Rawit',
+  harga_daging_sapi: 'Daging Sapi Murni',
+  harga_daging_ayam_ras: 'Daging Ayam Ras',
   harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
-  harga_minyak_goreng: 'Minyak Goreng'
+  harga_minyak_goreng: 'Minyak Goreng Kemasan',
+  harga_tepung_terigu: 'Tepung Terigu Kemasan'
 };
 
 interface ValidasiForecastViewProps {

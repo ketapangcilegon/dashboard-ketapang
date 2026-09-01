@@ -343,9 +343,9 @@ export class XGBoostRegressor {
 }
 
 
-// --- 5. Prophet-like Additive Model ---
+// --- 5. OLS Multiple Linear Regression Model ---
 
-export class ProphetRegressor {
+export class OLSRegressor {
   private coefficients: number[] = [];
   private meanX: number[] = [];
   private stdX: number[] = [];
@@ -403,3 +403,6 @@ export class ProphetRegressor {
     return this.coefficients;
   }
 }
+
+// Backward-compatibility alias
+export const ProphetRegressor = OLSRegressor;

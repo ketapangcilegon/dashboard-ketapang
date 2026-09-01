@@ -4,22 +4,23 @@ import { useState, useEffect } from 'react';
 import { Brain, TrendingUp, TrendingDown, AlertTriangle, Info, Minus, Check, RefreshCw, ChevronDown, ChevronUp, Square, Download, Lightbulb } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
+import CommodityIcon from './CommodityIcon';
 
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
-  harga_bawang_putih: 'Bawang Putih (Bonggol)',
-  harga_cabai_merah: 'Cabai Merah (Besar)',
-  harga_cabai_merah_keriting: 'Cabai Merah Keriting',
-  harga_cabai_rawit_merah: 'Cabai Rawit Merah',
-  harga_cabai_rawit_hijau: 'Cabai Rawit Hijau',
-  harga_cabai_rawit: 'Cabai Rawit Merah',
-  harga_daging_sapi: 'Daging Sapi (Murni)',
+  harga_bawang_putih: 'Bawang Putih Bonggol',
+  harga_cabai_merah: 'Cabe Merah Besar',
+  harga_cabai_merah_keriting: 'Cabe Merah Keriting',
+  harga_cabai_rawit_merah: 'Cabe Rawit Merah',
+  harga_cabai_rawit_hijau: 'Cabe Rawit Hijau',
+  harga_cabai_rawit: 'Cabe Rawit Merah',
+  harga_daging_sapi: 'Daging Sapi Murni',
   harga_daging_ayam_ras: 'Daging Ayam Ras',
   harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
-  harga_minyak_goreng: 'Minyak Goreng (Kemasan)',
-  harga_tepung_terigu: 'Tepung Terigu (Kemasan)'
+  harga_minyak_goreng: 'Minyak Goreng Kemasan',
+  harga_tepung_terigu: 'Tepung Terigu Kemasan'
 };
 
 const COMMODITY_ORDER = [
@@ -272,10 +273,8 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
       : rawDbData;
 
     const mapped: ForecastItem[] = filteredDbData.map((item) => {
-      const shortKey = SHORT_KEY_MAP[item.komoditas];
-      const liveVal = livePrices && shortKey ? livePrices[shortKey] : undefined;
-      // Gunakan live price jika tersedia dari SAGON, fallback ke harga aktual bulanan DB (Agustus 2026)
-      const current = (liveVal && liveVal > 0) ? liveVal : (Number(item.harga_aktual) || 0);
+      // Gunakan harga aktual bulanan DB (Rata-rata Bulan Acuan / Agustus 2026)
+      const current = Number(item.harga_aktual) || 0;
       const month1 = Number(item.forecast_1m) || 0;
       
       const changePct = current > 0 ? ((month1 - current) / current) * 100 : 0;
@@ -359,8 +358,8 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
           </div>
 
           {/* Left Column Card: Forecast Table */}
-          <div className="dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[600px] lg:h-[550px] flex-1">
-            <div className="overflow-y-auto flex-1 px-1 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
+          <div className="dashboard-card bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-200/80 rounded-3xl p-0 flex flex-col shadow-lg overflow-hidden h-[440px] sm:h-[600px] lg:h-[550px] flex-1">
+            <div className="overflow-y-auto overflow-x-auto flex-1 px-1 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300 transition-all">
               {loading ? (
                 <div className="p-16 flex justify-center items-center text-slate-400 font-bold text-xs h-full">
                   <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-600" />
@@ -373,16 +372,7 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                       <th className="p-2 py-3 bg-emerald-50/50 align-middle whitespace-normal">KOMODITAS</th>
                       <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">HARGA AKTUAL</div>
-                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">
-                          {hasLivePrices ? (
-                            <span className="text-emerald-700 font-bold inline-flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
-                              SAGON LIVE
-                            </span>
-                          ) : (
-                            getBaselineMonthStr()
-                          )}
-                        </div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
                       </th>
                       <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">PERAMALAN +1 BULAN</div>
@@ -401,9 +391,10 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                   <tbody className="font-medium">
                     {forecasts.map((item, index) => (
                       <tr key={item.id} className={`hover:bg-emerald-200/50 transition-colors border-b border-emerald-100/60 ${index % 2 === 0 ? 'bg-emerald-50/70' : 'bg-emerald-100/35'}`}>
-                        <td className="p-2 py-2.5 font-bold text-slate-800 flex items-center gap-2.5 text-[11px]">
-                          <span className="text-xl leading-none drop-shadow-sm">{getIcon(item.id)}</span>
-                          {item.name}
+                        <td className="p-2 py-2.5 font-bold text-slate-800 flex items-center gap-2 text-[11px]">
+                          <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right">{index + 1}.</span>
+                          <CommodityIcon id={item.id} name={item.name} size={18} className="shrink-0" />
+                          <span>{item.name}</span>
                         </td>
                         <td className="p-2 text-right text-slate-800 font-extrabold text-[11px]">
                           Rp{item.current.toLocaleString('id-ID')}
