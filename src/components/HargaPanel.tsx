@@ -97,30 +97,38 @@ export default function HargaPanel({
   };
 
   // Current averages
-  const berasCur = getAverage(hargaData, 'beras', 13473);
-  const minyakCur = getAverage(hargaData, 'minyak_goreng', 21334);
-  const telurCur = getAverage(hargaData, 'telur', 30482);
-  const ayamCur = getAverage(hargaData, 'daging_ayam', 36364);
-  const gulaCur = getAverage(hargaData, 'gula_pasir', 15963);
-  const cabeCur = getAverage(hargaData, 'cabe_merah', 53184);
+  const berasCur = getAverage(hargaData, 'beras', 13833);
+  const minyakCur = getAverage(hargaData, 'minyak_goreng', 19600);
+  const minyakKemasanCur = getAverage(hargaData, 'minyak_goreng_kemasan', 19800);
+  const telurCur = getAverage(hargaData, 'telur', 25667);
+  const ayamCur = getAverage(hargaData, 'daging_ayam', 40667);
+  const gulaCur = getAverage(hargaData, 'gula_pasir', 19000);
+  const cabeCur = getAverage(hargaData, 'cabe_merah', 37500);
+  const cabeKeritingCur = getAverage(hargaData, 'cabe_merah_keriting', 39000);
 
-  const bawangMerahCur = getAverage(hargaData, 'bawang_merah', 38000);
-  const bawangPutihCur = getAverage(hargaData, 'bawang_putih', 40000);
-  const cabeRawitCur = getAverage(hargaData, 'cabe_rawit', 60000);
-  const dagingSapiCur = getAverage(hargaData, 'daging_sapi', 135000);
+  const bawangMerahCur = getAverage(hargaData, 'bawang_merah', 30000);
+  const bawangPutihCur = getAverage(hargaData, 'bawang_putih', 35333);
+  const cabeRawitMerahCur = getAverage(hargaData, 'cabe_rawit_merah', 51667);
+  const cabeRawitHijauCur = getAverage(hargaData, 'cabe_rawit_hijau', 43333);
+  const dagingSapiCur = getAverage(hargaData, 'daging_sapi', 140000);
+  const tepungTeriguCur = getAverage(hargaData, 'tepung_terigu', 13500);
 
   // Previous year averages (YoY)
   const berasPrev = getAverage(previousHargaData, 'beras', 14050);
   const minyakPrev = getAverage(previousHargaData, 'minyak_goreng', 18000);
-  const telurPrev = getAverage(previousHargaData, 'telur', 30543);
+  const minyakKemasanPrev = getAverage(previousHargaData, 'minyak_goreng_kemasan', 18500);
+  const telurPrev = getAverage(previousHargaData, 'telur', 26500);
   const ayamPrev = getAverage(previousHargaData, 'daging_ayam', 36364);
-  const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 15900);
+  const gulaPrev = getAverage(previousHargaData, 'gula_pasir', 17000);
   const cabePrev = getAverage(previousHargaData, 'cabe_merah', 53184);
+  const cabeKeritingPrev = getAverage(previousHargaData, 'cabe_merah_keriting', 48000);
 
   const bawangMerahPrev = getAverage(previousHargaData, 'bawang_merah', 34000);
   const bawangPutihPrev = getAverage(previousHargaData, 'bawang_putih', 38000);
-  const cabeRawitPrev = getAverage(previousHargaData, 'cabe_rawit', 50000);
+  const cabeRawitMerahPrev = getAverage(previousHargaData, 'cabe_rawit_merah', 50000);
+  const cabeRawitHijauPrev = getAverage(previousHargaData, 'cabe_rawit_hijau', 42000);
   const dagingSapiPrev = getAverage(previousHargaData, 'daging_sapi', 130000);
+  const tepungTeriguPrev = getAverage(previousHargaData, 'tepung_terigu', 12500);
 
   // Helper to calculate YoY change and metadata
   const getYoYStats = (curr: number, prev: number) => {
@@ -154,24 +162,27 @@ export default function HargaPanel({
     
     // Deterministic offset based on commodity name
     let factor = 0.005; // 0.5% decrease per day
-    if (commodity === 'Cabe Merah' || commodity === 'Cabe Rawit') factor = 0.015; // 1.5% decrease per day for chilis
-    if (commodity === 'Bawang Merah' || commodity === 'Bawang Putih') factor = 0.010; // 1.0% decrease per day
-    if (commodity === 'Daging Ayam' || commodity === 'Daging Sapi') factor = 0.008; // 0.8% decrease per day
+    if (commodity.includes('Cabe')) factor = 0.012;
+    if (commodity.includes('Bawang')) factor = 0.010;
+    if (commodity.includes('Daging')) factor = 0.008;
     
     return basePrice * (1 - diff * factor);
   };
 
   const commStats = [
-    { name: 'Beras Medium', curr: getDynamicPrice('Beras Medium', livePrices ? livePrices.beras : berasCur), prev: berasPrev, emoji: '🍚' },
-    { name: 'Bawang Merah', curr: getDynamicPrice('Bawang Merah', livePrices ? (livePrices.bawang_merah ?? bawangMerahCur) : bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
-    { name: 'Bawang Putih', curr: getDynamicPrice('Bawang Putih', livePrices ? (livePrices.bawang_putih ?? bawangPutihCur) : bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
-    { name: 'Cabe Merah', curr: getDynamicPrice('Cabe Merah', livePrices ? livePrices.cabe_merah : cabeCur), prev: cabePrev, emoji: '🌶️' },
-    { name: 'Cabe Rawit', curr: getDynamicPrice('Cabe Rawit', livePrices ? (livePrices.cabe_rawit ?? cabeRawitCur) : cabeRawitCur), prev: cabeRawitPrev, emoji: '🌶️' },
-    { name: 'Daging Sapi', curr: getDynamicPrice('Daging Sapi', livePrices ? (livePrices.daging_sapi ?? dagingSapiCur) : dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
-    { name: 'Daging Ayam', curr: getDynamicPrice('Daging Ayam', livePrices ? livePrices.daging_ayam : ayamCur), prev: ayamPrev, emoji: '🍗' },
-    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices ? livePrices.telur : telurCur), prev: telurPrev, emoji: '🥚' },
-    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices ? livePrices.gula_pasir : gulaCur), prev: gulaPrev, emoji: '🧂' },
-    { name: 'Minyak Goreng', curr: getDynamicPrice('Minyak Goreng', livePrices ? livePrices.minyak_goreng : minyakCur), prev: minyakPrev, emoji: '🧴' },
+    { name: 'Beras Medium', curr: getDynamicPrice('Beras Medium', livePrices?.beras ?? berasCur), prev: berasPrev, emoji: '🍚' },
+    { name: 'Bawang Merah', curr: getDynamicPrice('Bawang Merah', livePrices?.bawang_merah ?? bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
+    { name: 'Bawang Putih Bonggol', curr: getDynamicPrice('Bawang Putih', livePrices?.bawang_putih ?? bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
+    { name: 'Cabe Merah Besar', curr: getDynamicPrice('Cabe Merah', livePrices?.cabe_merah ?? cabeCur), prev: cabePrev, emoji: '🌶️' },
+    { name: 'Cabe Merah Keriting', curr: getDynamicPrice('Cabe Merah Keriting', livePrices?.cabe_merah_keriting ?? cabeKeritingCur), prev: cabeKeritingPrev, emoji: '🌶️' },
+    { name: 'Cabe Rawit Merah', curr: getDynamicPrice('Cabe Rawit Merah', livePrices?.cabe_rawit_merah ?? cabeRawitMerahCur), prev: cabeRawitMerahPrev, emoji: '🌶️' },
+    { name: 'Cabe Rawit Hijau', curr: getDynamicPrice('Cabe Rawit Hijau', livePrices?.cabe_rawit_hijau ?? cabeRawitHijauCur), prev: cabeRawitHijauPrev, emoji: '🌶️' },
+    { name: 'Daging Sapi Murni', curr: getDynamicPrice('Daging Sapi', livePrices?.daging_sapi ?? dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
+    { name: 'Daging Ayam Ras', curr: getDynamicPrice('Daging Ayam', livePrices?.daging_ayam ?? ayamCur), prev: ayamPrev, emoji: '🍗' },
+    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices?.telur ?? telurCur), prev: telurPrev, emoji: '🥚' },
+    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices?.gula_pasir ?? gulaCur), prev: gulaPrev, emoji: '🧂' },
+    { name: 'Minyak Goreng Kemasan', curr: getDynamicPrice('Minyak Goreng Kemasan', livePrices?.minyak_goreng_kemasan ?? livePrices?.minyak_goreng ?? minyakKemasanCur), prev: minyakKemasanPrev, emoji: '🧴' },
+    { name: 'Tepung Terigu Kemasan', curr: getDynamicPrice('Tepung Terigu', livePrices?.tepung_terigu ?? tepungTeriguCur), prev: tepungTeriguPrev, emoji: '🌾' },
   ];
 
   return (
@@ -179,7 +190,7 @@ export default function HargaPanel({
       <div>
         <div className="flex justify-between items-center gap-2">
           <p className="text-[9px] text-[#0B7A53]/70 font-semibold leading-tight">
-            {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata 3 Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
+            {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata Seluruh Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
           </p>
           <div className="shrink-0">
             {loadingLive ? (

@@ -8,14 +8,18 @@ import * as XLSX from 'xlsx';
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras Medium',
   harga_bawang_merah: 'Bawang Merah',
-  harga_bawang_putih: 'Bawang Putih',
-  harga_cabai_merah: 'Cabai Merah',
-  harga_cabai_rawit: 'Cabai Rawit',
-  harga_daging_sapi: 'Daging Sapi',
-  harga_daging_ayam_ras: 'Daging Ayam',
+  harga_bawang_putih: 'Bawang Putih (Bonggol)',
+  harga_cabai_merah: 'Cabai Merah (Besar)',
+  harga_cabai_merah_keriting: 'Cabai Merah Keriting',
+  harga_cabai_rawit_merah: 'Cabai Rawit Merah',
+  harga_cabai_rawit_hijau: 'Cabai Rawit Hijau',
+  harga_cabai_rawit: 'Cabai Rawit Merah',
+  harga_daging_sapi: 'Daging Sapi (Murni)',
+  harga_daging_ayam_ras: 'Daging Ayam Ras',
   harga_telur_ayam_ras: 'Telur Ayam Ras',
   harga_gula_pasir: 'Gula Pasir',
-  harga_minyak_goreng: 'Minyak Goreng'
+  harga_minyak_goreng: 'Minyak Goreng (Kemasan)',
+  harga_tepung_terigu: 'Tepung Terigu (Kemasan)'
 };
 
 const COMMODITY_ORDER = [
@@ -23,13 +27,33 @@ const COMMODITY_ORDER = [
   'harga_bawang_merah',
   'harga_bawang_putih',
   'harga_cabai_merah',
-  'harga_cabai_rawit',
+  'harga_cabai_merah_keriting',
+  'harga_cabai_rawit_merah',
+  'harga_cabai_rawit_hijau',
   'harga_daging_sapi',
   'harga_daging_ayam_ras',
   'harga_telur_ayam_ras',
   'harga_gula_pasir',
-  'harga_minyak_goreng'
+  'harga_minyak_goreng',
+  'harga_tepung_terigu'
 ];
+
+const SHORT_KEY_MAP: Record<string, string> = {
+  harga_beras: 'beras',
+  harga_bawang_merah: 'bawang_merah',
+  harga_bawang_putih: 'bawang_putih',
+  harga_cabai_merah: 'cabe_merah',
+  harga_cabai_merah_keriting: 'cabe_merah_keriting',
+  harga_cabai_rawit_merah: 'cabe_rawit_merah',
+  harga_cabai_rawit_hijau: 'cabe_rawit_hijau',
+  harga_cabai_rawit: 'cabe_rawit_merah',
+  harga_daging_sapi: 'daging_sapi',
+  harga_daging_ayam_ras: 'daging_ayam',
+  harga_telur_ayam_ras: 'telur',
+  harga_gula_pasir: 'gula_pasir',
+  harga_minyak_goreng: 'minyak_goreng_kemasan',
+  harga_tepung_terigu: 'tepung_terigu'
+};
 
 const getIcon = (id: string) => {
   if (id.includes('beras')) return '🌾';
@@ -40,7 +64,8 @@ const getIcon = (id: string) => {
   if (id.includes('ayam') && !id.includes('telur')) return '🐔';
   if (id.includes('telur')) return '🥚';
   if (id.includes('gula')) return '🍚';
-  if (id.includes('minyak')) return '🛢️';
+  if (id.includes('minyak')) return '🧴';
+  if (id.includes('tepung')) return '🌾';
   return '📦';
 };
 
@@ -87,14 +112,30 @@ interface ForecastPanelProps {
   onSwitchView?: (view: string) => void;
 }
 
+interface DBForecastResult {
+  komoditas: string;
+  harga_aktual: number;
+  forecast_1m: number;
+  forecast_3m: number;
+  cv: number;
+  status_forecast: string;
+  status_cv: string;
+  status_skpg: string;
+  perubahan_pct?: number;
+  rekomendasi: string[];
+}
+
 export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPanelProps) {
   const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
+  const [rawDbData, setRawDbData] = useState<DBForecastResult[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showMobileMetodologi, setShowMobileMetodologi] = useState(false);
   const [showMobileSumberModel, setShowMobileSumberModel] = useState(false);
   const [showForecastInfo, setShowForecastInfo] = useState(false);
   const [showEwsInfo, setShowEwsInfo] = useState(false);
+
+  const hasLivePrices = Boolean(livePrices && Object.keys(livePrices).length > 0 && Object.values(livePrices).some(v => v > 0));
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -193,66 +234,22 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
         if (error) throw error;
         
         if (data && data.length > 0) {
-          interface DBForecastResult {
-            komoditas: string;
-            harga_aktual: number;
-            forecast_1m: number;
-            forecast_3m: number;
-            cv: number;
-            status_forecast: string;
-            status_cv: string;
-            status_skpg: string;
-            perubahan_pct?: number;
-            rekomendasi: string[];
-          }
-          const mapped: ForecastItem[] = (data as unknown as DBForecastResult[]).map((item) => {
-            const overallStatus = getOverallStatus(item.status_forecast, item.status_cv, item.status_skpg);
-            const isWarning = overallStatus === 'Rentan' || overallStatus === 'Waspada';
-            
-            let trend: 'up' | 'down' | 'stable' = 'stable';
-            if (item.status_forecast === 'Naik') trend = 'up';
-            else if (item.status_forecast === 'Turun') trend = 'down';
-            
-            const current = Number(item.harga_aktual) || 0;
-            const month1 = Number(item.forecast_1m) || 0;
-            const changePct = item.perubahan_pct !== undefined && item.perubahan_pct !== null
-              ? Number(item.perubahan_pct)
-              : (current > 0 ? ((month1 - current) / current) * 100 : 0);
-
-            return {
-              id: item.komoditas,
-              name: COMMODITY_MAP[item.komoditas] || item.komoditas,
-              current,
-              month1,
-              month3: Number(item.forecast_3m) || 0,
-              cv: Number(item.cv) || 0,
-              isWarning,
-              trend,
-              changePct,
-              rekomendasi: item.rekomendasi || []
-            };
-          });
-          mapped.sort((a, b) => {
-            const idxA = COMMODITY_ORDER.indexOf(a.id);
-            const idxB = COMMODITY_ORDER.indexOf(b.id);
-            return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
-          });
-          setForecasts(mapped);
+          setRawDbData(data as unknown as DBForecastResult[]);
         } else {
-          // Fallback simulation if table is empty (prevent blank dashboard)
-          const fallback = Object.keys(COMMODITY_MAP).map(key => ({
-            id: key,
-            name: COMMODITY_MAP[key],
-            current: 15000,
-            month1: 15400,
-            month3: 16200,
+          // Fallback simulation if table is empty
+          const fallback: DBForecastResult[] = Object.keys(COMMODITY_MAP).map(key => ({
+            komoditas: key,
+            harga_aktual: 15000,
+            forecast_1m: 15400,
+            forecast_3m: 16200,
             cv: 3.5,
-            isWarning: false,
-            trend: 'stable' as const,
-            changePct: 2.67,
+            status_forecast: 'Stabil',
+            status_cv: 'AMAN',
+            status_skpg: 'AMAN',
+            perubahan_pct: 2.67,
             rekomendasi: ["monitoring rutin"]
           }));
-          setForecasts(fallback);
+          setRawDbData(fallback);
         }
       } catch (err) {
         console.error('Error fetching dashboard forecasts:', err);
@@ -263,6 +260,63 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
 
     fetchForecasts();
   }, []);
+
+  // Map data whenever rawDbData or livePrices updates
+  useEffect(() => {
+    if (rawDbData.length === 0) return;
+
+    // Filter out old generic 'harga_cabai_rawit' if specific 'harga_cabai_rawit_merah' exists
+    const hasSpecificRawit = rawDbData.some(r => r.komoditas === 'harga_cabai_rawit_merah');
+    const filteredDbData = hasSpecificRawit 
+      ? rawDbData.filter(r => r.komoditas !== 'harga_cabai_rawit')
+      : rawDbData;
+
+    const mapped: ForecastItem[] = filteredDbData.map((item) => {
+      const shortKey = SHORT_KEY_MAP[item.komoditas];
+      const liveVal = livePrices && shortKey ? livePrices[shortKey] : undefined;
+      // Gunakan live price jika tersedia dari SAGON, fallback ke harga aktual bulanan DB (Agustus 2026)
+      const current = (liveVal && liveVal > 0) ? liveVal : (Number(item.harga_aktual) || 0);
+      const month1 = Number(item.forecast_1m) || 0;
+      
+      const changePct = current > 0 ? ((month1 - current) / current) * 100 : 0;
+      let statusForecast = item.status_forecast;
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (changePct > 3) {
+        trend = 'up';
+        statusForecast = 'Naik';
+      } else if (changePct < -3) {
+        trend = 'down';
+        statusForecast = 'Turun';
+      } else {
+        trend = 'stable';
+        statusForecast = 'Stabil';
+      }
+
+      const overallStatus = getOverallStatus(statusForecast, item.status_cv, item.status_skpg);
+      const isWarning = overallStatus === 'Rentan' || overallStatus === 'Waspada';
+
+      return {
+        id: item.komoditas,
+        name: COMMODITY_MAP[item.komoditas] || item.komoditas,
+        current,
+        month1,
+        month3: Number(item.forecast_3m) || 0,
+        cv: Number(item.cv) || 0,
+        isWarning,
+        trend,
+        changePct,
+        rekomendasi: item.rekomendasi || []
+      };
+    });
+
+    mapped.sort((a, b) => {
+      const idxA = COMMODITY_ORDER.indexOf(a.id);
+      const idxB = COMMODITY_ORDER.indexOf(b.id);
+      return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+    });
+
+    setForecasts(mapped);
+  }, [rawDbData, livePrices]);
 
   const warnings = forecasts.filter(f => f.isWarning);
 
@@ -319,7 +373,16 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                       <th className="p-2 py-3 bg-emerald-50/50 align-middle whitespace-normal">KOMODITAS</th>
                       <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">HARGA AKTUAL</div>
-                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">{getBaselineMonthStr()}</div>
+                        <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">
+                          {hasLivePrices ? (
+                            <span className="text-emerald-700 font-bold inline-flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+                              SAGON LIVE
+                            </span>
+                          ) : (
+                            getBaselineMonthStr()
+                          )}
+                        </div>
                       </th>
                       <th className="p-2 py-3 bg-emerald-50/50 text-right whitespace-normal">
                         <div className="leading-tight">PERAMALAN +1 BULAN</div>
