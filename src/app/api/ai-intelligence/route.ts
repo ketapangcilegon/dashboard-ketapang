@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { searchKnowledgeBase, MatchedKnowledgeChunk } from '@/app/api/knowledge/search/route';
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
+import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 
 // Data Luas Sawah Resmi per Kelurahan (Ha) untuk GIS Intelligence Pin
 const KELURAHAN_SAWAH: Record<string, number> = {
@@ -45,12 +46,17 @@ async function callGeminiWithFallback(
   apiKey: string,
   contents: object[],
   systemInstruction?: string,
-  maxOutputTokens = 800
+  maxOutputTokens = 2048,
+  hasImage = false
 ): Promise<{ text: string; model: string }> {
   let lastErrorStatus = 0;
   let lastErrorMessage = '';
 
-  for (const model of GEMINI_MODELS) {
+  const models = hasImage
+    ? ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite']
+    : GEMINI_MODELS;
+
+  for (const model of models) {
     try {
       const payload: Record<string, unknown> = {
         contents,
@@ -346,12 +352,80 @@ function cleanResponseText(text: string): string {
   });
 }
 
-// Build conversation history untuk Gemini (multi-turn)
+// Build conversation history untuk Gemini (multi-turn) dengan multimodal image support
 type Message = { role: 'user' | 'model'; text: string };
+
+interface SpatialFilterResult {
+  filteredWilayah: string[];
+  filterActive: boolean;
+  filterLabel: string;
+}
+
+function evaluateSpatialFilter(query: string): SpatialFilterResult | null {
+  const q = query.toLowerCase();
+
+  // Deteksi pola kueri filter bersyarat
+  const hasFilterKeyword = q.includes('tampilkan hanya') || q.includes('filter') || (q.includes('kelurahan yang') && (q.includes('sawah') || q.includes('stunting') || q.includes('penduduk')));
+  if (!hasFilterKeyword) return null;
+
+  let minSawah: number | null = null;
+  let maxSawah: number | null = null;
+  let minStunting: number | null = null;
+  let maxStunting: number | null = null;
+  let minPenduduk: number | null = null;
+
+  // Sawah: "sawah di atas 50", "sawah > 50", "sawah lebih dari 50"
+  const sAbove = q.match(/sawah\s*(?:di\s*atas|lebih\s*dari|>|>=)\s*(\d+(?:\.\d+)?)/i);
+  if (sAbove) minSawah = parseFloat(sAbove[1]);
+
+  const sBelow = q.match(/sawah\s*(?:di\s*bawah|kurang\s*dari|<|<=)\s*(\d+(?:\.\d+)?)/i);
+  if (sBelow) maxSawah = parseFloat(sBelow[1]);
+
+  // Stunting: "stunting di atas 5", "stunting > 5%", "stuntingnya di atas 10"
+  const stAbove = q.match(/stunting(?:nya)?\s*(?:di\s*atas|lebih\s*dari|>|>=)\s*(\d+(?:\.\d+)?)/i);
+  if (stAbove) minStunting = parseFloat(stAbove[1]);
+
+  const stBelow = q.match(/stunting(?:nya)?\s*(?:di\s*bawah|kurang\s*dari|<|<=)\s*(\d+(?:\.\d+)?)/i);
+  if (stBelow) maxStunting = parseFloat(stBelow[1]);
+
+  // Penduduk: "penduduk di atas 15000", "penduduk > 12000"
+  const pAbove = q.match(/penduduk(?:nya)?\s*(?:di\s*atas|lebih\s*dari|>|>=)\s*(\d+)/i);
+  if (pAbove) minPenduduk = parseInt(pAbove[1], 10);
+
+  if (minSawah !== null || maxSawah !== null || minStunting !== null || maxStunting !== null || minPenduduk !== null) {
+    const matched: string[] = [];
+    for (const [name, d] of Object.entries(BASELINE_KELURAHAN_DATA)) {
+      let ok = true;
+      if (minSawah !== null && (d.luasSawahHa || 0) <= minSawah) ok = false;
+      if (maxSawah !== null && (d.luasSawahHa || 0) >= maxSawah) ok = false;
+      if (minStunting !== null && (d.stuntingPct || 0) <= minStunting) ok = false;
+      if (maxStunting !== null && (d.stuntingPct || 0) >= maxStunting) ok = false;
+      if (minPenduduk !== null && (d.penduduk || 0) <= minPenduduk) ok = false;
+
+      if (ok) matched.push(name);
+    }
+
+    const labels: string[] = [];
+    if (minSawah !== null) labels.push(`Sawah > ${minSawah} Ha`);
+    if (maxSawah !== null) labels.push(`Sawah < ${maxSawah} Ha`);
+    if (minStunting !== null) labels.push(`Stunting > ${minStunting}%`);
+    if (maxStunting !== null) labels.push(`Stunting < ${maxStunting}%`);
+    if (minPenduduk !== null) labels.push(`Penduduk > ${minPenduduk.toLocaleString('id-ID')}`);
+
+    return {
+      filteredWilayah: matched,
+      filterActive: true,
+      filterLabel: labels.join(' & ') || 'Filter Kriteria Spasial'
+    };
+  }
+
+  return null;
+}
 
 function buildGeminiContents(
   history: Message[],
-  userMessage: string
+  userMessage: string,
+  imageData?: { data: string; mimeType: string }
 ) {
   const contents = [];
 
@@ -364,9 +438,20 @@ function buildGeminiContents(
     }
   }
 
+  const userParts: any[] = [{ text: userMessage || 'Tolong analisis dan jelaskan gambar/foto ini terkait ketahanan pangan, pertanian, atau gizi Kota Cilegon.' }];
+
+  if (imageData?.data) {
+    userParts.push({
+      inline_data: {
+        mime_type: imageData.mimeType || 'image/jpeg',
+        data: imageData.data
+      }
+    });
+  }
+
   contents.push({
     role: 'user',
-    parts: [{ text: userMessage }]
+    parts: userParts
   });
 
   return contents;
@@ -380,10 +465,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userMessage: string = body?.message || '';
     const history: Message[] = body?.history || [];
+    const imageData: { data: string; mimeType: string } | undefined = body?.imageData;
     const forceRefresh: boolean = body?.forceRefresh === true;
 
-    if (!userMessage.trim()) {
-      return NextResponse.json({ error: 'Pesan tidak boleh kosong' }, { status: 400 });
+    if (!userMessage.trim() && !imageData?.data) {
+      return NextResponse.json({ error: 'Pesan atau foto tidak boleh kosong' }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -457,14 +543,49 @@ ATURAN PENTING:
     Konfirmasikan dengan ramah bahwa peta di panel kiri telah otomatis diarahkan (flyTo zoom) langsung ke lokasi tersebut, layer yang relevan (seperti layer sawah/nelayan/kolam) telah diaktifkan, dan pin penanda interaktif telah ditancapkan di peta.
 - Format respons menggunakan Markdown (tabel, heading, bullet points, angka cetak tebal).
 
+PANDUAN KHUSUS FITUR HEBAT (FASE 2):
+1. SIMULASI ALOKASI ANGGARAN & BANTUAN PANGAN (POLICY & BUDGET ENGINE):
+   - Jika pengguna meminta simulasi anggaran bantuan pangan (misal: "Jika kita memiliki anggaran Rp 500 juta untuk intervensi beras murah, bagikan ke 3 kelurahan paling rentan di Cilegon"):
+     a. Tentukan kelurahan paling prioritas (misal Gerem, Bagendung, Lebakgede, Banjar Negara, atau Rawa Arum).
+     b. Hitung alokasi beras menggunakan standar HET Beras SPHP Bulog (Rp 12.500/kg) atau Beras Premium (Rp 15.000/kg).
+        * Contoh: Rp 500.000.000 / Rp 12.500 = 40.000 kg (40 Ton Beras).
+     c. Hitung kuota KPM (Keluarga Penerima Manfaat) dengan standar bantuan 10 kg beras per KK (40 Ton = 4.000 KK).
+     d. Bagi secara proporsional sesuai jumlah penduduk miskin/rentan kelurahan tersebut.
+     e. Wajib sajikan tabel rincian: No | Kelurahan | Kecamatan | Jumlah Penduduk | Kuota Beras (Ton) | Target KPM (KK) | Alokasi Dana (Rp) | Lokasi Titik Drop-Off Logistik.
+     f. Sebutkan bahwa titik drop-off logistik telah otomatis ditandai di peta GIS!
+
+2. KONSULTASI AGRONOMI PRESISI BERBASIS TITIK SAWAH (AGRI-ADVISORY GPS):
+   - Jika pengguna mengklik sawah atau menanyakan konsultasi agronomi suatu petak:
+     a. Berikan rekomendasi varietas padi adaptif:
+        * Daerah pesisir/salin (Ciwandan/Citangkil/Pulomerak): Inpari 42 Agritan GSR, Inpari 34 Salin, atau varietas tahan salinitas.
+        * Daerah irigasi subur (Cibeber/Jombang/Purwakarta): Ciherang, Inpari 32 HDB, atau IR64.
+     b. Dosis pupuk terukur proporsional sesuai luas petak sawah:
+        * Standar per 1 Ha: Urea ~200 kg/ha, NPK Phonska ~300 kg/ha, Pupuk Organik ~500 kg/ha.
+     c. Pola jadwal tanam (Musim Tanam 1 Rendengan: Okt-Jan, MT 2 Gadu: Feb-Mei, MT 3 Bera/Palawija: Jun-Sep).
+
+3. REVERSE INTELLIGENCE (BRIEFING ANALITIS 360° KELURAHAN):
+   - Jika diminta "Briefing Analitis 360° untuk Kelurahan [Nama]":
+     a. 🏛️ Profil Wilayah & Kependudukan (Jumlah jiwa, kepadatan, karakteristik geografis).
+     b. 🌾 Sektor Pertanian (Luas sawah baku Ha, jumlah petak, sentra padi/palawija).
+     c. ⛵ Sektor Perikanan / KWT / Kolam / Peternakan terdekat.
+     d. 📊 Status IKP, FSVA & Stunting Posyandu.
+     e. 🎯 Rekomendasi Program Aksi Intervensi Prioritas (Bansos, irigasi, bantuan benih).
+
+4. DIAGNOSIS MULTIMODAL VISION (HAMA, PENYAKIT PADI & POSYANDU):
+   - Jika pengguna melampirkan foto daun padi, serangga hama, atau kondisi tanaman:
+     a. Identifikasi hama/penyakit secara spesifik (Wereng Batang Coklat / Nilaparvata lugens, Blas Padi / Pyricularia oryzae, Hawar Daun Bakteri / Xanthomonas oryzae, Penggerek Batang, dsb.).
+     b. Jelaskan tingkat serangan (Ringan, Sedang, Kritis).
+     c. Berikan langkah pengendalian terpadu (PHT): biologis, mekanis, dan kimiawi darurat.
+     d. Konfirmasikan bahwa tanda bahaya OPT (⚠️) telah ditancapkan di peta GIS!
+
 DATA LENGKAP DETAIL PANEL (Serumpun-Padi × Dashboard Ketapang):
 ${spNarrative}
 
 ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
 
-    // 5. Panggil Gemini API
-    const contents = buildGeminiContents(history, userMessage);
-    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2048);
+    // 5. Panggil Gemini API (dengan dukungan multimodal vision)
+    const contents = buildGeminiContents(history, userMessage, imageData);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2500, !!imageData?.data);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });
@@ -550,13 +671,16 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
 
     // 8. Deteksi Interaksi & Aksi Peta Real-Time (Map Actions)
     let mapAction: {
-      type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT';
+      type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT' | 'FILTER';
       target?: string;
       lat?: number;
       lng?: number;
       zoom?: number;
       layers_to_enable?: string[];
       thematic_mode?: 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting';
+      filtered_wilayah?: string[];
+      filter_active?: boolean;
+      filter_label?: string;
       pin?: {
         lat: number;
         lng: number;
@@ -567,6 +691,24 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
       };
     } | null = null;
 
+    // Evaluasi Spatial Querying (Fase 2: Natural Language to GIS Filter)
+    const spatialFilterResult = evaluateSpatialFilter(userMessage);
+    if (spatialFilterResult) {
+      mapAction = {
+        type: 'FILTER',
+        lat: -6.01,
+        lng: 106.02,
+        zoom: 12.5,
+        layers_to_enable: ['kelurahan', 'sawah'],
+        filtered_wilayah: spatialFilterResult.filteredWilayah,
+        filter_active: true,
+        filter_label: spatialFilterResult.filterLabel
+      };
+      if (spatialFilterResult.filteredWilayah.length > 0) {
+        wilayahHighlight.push(...spatialFilterResult.filteredWilayah);
+      }
+    }
+
     const isResetQuery = userQueryLower.includes('reset') || userQueryLower.includes('seluruh cilegon') || userQueryLower.includes('semua wilayah');
 
     if (isResetQuery) {
@@ -575,9 +717,11 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
         lat: -6.01,
         lng: 106.02,
         zoom: 12.5,
+        filter_active: false,
+        filtered_wilayah: [],
         layers_to_enable: ['kelurahan', 'kecamatan', 'sawah']
       };
-    } else {
+    } else if (!spatialFilterResult) {
       // Periksa kecocokan nama 43 kelurahan di Cilegon
       for (const [kelName, coord] of Object.entries(KELURAHAN_COORDINATES)) {
         if (userQueryLower.includes(kelName.toLowerCase()) || rawTextLower.includes(kelName.toLowerCase())) {
@@ -706,6 +850,51 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
           zoom: 12.5,
           layers_to_enable: ['kelurahan'],
           thematic_mode: detectedThematicMode
+        };
+      }
+    }
+
+    // Aksi Tambahan: Simulasi Anggaran Bansos Pangan (Drop-Off Logistics Pins)
+    const isBudgetSimulation = userQueryLower.includes('anggaran') || userQueryLower.includes('bansos') || userQueryLower.includes('bantuan pangan');
+    if (isBudgetSimulation) {
+      matchedPins.unshift(
+        { lat: -5.95625, lng: 106.03523, name: '📦 Drop-Off Logistik Bansos: Kel. Gerem', category: 'sawah', kelurahan: 'Gerem', kecamatan: 'Gerogol' },
+        { lat: -6.04123, lng: 106.04512, name: '📦 Drop-Off Logistik Bansos: Kel. Bagendung', category: 'sawah', kelurahan: 'Bagendung', kecamatan: 'Cilegon' },
+        { lat: -5.90874, lng: 106.00421, name: '📦 Drop-Off Logistik Bansos: Kel. Lebakgede', category: 'sawah', kelurahan: 'Lebakgede', kecamatan: 'Pulomerak' }
+      );
+      if (!mapAction) {
+        mapAction = {
+          type: 'FLY_TO',
+          lat: -5.95625,
+          lng: 106.03523,
+          zoom: 13.5,
+          target: 'Gerem',
+          layers_to_enable: ['kelurahan', 'sawah'],
+          pin: matchedPins[0]
+        };
+      }
+    }
+
+    // Aksi Tambahan: Diagnosis Hama / Penyakit Tanaman / Multimodal Vision (Auto Warning Pin)
+    const isPestDiagnosis = !!imageData?.data || userQueryLower.includes('wereng') || userQueryLower.includes('blas') || userQueryLower.includes('hama') || userQueryLower.includes('penyakit tanaman') || userQueryLower.includes('hawar');
+    if (isPestDiagnosis) {
+      const optPin = {
+        lat: -6.01245,
+        lng: 106.03512,
+        name: '⚠️ Peringatan OPT Terdeteksi (Hasil Diagnosis Foto / Lapangan)',
+        category: 'warning',
+        kelurahan: 'Cilegon',
+        kecamatan: 'Pusat'
+      };
+      matchedPins.unshift(optPin);
+      if (!mapAction) {
+        mapAction = {
+          type: 'FLY_TO',
+          lat: optPin.lat,
+          lng: optPin.lng,
+          zoom: 15.5,
+          layers_to_enable: ['kelurahan', 'sawah'],
+          pin: optPin
         };
       }
     }

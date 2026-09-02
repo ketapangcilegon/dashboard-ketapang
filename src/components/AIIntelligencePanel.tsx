@@ -19,7 +19,11 @@ import {
   RotateCcw, 
   ArrowDown, 
   Edit3,
-  Database
+  Database,
+  Camera,
+  FileText,
+  Printer,
+  X
 } from 'lucide-react';
 
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
@@ -27,6 +31,8 @@ import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
 // ============================================================
 // AIIntelligencePanel
 // Panel chat interaktif AI Food Intelligence (ChatGPT UI/UX Style)
+// Didukung Fase 2: Multimodal Vision, Executive PDF Generator,
+// Reverse Intelligence Trigger, & Spatial Filter MapAction
 // ============================================================
 
 interface Message {
@@ -35,6 +41,7 @@ interface Message {
   wilayah?: string[];
   referencedDocs?: string[];
   timestamp: Date;
+  imageUrl?: string;
 }
 
 interface SyncStatus {
@@ -52,7 +59,7 @@ export interface MatchedPin {
 }
 
 export interface MapAction {
-  type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT';
+  type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT' | 'FILTER';
   target?: string;
   lat?: number;
   lng?: number;
@@ -60,6 +67,9 @@ export interface MapAction {
   layersToEnable?: string[];
   pin?: MatchedPin;
   thematicMode?: 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting';
+  filteredWilayah?: string[];
+  filterActive?: boolean;
+  filterLabel?: string;
 }
 
 interface AIIntelligencePanelProps {
@@ -67,6 +77,8 @@ interface AIIntelligencePanelProps {
   onPinsHighlight?: (pins: MatchedPin[]) => void;
   onMapAction?: (action: MapAction) => void;
   isFullScreen?: boolean;
+  externalPrompt?: string | null;
+  onClearExternalPrompt?: () => void;
 }
 
 const QUICK_PROMPTS = [
@@ -216,11 +228,114 @@ function parseBold(text: string): React.ReactNode {
   });
 }
 
+// Komponen Modal Pratinjau Cetak Nota Dinas Eksekutif (Fase 2)
+function ExecutivePrintModal({
+  doc,
+  onClose,
+}: {
+  doc: { title: string; content: string; date: string; docNo: string };
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-5 sm:p-8 relative max-h-[92vh] flex flex-col border border-slate-200">
+        {/* Actions Bar Top */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0 print:hidden">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📄</span>
+            <div>
+              <h3 className="text-sm font-black text-slate-800">Pratinjau Nota Dinas Eksekutif</h3>
+              <p className="text-[11px] text-slate-500">Format resmi Dinas Ketahanan Pangan dan Pertanian Kota Cilegon</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12px] px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Cetak / Simpan PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Printable Document Content */}
+        <div id="executive-doc-print-area" className="flex-1 overflow-y-auto py-5 px-3 sm:px-6 print:p-0 font-serif text-slate-900 custom-scrollbar">
+          {/* Kop Dinas Resmi */}
+          <div className="text-center pb-3 border-b-4 border-double border-slate-900">
+            <h2 className="text-base sm:text-lg font-bold tracking-wider uppercase text-slate-900">
+              PEMERINTAH KOTA CILEGON
+            </h2>
+            <h1 className="text-lg sm:text-xl font-black tracking-wide uppercase text-slate-900 mt-0.5">
+              DINAS KETAHANAN PANGAN DAN PERTANIAN
+            </h1>
+            <p className="text-[11px] font-sans text-slate-600 mt-1">
+              Jl. KH. Wasyid No. 12, Kel. Jombang Wetan, Kec. Jombang, Kota Cilegon, Banten 42411
+            </p>
+            <p className="text-[10.5px] font-sans text-slate-500">
+              Laman: ketapang.cilegon.go.id | Pos-el: dkp@cilegon.go.id | Telp. (0254) 391234
+            </p>
+          </div>
+
+          {/* Metadata Nota Dinas */}
+          <div className="my-5 text-[12px] font-sans">
+            <div className="text-center font-bold text-[14px] uppercase tracking-wider underline mb-4 text-slate-900">
+              NOTA DINAS INTELIJEN KETAHANAN PANGAN
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[12px] border border-slate-300 p-3 rounded-lg bg-slate-50/50 mb-4">
+              <div>
+                <div><b>Nomor:</b> {doc.docNo}</div>
+                <div><b>Sifat:</b> PENTING / SEGERA</div>
+                <div><b>Lampiran:</b> 1 (Satu) Berkas Analisis GIS Terpadu</div>
+              </div>
+              <div>
+                <div><b>Tanggal:</b> {doc.date}</div>
+                <div><b>Kepada Yth:</b> Walikota Cilegon</div>
+                <div><b>Perihal:</b> {doc.title}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Isi Laporan */}
+          <div className="font-sans text-[12.5px] leading-relaxed text-slate-800 space-y-3">
+            {renderMarkdown(doc.content)}
+          </div>
+
+          {/* Kolom Pengesahan Pimpinan */}
+          <div className="mt-8 pt-4 flex justify-end font-sans text-[12px] break-inside-avoid">
+            <div className="text-center w-64">
+              <div>Cilegon, {doc.date}</div>
+              <div className="font-bold mt-1">Kepala Dinas Ketahanan Pangan dan Pertanian</div>
+              <div className="font-bold">Kota Cilegon</div>
+              <div className="h-16 flex items-center justify-center text-slate-300 italic text-[11px]">
+                (Ruang Tanda Tangan & Cap Dinas)
+              </div>
+              <div className="font-black text-slate-900 underline">Drs. H. M. Ridwan, M.Si</div>
+              <div className="text-slate-600 text-[11px]">Pembina Utama Muda (IV/c)</div>
+              <div className="text-slate-600 text-[11px]">NIP. 19740512 199803 1 004</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AIIntelligencePanel({
   onWilayahHighlight,
   onPinsHighlight,
   onMapAction,
-  isFullScreen = false
+  isFullScreen = false,
+  externalPrompt,
+  onClearExternalPrompt
 }: AIIntelligencePanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -234,6 +349,13 @@ export default function AIIntelligencePanel({
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+
+  // Multimodal Vision state (Fase 2)
+  const [selectedImage, setSelectedImage] = useState<{ file: File; preview: string; base64: string; mimeType: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Executive PDF Generator state (Fase 2)
+  const [executiveDoc, setExecutiveDoc] = useState<{ title: string; content: string; date: string; docNo: string } | null>(null);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -323,14 +445,67 @@ export default function AIIntelligencePanel({
     setSyncing(false);
   };
 
+  // Effect untuk mengeksekusi external prompt dari aksi klik peta (Reverse Intelligence & Agri-Advisory)
+  useEffect(() => {
+    if (externalPrompt && externalPrompt.trim()) {
+      sendMessage(externalPrompt.trim());
+      onClearExternalPrompt?.();
+    }
+  }, [externalPrompt, onClearExternalPrompt]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran berkas gambar maksimal 5 MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = reader.result as string;
+      const base64Data = res.split(',')[1];
+      setSelectedImage({
+        file,
+        preview: URL.createObjectURL(file),
+        base64: base64Data,
+        mimeType: file.type || 'image/jpeg'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handlePrintExecutive = (msgText: string) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const monthRoman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][now.getMonth()];
+    const docNo = `500.1.1/ND-INTEL/${monthRoman}/${now.getFullYear()}`;
+    setExecutiveDoc({
+      title: 'LAPORAN INTELIJEN KETAHANAN PANGAN & SPASIAL',
+      content: msgText,
+      date: dateStr,
+      docNo
+    });
+  };
+
   // Send message
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || loading) return;
-
     const trimmed = text.trim();
-    const userMsg: Message = { role: 'user', text: trimmed, timestamp: new Date() };
+    if (!trimmed && !selectedImage) return;
+    if (loading) return;
+
+    const currentImg = selectedImage;
+    const userMsg: Message = {
+      role: 'user',
+      text: trimmed || 'Analisis foto/kondisi ini terkait pertanian/pangan Kota Cilegon',
+      imageUrl: currentImg?.preview,
+      timestamp: new Date()
+    };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
+    setSelectedImage(null);
     setLoading(true);
     setPlusMenuOpen(false);
 
@@ -376,7 +551,11 @@ export default function AIIntelligencePanel({
       const res = await fetch('/api/ai-intelligence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, history })
+        body: JSON.stringify({
+          message: trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.',
+          history,
+          imageData: currentImg ? { data: currentImg.base64, mimeType: currentImg.mimeType } : undefined
+        })
       });
 
       const data = await res.json();
@@ -400,7 +579,10 @@ export default function AIIntelligencePanel({
             zoom: data.map_action.zoom,
             layersToEnable: data.map_action.layers_to_enable,
             pin: data.map_action.pin,
-            thematicMode: data.map_action.thematic_mode || data.map_action.thematicMode
+            thematicMode: data.map_action.thematic_mode || data.map_action.thematicMode,
+            filteredWilayah: data.map_action.filtered_wilayah,
+            filterActive: data.map_action.filter_active,
+            filterLabel: data.map_action.filter_label,
           });
         }
         if (data.wilayah_highlight?.length > 0 && onWilayahHighlight) {
@@ -551,6 +733,11 @@ export default function AIIntelligencePanel({
               /* USER MESSAGE */
               <div className="flex flex-col items-end mb-3 group">
                 <div className="bg-slate-900 text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[85%] md:max-w-[75%] font-medium text-[12.5px] leading-relaxed">
+                  {msg.imageUrl && (
+                    <div className="mb-2 rounded-lg overflow-hidden border border-white/20">
+                      <img src={msg.imageUrl} alt="Lampiran Foto" className="max-h-52 w-auto object-cover rounded-lg" />
+                    </div>
+                  )}
                   {msg.text}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 mr-1 text-[9.5px] text-slate-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
@@ -670,6 +857,16 @@ export default function AIIntelligencePanel({
                       <RotateCcw className="w-3 h-3" />
                     </button>
 
+                    {/* One-Click Executive PDF Generator (Fase 2) */}
+                    <button
+                      onClick={() => handlePrintExecutive(msg.text)}
+                      className="p-1 hover:bg-emerald-50 rounded text-slate-600 hover:text-emerald-700 transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold ml-1.5 border border-slate-200 hover:border-emerald-300 px-2.5 py-0.5 shadow-2xs bg-white"
+                      title="Cetak Nota Dinas Resmi / Simpan PDF"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>📄 Cetak Nota Dinas / PDF</span>
+                    </button>
+
                     <span className="text-[9.5px] text-slate-400 font-semibold ml-2">
                       {formatTime(msg.timestamp)}
                     </span>
@@ -712,14 +909,43 @@ export default function AIIntelligencePanel({
       {/* Permanently Anchored Input Box Area (Reduced Height by 50% as in Capture 2) */}
       <div className="p-2 md:p-2.5 bg-white border-t border-slate-200 shrink-0 relative z-20">
         
+        {/* Multimodal Image Preview Card (Fase 2) */}
+        {selectedImage && (
+          <div className="mb-2 p-1.5 bg-slate-900/90 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <img src={selectedImage.preview} alt="Upload" className="w-9 h-9 object-cover rounded-lg border border-white/20 shrink-0" />
+              <div className="text-[11px] truncate">
+                <div className="font-bold text-emerald-400 flex items-center gap-1">
+                  <span>📷 Foto Siap Dianalisis AI</span>
+                  <span className="text-[9px] bg-emerald-800 text-emerald-200 px-1 rounded font-black">Vision</span>
+                </div>
+                <div className="text-[9.5px] text-slate-300 truncate max-w-[200px]">{selectedImage.file.name}</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer transition-colors"
+              title="Batalkan foto"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Hidden File Input for Multimodal Vision */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+
         {/* Expanded Mode */}
         {isExpanded ? (
-          <div className="w-full bg-white border border-slate-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-100 rounded-xl transition-all duration-200 shadow-xs flex flex-col h-36">
-            <div className="flex items-center justify-between px-2.5 pt-1.5">
-              <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
-                Prompt Editor
-              </span>
+          <div className="w-full bg-white border border-slate-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 rounded-xl transition-all duration-200 shadow-sm flex flex-col">
+            <div className="flex items-center justify-between px-2.5 pt-1.5 pb-0.5 border-b border-slate-100">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mode Input Penuh</span>
               <button
                 type="button"
                 onClick={() => setIsExpanded(false)}
@@ -736,7 +962,7 @@ export default function AIIntelligencePanel({
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Tanyakan tentang ketahanan pangan Cilegon…"
+                placeholder="Tanyakan atau upload foto daun padi/hama/posyandu…"
                 rows={3}
                 disabled={loading}
                 className="w-full flex-1 bg-transparent resize-none outline-none text-[12.5px] text-slate-800 font-semibold placeholder:text-slate-400 placeholder:font-normal leading-relaxed custom-scrollbar disabled:opacity-50 overflow-y-auto"
@@ -744,14 +970,26 @@ export default function AIIntelligencePanel({
             </div>
 
             <div className="flex items-center justify-between px-2.5 pb-1.5 pt-0.5 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setPlusMenuOpen(s => !s)}
-                className="w-6 h-6 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
-                title="Pilihan / Pertanyaan Cepat"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPlusMenuOpen(s => !s)}
+                  className="w-6 h-6 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
+                  title="Pilihan / Pertanyaan Cepat"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Upload Foto / Vision Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-6 h-6 rounded-full text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer"
+                  title="Unggah Foto Daun/Hama/Posyandu (Multimodal Vision)"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
               <div className="flex items-center gap-1.5">
                 <button
@@ -768,9 +1006,9 @@ export default function AIIntelligencePanel({
                 <button
                   type="button"
                   onClick={() => sendMessage(inputValue)}
-                  disabled={loading || !inputValue.trim()}
+                  disabled={loading || (!inputValue.trim() && !selectedImage)}
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 ${
-                    inputValue.trim() && !loading
+                    (inputValue.trim() || selectedImage) && !loading
                       ? 'bg-emerald-600 hover:bg-emerald-700'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}
@@ -821,13 +1059,23 @@ export default function AIIntelligencePanel({
               )}
             </div>
 
+            {/* Upload Foto / Vision Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-6 h-6 rounded-full text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shrink-0"
+              title="Unggah Foto Daun/Hama/Posyandu (Multimodal Vision)"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+
             {/* Input Textarea (Single Row Auto-Expanding) */}
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tanyakan tentang ketahanan pangan Cilegon…"
+              placeholder="Tanyakan atau upload foto hama/pertanian…"
               rows={1}
               disabled={loading}
               className="flex-1 bg-transparent resize-none outline-none text-[12.5px] text-slate-800 font-semibold placeholder:text-slate-400 placeholder:font-normal leading-normal custom-scrollbar max-h-16 py-0.5 disabled:opacity-50"
@@ -858,9 +1106,9 @@ export default function AIIntelligencePanel({
               <button
                 type="button"
                 onClick={() => sendMessage(inputValue)}
-                disabled={loading || !inputValue.trim()}
+                disabled={loading || (!inputValue.trim() && !selectedImage)}
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 ${
-                  inputValue.trim() && !loading
+                  (inputValue.trim() || selectedImage) && !loading
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 }`}
@@ -878,9 +1126,17 @@ export default function AIIntelligencePanel({
 
         {/* Footer Subtext */}
         <p className="text-[9.5px] text-slate-400 font-medium mt-1 text-center">
-          Enter untuk kirim · Shift+Enter baris baru · Serumpun-Padi GIS AI Cilegon
+          Enter kirim · Shift+Enter baris baru · Multimodal Vision & GIS AI Cilegon
         </p>
       </div>
+
+      {/* Executive Print Modal (Fase 2) */}
+      {executiveDoc && (
+        <ExecutivePrintModal
+          doc={executiveDoc}
+          onClose={() => setExecutiveDoc(null)}
+        />
+      )}
     </div>
   );
 }

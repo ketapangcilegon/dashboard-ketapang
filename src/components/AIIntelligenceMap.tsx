@@ -49,6 +49,7 @@ interface AIIntelligenceMapProps {
   highlightWilayah?: string[];
   highlightPins?: MatchedPin[];
   mapAction?: MapAction | null;
+  onTriggerChatPrompt?: (prompt: string) => void;
 }
 
 function normalizeName(name: string): string {
@@ -129,6 +130,8 @@ function HighlightManager({
   indicatorData,
   kecLayerRef,
   kelLayerRef,
+  filterActive = false,
+  filteredWilayah = [],
 }: {
   highlightWilayah: string[];
   highlightPins: MatchedPin[];
@@ -138,6 +141,8 @@ function HighlightManager({
   indicatorData?: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
   kecLayerRef: React.RefObject<L.GeoJSON[]>;
   kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
+  filterActive?: boolean;
+  filteredWilayah?: string[];
 }) {
   const map = useMap();
 
@@ -189,7 +194,7 @@ function HighlightManager({
       });
     }
 
-    // Re-style kelurahan layers dengan integrasi Thematic Mode Choropleth
+    // Re-style kelurahan layers dengan integrasi Thematic Mode Choropleth & Spatial Filter Dimming (Fase 2)
     if (kelLayerRef.current) {
       kelLayerRef.current.forEach((geoLayer) => {
         if (!geoLayer) return;
@@ -197,18 +202,61 @@ function HighlightManager({
           const path = sub as L.Path & { feature?: GeoJSON.Feature };
           if (!path.feature) return;
           const name = path.feature.properties?.name || path.feature.properties?.Name || '';
+
+          // Jika ada filter spasial aktif (Fase 2: Natural Language to GIS Querying)
+          if (filterActive && filteredWilayah.length > 0) {
+            const isMatch = isWilayahMatch(name, filteredWilayah);
+            if (isMatch) {
+              if (thematicMode === 'none') {
+                path.setStyle({
+                  color: '#10b981',
+                  weight: 3.5,
+                  fillColor: '#10b981',
+                  fillOpacity: 0.35,
+                  dashArray: undefined
+                });
+              } else {
+                const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, (thematicOpacity || 0.65) + 0.25), indicatorData);
+                path.setStyle({
+                  ...th,
+                  color: '#10b981',
+                  weight: 3.5,
+                  fillOpacity: Math.min(1, (thematicOpacity || 0.65) + 0.3),
+                  dashArray: undefined
+                });
+              }
+              try {
+                const poly = sub as L.Polygon;
+                if (typeof poly.getBounds === 'function') {
+                  const b = poly.getBounds();
+                  if (b && b.isValid()) highlightedBounds.push(b);
+                }
+              } catch {}
+            } else {
+              // Dimmed / Semi-transparan untuk kelurahan yang tidak memenuhi kriteria filter
+              path.setStyle({
+                color: '#cbd5e1',
+                weight: 1,
+                fillColor: '#94a3b8',
+                fillOpacity: 0.05,
+                dashArray: '3,5',
+              });
+            }
+            return;
+          }
+
           const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(name, highlightWilayah);
 
           if (isHighlighted) {
             if (thematicMode === 'none') {
               path.setStyle(HIGHLIGHT_KEL_STYLE);
             } else {
-              const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, thematicOpacity + 0.25), indicatorData);
+              const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, (thematicOpacity || 0.65) + 0.25), indicatorData);
               path.setStyle({
                 ...th,
                 color: '#f59e0b',
                 weight: 3.5,
-                fillOpacity: Math.min(1, thematicOpacity + 0.3),
+                fillOpacity: Math.min(1, (thematicOpacity || 0.65) + 0.3),
               });
             }
             try {
@@ -222,7 +270,7 @@ function HighlightManager({
             if (thematicMode === 'none') {
               path.setStyle(KEL_DEFAULT_STYLE);
             } else {
-              path.setStyle(getThematicPolygonStyle(name, thematicMode, thematicOpacity, indicatorData));
+              path.setStyle(getThematicPolygonStyle(name, thematicMode, thematicOpacity || 0.65, indicatorData));
             }
           }
         });
@@ -258,19 +306,25 @@ function HighlightManager({
   return null;
 }
 
-// Komponen Layer Kelurahan dengan Thematic Choropleth & Rich Popups
+// Komponen Layer Kelurahan dengan Thematic Choropleth & Rich Popups & Reverse Intelligence (Fase 2)
 function ThematicKelurahanLayer({
   data,
   thematicMode,
   thematicOpacity,
   indicatorData,
   kelLayerRef,
+  filterActive = false,
+  filteredWilayah = [],
+  onTriggerChatPrompt,
 }: {
   data: any[];
   thematicMode: ThematicMode;
   thematicOpacity: number;
   indicatorData: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
   kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
+  filterActive?: boolean;
+  filteredWilayah?: string[];
+  onTriggerChatPrompt?: (prompt: string) => void;
 }) {
   if (!data?.length) return null;
 
@@ -279,7 +333,28 @@ function ThematicKelurahanLayer({
       {data.map((f, i) => {
         const rawName = f.properties?.name || f.properties?.Name || '';
         const kelData = resolveKelurahanData(rawName, indicatorData);
-        const style = getThematicPolygonStyle(rawName, thematicMode, thematicOpacity, indicatorData);
+        let style = getThematicPolygonStyle(rawName, thematicMode, thematicOpacity, indicatorData);
+
+        // Jika filter spasial aktif (Fase 2: Natural Language to GIS Querying)
+        const isFilterMatch = isWilayahMatch(rawName, filteredWilayah);
+        if (filterActive && filteredWilayah.length > 0) {
+          if (isFilterMatch) {
+            style = {
+              ...style,
+              color: '#10b981',
+              weight: 3,
+              fillOpacity: Math.min(1, thematicOpacity + 0.25),
+            };
+          } else {
+            style = {
+              color: '#cbd5e1',
+              weight: 1,
+              fillColor: '#94a3b8',
+              fillOpacity: 0.05,
+              dashArray: '3,5',
+            };
+          }
+        }
 
         let metricInfoHtml = '';
         let metricBadgeText = '';
@@ -318,32 +393,32 @@ function ThematicKelurahanLayer({
           metricBadgeText = ` | SKPG: ${st}`;
           metricInfoHtml = `
             <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:6px;margin:5px 0;">
-              <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;">Kewaspadaan Pangan (SKPG)</div>
-              <div style="font-size:13px;font-weight:900;color:#b45309;margin-top:2px;">STATUS ${st}</div>
+              <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;">Status Kerawanan SKPG</div>
+              <div style="font-size:13px;font-weight:900;color:#b45309;margin-top:2px;">${st}</div>
             </div>
           `;
         } else if (thematicMode === 'stunting') {
-          const st = kelData.stuntingPct !== null && kelData.stuntingPct !== undefined ? `${kelData.stuntingPct.toFixed(1)}%` : '-';
-          metricBadgeText = ` | Stunting: ${st}`;
+          const stVal = kelData.stuntingPct !== null && kelData.stuntingPct !== undefined ? `${kelData.stuntingPct.toFixed(1)}%` : '-';
+          const stLabel = kelData.stuntingPct ? (kelData.stuntingPct > 7.5 ? 'Waspada' : kelData.stuntingPct > 5 ? 'Sedang' : 'Rendah') : 'Normal';
+          metricBadgeText = ` | Stunting: ${stVal}`;
           metricInfoHtml = `
-            <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:8px;padding:6px;margin:5px 0;">
-              <div style="font-size:10px;font-weight:800;color:#9d174d;text-transform:uppercase;">Prevalensi Stunting Balita</div>
-              <div style="font-size:14px;font-weight:900;color:#be185d;margin-top:2px;">${st} Kasus</div>
+            <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#6b21a8;text-transform:uppercase;">Prevalensi Stunting Balita (Posyandu)</div>
+              <div style="font-size:13px;font-weight:900;color:#7e22ce;margin-top:2px;">${stVal} <span style="font-size:11px;font-weight:700;">(${stLabel})</span></div>
             </div>
           `;
         }
 
+        const btnBriefId = `btn-brief-${rawName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${i}`;
+
         return (
           <GeoJSONComp
-            key={`thematic-kel-${i}-${thematicMode}-${thematicOpacity}-${kelData.isPlaceholder ? 'ph' : 'ok'}`}
+            key={`thematic-kel-${rawName}-${thematicMode}-${thematicOpacity}-${filterActive}-${isFilterMatch}`}
             data={f}
             style={style as any}
-            onEachFeature={(feat: any, layer: L.Layer) => {
-              if (layer && (layer as any).setStyle) {
-                if (!kelLayerRef.current) kelLayerRef.current = [];
-                if (!kelLayerRef.current.includes(layer as any)) {
-                  kelLayerRef.current.push(layer as any);
-                }
+            onEachFeature={(_feat: any, layer: L.Layer) => {
+              if (kelLayerRef.current && !kelLayerRef.current.includes(layer as any)) {
+                kelLayerRef.current.push(layer as any);
               }
 
               const pathLayer = layer as L.Path;
@@ -362,7 +437,7 @@ function ThematicKelurahanLayer({
               );
 
               layer.bindPopup(`
-                <div style="font-family:system-ui;font-size:12px;padding:4px 2px;min-width:220px;">
+                <div style="font-family:system-ui;font-size:12px;padding:4px 2px;min-width:230px;">
                   <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:6px;">
                     <b style="color:#0f172a;font-size:13px;">📍 Kel. ${kelData.nama}</b>
                     <span style="font-size:10px;font-weight:800;color:#64748b;background:#f1f5f9;padding:1px 6px;border-radius:4px;">Kec. ${kelData.kecamatan}</span>
@@ -376,14 +451,34 @@ function ThematicKelurahanLayer({
                     <div style="display:flex;justify-content:space-between;"><span>📊 Rasio Sawah/Kapita:</span><b>${kelData.penduduk ? (kelData.luasSawahHa * 10000 / kelData.penduduk).toFixed(1) : 0} m²/jiwa</b></div>
                   </div>
 
-                  <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
-                    ${kelData.isPlaceholder
-                      ? `<span style="font-size:9px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:2px 5px;border-radius:4px;font-weight:800;">ℹ️ Placeholder (Siap Input Admin)</span>`
-                      : `<span style="font-size:9px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 5px;border-radius:4px;font-weight:800;">✅ Data Terverifikasi</span>`
-                    }
+                  <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      ${kelData.isPlaceholder
+                        ? `<span style="font-size:9px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:2px 5px;border-radius:4px;font-weight:800;">ℹ️ Placeholder (Siap Input Admin)</span>`
+                        : `<span style="font-size:9px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 5px;border-radius:4px;font-weight:800;">✅ Data Terverifikasi</span>`
+                      }
+                    </div>
+
+                    <!-- Tombol Reverse Intelligence: Click-to-Brief -->
+                    <button
+                      id="${btnBriefId}"
+                      type="button"
+                      style="width:100%;margin-top:3px;background:linear-gradient(135deg, #065f46, #047857);color:#ffffff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.15);"
+                    >
+                      ⚡ Briefing Analitis 360° AI
+                    </button>
                   </div>
                 </div>
               `);
+
+              layer.on('popupopen', () => {
+                const btn = document.getElementById(btnBriefId);
+                if (btn) {
+                  btn.onclick = () => {
+                    onTriggerChatPrompt?.(`Berikan Briefing Analitis 360° lengkap untuk Kelurahan ${kelData.nama}, Kecamatan ${kelData.kecamatan}`);
+                  };
+                }
+              });
             }}
           />
         );
@@ -396,6 +491,7 @@ export default function AIIntelligenceMap({
   highlightWilayah = [],
   highlightPins = [],
   mapAction = null,
+  onTriggerChatPrompt,
 }: AIIntelligenceMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const { layers, loading: kmzLoading, loadFromURL } = useKMZLoader();
@@ -410,6 +506,11 @@ export default function AIIntelligenceMap({
   const [thematicOpacity, setThematicOpacity] = useState<number>(0.65);
   const [showThematicMenu, setShowThematicMenu] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(true);
+
+  // Spatial Filter state (Fase 2: Natural Language to GIS Querying)
+  const [filterActive, setFilterActive] = useState<boolean>(false);
+  const [filteredWilayah, setFilteredWilayah] = useState<string[]>([]);
+  const [filterLabel, setFilterLabel] = useState<string>('');
 
   // Sector layer toggles
   const [showSawah, setShowSawah] = useState(true);
@@ -463,6 +564,16 @@ export default function AIIntelligenceMap({
     if (mapAction.thematicMode) {
       setThematicMode(mapAction.thematicMode);
       setShowKelurahan(true);
+    }
+    if (mapAction.type === 'FILTER' || mapAction.filterActive) {
+      setFilterActive(true);
+      setFilteredWilayah(mapAction.filteredWilayah || []);
+      setFilterLabel(mapAction.filterLabel || 'Filter Kriteria Spasial');
+      setShowKelurahan(true);
+    } else if (mapAction.type === 'RESET') {
+      setFilterActive(false);
+      setFilteredWilayah([]);
+      setFilterLabel('');
     }
     if (mapAction.layersToEnable) {
       const l = mapAction.layersToEnable;
@@ -659,6 +770,27 @@ export default function AIIntelligenceMap({
           />
         )}
 
+        {/* Floating Spatial Filter Status Pill (Fase 2: Natural Language to GIS Querying) */}
+        {filterActive && (
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2 bg-slate-900/95 text-white backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-xl border border-emerald-500/50 text-[11px] font-black animate-in fade-in slide-in-from-top-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="truncate max-w-[260px] sm:max-w-[400px]">
+              Filter Spasial AI: <span className="text-emerald-300 font-bold">{filterLabel}</span> ({filteredWilayah.length} Kelurahan)
+            </span>
+            <button
+              onClick={() => {
+                setFilterActive(false);
+                setFilteredWilayah([]);
+                setFilterLabel('');
+              }}
+              className="ml-1 bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-all shrink-0"
+              title="Reset Filter Spasial"
+            >
+              ✕ Reset
+            </button>
+          </div>
+        )}
+
         {/* Controls & Helpers */}
         <MapRefSetter mapRef={mapRef} />
         <MapZoomTracker setZoom={setMapZoom} />
@@ -677,6 +809,8 @@ export default function AIIntelligenceMap({
           indicatorData={indicatorData}
           kecLayerRef={kecLayerRef}
           kelLayerRef={kelLayerRef}
+          filterActive={filterActive}
+          filteredWilayah={filteredWilayah}
         />
 
         {/* 1. Layer Kecamatan */}
@@ -684,7 +818,7 @@ export default function AIIntelligenceMap({
           <KecamatanLayer data={layers.kecamatan} />
         )}
 
-        {/* 2. Layer Kelurahan dengan Dynamic Thematic Choropleth (Fase 1) */}
+        {/* 2. Layer Kelurahan dengan Dynamic Thematic Choropleth & Reverse Intelligence (Fase 1 & 2) */}
         {showKelurahan && layers.kelurahan?.length > 0 && (
           <ThematicKelurahanLayer
             data={layers.kelurahan}
@@ -692,12 +826,56 @@ export default function AIIntelligenceMap({
             thematicOpacity={thematicOpacity}
             indicatorData={indicatorData}
             kelLayerRef={kelLayerRef}
+            filterActive={filterActive}
+            filteredWilayah={filteredWilayah}
+            onTriggerChatPrompt={onTriggerChatPrompt}
           />
         )}
 
-        {/* 3. Layer Sawah Baku (407 Petak) */}
+        {/* 3. Layer Sawah Baku (407 Petak) dengan Agri-Advisory GPS (Fase 2) */}
         {showSawah && layers.sawah?.length > 0 && (
-          <SawahLayer data={layers.sawah} showSawah={showSawah} fillOpacity={0.50} />
+          <SawahLayer
+            data={layers.sawah}
+            showSawah={showSawah}
+            fillOpacity={0.50}
+            onEachFeature={(feat: any, l: L.Layer) => {
+              const name = feat.properties?.name || feat.properties?.Name || 'Petak Sawah Baku Cilegon';
+              const rawLuas = feat.properties?.luas_m2 ? (feat.properties.luas_m2 / 10000).toFixed(2) : '0.85';
+              const sid = feat._id || Math.random().toString(36).substring(7);
+
+              l.bindPopup(`
+                <div style="font-family:system-ui;font-size:12px;padding:4px 0;min-width:215px;">
+                  <div style="display:flex;align-items:center;gap:6px;border-bottom:1px solid #e2e8f0;padding-bottom:5px;">
+                    <span style="font-size:18px;">🌾</span>
+                    <div>
+                      <b style="color:#166534;font-size:13px;">${name}</b>
+                      <div style="font-size:10px;color:#64748b;">Estimasi Luas: ~${rawLuas} Ha</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:6px;font-size:11px;color:#334155;display:flex;flex-direction:column;gap:3px;">
+                    <div><b>Status Lahan:</b> Lahan Pertanian Pangan Abadi (LP2B)</div>
+                    <div><b>Lokasi:</b> Sentra Produksi Kota Cilegon</div>
+                  </div>
+                  <button
+                    id="btn-agri-${sid}"
+                    type="button"
+                    style="width:100%;margin-top:8px;background:linear-gradient(135deg, #047857, #065f46);color:#ffffff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.15);"
+                  >
+                    🌱 Konsultasi Agronomi Presisi AI
+                  </button>
+                </div>
+              `);
+
+              l.on('popupopen', () => {
+                const btn = document.getElementById(`btn-agri-${sid}`);
+                if (btn) {
+                  btn.onclick = () => {
+                    onTriggerChatPrompt?.(`Konsultasi agronomi presisi untuk ${name} seluas ${rawLuas} Ha: rekomendasi varietas benih padi adaptif kekeringan/salinitas, jadwal pola tanam optimal, dan dosis pupuk subsidi berimbang.`);
+                  };
+                }
+              });
+            }}
+          />
         )}
 
         {/* 4. Layer Pin Database Sektor Serumpun Padi */}

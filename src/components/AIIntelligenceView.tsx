@@ -28,6 +28,7 @@ export default function AIIntelligenceView() {
   const [highlightPins, setHighlightPins] = useState<MatchedPin[]>([]);
   const [mapAction, setMapAction] = useState<MapAction | null>(null);
   const [activeTab, setActiveTab] = useState<'split' | 'map' | 'chat'>('split');
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -45,6 +46,18 @@ export default function AIIntelligenceView() {
 
   const handleMapAction = useCallback((action: MapAction) => {
     setMapAction(action);
+  }, []);
+
+  // Handler Reverse Intelligence & Agri-Advisory dari klik peta
+  const handleTriggerChatPrompt = useCallback((prompt: string) => {
+    setPendingPrompt(prompt);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setActiveTab('chat');
+    }
+  }, []);
+
+  const handleClearPendingPrompt = useCallback(() => {
+    setPendingPrompt(null);
   }, []);
 
   const clearHighlight = () => {
@@ -114,6 +127,7 @@ export default function AIIntelligenceView() {
                 highlightWilayah={highlightWilayah} 
                 highlightPins={highlightPins}
                 mapAction={mapAction}
+                onTriggerChatPrompt={handleTriggerChatPrompt}
               />
 
               {/* Floating Badge Top-Left Sesuai Mockup 1 */}
@@ -144,6 +158,8 @@ export default function AIIntelligenceView() {
                 onWilayahHighlight={handleWilayahHighlight}
                 onPinsHighlight={handlePinsHighlight}
                 onMapAction={handleMapAction}
+                externalPrompt={pendingPrompt}
+                onClearExternalPrompt={handleClearPendingPrompt}
                 isFullScreen={true}
               />
             </div>
@@ -179,6 +195,8 @@ export default function AIIntelligenceView() {
                 onWilayahHighlight={handleWilayahHighlight}
                 onPinsHighlight={handlePinsHighlight}
                 onMapAction={handleMapAction}
+                externalPrompt={pendingPrompt}
+                onClearExternalPrompt={handleClearPendingPrompt}
                 isFullScreen={true}
               />
             </div>
@@ -190,6 +208,7 @@ export default function AIIntelligenceView() {
                 highlightWilayah={highlightWilayah} 
                 highlightPins={highlightPins}
                 mapAction={mapAction}
+                onTriggerChatPrompt={handleTriggerChatPrompt}
               />
               <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm">
                 <span className="text-[9px] font-black text-slate-800 tracking-wider uppercase">
