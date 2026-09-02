@@ -59,6 +59,7 @@ export interface MapAction {
   zoom?: number;
   layersToEnable?: string[];
   pin?: MatchedPin;
+  thematicMode?: 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting';
 }
 
 interface AIIntelligencePanelProps {
@@ -69,12 +70,12 @@ interface AIIntelligencePanelProps {
 }
 
 const QUICK_PROMPTS = [
+  'Warnai peta berdasarkan kepadatan penduduk Cilegon',
+  'Tampilkan peta tematik IKP seluruh kelurahan',
   'Kecamatan mana yang paling rentan jika terjadi El Niño?',
   'Berapa total luas sawah siap panen sekarang?',
   'Bagaimana kondisi kolam budidaya dan nelayan di Cilegon?',
-  'Berikan ringkasan ketahanan pangan Cilegon saat ini.',
   'Kelompok tani mana yang paling aktif?',
-  'Simulasi: jika pasokan beras dari luar terhenti 30 hari, apa dampaknya?',
 ];
 
 function formatTime(d: Date): string {
@@ -398,7 +399,8 @@ export default function AIIntelligencePanel({
             lng: data.map_action.lng,
             zoom: data.map_action.zoom,
             layersToEnable: data.map_action.layers_to_enable,
-            pin: data.map_action.pin
+            pin: data.map_action.pin,
+            thematicMode: data.map_action.thematic_mode || data.map_action.thematicMode
           });
         }
         if (data.wilayah_highlight?.length > 0 && onWilayahHighlight) {

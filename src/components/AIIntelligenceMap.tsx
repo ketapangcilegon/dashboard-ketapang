@@ -4,12 +4,20 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const GeoJSONComp: any = GeoJSON;
 
 import 'leaflet/dist/leaflet.css';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { supabase } from '@/lib/supabase';
 import { MatchedPin, MapAction } from './AIIntelligencePanel';
+import {
+  ThematicMode,
+  getThematicPolygonStyle,
+  getThematicLegendConfig,
+  resolveKelurahanData,
+  THEMATIC_COLORS,
+} from '@/lib/thematic-indicators';
 import {
   MapRefSetter,
   MoveZoomControl,
@@ -19,7 +27,6 @@ import {
 import LocateMe from './gis/LocateMe';
 import {
   KecamatanLayer,
-  KelurahanLayer,
   SawahLayer,
   PoktanDBPins,
   KolamDBPins,
@@ -28,13 +35,14 @@ import {
   PalawijaDBPins,
   WarningDBPins,
 } from './gis/MapLayers';
-import { Layers, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, MapPin } from 'lucide-react';
+import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal } from 'lucide-react';
 
 // ============================================================
 // AIIntelligenceMap
 // UI/UX Peta Spasial GIS Serumpun-Padi × Dashboard Ketapang
 // Fitur: Basemap Satelit Esri + OSM Overlay Toggle, GPS Live Tracker,
-// Fit Bounds, 407 Petak Sawah, Layer Pins Sektor Pangan, dan AI FlyTo Highlight
+// Fit Bounds, 407 Petak Sawah, Layer Pins Sektor Pangan,
+// Serta DYNAMIC THEMATIC CHOROPLETH (Fase 1: IKP, Penduduk, FSVA, SKPG, Stunting)
 // ============================================================
 
 interface AIIntelligenceMapProps {
@@ -55,7 +63,7 @@ function isWilayahMatch(featureName: string, targets: string[]): boolean {
   });
 }
 
-// Style boundary constants (Batas administrasi hanya garis, tanpa mengisi warna penuh)
+// Style boundary constants
 const KEC_DEFAULT_STYLE: L.PathOptions = {
   color: '#c0392b',
   weight: 2.5,
@@ -116,14 +124,20 @@ function HighlightManager({
   highlightWilayah = [],
   highlightPins = [],
   mapAction = null,
+  thematicMode = 'none',
+  thematicOpacity = 0.65,
+  indicatorData,
   kecLayerRef,
   kelLayerRef,
 }: {
   highlightWilayah: string[];
   highlightPins: MatchedPin[];
   mapAction?: MapAction | null;
+  thematicMode?: ThematicMode;
+  thematicOpacity?: number;
+  indicatorData?: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
   kecLayerRef: React.RefObject<L.GeoJSON[]>;
-  kelLayerRef: React.RefObject<L.GeoJSON[]>;
+  kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
 }) {
   const map = useMap();
 
@@ -169,15 +183,13 @@ function HighlightManager({
                 const b = poly.getBounds();
                 if (b && b.isValid()) highlightedBounds.push(b);
               }
-            } catch {
-              /* skip */
-            }
+            } catch {}
           }
         });
       });
     }
 
-    // Re-style kelurahan layers
+    // Re-style kelurahan layers dengan integrasi Thematic Mode Choropleth
     if (kelLayerRef.current) {
       kelLayerRef.current.forEach((geoLayer) => {
         if (!geoLayer) return;
@@ -186,16 +198,31 @@ function HighlightManager({
           if (!path.feature) return;
           const name = path.feature.properties?.name || path.feature.properties?.Name || '';
           const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(name, highlightWilayah);
-          path.setStyle(isHighlighted ? HIGHLIGHT_KEL_STYLE : KEL_DEFAULT_STYLE);
+
           if (isHighlighted) {
+            if (thematicMode === 'none') {
+              path.setStyle(HIGHLIGHT_KEL_STYLE);
+            } else {
+              const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, thematicOpacity + 0.25), indicatorData);
+              path.setStyle({
+                ...th,
+                color: '#f59e0b',
+                weight: 3.5,
+                fillOpacity: Math.min(1, thematicOpacity + 0.3),
+              });
+            }
             try {
               const poly = sub as L.Polygon;
               if (typeof poly.getBounds === 'function') {
                 const b = poly.getBounds();
                 if (b && b.isValid()) highlightedBounds.push(b);
               }
-            } catch {
-              /* skip */
+            } catch {}
+          } else {
+            if (thematicMode === 'none') {
+              path.setStyle(KEL_DEFAULT_STYLE);
+            } else {
+              path.setStyle(getThematicPolygonStyle(name, thematicMode, thematicOpacity, indicatorData));
             }
           }
         });
@@ -213,9 +240,7 @@ function HighlightManager({
             map.fitBounds(pinBounds, { padding: [60, 60], maxZoom: 16, animate: true });
           }
         }
-      } catch {
-        /* skip */
-      }
+      } catch {}
       return;
     }
 
@@ -226,13 +251,145 @@ function HighlightManager({
         if (combined.isValid()) {
           map.fitBounds(combined, { padding: [50, 50], maxZoom: 14, animate: true });
         }
-      } catch {
-        /* skip */
-      }
+      } catch {}
     }
-  }, [highlightWilayah, highlightPins, map, kecLayerRef, kelLayerRef]);
+  }, [highlightWilayah, highlightPins, map, mapAction, thematicMode, thematicOpacity, indicatorData, kecLayerRef, kelLayerRef]);
 
   return null;
+}
+
+// Komponen Layer Kelurahan dengan Thematic Choropleth & Rich Popups
+function ThematicKelurahanLayer({
+  data,
+  thematicMode,
+  thematicOpacity,
+  indicatorData,
+  kelLayerRef,
+}: {
+  data: any[];
+  thematicMode: ThematicMode;
+  thematicOpacity: number;
+  indicatorData: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
+  kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
+}) {
+  if (!data?.length) return null;
+
+  return (
+    <>
+      {data.map((f, i) => {
+        const rawName = f.properties?.name || f.properties?.Name || '';
+        const kelData = resolveKelurahanData(rawName, indicatorData);
+        const style = getThematicPolygonStyle(rawName, thematicMode, thematicOpacity, indicatorData);
+
+        let metricInfoHtml = '';
+        let metricBadgeText = '';
+
+        if (thematicMode === 'ikp') {
+          const score = kelData.ikpScore !== null && kelData.ikpScore !== undefined ? kelData.ikpScore.toFixed(2) : '-';
+          const cat = kelData.ikpScore ? (kelData.ikpScore >= 77.29 ? 'Sangat Tahan' : kelData.ikpScore >= 69.71 ? 'Tahan' : kelData.ikpScore >= 61.83 ? 'Agak Tahan' : kelData.ikpScore >= 53.95 ? 'Agak Rentan' : kelData.ikpScore >= 46.37 ? 'Rentan' : 'Sangat Rentan') : 'Data Belum Tersedia';
+          metricBadgeText = ` | IKP: ${score}`;
+          metricInfoHtml = `
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#166534;text-transform:uppercase;">Indeks Ketahanan Pangan (IKP)</div>
+              <div style="font-size:14px;font-weight:900;color:#15803d;margin-top:2px;">${score} <span style="font-size:11px;font-weight:700;">(${cat})</span></div>
+            </div>
+          `;
+        } else if (thematicMode === 'penduduk') {
+          const p = kelData.penduduk ? kelData.penduduk.toLocaleString('id-ID') : '-';
+          const densityLabel = kelData.penduduk > 18000 ? 'Sangat Padat' : kelData.penduduk > 12500 ? 'Tinggi' : kelData.penduduk >= 7500 ? 'Sedang' : 'Rendah';
+          metricBadgeText = ` | ${p} Jiwa`;
+          metricInfoHtml = `
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#1e40af;text-transform:uppercase;">Jumlah Penduduk (Dukcapil 2025)</div>
+              <div style="font-size:14px;font-weight:900;color:#1d4ed8;margin-top:2px;">${p} Jiwa <span style="font-size:11px;font-weight:700;">(${densityLabel})</span></div>
+            </div>
+          `;
+        } else if (thematicMode === 'fsva') {
+          const p = kelData.fsvaPriority ? `Prioritas ${kelData.fsvaPriority}` : '-';
+          metricBadgeText = ` | FSVA: ${p}`;
+          metricInfoHtml = `
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;">Prioritas Kerentanan FSVA</div>
+              <div style="font-size:13px;font-weight:900;color:#b91c1c;margin-top:2px;">${p}</div>
+            </div>
+          `;
+        } else if (thematicMode === 'skpg') {
+          const st = kelData.skpgStatus ? kelData.skpgStatus.toUpperCase() : 'AMAN';
+          metricBadgeText = ` | SKPG: ${st}`;
+          metricInfoHtml = `
+            <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;">Kewaspadaan Pangan (SKPG)</div>
+              <div style="font-size:13px;font-weight:900;color:#b45309;margin-top:2px;">STATUS ${st}</div>
+            </div>
+          `;
+        } else if (thematicMode === 'stunting') {
+          const st = kelData.stuntingPct !== null && kelData.stuntingPct !== undefined ? `${kelData.stuntingPct.toFixed(1)}%` : '-';
+          metricBadgeText = ` | Stunting: ${st}`;
+          metricInfoHtml = `
+            <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:8px;padding:6px;margin:5px 0;">
+              <div style="font-size:10px;font-weight:800;color:#9d174d;text-transform:uppercase;">Prevalensi Stunting Balita</div>
+              <div style="font-size:14px;font-weight:900;color:#be185d;margin-top:2px;">${st} Kasus</div>
+            </div>
+          `;
+        }
+
+        return (
+          <GeoJSONComp
+            key={`thematic-kel-${i}-${thematicMode}-${thematicOpacity}-${kelData.isPlaceholder ? 'ph' : 'ok'}`}
+            data={f}
+            style={style as any}
+            onEachFeature={(feat: any, layer: L.Layer) => {
+              if (layer && (layer as any).setStyle) {
+                if (!kelLayerRef.current) kelLayerRef.current = [];
+                if (!kelLayerRef.current.includes(layer as any)) {
+                  kelLayerRef.current.push(layer as any);
+                }
+              }
+
+              const pathLayer = layer as L.Path;
+              pathLayer.on({
+                mouseover: () => {
+                  pathLayer.setStyle({ weight: 3, color: '#ffffff' });
+                },
+                mouseout: () => {
+                  pathLayer.setStyle(style as any);
+                },
+              });
+
+              layer.bindTooltip(
+                `<span style="font-weight:800;font-size:11px;color:#ffffff;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;pointer-events:none;">${kelData.nama}${metricBadgeText}</span>`,
+                { permanent: thematicMode !== 'none', direction: 'center', className: 'thematic-kel-label', interactive: false }
+              );
+
+              layer.bindPopup(`
+                <div style="font-family:system-ui;font-size:12px;padding:4px 2px;min-width:220px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:6px;">
+                    <b style="color:#0f172a;font-size:13px;">📍 Kel. ${kelData.nama}</b>
+                    <span style="font-size:10px;font-weight:800;color:#64748b;background:#f1f5f9;padding:1px 6px;border-radius:4px;">Kec. ${kelData.kecamatan}</span>
+                  </div>
+
+                  ${metricInfoHtml}
+
+                  <div style="font-size:11.5px;color:#334155;margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;justify-content:space-between;"><span>🌾 Sawah Baku:</span><b>${kelData.luasSawahHa.toFixed(2)} Ha</b></div>
+                    <div style="display:flex;justify-content:space-between;"><span>👥 Penduduk:</span><b>${kelData.penduduk ? kelData.penduduk.toLocaleString('id-ID') : '-'} Jiwa</b></div>
+                    <div style="display:flex;justify-content:space-between;"><span>📊 Rasio Sawah/Kapita:</span><b>${kelData.penduduk ? (kelData.luasSawahHa * 10000 / kelData.penduduk).toFixed(1) : 0} m²/jiwa</b></div>
+                  </div>
+
+                  <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+                    ${kelData.isPlaceholder
+                      ? `<span style="font-size:9px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:2px 5px;border-radius:4px;font-weight:800;">ℹ️ Placeholder (Siap Input Admin)</span>`
+                      : `<span style="font-size:9px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 5px;border-radius:4px;font-weight:800;">✅ Data Terverifikasi</span>`
+                    }
+                  </div>
+                </div>
+              `);
+            }}
+          />
+        );
+      })}
+    </>
+  );
 }
 
 export default function AIIntelligenceMap({
@@ -243,10 +400,16 @@ export default function AIIntelligenceMap({
   const mapRef = useRef<L.Map | null>(null);
   const { layers, loading: kmzLoading, loadFromURL } = useKMZLoader();
 
-  // Basemap & Layer visibility state (UI/UX Serumpun Padi)
+  // Basemap & Layer visibility state
   const [showOsm, setShowOsm] = useState(false);
   const [mapZoom, setMapZoom] = useState(12.5);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
+
+  // Thematic Choropleth Mode & Dynamic Legend (Fase 1)
+  const [thematicMode, setThematicMode] = useState<ThematicMode>('none');
+  const [thematicOpacity, setThematicOpacity] = useState<number>(0.65);
+  const [showThematicMenu, setShowThematicMenu] = useState(false);
+  const [legendExpanded, setLegendExpanded] = useState(true);
 
   // Sector layer toggles
   const [showSawah, setShowSawah] = useState(true);
@@ -261,20 +424,59 @@ export default function AIIntelligenceMap({
   const [showKecamatan, setShowKecamatan] = useState(true);
   const [showKelurahan, setShowKelurahan] = useState(true);
 
-  // Realtime Smart Layer Activation dari Chatbot AI Prompt
+  // Supabase indicator data state
+  const [indicatorData, setIndicatorData] = useState<{
+    fsvaMatang: any[];
+    skpgMatang: any[];
+    giziBalita: any[];
+  }>({
+    fsvaMatang: [],
+    skpgMatang: [],
+    giziBalita: [],
+  });
+
+  // Fetch real data from Supabase for indicators
   useEffect(() => {
-    if (!mapAction?.layersToEnable) return;
-    const l = mapAction.layersToEnable;
-    if (l.includes('sawah')) setShowSawah(true);
-    if (l.includes('nelayan')) setShowNelayan(true);
-    if (l.includes('kolam')) setShowKolam(true);
-    if (l.includes('poktan')) setShowPoktan(true);
-    if (l.includes('kwt')) setShowKWT(true);
-    if (l.includes('ternak')) setShowPoktan(true);
-    if (l.includes('horti')) setShowHorti(true);
-    if (l.includes('palawija')) setShowPalawija(true);
-    if (l.includes('kelurahan')) setShowKelurahan(true);
-    if (l.includes('kecamatan')) setShowKecamatan(true);
+    async function fetchIndicatorData() {
+      try {
+        const [fsvaRes, skpgRes, giziRes] = await Promise.all([
+          supabase.from('fsva_matang').select('*'),
+          supabase.from('skpg_matang').select('*'),
+          supabase.from('gizi_balita_skpg_kelurahan').select('*').limit(100),
+        ]);
+
+        setIndicatorData({
+          fsvaMatang: fsvaRes.data || [],
+          skpgMatang: skpgRes.data || [],
+          giziBalita: giziRes.data || [],
+        });
+      } catch (err) {
+        console.warn('Fallback ke baseline 43 kelurahan Cilegon:', err);
+      }
+    }
+    fetchIndicatorData();
+  }, []);
+
+  // Realtime Smart Layer & Thematic Activation dari Chatbot AI Prompt
+  useEffect(() => {
+    if (!mapAction) return;
+    if (mapAction.thematicMode) {
+      setThematicMode(mapAction.thematicMode);
+      setShowKelurahan(true);
+    }
+    if (mapAction.layersToEnable) {
+      const l = mapAction.layersToEnable;
+      if (l.includes('sawah')) setShowSawah(true);
+      if (l.includes('nelayan')) setShowNelayan(true);
+      if (l.includes('kolam')) setShowKolam(true);
+      if (l.includes('poktan')) setShowPoktan(true);
+      if (l.includes('kwt')) setShowKWT(true);
+      if (l.includes('ternak')) setShowPoktan(true);
+      if (l.includes('horti')) setShowHorti(true);
+      if (l.includes('palawija')) setShowPalawija(true);
+      if (l.includes('kelurahan')) setShowKelurahan(true);
+      if (l.includes('kecamatan')) setShowKecamatan(true);
+    }
   }, [mapAction]);
 
   // Database pin data fetched from sp_cache_data
@@ -371,7 +573,7 @@ export default function AIIntelligenceMap({
     return Array.from(set);
   }, [highlightWilayah, mapAction]);
 
-  // Dynamic custom pin icon builder for AI highlights (Thematic Serumpun Padi style)
+  // Dynamic custom pin icon builder for AI highlights
   const createAiPinIcon = (category: string, name: string) => {
     const isSawah = category === 'sawah';
     const isWilayah = category === 'wilayah';
@@ -414,15 +616,12 @@ export default function AIIntelligenceMap({
       className: 'custom-ai-thematic-pin',
       html: `
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
-          <!-- Glowing Animated Radar Pulse -->
           <div class="sp-loc-pulse" style="width:44px;height:44px;background:${bgClass}44;top:calc(100% - 15px);left:50%;margin-left:-22px;margin-top:-22px;"></div>
           
-          <!-- Transparent Floating Label with Sharp White Text and Dark Glow Shadow -->
           <div style="background:transparent;color:#ffffff;font-weight:900;font-size:11.5px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:3px;z-index:10;pointer-events:none;letter-spacing:0.2px;">
             ${name || 'Lokasi'}
           </div>
 
-          <!-- Serumpun Padi Teardrop Marker Pin -->
           <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgClass};border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,0.45);z-index:5;">
             <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.52)}px">${iconEmoji}</span>
           </div>
@@ -432,6 +631,8 @@ export default function AIIntelligenceMap({
       iconAnchor: [0, 0],
     });
   };
+
+  const legendConfig = useMemo(() => getThematicLegendConfig(thematicMode), [thematicMode]);
 
   return (
     <div className="w-full h-full relative overflow-hidden select-none">
@@ -443,7 +644,7 @@ export default function AIIntelligenceMap({
         zoomControl={true}
         attributionControl={false}
       >
-        {/* Basemap Satelit Esri (Default Serumpun Padi) */}
+        {/* Basemap Satelit Esri */}
         <TileLayer
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           attribution='<span style="background:#fff;border:1.5px solid #e0e0e0;border-radius:5px;padding:2px 9px 2px 6px;font-weight:800;color:#c45200;font-size:11px;display:inline-flex;align-items:center;gap:5px;vertical-align:middle">🐺 RidwanS</span> Tiles &copy; Esri'
@@ -458,7 +659,7 @@ export default function AIIntelligenceMap({
           />
         )}
 
-        {/* Serumpun Padi Top-Left Controls & Helpers */}
+        {/* Controls & Helpers */}
         <MapRefSetter mapRef={mapRef} />
         <MapZoomTracker setZoom={setMapZoom} />
         <MoveZoomControl />
@@ -471,6 +672,9 @@ export default function AIIntelligenceMap({
           highlightWilayah={combinedWilayah}
           highlightPins={validAiPins}
           mapAction={mapAction}
+          thematicMode={thematicMode}
+          thematicOpacity={thematicOpacity}
+          indicatorData={indicatorData}
           kecLayerRef={kecLayerRef}
           kelLayerRef={kelLayerRef}
         />
@@ -480,9 +684,15 @@ export default function AIIntelligenceMap({
           <KecamatanLayer data={layers.kecamatan} />
         )}
 
-        {/* 2. Layer Kelurahan */}
+        {/* 2. Layer Kelurahan dengan Dynamic Thematic Choropleth (Fase 1) */}
         {showKelurahan && layers.kelurahan?.length > 0 && (
-          <KelurahanLayer data={layers.kelurahan} />
+          <ThematicKelurahanLayer
+            data={layers.kelurahan}
+            thematicMode={thematicMode}
+            thematicOpacity={thematicOpacity}
+            indicatorData={indicatorData}
+            kelLayerRef={kelLayerRef}
+          />
         )}
 
         {/* 3. Layer Sawah Baku (407 Petak) */}
@@ -556,138 +766,279 @@ export default function AIIntelligenceMap({
         ))}
       </MapContainer>
 
-      {/* Floating Layer Filter Panel (Slick Glassmorphism UI) */}
-      <div className="absolute top-3 right-3 z-[500] flex flex-col items-end">
-        <button
-          onClick={() => setShowLayersPanel((p) => !p)}
-          className="flex items-center gap-2 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-3 py-1.5 rounded-xl shadow-md hover:bg-white hover:border-slate-300 transition-all text-xs font-black tracking-wide cursor-pointer"
-        >
-          <Layers className="w-3.5 h-3.5 text-emerald-600" />
-          <span>LAYER PETA</span>
-          {showLayersPanel ? (
-            <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+      {/* Floating Top-Right Toolbars: Thematic Choropleth Selector & Layer Filter */}
+      <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
+        
+        {/* Thematic Mode Selector (Fase 1) */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowThematicMenu((p) => !p);
+              setShowLayersPanel(false);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-md border text-xs font-black tracking-wide transition-all cursor-pointer ${
+              thematicMode !== 'none'
+                ? 'bg-emerald-700 text-white border-emerald-800 shadow-emerald-700/30'
+                : 'bg-white/95 backdrop-blur-md border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300'
+            }`}
+            title="Pilih Indikator Tematik Poligon Kelurahan"
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${thematicMode !== 'none' ? 'text-amber-300 animate-pulse' : 'text-emerald-600'}`} />
+            <span>
+              {thematicMode === 'none' && 'TEMA: NETRAL'}
+              {thematicMode === 'ikp' && 'TEMA: IKP'}
+              {thematicMode === 'penduduk' && 'TEMA: PENDUDUK'}
+              {thematicMode === 'fsva' && 'TEMA: FSVA'}
+              {thematicMode === 'skpg' && 'TEMA: SKPG'}
+              {thematicMode === 'stunting' && 'TEMA: STUNTING'}
+            </span>
+            {showThematicMenu ? <ChevronUp className="w-3.5 h-3.5 opacity-70" /> : <ChevronDown className="w-3.5 h-3.5 opacity-70" />}
+          </button>
+
+          {showThematicMenu && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-white/98 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl p-2.5 text-xs flex flex-col gap-1 z-[600] animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
+                <span>PILIH INDIKATOR TEMATIK</span>
+                <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-black">FASE 1</span>
+              </div>
+
+              {[
+                { id: 'none', label: '🌟 Netral / Garis Batas', desc: 'Transparan fokus citra satelit & petak sawah' },
+                { id: 'ikp', label: '🌾 Indeks Ketahanan Pangan', desc: '6 kategori ketahanan standar Bapanas' },
+                { id: 'penduduk', label: '👥 Kepadatan Penduduk', desc: 'Total 480.378 jiwa se-Kota Cilegon' },
+                { id: 'fsva', label: '🗺️ Prioritas Kerentanan FSVA', desc: 'Prioritas 1 s/d 6 kerentanan pangan' },
+                { id: 'skpg', label: '📊 Status Kewaspadaan SKPG', desc: 'Aman (<10%), Waspada, dan Rentan' },
+                { id: 'stunting', label: '👶 Prevalensi Stunting Balita', desc: 'Persentase kasus gizi balita posyandu' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setThematicMode(opt.id as ThematicMode);
+                    setShowThematicMenu(false);
+                    if (opt.id !== 'none') {
+                      setShowKelurahan(true);
+                    }
+                  }}
+                  className={`flex flex-col items-start px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer ${
+                    thematicMode === opt.id
+                      ? 'bg-emerald-50 text-emerald-900 font-black border border-emerald-200'
+                      : 'text-slate-700 hover:bg-slate-100 font-bold'
+                  }`}
+                >
+                  <span className="text-[11.5px]">{opt.label}</span>
+                  <span className="text-[9.5px] font-medium text-slate-400 mt-0.5">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
 
-        {showLayersPanel && (
-          <div className="mt-2 w-64 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl p-3 text-xs flex flex-col gap-2.5 max-h-[75vh] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
-                Filter Layer GIS
-              </span>
-              <span className="text-[9.5px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-                Serumpun Padi
-              </span>
+        {/* Layer Filter Panel Button */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowLayersPanel((p) => !p);
+              setShowThematicMenu(false);
+            }}
+            className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-3 py-1.5 rounded-xl shadow-md hover:bg-white hover:border-slate-300 transition-all text-xs font-black tracking-wide cursor-pointer"
+          >
+            <Layers className="w-3.5 h-3.5 text-emerald-600" />
+            <span>LAYER</span>
+            {showLayersPanel ? (
+              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            )}
+          </button>
+
+          {showLayersPanel && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-white/98 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl p-3 text-xs flex flex-col gap-2.5 max-h-[75vh] overflow-y-auto custom-scrollbar z-[600] animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
+                  Filter Layer GIS
+                </span>
+                <span className="text-[9.5px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                  Serumpun Padi
+                </span>
+              </div>
+
+              {/* Toggle Sawah Baku */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>🌾</span> Sawah Baku ({layers.sawah?.length || 407} Petak)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showSawah}
+                  onChange={(e) => setShowSawah(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Toggle Poktan / KWT */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>👨🌾</span> Poktan & KWT
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showPoktan}
+                  onChange={(e) => {
+                    setShowPoktan(e.target.checked);
+                    setShowKWT(e.target.checked);
+                    setShowGapoktan(e.target.checked);
+                  }}
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Toggle Kolam Ikan */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>🐟</span> Perikanan Budidaya
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showKolam}
+                  onChange={(e) => setShowKolam(e.target.checked)}
+                  className="w-4 h-4 accent-cyan-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Toggle Nelayan Tangkap */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>⛵</span> Nelayan Tangkap
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showNelayan}
+                  onChange={(e) => setShowNelayan(e.target.checked)}
+                  className="w-4 h-4 accent-teal-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Toggle Horti & Palawija */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>🌶️</span> Hortikultura & Palawija
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showHorti && showPalawija}
+                  onChange={(e) => {
+                    setShowHorti(e.target.checked);
+                    setShowPalawija(e.target.checked);
+                  }}
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Toggle Batas Wilayah */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
+                <span className="flex items-center gap-2">
+                  <span>🏛️</span> Batas Administrasi
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showKecamatan && showKelurahan}
+                  onChange={(e) => {
+                    setShowKecamatan(e.target.checked);
+                    setShowKelurahan(e.target.checked);
+                  }}
+                  className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Overlay OSM switch */}
+              <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-600">Overlay Jalan & Sungai</span>
+                <button
+                  type="button"
+                  onClick={() => setShowOsm((p) => !p)}
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-md transition-colors ${
+                    showOsm
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {showOsm ? 'AKTIF' : 'OFF'}
+                </button>
+              </div>
             </div>
-
-            {/* Toggle Sawah Baku */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>🌾</span> Sawah Baku ({layers.sawah?.length || 407} Petak)
-              </span>
-              <input
-                type="checkbox"
-                checked={showSawah}
-                onChange={(e) => setShowSawah(e.target.checked)}
-                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Toggle Poktan / KWT */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>👨🌾</span> Poktan & KWT
-              </span>
-              <input
-                type="checkbox"
-                checked={showPoktan}
-                onChange={(e) => {
-                  setShowPoktan(e.target.checked);
-                  setShowKWT(e.target.checked);
-                  setShowGapoktan(e.target.checked);
-                }}
-                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Toggle Kolam Ikan */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>🐟</span> Perikanan Budidaya
-              </span>
-              <input
-                type="checkbox"
-                checked={showKolam}
-                onChange={(e) => setShowKolam(e.target.checked)}
-                className="w-4 h-4 accent-cyan-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Toggle Nelayan Tangkap */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>⛵</span> Nelayan Tangkap
-              </span>
-              <input
-                type="checkbox"
-                checked={showNelayan}
-                onChange={(e) => setShowNelayan(e.target.checked)}
-                className="w-4 h-4 accent-teal-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Toggle Horti & Palawija */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>🌶️</span> Hortikultura & Palawija
-              </span>
-              <input
-                type="checkbox"
-                checked={showHorti && showPalawija}
-                onChange={(e) => {
-                  setShowHorti(e.target.checked);
-                  setShowPalawija(e.target.checked);
-                }}
-                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Toggle Batas Wilayah */}
-            <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-              <span className="flex items-center gap-2">
-                <span>🏛️</span> Batas Administrasi
-              </span>
-              <input
-                type="checkbox"
-                checked={showKecamatan && showKelurahan}
-                onChange={(e) => {
-                  setShowKecamatan(e.target.checked);
-                  setShowKelurahan(e.target.checked);
-                }}
-                className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
-              />
-            </label>
-
-            {/* Overlay OSM switch */}
-            <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-600">Overlay Jalan & Sungai</span>
-              <button
-                type="button"
-                onClick={() => setShowOsm((p) => !p)}
-                className={`text-[10px] font-black px-2 py-0.5 rounded-md transition-colors ${
-                  showOsm
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {showOsm ? 'AKTIF' : 'OFF'}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Floating Adaptive Thematic Legend (Bottom-Right Panel) */}
+      {legendConfig && (
+        <div className="absolute bottom-3 right-3 z-[500] max-w-[270px] w-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl p-3 text-xs flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 gap-3">
+            <div className="flex flex-col">
+              <span className="font-extrabold text-slate-800 text-[11px] leading-tight flex items-center gap-1">
+                <span>🎨</span> {legendConfig.title}
+              </span>
+              <span className="text-[9px] text-slate-400 font-bold mt-0.5">
+                {legendConfig.subtitle}
+              </span>
+            </div>
+            <button
+              onClick={() => setLegendExpanded((p) => !p)}
+              className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer shrink-0"
+              title={legendExpanded ? 'Sembunyikan Legenda' : 'Tampilkan Legenda'}
+            >
+              {legendExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {legendExpanded && (
+            <>
+              <div className="flex flex-col gap-1.5 py-1 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                {legendConfig.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-2 text-[10.5px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="w-3 h-3 rounded-xs shrink-0 border"
+                        style={{
+                          backgroundColor: item.color,
+                          borderColor: item.borderColor || item.color,
+                          opacity: thematicOpacity,
+                        }}
+                      />
+                      <span className="font-bold text-slate-700 truncate">{item.label}</span>
+                    </div>
+                    {item.subLabel && (
+                      <span className="text-[9px] font-semibold text-slate-400 shrink-0">
+                        {item.subLabel}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Opacity Slider Control */}
+              <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[9.5px] font-bold text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <SlidersHorizontal className="w-2.5 h-2.5 text-slate-400" />
+                    Transparansi Poligon
+                  </span>
+                  <span className="text-emerald-700 font-black">{Math.round(thematicOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.3"
+                  max="0.95"
+                  step="0.05"
+                  value={thematicOpacity}
+                  onChange={(e) => setThematicOpacity(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Loading overlay */}
       {kmzLoading && (

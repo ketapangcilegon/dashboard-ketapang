@@ -556,6 +556,7 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
       lng?: number;
       zoom?: number;
       layers_to_enable?: string[];
+      thematic_mode?: 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting';
       pin?: {
         lat: number;
         lng: number;
@@ -673,6 +674,38 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
           zoom: 16,
           layers_to_enable: layersToEnable,
           pin: firstPin
+        };
+      }
+    }
+
+    // Deteksi permintaan ganti mode tematik choropleth (Fase 1)
+    let detectedThematicMode: 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting' | undefined;
+    if (userQueryLower.includes('penduduk') || userQueryLower.includes('populasi') || userQueryLower.includes('kepadatan')) {
+      detectedThematicMode = 'penduduk';
+    } else if (userQueryLower.includes('ikp') || (userQueryLower.includes('ketahanan') && userQueryLower.includes('pangan') && userQueryLower.includes('peta'))) {
+      detectedThematicMode = 'ikp';
+    } else if (userQueryLower.includes('fsva') || userQueryLower.includes('prioritas kerentanan')) {
+      detectedThematicMode = 'fsva';
+    } else if (userQueryLower.includes('skpg') || userQueryLower.includes('kewaspadaan pangan')) {
+      detectedThematicMode = 'skpg';
+    } else if (userQueryLower.includes('stunting') || userQueryLower.includes('gizi')) {
+      detectedThematicMode = 'stunting';
+    }
+
+    if (detectedThematicMode) {
+      if (mapAction) {
+        mapAction.thematic_mode = detectedThematicMode;
+        if (!mapAction.layers_to_enable?.includes('kelurahan')) {
+          mapAction.layers_to_enable = [...(mapAction.layers_to_enable || []), 'kelurahan'];
+        }
+      } else {
+        mapAction = {
+          type: 'HIGHLIGHT',
+          lat: -6.01,
+          lng: 106.02,
+          zoom: 12.5,
+          layers_to_enable: ['kelurahan'],
+          thematic_mode: detectedThematicMode
         };
       }
     }
