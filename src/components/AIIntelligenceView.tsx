@@ -130,13 +130,6 @@ export default function AIIntelligenceView() {
                 onTriggerChatPrompt={handleTriggerChatPrompt}
               />
 
-              {/* Floating Badge Top-Left Sesuai Mockup 1 */}
-              <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
-                <span className="text-[10px] font-black text-slate-800 tracking-wider uppercase">
-                  + AI GIS INTELLIGENCE
-                </span>
-              </div>
-
               {/* Info hint Bottom-Left Sesuai Mockup 1 */}
               <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
                 <Info className="w-2.5 h-2.5 text-slate-400" />
@@ -210,11 +203,6 @@ export default function AIIntelligenceView() {
                 mapAction={mapAction}
                 onTriggerChatPrompt={handleTriggerChatPrompt}
               />
-              <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm">
-                <span className="text-[9px] font-black text-slate-800 tracking-wider uppercase">
-                  + AI GIS INTELLIGENCE
-                </span>
-              </div>
               <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/85 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
                 <Info className="w-2.5 h-2.5 text-slate-400" />
                 <span className="text-[9px] font-bold text-slate-500">

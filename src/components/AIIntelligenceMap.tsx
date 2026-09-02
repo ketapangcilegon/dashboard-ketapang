@@ -315,6 +315,7 @@ function ThematicKelurahanLayer({
   kelLayerRef,
   filterActive = false,
   filteredWilayah = [],
+  showKelurahanLabels = true,
   onTriggerChatPrompt,
 }: {
   data: any[];
@@ -324,6 +325,7 @@ function ThematicKelurahanLayer({
   kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
   filterActive?: boolean;
   filteredWilayah?: string[];
+  showKelurahanLabels?: boolean;
   onTriggerChatPrompt?: (prompt: string) => void;
 }) {
   if (!data?.length) return null;
@@ -431,10 +433,17 @@ function ThematicKelurahanLayer({
                 },
               });
 
-              layer.bindTooltip(
-                `<span style="font-weight:800;font-size:11px;color:#ffffff;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;pointer-events:none;">${kelData.nama}${metricBadgeText}</span>`,
-                { permanent: thematicMode !== 'none', direction: 'center', className: 'thematic-kel-label', interactive: false }
-              );
+              if (showKelurahanLabels) {
+                layer.bindTooltip(
+                  `<span class="gis-label-kelurahan">${kelData.nama}</span>`,
+                  {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'transparent-gis-label',
+                    interactive: false
+                  }
+                );
+              }
 
               layer.bindPopup(`
                 <div style="font-family:system-ui;font-size:12px;padding:4px 2px;min-width:230px;">
@@ -504,8 +513,11 @@ export default function AIIntelligenceMap({
   // Thematic Choropleth Mode & Dynamic Legend (Fase 1)
   const [thematicMode, setThematicMode] = useState<ThematicMode>('none');
   const [thematicOpacity, setThematicOpacity] = useState<number>(0.65);
-  const [showThematicMenu, setShowThematicMenu] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(true);
+
+  // Label Toggles (Nama Kecamatan & Nama Kelurahan)
+  const [showKelurahanLabels, setShowKelurahanLabels] = useState(true);
+  const [showKecamatanLabels, setShowKecamatanLabels] = useState(true);
 
   // Spatial Filter state (Fase 2: Natural Language to GIS Querying)
   const [filterActive, setFilterActive] = useState<boolean>(false);
@@ -747,6 +759,36 @@ export default function AIIntelligenceMap({
 
   return (
     <div className="w-full h-full relative overflow-hidden select-none">
+      <style>{`
+        .transparent-gis-label,
+        .leaflet-tooltip.transparent-gis-label,
+        .thematic-kel-label,
+        .leaflet-tooltip.thematic-kel-label {
+          background: transparent !important;
+          background-color: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          white-space: nowrap !important;
+        }
+        .gis-label-kelurahan {
+          font-size: 8.5px !important;
+          font-weight: 700 !important;
+          color: #ffffff !important;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important;
+          pointer-events: none !important;
+          letter-spacing: 0.2px !important;
+        }
+        .gis-label-kecamatan {
+          font-size: 13px !important;
+          font-weight: 900 !important;
+          color: #fef08a !important;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.95), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000 !important;
+          pointer-events: none !important;
+          letter-spacing: 1.2px !important;
+          text-transform: uppercase !important;
+        }
+      `}</style>
       <MapContainer
         center={[-6.01, 106.02]}
         zoom={12.5}
@@ -815,12 +857,35 @@ export default function AIIntelligenceMap({
 
         {/* 1. Layer Kecamatan */}
         {showKecamatan && layers.kecamatan?.length > 0 && (
-          <KecamatanLayer data={layers.kecamatan} />
+          <KecamatanLayer
+            key={`kec-layer-${showKecamatanLabels}`}
+            data={layers.kecamatan}
+            onEachFeature={(feat: any, l: L.Layer) => {
+              const name = feat.properties?.name || feat.properties?.Name || '';
+              if (showKecamatanLabels) {
+                l.bindTooltip(
+                  `<span class="gis-label-kecamatan">${name.toUpperCase()}</span>`,
+                  {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'transparent-gis-label',
+                    interactive: false
+                  }
+                );
+              }
+              l.bindPopup(`
+                <div style="font-family:system-ui;font-size:12px;padding:4px 0">
+                  <b style="color:#c0392b;font-size:13px;">🏛️ Kecamatan: ${name}</b>
+                </div>
+              `);
+            }}
+          />
         )}
 
         {/* 2. Layer Kelurahan dengan Dynamic Thematic Choropleth & Reverse Intelligence (Fase 1 & 2) */}
         {showKelurahan && layers.kelurahan?.length > 0 && (
           <ThematicKelurahanLayer
+            key={`kel-layer-${showKelurahanLabels}`}
             data={layers.kelurahan}
             thematicMode={thematicMode}
             thematicOpacity={thematicOpacity}
@@ -828,6 +893,7 @@ export default function AIIntelligenceMap({
             kelLayerRef={kelLayerRef}
             filterActive={filterActive}
             filteredWilayah={filteredWilayah}
+            showKelurahanLabels={showKelurahanLabels}
             onTriggerChatPrompt={onTriggerChatPrompt}
           />
         )}
@@ -944,79 +1010,13 @@ export default function AIIntelligenceMap({
         ))}
       </MapContainer>
 
-      {/* Floating Top-Right Toolbars: Thematic Choropleth Selector & Layer Filter */}
+      {/* Floating Top-Right Toolbar: Layer Filter */}
       <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
-        
-        {/* Thematic Mode Selector (Fase 1) */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowThematicMenu((p) => !p);
-              setShowLayersPanel(false);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-md border text-xs font-black tracking-wide transition-all cursor-pointer ${
-              thematicMode !== 'none'
-                ? 'bg-emerald-700 text-white border-emerald-800 shadow-emerald-700/30'
-                : 'bg-white/95 backdrop-blur-md border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300'
-            }`}
-            title="Pilih Indikator Tematik Poligon Kelurahan"
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${thematicMode !== 'none' ? 'text-amber-300 animate-pulse' : 'text-emerald-600'}`} />
-            <span>
-              {thematicMode === 'none' && 'TEMA: NETRAL'}
-              {thematicMode === 'ikp' && 'TEMA: IKP'}
-              {thematicMode === 'penduduk' && 'TEMA: PENDUDUK'}
-              {thematicMode === 'fsva' && 'TEMA: FSVA'}
-              {thematicMode === 'skpg' && 'TEMA: SKPG'}
-              {thematicMode === 'stunting' && 'TEMA: STUNTING'}
-            </span>
-            {showThematicMenu ? <ChevronUp className="w-3.5 h-3.5 opacity-70" /> : <ChevronDown className="w-3.5 h-3.5 opacity-70" />}
-          </button>
-
-          {showThematicMenu && (
-            <div className="absolute top-full right-0 mt-2 w-64 bg-white/98 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl p-2.5 text-xs flex flex-col gap-1 z-[600] animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
-                <span>PILIH INDIKATOR TEMATIK</span>
-                <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-black">FASE 1</span>
-              </div>
-
-              {[
-                { id: 'none', label: '🌟 Netral / Garis Batas', desc: 'Transparan fokus citra satelit & petak sawah' },
-                { id: 'ikp', label: '🌾 Indeks Ketahanan Pangan', desc: '6 kategori ketahanan standar Bapanas' },
-                { id: 'penduduk', label: '👥 Kepadatan Penduduk', desc: 'Total 480.378 jiwa se-Kota Cilegon' },
-                { id: 'fsva', label: '🗺️ Prioritas Kerentanan FSVA', desc: 'Prioritas 1 s/d 6 kerentanan pangan' },
-                { id: 'skpg', label: '📊 Status Kewaspadaan SKPG', desc: 'Aman (<10%), Waspada, dan Rentan' },
-                { id: 'stunting', label: '👶 Prevalensi Stunting Balita', desc: 'Persentase kasus gizi balita posyandu' },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => {
-                    setThematicMode(opt.id as ThematicMode);
-                    setShowThematicMenu(false);
-                    if (opt.id !== 'none') {
-                      setShowKelurahan(true);
-                    }
-                  }}
-                  className={`flex flex-col items-start px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer ${
-                    thematicMode === opt.id
-                      ? 'bg-emerald-50 text-emerald-900 font-black border border-emerald-200'
-                      : 'text-slate-700 hover:bg-slate-100 font-bold'
-                  }`}
-                >
-                  <span className="text-[11.5px]">{opt.label}</span>
-                  <span className="text-[9.5px] font-medium text-slate-400 mt-0.5">{opt.desc}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Layer Filter Panel Button */}
         <div className="relative">
           <button
             onClick={() => {
               setShowLayersPanel((p) => !p);
-              setShowThematicMenu(false);
             }}
             className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-3 py-1.5 rounded-xl shadow-md hover:bg-white hover:border-slate-300 transition-all text-xs font-black tracking-wide cursor-pointer"
           >
@@ -1127,6 +1127,39 @@ export default function AIIntelligenceMap({
                   className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
                 />
               </label>
+
+              {/* Sub-toggles: Label Nama Kecamatan & Kelurahan */}
+              <div className="border-t border-slate-100 pt-2 flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-200/60">
+                <div className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-0.5">
+                  Label Teks Peta
+                </div>
+
+                {/* Toggle Label Nama Kecamatan (Besar) */}
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-lg cursor-pointer transition-colors text-[11px]">
+                  <span className="flex items-center gap-1.5">
+                    <span>🏷️</span> Nama Kecamatan <span className="text-[9px] text-amber-700 bg-amber-100 px-1 py-0.2 rounded font-black">Besar</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showKecamatanLabels}
+                    onChange={(e) => setShowKecamatanLabels(e.target.checked)}
+                    className="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer"
+                  />
+                </label>
+
+                {/* Toggle Label Nama Kelurahan (Kecil) */}
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-lg cursor-pointer transition-colors text-[11px]">
+                  <span className="flex items-center gap-1.5">
+                    <span>🏷️</span> Nama Kelurahan <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded font-black">Kecil</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showKelurahanLabels}
+                    onChange={(e) => setShowKelurahanLabels(e.target.checked)}
+                    className="w-3.5 h-3.5 accent-emerald-600 rounded cursor-pointer"
+                  />
+                </label>
+              </div>
 
               {/* Overlay OSM switch */}
               <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
