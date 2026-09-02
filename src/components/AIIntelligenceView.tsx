@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Sparkles, Map, MessageSquare, Info, RefreshCw, MapPin, Grid, Layers } from 'lucide-react';
-import AIIntelligencePanel, { MatchedPin } from './AIIntelligencePanel';
+import AIIntelligencePanel, { MatchedPin, MapAction } from './AIIntelligencePanel';
 
 // ============================================================
 // AIIntelligenceView
@@ -26,6 +26,7 @@ const AIIntelligenceMap = dynamic(
 export default function AIIntelligenceView() {
   const [highlightWilayah, setHighlightWilayah] = useState<string[]>([]);
   const [highlightPins, setHighlightPins] = useState<MatchedPin[]>([]);
+  const [mapAction, setMapAction] = useState<MapAction | null>(null);
   const [activeTab, setActiveTab] = useState<'split' | 'map' | 'chat'>('split');
 
   useEffect(() => {
@@ -42,9 +43,14 @@ export default function AIIntelligenceView() {
     setHighlightPins(pins);
   }, []);
 
+  const handleMapAction = useCallback((action: MapAction) => {
+    setMapAction(action);
+  }, []);
+
   const clearHighlight = () => {
     setHighlightWilayah([]);
     setHighlightPins([]);
+    setMapAction(null);
   };
 
   return (
@@ -107,6 +113,7 @@ export default function AIIntelligenceView() {
               <AIIntelligenceMap 
                 highlightWilayah={highlightWilayah} 
                 highlightPins={highlightPins}
+                mapAction={mapAction}
               />
 
               {/* Floating Badge Top-Left Sesuai Mockup 1 */}
@@ -136,6 +143,7 @@ export default function AIIntelligenceView() {
               <AIIntelligencePanel
                 onWilayahHighlight={handleWilayahHighlight}
                 onPinsHighlight={handlePinsHighlight}
+                onMapAction={handleMapAction}
                 isFullScreen={true}
               />
             </div>
@@ -170,6 +178,7 @@ export default function AIIntelligenceView() {
               <AIIntelligencePanel
                 onWilayahHighlight={handleWilayahHighlight}
                 onPinsHighlight={handlePinsHighlight}
+                onMapAction={handleMapAction}
                 isFullScreen={true}
               />
             </div>
@@ -180,6 +189,7 @@ export default function AIIntelligenceView() {
               <AIIntelligenceMap 
                 highlightWilayah={highlightWilayah} 
                 highlightPins={highlightPins}
+                mapAction={mapAction}
               />
               <div className="absolute top-3 left-14 z-[500] flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm">
                 <span className="text-[9px] font-black text-slate-800 tracking-wider uppercase">

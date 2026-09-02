@@ -22,6 +22,8 @@ import {
   Database
 } from 'lucide-react';
 
+import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
+
 // ============================================================
 // AIIntelligencePanel
 // Panel chat interaktif AI Food Intelligence (ChatGPT UI/UX Style)
@@ -49,9 +51,20 @@ export interface MatchedPin {
   kecamatan: string;
 }
 
+export interface MapAction {
+  type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT';
+  target?: string;
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+  layersToEnable?: string[];
+  pin?: MatchedPin;
+}
+
 interface AIIntelligencePanelProps {
   onWilayahHighlight?: (wilayah: string[]) => void;
   onPinsHighlight?: (pins: MatchedPin[]) => void;
+  onMapAction?: (action: MapAction) => void;
   isFullScreen?: boolean;
 }
 
@@ -205,6 +218,7 @@ function parseBold(text: string): React.ReactNode {
 export default function AIIntelligencePanel({
   onWilayahHighlight,
   onPinsHighlight,
+  onMapAction,
   isFullScreen = false
 }: AIIntelligencePanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -235,6 +249,33 @@ export default function AIIntelligencePanel({
     scrollToBottom(true);
   }, [messages, loading, scrollToBottom]);
 
+  // Handle klik chip sorotan wilayah untuk interaksi langsung ke peta
+  const handleWilayahClick = (wilayahName: string) => {
+    const cleanName = wilayahName.replace(/^Kelurahan\s+|^Kecamatan\s+/i, '').trim();
+    const coord = KELURAHAN_COORDINATES[cleanName];
+    if (coord && onMapAction) {
+      onMapAction({
+        type: 'FLY_TO',
+        target: cleanName,
+        lat: coord.lat,
+        lng: coord.lng,
+        zoom: 16,
+        layersToEnable: ['kelurahan', 'sawah'],
+        pin: {
+          lat: coord.lat,
+          lng: coord.lng,
+          name: `Kelurahan ${cleanName}`,
+          category: 'wilayah',
+          kelurahan: cleanName,
+          kecamatan: coord.kec
+        }
+      });
+    }
+    if (onWilayahHighlight) {
+      onWilayahHighlight([cleanName]);
+    }
+  };
+
   // Monitor scroll position
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
@@ -243,10 +284,10 @@ export default function AIIntelligencePanel({
     setShowScrollBottom(isUp);
   };
 
-  // Load sync status
+  // Status sync data Serumpun Padi
   const loadSync = useCallback(async () => {
     try {
-      const res = await fetch('/api/ai-intelligence');
+      const res = await fetch('/api/sp-sync');
       if (res.ok) {
         const data = await res.json();
         setSyncStatus(data);
@@ -292,6 +333,42 @@ export default function AIIntelligencePanel({
     setLoading(true);
     setPlusMenuOpen(false);
 
+    // ─── INSTANT REAL-TIME MAP REACTION (Client Pre-trigger) ───
+    const queryLower = trimmed.toLowerCase();
+    for (const [kelName, coord] of Object.entries(KELURAHAN_COORDINATES)) {
+      if (queryLower.includes(kelName.toLowerCase())) {
+        const isSawah = queryLower.includes('sawah');
+        const layers = ['kelurahan'];
+        if (isSawah) layers.push('sawah');
+        if (queryLower.includes('nelayan') || queryLower.includes('pangkalan')) layers.push('nelayan');
+        if (queryLower.includes('kolam') || queryLower.includes('budidaya')) layers.push('kolam');
+
+        const prePin: MatchedPin = {
+          lat: coord.lat,
+          lng: coord.lng,
+          name: isSawah ? `Sawah Kelurahan ${kelName}` : `Kelurahan ${kelName}`,
+          category: isSawah ? 'sawah' : 'wilayah',
+          kelurahan: kelName,
+          kecamatan: coord.kec
+        };
+
+        if (onMapAction) {
+          onMapAction({
+            type: 'FLY_TO',
+            target: kelName,
+            lat: coord.lat,
+            lng: coord.lng,
+            zoom: isSawah ? 16 : 15.5,
+            layersToEnable: layers,
+            pin: prePin
+          });
+        }
+        if (onPinsHighlight) onPinsHighlight([prePin]);
+        if (onWilayahHighlight) onWilayahHighlight([kelName]);
+        break;
+      }
+    }
+
     const history = messages.map(m => ({ role: m.role, text: m.text }));
 
     try {
@@ -313,6 +390,17 @@ export default function AIIntelligencePanel({
         };
         setMessages(prev => [...prev, modelMsg]);
 
+        if (data.map_action && onMapAction) {
+          onMapAction({
+            type: data.map_action.type,
+            target: data.map_action.target,
+            lat: data.map_action.lat,
+            lng: data.map_action.lng,
+            zoom: data.map_action.zoom,
+            layersToEnable: data.map_action.layers_to_enable,
+            pin: data.map_action.pin
+          });
+        }
         if (data.wilayah_highlight?.length > 0 && onWilayahHighlight) {
           onWilayahHighlight(data.wilayah_highlight);
         }
@@ -341,7 +429,7 @@ export default function AIIntelligencePanel({
     }
 
     setLoading(false);
-  }, [loading, messages, onWilayahHighlight, onPinsHighlight]);
+  }, [loading, messages, onWilayahHighlight, onPinsHighlight, onMapAction]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -496,12 +584,15 @@ export default function AIIntelligencePanel({
                           📍 Sorotan:
                         </span>
                         {msg.wilayah.map((w, wi) => (
-                          <span 
+                          <button 
                             key={wi} 
-                            className="text-[9.5px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-full"
+                            onClick={() => handleWilayahClick(w)}
+                            className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
+                            title={`Klik untuk mengarahkan peta ke ${w}`}
                           >
-                            {w}
-                          </span>
+                            <span>📍</span>
+                            <span>{w}</span>
+                          </button>
                         ))}
                       </div>
                     )}

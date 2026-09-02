@@ -9,7 +9,7 @@ const GeoJSONComp: any = GeoJSON;
 import 'leaflet/dist/leaflet.css';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { supabase } from '@/lib/supabase';
-import { MatchedPin } from './AIIntelligencePanel';
+import { MatchedPin, MapAction } from './AIIntelligencePanel';
 import {
   MapRefSetter,
   MoveZoomControl,
@@ -40,6 +40,7 @@ import { Layers, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, MapPin } from 'l
 interface AIIntelligenceMapProps {
   highlightWilayah?: string[];
   highlightPins?: MatchedPin[];
+  mapAction?: MapAction | null;
 }
 
 function normalizeName(name: string): string {
@@ -114,11 +115,13 @@ function LayerToggleControl({ setShowOsm }: { setShowOsm: React.Dispatch<React.S
 function HighlightManager({
   highlightWilayah = [],
   highlightPins = [],
+  mapAction = null,
   kecLayerRef,
   kelLayerRef,
 }: {
   highlightWilayah: string[];
   highlightPins: MatchedPin[];
+  mapAction?: MapAction | null;
   kecLayerRef: React.RefObject<L.GeoJSON[]>;
   kelLayerRef: React.RefObject<L.GeoJSON[]>;
 }) {
@@ -126,6 +129,22 @@ function HighlightManager({
 
   useEffect(() => {
     if (!map) return;
+
+    // 0. Prioritas Aksi Langsung dari MapAction (Chatbot Realtime Response)
+    if (mapAction) {
+      if (mapAction.type === 'RESET') {
+        try {
+          map.flyTo([-6.01, 106.02], 12.5, { animate: true, duration: 1.2 });
+        } catch {}
+        return;
+      }
+      if (typeof mapAction.lat === 'number' && typeof mapAction.lng === 'number') {
+        try {
+          map.flyTo([mapAction.lat, mapAction.lng], mapAction.zoom || 16, { animate: true, duration: 1.5 });
+        } catch {}
+        return;
+      }
+    }
 
     const validPins = (highlightPins || []).filter(
       (p) => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
@@ -219,6 +238,7 @@ function HighlightManager({
 export default function AIIntelligenceMap({
   highlightWilayah = [],
   highlightPins = [],
+  mapAction = null,
 }: AIIntelligenceMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const { layers, loading: kmzLoading, loadFromURL } = useKMZLoader();
@@ -240,6 +260,22 @@ export default function AIIntelligenceMap({
   const [showWarning, setShowWarning] = useState(true);
   const [showKecamatan, setShowKecamatan] = useState(true);
   const [showKelurahan, setShowKelurahan] = useState(true);
+
+  // Realtime Smart Layer Activation dari Chatbot AI Prompt
+  useEffect(() => {
+    if (!mapAction?.layersToEnable) return;
+    const l = mapAction.layersToEnable;
+    if (l.includes('sawah')) setShowSawah(true);
+    if (l.includes('nelayan')) setShowNelayan(true);
+    if (l.includes('kolam')) setShowKolam(true);
+    if (l.includes('poktan')) setShowPoktan(true);
+    if (l.includes('kwt')) setShowKWT(true);
+    if (l.includes('ternak')) setShowPoktan(true);
+    if (l.includes('horti')) setShowHorti(true);
+    if (l.includes('palawija')) setShowPalawija(true);
+    if (l.includes('kelurahan')) setShowKelurahan(true);
+    if (l.includes('kecamatan')) setShowKecamatan(true);
+  }, [mapAction]);
 
   // Database pin data fetched from sp_cache_data
   const [dbData, setDbData] = useState<{
@@ -313,15 +349,32 @@ export default function AIIntelligenceMap({
     fetchCachePins();
   }, []);
 
-  // Filter valid AI Matched Pins
+  // Filter valid AI Matched Pins & gabungkan pin dari MapAction jika ada
   const validAiPins = useMemo(() => {
-    return (highlightPins || []).filter(
+    const all = [...(highlightPins || [])];
+    if (mapAction?.pin && typeof mapAction.pin.lat === 'number' && typeof mapAction.pin.lng === 'number') {
+      if (!all.some(p => p.name === mapAction.pin?.name && Math.abs(p.lat - mapAction.pin.lat) < 0.001)) {
+        all.unshift(mapAction.pin);
+      }
+    }
+    return all.filter(
       (p) => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
     );
-  }, [highlightPins]);
+  }, [highlightPins, mapAction]);
+
+  // Gabungkan highlight wilayah dari MapAction target
+  const combinedWilayah = useMemo(() => {
+    const set = new Set(highlightWilayah || []);
+    if (mapAction?.target) {
+      set.add(mapAction.target);
+    }
+    return Array.from(set);
+  }, [highlightWilayah, mapAction]);
 
   // Dynamic custom pin icon builder for AI highlights (Thematic Serumpun Padi style)
   const createAiPinIcon = (category: string, name: string) => {
+    const isSawah = category === 'sawah';
+    const isWilayah = category === 'wilayah';
     const isNelayan = category === 'nelayan';
     const isKolam = category === 'kolam';
     const isTernak = category === 'ternak';
@@ -331,7 +384,8 @@ export default function AIIntelligenceMap({
     const isPalawija = category === 'palawija';
     const isWarning = category === 'warning';
 
-    const bgClass = isNelayan ? '#2ec4b6'
+    const bgClass = isSawah ? '#15803d'
+      : isNelayan ? '#2ec4b6'
       : isKolam ? '#0096c7'
       : isTernak ? '#d97706'
       : isKwt ? '#b5003a'
@@ -339,9 +393,11 @@ export default function AIIntelligenceMap({
       : isHorti ? '#52b788'
       : isPalawija ? '#74c69d'
       : isWarning ? '#e63946'
+      : isWilayah ? '#e11d48'
       : '#16a34a';
 
-    const iconEmoji = isNelayan ? '⛵'
+    const iconEmoji = isSawah ? '🌾'
+      : isNelayan ? '⛵'
       : isKolam ? '🐟'
       : isTernak ? '🐄'
       : isKwt ? '👩🌾'
@@ -349,6 +405,7 @@ export default function AIIntelligenceMap({
       : isHorti ? '🌶️'
       : isPalawija ? '🌿'
       : isWarning ? '⚠️'
+      : isWilayah ? '📍'
       : '🌱';
 
     const size = 30;
@@ -411,8 +468,9 @@ export default function AIIntelligenceMap({
 
         {/* AI Highlight Manager */}
         <HighlightManager
-          highlightWilayah={highlightWilayah}
+          highlightWilayah={combinedWilayah}
           highlightPins={validAiPins}
+          mapAction={mapAction}
           kecLayerRef={kecLayerRef}
           kelLayerRef={kelLayerRef}
         />

@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { searchKnowledgeBase, MatchedKnowledgeChunk } from '@/app/api/knowledge/search/route';
+import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
+
+// Data Luas Sawah Resmi per Kelurahan (Ha) untuk GIS Intelligence Pin
+const KELURAHAN_SAWAH: Record<string, number> = {
+  'Bulakan': 16.53, 'Cibeber': 72.75, 'Cikerai': 16.72, 'Kalitimbang': 5.15, 'Karang Asem': 12.07, 'Kedaleman': 57.95,
+  'Bagendung': 14.80, 'Bendungan': 0.09, 'Ciwaduk': 0.00, 'Ciwedus': 6.59, 'Ketileng': 6.89,
+  'Citangkil': 0.00, 'Deringo': 19.85, 'Kebonsari': 12.37, 'Lebak Denok': 25.43, 'Samangraya': 20.67, 'Taman Baru': 41.78, 'Warnasari': 12.55,
+  'Banjar Negara': 31.79, 'Gunung Sugih': 15.27, 'Kepuh': 57.24, 'Kubangsari': 39.70, 'Randakari': 40.35, 'Tegal Ratu': 82.05,
+  'Gerem': 28.97, 'Gerogol': 41.87, 'Kotasari': 5.60, 'Rawa Arum': 22.56,
+  'Gedong Dalem': 62.13, 'Jombang Wetan': 0.05, 'Masigit': 6.45, 'Panggung Rawi': 102.85, 'Sukmajaya': 57.93,
+  'Lebakgede': 13.60, 'Mekarsari': 0.00, 'Suralaya': 0.00, 'Tamansari': 0.00,
+  'Kebon Dalem': 6.33, 'Kotabumi': 0.00, 'Pabean': 58.93, 'Purwakarta': 75.95, 'Ramanuju': 0.95, 'Tegal Bunder': 59.21
+};
+
+const KECAMATAN_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'Cibeber': { lat: -6.035, lng: 106.065 },
+  'Cilegon': { lat: -6.022, lng: 106.050 },
+  'Citangkil': { lat: -6.012, lng: 106.015 },
+  'Ciwandan': { lat: -6.020, lng: 105.955 },
+  'Gerogol': { lat: -5.972, lng: 106.025 },
+  'Jombang': { lat: -6.005, lng: 106.058 },
+  'Pulo Merak': { lat: -5.920, lng: 106.005 },
+  'Pulomerak': { lat: -5.920, lng: 106.005 },
+  'Purwakarta': { lat: -5.980, lng: 106.050 }
+};
 
 // ============================================================
 // /api/ai-intelligence
@@ -425,7 +450,11 @@ ATURAN PENTING:
 - Gunakan data angka resmi di atas secara akurat, konsisten, dan TIDAK BOLEH MENGARANG ANGKA.
 - Jika pengguna meminta tabel luas lahan sawah dan/atau jumlah penduduk per kelurahan dan kecamatan, WAJIB menyajikan tabel Markdown lengkap merinci seluruh 8 kecamatan dan seluruh kelurahannya dengan kolom: No, Kecamatan, Kelurahan, Luas Sawah (Ha), Jumlah Petak, dan Jumlah Penduduk (Jiwa) sesuai angka resmi.
 - Jika pengguna meminta tabel, rekap data, atau perbandingan (nelayan/kolam/KWT/ternak/sawah/penduduk), SELALU sajikan dalam format Markdown Table yang rapi dan terstruktur (| ... |).
-- ATURAN TAGGING PETA: Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan di Cilegon yang relevan.
+- ATURAN TAGGING PETA & KONTROL GIS REALTIME:
+  * Panel chat Anda terhubung realtime dengan panel Peta GIS di sebelah kiri!
+  * Gunakan format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] untuk setiap nama kecamatan atau kelurahan di Cilegon yang relevan.
+  * Jika pengguna meminta untuk zoom/melihat/fokus/menandai/menaruh pin di suatu kelurahan, sawah, atau lokasi nelayan/kolam (contoh: "zoom ke sawah di kelurahan samangraya", "berikan pin di peta", "tampilkan pangkalan nelayan"):
+    Konfirmasikan dengan ramah bahwa peta di panel kiri telah otomatis diarahkan (flyTo zoom) langsung ke lokasi tersebut, layer yang relevan (seperti layer sawah/nelayan/kolam) telah diaktifkan, dan pin penanda interaktif telah ditancapkan di peta.
 - Format respons menggunakan Markdown (tabel, heading, bullet points, angka cetak tebal).
 
 DATA LENGKAP DETAIL PANEL (Serumpun-Padi × Dashboard Ketapang):
@@ -519,11 +548,141 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
       }
     }
 
+    // 8. Deteksi Interaksi & Aksi Peta Real-Time (Map Actions)
+    let mapAction: {
+      type: 'FLY_TO' | 'RESET' | 'HIGHLIGHT';
+      target?: string;
+      lat?: number;
+      lng?: number;
+      zoom?: number;
+      layers_to_enable?: string[];
+      pin?: {
+        lat: number;
+        lng: number;
+        name: string;
+        category: string;
+        kelurahan: string;
+        kecamatan: string;
+      };
+    } | null = null;
+
+    const isResetQuery = userQueryLower.includes('reset') || userQueryLower.includes('seluruh cilegon') || userQueryLower.includes('semua wilayah');
+
+    if (isResetQuery) {
+      mapAction = {
+        type: 'RESET',
+        lat: -6.01,
+        lng: 106.02,
+        zoom: 12.5,
+        layers_to_enable: ['kelurahan', 'kecamatan', 'sawah']
+      };
+    } else {
+      // Periksa kecocokan nama 43 kelurahan di Cilegon
+      for (const [kelName, coord] of Object.entries(KELURAHAN_COORDINATES)) {
+        if (userQueryLower.includes(kelName.toLowerCase()) || rawTextLower.includes(kelName.toLowerCase())) {
+          const isSawah = userQueryLower.includes('sawah') || rawTextLower.includes('sawah');
+          const isNelayan = userQueryLower.includes('nelayan') || userQueryLower.includes('pangkalan');
+          const isKolam = userQueryLower.includes('kolam') || userQueryLower.includes('ikan') || userQueryLower.includes('budidaya');
+          const isTernak = userQueryLower.includes('ternak') || userQueryLower.includes('sapi') || userQueryLower.includes('kambing');
+          const isKwt = userQueryLower.includes('kwt') || userQueryLower.includes('wanita tani');
+
+          const sawahHa = KELURAHAN_SAWAH[kelName] !== undefined ? KELURAHAN_SAWAH[kelName] : null;
+
+          const category = isSawah ? 'sawah' : isNelayan ? 'nelayan' : isKolam ? 'kolam' : isTernak ? 'ternak' : isKwt ? 'kwt' : 'wilayah';
+          const pinName = isSawah 
+            ? `Sawah Kelurahan ${kelName}${sawahHa !== null ? ` (${sawahHa} Ha)` : ''}`
+            : `Kelurahan ${kelName} (${coord.kec})`;
+
+          const layersToEnable = ['kelurahan'];
+          if (isSawah) layersToEnable.push('sawah');
+          if (isNelayan) layersToEnable.push('nelayan');
+          if (isKolam) layersToEnable.push('kolam');
+          if (isTernak) layersToEnable.push('ternak');
+          if (isKwt) layersToEnable.push('kwt', 'poktan');
+
+          const customPin = {
+            lat: coord.lat,
+            lng: coord.lng,
+            name: pinName,
+            category,
+            kelurahan: kelName,
+            kecamatan: coord.kec
+          };
+
+          // Prioritaskan pin ini di depan matched_pins
+          if (!matchedPins.some(p => p.name === customPin.name)) {
+            matchedPins.unshift(customPin);
+          }
+
+          if (!wilayahHighlight.includes(kelName)) {
+            wilayahHighlight.push(kelName);
+          }
+
+          mapAction = {
+            type: 'FLY_TO',
+            target: kelName,
+            lat: coord.lat,
+            lng: coord.lng,
+            zoom: isSawah ? 16 : 15.5,
+            layers_to_enable: layersToEnable,
+            pin: customPin
+          };
+          break;
+        }
+      }
+
+      // Periksa kecocokan nama 8 kecamatan jika kelurahan tidak disebut spesifik
+      if (!mapAction) {
+        for (const [kecName, coord] of Object.entries(KECAMATAN_COORDINATES)) {
+          if (userQueryLower.includes(kecName.toLowerCase())) {
+            const isSawah = userQueryLower.includes('sawah');
+            const layersToEnable = ['kecamatan', 'kelurahan'];
+            if (isSawah) layersToEnable.push('sawah');
+
+            mapAction = {
+              type: 'FLY_TO',
+              target: kecName,
+              lat: coord.lat,
+              lng: coord.lng,
+              zoom: 14,
+              layers_to_enable: layersToEnable
+            };
+            if (!wilayahHighlight.includes(kecName)) {
+              wilayahHighlight.push(kecName);
+            }
+            break;
+          }
+        }
+      }
+
+      // Jika ada matched_pins tematik lain (misal user minta "pangkalan nelayan medaksa")
+      if (!mapAction && matchedPins.length > 0) {
+        const firstPin = matchedPins[0];
+        const layersToEnable = ['kelurahan'];
+        if (firstPin.category === 'sawah') layersToEnable.push('sawah');
+        if (firstPin.category === 'nelayan') layersToEnable.push('nelayan');
+        if (firstPin.category === 'kolam') layersToEnable.push('kolam');
+        if (firstPin.category === 'ternak') layersToEnable.push('ternak');
+        if (firstPin.category === 'kwt' || firstPin.category === 'poktan') layersToEnable.push('kwt', 'poktan');
+
+        mapAction = {
+          type: 'FLY_TO',
+          target: firstPin.name,
+          lat: firstPin.lat,
+          lng: firstPin.lng,
+          zoom: 16,
+          layers_to_enable: layersToEnable,
+          pin: firstPin
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       text: cleanText,
       wilayah_highlight: wilayahHighlight,
       matched_pins: matchedPins.slice(0, 10),
+      map_action: mapAction,
       source_tables: sourceTables.length > 0 ? sourceTables : ['sawah_status', 'kolam_budidaya', 'nelayan_tangkap', 'poktan_kwt', 'peternakan'],
       referenced_docs: referencedDocs,
       last_sync: lastSync,
