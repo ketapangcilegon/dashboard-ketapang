@@ -285,43 +285,79 @@ export async function GET(request: Request) {
     dateObj.setDate(dateObj.getDate() - 1);
   }
   
-  // 3. THIRD PRIORITY: Fallback to Supabase archive if SAGON is unreachable
-  if (!success) {
-    console.log(`[SAGON Scraper] SAGON offline/timeout. Mencoba fallback ke arsip Supabase...`);
+  // Helper to fetch last 14 days of real archived SAGON prices from Supabase
+  const getRecentArchiveHistory = async (): Promise<Record<string, Record<string, number>>> => {
     try {
       const { data, error } = await supabaseServer
         .from('harga_sagon_harian')
         .select('*')
         .order('tanggal', { ascending: false })
-        .limit(1);
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const rec = data[0];
-        console.log(`[SAGON Scraper] Fallback sukses! Menggunakan arsip database dari tanggal: ${rec.tanggal}`);
+        .limit(14);
+
+      if (error || !data) return {};
+
+      const historyMap: Record<string, Record<string, number>> = {};
+      data.forEach(row => {
+        if (!row.tanggal) return;
+        const beras = Number(row.beras) || 13833;
+        const minyak = Number(row.minyak_goreng) || 19600;
+        const minyakKemasan = Number(row.minyak_goreng_kemasan) || minyak || 19800;
+        const telur = Number(row.telur) || 25667;
+        const ayam = Number(row.daging_ayam) || 40667;
+        const gula = Number(row.gula_pasir) || 19000;
+        const cabeMerah = Number(row.cabe_merah) || 37500;
+        const cabeKeriting = Number(row.cabe_merah_keriting) || cabeMerah || 39000;
+        const bawangMerah = Number(row.bawang_merah) || 30000;
+        const bawangPutih = Number(row.bawang_putih) || 35333;
+        const cabeRawit = Number(row.cabe_rawit) || 51667;
+        const cabeRawitMerah = Number(row.cabe_rawit_merah) || cabeRawit;
+        const cabeRawitHijau = Number(row.cabe_rawit_hijau) || 43333;
+        const dagingSapi = Number(row.daging_sapi) || 140000;
+        const tepungTerigu = Number(row.tepung_terigu) || 13500;
+
+        historyMap[row.tanggal] = {
+          beras,
+          minyak_goreng: minyak,
+          minyak_goreng_kemasan: minyakKemasan,
+          telur,
+          daging_ayam: ayam,
+          gula_pasir: gula,
+          cabe_merah: cabeMerah,
+          cabe_merah_keriting: cabeKeriting,
+          bawang_merah: bawangMerah,
+          bawang_putih: bawangPutih,
+          cabe_rawit: cabeRawit,
+          cabe_rawit_merah: cabeRawitMerah,
+          cabe_rawit_hijau: cabeRawitHijau,
+          daging_sapi: dagingSapi,
+          tepung_terigu: tepungTerigu
+        };
+      });
+      return historyMap;
+    } catch (err) {
+      console.error('[SAGON Scraper] Error fetching archive history:', err);
+      return {};
+    }
+  };
+
+  // 3. THIRD PRIORITY: Fallback to Supabase archive if SAGON is unreachable
+  if (!success) {
+    console.log(`[SAGON Scraper] SAGON offline/timeout. Mencoba fallback ke arsip Supabase...`);
+    try {
+      const history = await getRecentArchiveHistory();
+      const dates = Object.keys(history).sort().reverse();
+
+      if (dates.length > 0) {
+        const latestDate = dates[0];
+        const latestPrices = history[latestDate];
+        console.log(`[SAGON Scraper] Fallback sukses! Menggunakan arsip database dari tanggal: ${latestDate}`);
         return NextResponse.json({
           success: true,
           source: 'Supabase Archive Fallback (SAGON Offline)',
           pasar: 'Rata-rata Seluruh Pasar (Arsip Database)',
-          tanggal: rec.tanggal,
-          prices: {
-            beras: rec.beras || 13833,
-            minyak_goreng: rec.minyak_goreng || 19600,
-            minyak_goreng_kemasan: 19800,
-            telur: rec.telur || 25667,
-            daging_ayam: rec.daging_ayam || 40667,
-            gula_pasir: rec.gula_pasir || 19000,
-            cabe_merah: rec.cabe_merah || 37500,
-            cabe_merah_keriting: 39000,
-            bawang_merah: rec.bawang_merah || 30000,
-            bawang_putih: rec.bawang_putih || 35333,
-            cabe_rawit_merah: 51667,
-            cabe_rawit_hijau: 43333,
-            cabe_rawit: 51667,
-            daging_sapi: rec.daging_sapi || 140000,
-            tepung_terigu: 13500
-          }
+          tanggal: latestDate,
+          prices: latestPrices,
+          history
         });
       }
     } catch (dbErr: unknown) {
@@ -386,14 +422,19 @@ export async function GET(request: Request) {
       tanggal: parsedDate,
       beras: prices.beras,
       minyak_goreng: prices.minyak_goreng,
+      minyak_goreng_kemasan: prices.minyak_goreng_kemasan || prices.minyak_goreng,
       telur: prices.telur,
       daging_ayam: prices.daging_ayam,
       gula_pasir: prices.gula_pasir,
       cabe_merah: prices.cabe_merah,
+      cabe_merah_keriting: prices.cabe_merah_keriting || prices.cabe_merah,
       bawang_merah: prices.bawang_merah,
       bawang_putih: prices.bawang_putih,
       cabe_rawit: prices.cabe_rawit_merah || prices.cabe_rawit,
-      daging_sapi: prices.daging_sapi
+      cabe_rawit_merah: prices.cabe_rawit_merah || prices.cabe_rawit,
+      cabe_rawit_hijau: prices.cabe_rawit_hijau,
+      daging_sapi: prices.daging_sapi,
+      tepung_terigu: prices.tepung_terigu
     }, { onConflict: 'tanggal' });
     
     if (upsertError) {
@@ -413,12 +454,17 @@ export async function GET(request: Request) {
     const err = dbErr as Error;
     console.warn('[SAGON Scraper] Gagal menyimpan arsip ke database:', err.message);
   }
+
+  // Fetch recent archive history so the frontend can display real historical prices
+  const history = await getRecentArchiveHistory();
+  history[parsedDate] = prices;
   
   return NextResponse.json({
     success: true,
     source: 'https://sagon.cilegon.go.id/',
     pasar: 'Rata-rata Seluruh Pasar Kota Cilegon',
     tanggal: parsedDate,
-    prices
+    prices,
+    history
   });
 }

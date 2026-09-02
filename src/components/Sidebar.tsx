@@ -124,7 +124,29 @@ export default function Sidebar({
             )}
           </a>
 
-          {/* 2. FITUR UTAMA (Collapsible Tree) */}
+          {/* 2. FOOD SECURITY INTELLIGENCE (Di bawah Beranda) */}
+          <a
+            href="/?view=ai_intelligence"
+            onClick={(e) => handleNavClick(e, 'ai_intelligence')}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
+              currentView === 'ai_intelligence'
+                ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm'
+                : 'hover:bg-emerald-900/40'
+            } ${isCollapsed ? 'justify-center px-0' : ''}`}
+            title={isCollapsed ? "FOOD SECURITY INTELLIGENCE" : undefined}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            {!isCollapsed && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">
+                <span>FOOD SECURITY INTELLIGENCE</span>
+                <span className="text-[8px] font-black bg-amber-500/80 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-block">
+                  BETA
+                </span>
+              </div>
+            )}
+          </a>
+
+          {/* 3. FITUR UTAMA (Collapsible Tree) */}
           <div>
             <button
               onClick={() => toggleSection('fiturUtama')}
@@ -166,7 +188,7 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* 3. ASPEK KETAHANAN PANGAN (Collapsible Tree) */}
+          {/* 4. ASPEK KETAHANAN PANGAN (Collapsible Tree) */}
           <div>
             <button
               onClick={() => toggleSection('aspekPangan')}
@@ -207,28 +229,6 @@ export default function Sidebar({
               </div>
             )}
           </div>
-
-          {/* FOOD SECURITY INTELLIGENCE (Diposisikan di atas Link External) */}
-          <a
-            href="/?view=ai_intelligence"
-            onClick={(e) => handleNavClick(e, 'ai_intelligence')}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
-              currentView === 'ai_intelligence'
-                ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm'
-                : 'hover:bg-emerald-900/40'
-            } ${isCollapsed ? 'justify-center px-0' : ''}`}
-            title={isCollapsed ? "FOOD SECURITY INTELLIGENCE" : undefined}
-          >
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            {!isCollapsed && (
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">
-                <span>FOOD SECURITY INTELLIGENCE</span>
-                <span className="text-[8px] font-black bg-amber-500/80 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-block">
-                  BETA
-                </span>
-              </div>
-            )}
-          </a>
 
           {/* 📷 KAMERA CERDAS (KHUSUS ADMIN) */}
           <a

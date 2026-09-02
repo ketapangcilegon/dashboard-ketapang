@@ -261,15 +261,6 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
               <p>
                 Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.
               </p>
-              <div className="pt-3 border-t border-slate-100 text-[13px] md:text-sm">
-                <span className="font-extrabold text-slate-800">Kontak pengembang:</span>{' '}
-                <a 
-                  href="mailto:ketapangcilegon@gmail.com" 
-                  className="text-emerald-600 hover:text-emerald-700 font-semibold underline transition-colors"
-                >
-                  ketapangcilegon@gmail.com
-                </a>
-              </div>
             </div>
           )}
         </div>

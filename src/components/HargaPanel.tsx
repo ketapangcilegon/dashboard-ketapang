@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowUp, Minus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, Loader2, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import CommodityIcon from './CommodityIcon';
 
 interface HargaPanelProps {
@@ -9,6 +9,7 @@ interface HargaPanelProps {
   previousHargaData?: any[];
   livePrices?: Record<string, number> | null;
   liveDate?: string | null;
+  liveHistory?: Record<string, Record<string, number>> | null;
   loadingLive?: boolean;
 }
 
@@ -17,15 +18,19 @@ export default function HargaPanel({
   previousHargaData = [],
   livePrices: propLivePrices,
   liveDate: propLiveDate,
+  liveHistory: propLiveHistory,
   loadingLive: propLoadingLive
 }: HargaPanelProps) {
   const [localLivePrices, setLocalLivePrices] = useState<Record<string, number> | null>(null);
   const [localLiveDate, setLocalLiveDate] = useState<string | null>(null);
+  const [localLiveHistory, setLocalLiveHistory] = useState<Record<string, Record<string, number>> | null>(null);
   const [localLoadingLive, setLocalLoadingLive] = useState<boolean>(true);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const hasPropLive = propLivePrices !== undefined || propLoadingLive !== undefined;
   const livePrices = hasPropLive ? propLivePrices : localLivePrices;
   const liveDate = hasPropLive ? propLiveDate : localLiveDate;
+  const liveHistory = propLiveHistory !== undefined ? propLiveHistory : localLiveHistory;
   const loadingLive = hasPropLive ? propLoadingLive : localLoadingLive;
 
   // Date Navigation State
@@ -66,6 +71,9 @@ export default function HargaPanel({
           if (data.success && data.prices) {
             setLocalLivePrices(data.prices);
             setLocalLiveDate(data.tanggal);
+            if (data.history) {
+              setLocalLiveHistory(data.history);
+            }
           }
         }
       } catch (err) {
@@ -156,42 +164,123 @@ export default function HargaPanel({
     };
   };
 
-  // Dynamic price variation based on date index
-  const getDynamicPrice = (commodity: string, basePrice: number) => {
-    const diff = 4 - dateIndex;
-    if (diff === 0) return basePrice;
-    
-    // Deterministic offset based on commodity name
-    let factor = 0.005; // 0.5% decrease per day
-    if (commodity.includes('Cabe')) factor = 0.012;
-    if (commodity.includes('Bawang')) factor = 0.010;
-    if (commodity.includes('Daging')) factor = 0.008;
-    
-    return basePrice * (1 - diff * factor);
+  // Active date selected by navigation buttons
+  const activeDate = dates[dateIndex];
+
+  // Retrieve real historical price from Supabase archive without any artificial interpolation formulas
+  const getRealHistoricalPrice = (key: string, fallbackCur: number): number => {
+    // 1. If currently on latest/live tab (index 4) and livePrices has value
+    if (dateIndex === 4 && livePrices && livePrices[key] !== undefined && livePrices[key] > 0) {
+      return livePrices[key];
+    }
+
+    // 2. If history is available from Supabase archive for this specific date
+    if (liveHistory) {
+      // Check exact match for activeDate
+      if (liveHistory[activeDate] && liveHistory[activeDate][key] !== undefined && liveHistory[activeDate][key] > 0) {
+        return liveHistory[activeDate][key];
+      }
+
+      // If activeDate has no entry (e.g. weekend/holiday), find closest recorded date <= activeDate
+      const availableDates = Object.keys(liveHistory)
+        .filter(d => d <= activeDate)
+        .sort()
+        .reverse();
+
+      if (availableDates.length > 0) {
+        const closestDate = availableDates[0];
+        if (liveHistory[closestDate] && liveHistory[closestDate][key] !== undefined && liveHistory[closestDate][key] > 0) {
+          return liveHistory[closestDate][key];
+        }
+      }
+    }
+
+    // 3. Fallback to live prices or current dataset baseline
+    if (livePrices && livePrices[key] !== undefined && livePrices[key] > 0) {
+      return livePrices[key];
+    }
+
+    return fallbackCur;
   };
 
   const commStats = [
-    { name: 'Beras Medium', curr: getDynamicPrice('Beras Medium', livePrices?.beras ?? berasCur), prev: berasPrev, emoji: '🍚' },
-    { name: 'Bawang Merah', curr: getDynamicPrice('Bawang Merah', livePrices?.bawang_merah ?? bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
-    { name: 'Bawang Putih Bonggol', curr: getDynamicPrice('Bawang Putih', livePrices?.bawang_putih ?? bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
-    { name: 'Cabe Merah Besar', curr: getDynamicPrice('Cabe Merah', livePrices?.cabe_merah ?? cabeCur), prev: cabePrev, emoji: '🌶️' },
-    { name: 'Cabe Merah Keriting', curr: getDynamicPrice('Cabe Merah Keriting', livePrices?.cabe_merah_keriting ?? cabeKeritingCur), prev: cabeKeritingPrev, emoji: '🌶️' },
-    { name: 'Cabe Rawit Merah', curr: getDynamicPrice('Cabe Rawit Merah', livePrices?.cabe_rawit_merah ?? cabeRawitMerahCur), prev: cabeRawitMerahPrev, emoji: '🌶️' },
-    { name: 'Cabe Rawit Hijau', curr: getDynamicPrice('Cabe Rawit Hijau', livePrices?.cabe_rawit_hijau ?? cabeRawitHijauCur), prev: cabeRawitHijauPrev, emoji: '🌶️' },
-    { name: 'Daging Sapi Murni', curr: getDynamicPrice('Daging Sapi', livePrices?.daging_sapi ?? dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
-    { name: 'Daging Ayam Ras', curr: getDynamicPrice('Daging Ayam', livePrices?.daging_ayam ?? ayamCur), prev: ayamPrev, emoji: '🍗' },
-    { name: 'Telur Ayam Ras', curr: getDynamicPrice('Telur Ayam Ras', livePrices?.telur ?? telurCur), prev: telurPrev, emoji: '🥚' },
-    { name: 'Gula Pasir', curr: getDynamicPrice('Gula Pasir', livePrices?.gula_pasir ?? gulaCur), prev: gulaPrev, emoji: '🧂' },
-    { name: 'Minyak Goreng Kemasan', curr: getDynamicPrice('Minyak Goreng Kemasan', livePrices?.minyak_goreng_kemasan ?? livePrices?.minyak_goreng ?? minyakKemasanCur), prev: minyakKemasanPrev, emoji: '🧴' },
-    { name: 'Tepung Terigu Kemasan', curr: getDynamicPrice('Tepung Terigu', livePrices?.tepung_terigu ?? tepungTeriguCur), prev: tepungTeriguPrev, emoji: '🌾' },
+    { name: 'Beras Medium', curr: getRealHistoricalPrice('beras', berasCur), prev: berasPrev, emoji: '🍚' },
+    { name: 'Bawang Merah', curr: getRealHistoricalPrice('bawang_merah', bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
+    { name: 'Bawang Putih Bonggol', curr: getRealHistoricalPrice('bawang_putih', bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
+    { name: 'Cabe Merah Besar', curr: getRealHistoricalPrice('cabe_merah', cabeCur), prev: cabePrev, emoji: '🌶️' },
+    { name: 'Cabe Merah Keriting', curr: getRealHistoricalPrice('cabe_merah_keriting', cabeKeritingCur), prev: cabeKeritingPrev, emoji: '🌶️' },
+    { name: 'Cabe Rawit Merah', curr: getRealHistoricalPrice('cabe_rawit_merah', cabeRawitMerahCur), prev: cabeRawitMerahPrev, emoji: '🌶️' },
+    { name: 'Cabe Rawit Hijau', curr: getRealHistoricalPrice('cabe_rawit_hijau', cabeRawitHijauCur), prev: cabeRawitHijauPrev, emoji: '🌶️' },
+    { name: 'Daging Sapi Murni', curr: getRealHistoricalPrice('daging_sapi', dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
+    { name: 'Daging Ayam Ras', curr: getRealHistoricalPrice('daging_ayam', ayamCur), prev: ayamPrev, emoji: '🍗' },
+    { name: 'Telur Ayam Ras', curr: getRealHistoricalPrice('telur', telurCur), prev: telurPrev, emoji: '🥚' },
+    { name: 'Gula Pasir', curr: getRealHistoricalPrice('gula_pasir', gulaCur), prev: gulaPrev, emoji: '🧂' },
+    { name: 'Minyak Goreng Kemasan', curr: getRealHistoricalPrice('minyak_goreng_kemasan', minyakKemasanCur), prev: minyakKemasanPrev, emoji: '🧴' },
+    { name: 'Tepung Terigu Kemasan', curr: getRealHistoricalPrice('tepung_terigu', tepungTeriguCur), prev: tepungTeriguPrev, emoji: '🌾' },
   ];
+
+  // Export current table view to XLSX Excel
+  const handleDownloadXlsx = async () => {
+    try {
+      setIsExporting(true);
+      const XLSX = await import('xlsx');
+
+      const formattedActiveDate = formatIndoDate(dates[dateIndex]);
+      const isLive = dateIndex === 4 && livePrices;
+      const sumberText = isLive 
+        ? 'Sistem SAGON Cilegon (Live Rata-rata 3 Pasar)' 
+        : 'Arsip Database SAGON Cilegon (Rata-rata 3 Pasar)';
+
+      const sheetData = commStats.map((c, idx) => {
+        const stats = getYoYStats(c.curr, c.prev);
+        return {
+          'No': idx + 1,
+          'Komoditas': c.name,
+          'Harga Rata-Rata (Rp)': Math.round(c.curr),
+          'Harga Acuan YoY (Rp)': Math.round(c.prev),
+          'Perubahan (YoY)': stats.changeText,
+          'Status': stats.status,
+          'Tanggal': dates[dateIndex],
+          'Tanggal Format': formattedActiveDate,
+          'Sumber Data': sumberText
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(sheetData);
+
+      // Auto-fit column widths
+      worksheet['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 26 }, // Komoditas
+        { wch: 22 }, // Harga Rata-Rata (Rp)
+        { wch: 22 }, // Harga Acuan YoY (Rp)
+        { wch: 16 }, // Perubahan (YoY)
+        { wch: 14 }, // Status
+        { wch: 14 }, // Tanggal
+        { wch: 24 }, // Tanggal Format
+        { wch: 45 }  // Sumber Data
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Harga Harian SAGON');
+
+      const fileName = `Harga_Pangan_SAGON_Cilegon_${dates[dateIndex]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+    } catch (err) {
+      console.error('Failed to export XLSX:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#E6FDF4] p-4 rounded-xl border border-emerald-200/50 shadow-sm justify-between select-none">
       <div>
         <div className="flex justify-between items-center gap-2">
           <p className="text-[9px] text-[#0B7A53]/70 font-semibold leading-tight">
-            {livePrices ? `Sumber: sagon.cilegon.go.id - Rata-rata Seluruh Pasar (${formatIndoDate(dates[dateIndex])})` : 'Analisis Perbandingan Harga dengan Bulan Yang Sama Tahun Lalu (YoY)'}
+            {dateIndex === 4 && livePrices 
+              ? `Sumber: sagon.cilegon.go.id - Rata-rata Seluruh Pasar (${formatIndoDate(dates[dateIndex])})` 
+              : `Sumber: Arsip Database SAGON Cilegon (${formatIndoDate(dates[dateIndex])})`}
           </p>
           <div className="shrink-0">
             {loadingLive ? (
@@ -205,8 +294,9 @@ export default function HargaPanel({
                 SAGON LIVE
               </span>
             ) : (
-              <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200 font-bold">
-                OFFLINE/DB
+              <span className="text-[8px] bg-emerald-700 text-white px-1.5 py-0.5 rounded-full border border-emerald-800 font-extrabold flex items-center gap-1 shadow-sm">
+                <span className="w-1 h-1 bg-emerald-200 rounded-full"></span>
+                ARSIP SAGON RIIL
               </span>
             )}
           </div>
@@ -286,10 +376,27 @@ export default function HargaPanel({
         </table>
       </div>
       
-      {/* Footer Benchmark */}
-      <div className="mt-2 pt-2 border-t border-[#0B7A53]/10 flex justify-between items-center text-[8px] font-bold text-[#0B7A53]/70">
-        <span>*Benchmark YoY</span>
-        <span>Ter-update otomatis</span>
+      {/* Footer Benchmark & Download XLSX */}
+      <div className="mt-2.5 pt-2 border-t border-[#0B7A53]/15 flex justify-between items-center text-[9px] font-bold text-[#0B7A53]/80">
+        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[8px] sm:text-[9px]">
+          <span>*Benchmark YoY</span>
+          <span>•</span>
+          <span className="text-emerald-700 font-semibold">Ter-update otomatis</span>
+        </div>
+
+        <button
+          onClick={handleDownloadXlsx}
+          disabled={isExporting}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg shadow-sm hover:shadow transition-all text-[9px] sm:text-[10px] font-bold cursor-pointer border-none disabled:opacity-50"
+          title={`Unduh Data Tabel (${dates[dateIndex]}) Format Excel .XLSX`}
+        >
+          {isExporting ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+          )}
+          <span>{isExporting ? 'Mengunduh...' : 'Unduh XLSX'}</span>
+        </button>
       </div>
     </div>
   );

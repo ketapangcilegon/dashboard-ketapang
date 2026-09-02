@@ -308,6 +308,7 @@ export default function DashboardPage() {
   // Lifted SAGON Live Price States
   const [livePrices, setLivePrices] = useState<any>(null);
   const [liveDate, setLiveDate] = useState<string | null>(null);
+  const [liveHistory, setLiveHistory] = useState<Record<string, Record<string, number>> | null>(null);
   const [loadingLive, setLoadingLive] = useState<boolean>(true);
 
   const [activeTipIdx, setActiveTipIdx] = useState(0);
@@ -329,6 +330,9 @@ export default function DashboardPage() {
           if (data.success && data.prices) {
             setLivePrices(data.prices);
             setLiveDate(data.tanggal);
+            if (data.history) {
+              setLiveHistory(data.history);
+            }
           }
         }
       } catch (err) {
@@ -1383,8 +1387,8 @@ export default function DashboardPage() {
                   {/* Section: Early Warning System */}
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 print:mt-6">
-                      {/* Column 1: Harga Panel (Span 4) */}
-                      <div id="panel-harga" className="lg:col-span-4 flex flex-col print:col-span-5 scroll-mt-20">
+                      {/* Column 1: Harga Panel (Span 6 - 50%) */}
+                      <div id="panel-harga" className="lg:col-span-6 flex flex-col print:col-span-6 scroll-mt-20">
                         <div className="mb-2.5 flex flex-col justify-end min-h-[38px]">
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
@@ -1400,13 +1404,14 @@ export default function DashboardPage() {
                             previousHargaData={previousHargaData} 
                             livePrices={livePrices}
                             liveDate={liveDate}
+                            liveHistory={liveHistory}
                             loadingLive={loadingLive}
                           />
                         </div>
                       </div>
 
-                      {/* Column 2: Wide Map (Span 8) */}
-                      <div id="panel-peta" className="lg:col-span-8 flex flex-col print:col-span-7 scroll-mt-20">
+                      {/* Column 2: Map (Span 6 - 50%) */}
+                      <div id="panel-peta" className="lg:col-span-6 flex flex-col print:col-span-6 scroll-mt-20">
                         {/* Header OUTSIDE & ABOVE panel box (on white background) */}
                         <div className="mb-2.5 flex flex-col justify-end min-h-[38px]">
                           <div className="flex items-center gap-2">
@@ -1539,6 +1544,7 @@ export default function DashboardPage() {
                       previousHargaData={previousHargaData} 
                       livePrices={livePrices}
                       liveDate={liveDate}
+                      liveHistory={liveHistory}
                       loadingLive={loadingLive}
                     />
                   </div>
@@ -1772,6 +1778,7 @@ export default function DashboardPage() {
                             previousHargaData={previousHargaData} 
                             livePrices={livePrices}
                             liveDate={liveDate}
+                            liveHistory={liveHistory}
                             loadingLive={loadingLive}
                           />
                         </div>
