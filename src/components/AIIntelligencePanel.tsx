@@ -670,8 +670,6 @@ export default function AIIntelligencePanel({
       {/* Top Subtle Sync Status Bar */}
       <div className="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
         <div className="flex items-center gap-1.5 font-bold">
-          <Database className="w-3 h-3 text-emerald-600" />
-          <span>Serumpun-Padi GIS × Dashboard Ketapang</span>
           {syncSuccessMsg && (
             <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-black animate-pulse">
               {syncSuccessMsg}
@@ -681,7 +679,7 @@ export default function AIIntelligencePanel({
         <button
           onClick={handleManualSync}
           disabled={syncing}
-          className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-emerald-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-emerald-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50 ml-auto"
           title="Sinkron & Salin Manual Database Serumpun Padi ke Dashboard Ketapang"
         >
           <RefreshCw className={`w-2.5 h-2.5 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
@@ -727,7 +725,7 @@ export default function AIIntelligencePanel({
 
         {/* Message Stream */}
         {messages.map((msg, idx) => (
-          <div key={idx} className="w-full max-w-3xl mx-auto">
+          <div key={idx} className="w-full">
             {msg.role === 'user' ? (
               
               /* USER MESSAGE */
@@ -754,70 +752,67 @@ export default function AIIntelligencePanel({
 
             ) : (
 
-              /* MODEL MESSAGE (ChatGPT response style with action bar) */
-              <div className="flex items-start gap-2.5 mb-4 group">
-                <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 mt-0.5 shadow-xs">
-                  <Sparkles className="w-3 h-3" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="bg-white border border-slate-200/80 rounded-2xl rounded-tl-xs p-3.5 md:p-4 shadow-xs space-y-1.5">
-                    <div className="prose prose-sm max-w-none text-slate-800">
-                      {renderMarkdown(msg.text)}
-                    </div>
-
-                    {/* Wilayah highlight tags */}
-                    {msg.wilayah && msg.wilayah.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
-                        <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-                          📍 Sorotan:
-                        </span>
-                        {msg.wilayah.map((w, wi) => (
-                          <button 
-                            key={wi} 
-                            onClick={() => handleWilayahClick(w)}
-                            className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
-                            title={`Klik untuk mengarahkan peta ke ${w}`}
-                          >
-                            <span>📍</span>
-                            <span>{w}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Referenced Docs tags */}
-                    {msg.referencedDocs && msg.referencedDocs.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1 items-center pt-1.5 border-t border-slate-100">
-                        <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-                          📚 Dokumen:
-                        </span>
-                        {msg.referencedDocs.map((doc, di) => (
-                          <span 
-                            key={di} 
-                            className="text-[9.5px] font-bold bg-blue-50 text-blue-800 border border-blue-200/70 px-1.5 py-0.5 rounded-md"
-                          >
-                            {doc}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+              /* MODEL MESSAGE (Full width without left avatar column) */
+              <div className="mb-4 group w-full">
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 md:p-4 shadow-xs space-y-1.5 w-full">
+                  <div className="prose prose-sm max-w-none text-slate-800">
+                    {renderMarkdown(msg.text)}
                   </div>
 
-                  {/* ChatGPT Action Buttons Bar */}
-                  <div className="flex items-center gap-1 mt-1 ml-1 text-slate-400">
+                  {/* Wilayah highlight tags */}
+                  {msg.wilayah && msg.wilayah.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
+                        📍 Sorotan:
+                      </span>
+                      {msg.wilayah.map((w, wi) => (
+                        <button 
+                          key={wi} 
+                          onClick={() => handleWilayahClick(w)}
+                          className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
+                          title={`Klik untuk mengarahkan peta ke ${w}`}
+                        >
+                          <span>📍</span>
+                          <span>{w}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Referenced Docs tags */}
+                  {msg.referencedDocs && msg.referencedDocs.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1 items-center pt-1.5 border-t border-slate-100">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
+                        📚 Dokumen:
+                      </span>
+                      {msg.referencedDocs.map((doc, di) => (
+                        <span 
+                          key={di} 
+                          className="text-[9.5px] font-bold bg-blue-50 text-blue-800 border border-blue-200/70 px-1.5 py-0.5 rounded-md"
+                        >
+                          {doc}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action Bar (Copy, Share, Feedback, Regenerate, PDF Export) */}
+                  <div className="flex items-center gap-1 pt-2 border-t border-slate-100 text-slate-400 text-xs flex-wrap">
                     <button
                       onClick={() => handleCopy(msg.text, idx)}
-                      className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                      className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer flex items-center gap-1 text-[10.5px] font-medium"
                       title="Salin jawaban"
                     >
                       {copiedIndex === idx ? (
                         <>
                           <Check className="w-3 h-3 text-emerald-600" />
-                          <span className="text-emerald-600 text-[9px]">Tersalin</span>
+                          <span className="text-emerald-600">Tersalin</span>
                         </>
                       ) : (
-                        <Copy className="w-3 h-3" />
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Salin</span>
+                        </>
                       )}
                     </button>
 
@@ -879,14 +874,11 @@ export default function AIIntelligencePanel({
 
         {/* Loading Indicator */}
         {loading && (
-          <div className="w-full max-w-3xl mx-auto flex items-start gap-2.5 mb-4">
-            <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 mt-0.5 shadow-xs">
-              <Sparkles className="w-3 h-3" />
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-xs flex items-center gap-2">
+          <div className="w-full mb-4">
+            <div className="bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 shadow-xs flex items-center gap-2 w-fit">
               <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
               <span className="text-[11.5px] font-bold text-slate-600 animate-pulse">
-                Sedang menganalisis data Serumpun-Padi & GIS Cilegon…
+                Sedang menganalisis data spasial & menghitung respons…
               </span>
             </div>
           </div>
