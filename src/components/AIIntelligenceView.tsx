@@ -70,7 +70,7 @@ export default function AIIntelligenceView() {
     <div className="flex flex-col md:h-[calc(100dvh-7.5rem)] md:min-h-[540px] min-h-0 w-full">
       
       {/* Page Header (Matching Mockup 1) */}
-      <div className="flex items-center justify-between mb-4 shrink-0">
+      <div className="flex items-center justify-between mb-3 shrink-0">
         <div className="flex items-stretch gap-3">
           <div className="w-1 bg-gradient-to-b from-emerald-500 to-emerald-700 rounded-full shrink-0" />
           <div>
@@ -82,9 +82,6 @@ export default function AIIntelligenceView() {
                 BETA
               </span>
             </div>
-            <p className="text-slate-500 font-medium text-[11px] sm:text-xs mt-0.5">
-              Analisis spasial ketahanan pangan berbasis GIS × AI — Kota Cilegon
-            </p>
           </div>
         </div>
 
@@ -129,18 +126,6 @@ export default function AIIntelligenceView() {
                 mapAction={mapAction}
                 onTriggerChatPrompt={handleTriggerChatPrompt}
               />
-
-              {/* Info hint Bottom-Left Sesuai Mockup 1 */}
-              <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm">
-                <Info className="w-2.5 h-2.5 text-slate-400" />
-                <span className="text-[9px] font-bold text-slate-500">
-                  {highlightPins.length > 0
-                    ? `${highlightPins.length} Pin Titik GPS aktif`
-                    : highlightWilayah.length > 0
-                      ? `${highlightWilayah.length} wilayah disorot oleh AI`
-                      : 'Tanyakan sesuatu kepada AI untuk menyorot wilayah / titik GPS'}
-                </span>
-              </div>
             </div>
           )}
 
@@ -203,16 +188,6 @@ export default function AIIntelligenceView() {
                 mapAction={mapAction}
                 onTriggerChatPrompt={handleTriggerChatPrompt}
               />
-              <div className="absolute bottom-3 left-3 z-[500] flex items-center gap-1.5 bg-white/85 backdrop-blur-sm border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-                <Info className="w-2.5 h-2.5 text-slate-400" />
-                <span className="text-[9px] font-bold text-slate-500">
-                  {highlightPins.length > 0
-                    ? `${highlightPins.length} Pin Titik GPS`
-                    : highlightWilayah.length > 0
-                      ? `${highlightWilayah.length} wilayah aktif`
-                      : 'Peta Spasial AI'}
-                </span>
-              </div>
             </div>
           )}
         </div>

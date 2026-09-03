@@ -1011,52 +1011,57 @@ export default function AIIntelligenceMap({
       </MapContainer>
 
       {/* Floating Top-Right Toolbar: Layer Filter */}
-      <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
+      <div className="absolute top-2 right-2 z-[500] flex items-center gap-1.5">
         {/* Layer Filter Panel Button */}
         <div className="relative">
           <button
             onClick={() => {
               setShowLayersPanel((p) => !p);
             }}
-            className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-3 py-1.5 rounded-xl shadow-md hover:bg-white hover:border-slate-300 transition-all text-xs font-black tracking-wide cursor-pointer"
+            className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-2 py-1 rounded-lg shadow-sm hover:bg-white hover:border-slate-300 transition-all text-[8.5px] font-black tracking-wide cursor-pointer"
           >
-            <Layers className="w-3.5 h-3.5 text-emerald-600" />
+            <Layers className="w-3 h-3 text-emerald-600" />
             <span>LAYER</span>
             {showLayersPanel ? (
-              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronUp className="w-2.5 h-2.5 text-slate-400" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
             )}
           </button>
 
           {showLayersPanel && (
-            <div className="absolute top-full right-0 mt-2 w-64 bg-white/98 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl p-3 text-xs flex flex-col gap-2.5 max-h-[75vh] overflow-y-auto custom-scrollbar z-[600] animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
+            <div
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
+              className="absolute top-full right-0 mt-1.5 w-44 sm:w-48 bg-white/98 backdrop-blur-md border border-slate-200/90 rounded-xl shadow-lg p-2 text-[8px] flex flex-col gap-1 max-h-[65vh] overflow-y-auto custom-scrollbar z-[600] animate-in fade-in slide-in-from-top-1 duration-150"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                <span className="font-extrabold text-slate-800 text-[8px] uppercase tracking-wider">
                   Filter Layer GIS
                 </span>
-                <span className="text-[9.5px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                <span className="text-[7.5px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded-full font-bold border border-emerald-200">
                   Serumpun Padi
                 </span>
               </div>
 
               {/* Toggle Sawah Baku */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>🌾</span> Sawah Baku ({layers.sawah?.length || 407} Petak)
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">🌾</span> Sawah Baku ({layers.sawah?.length || 407})
                 </span>
                 <input
                   type="checkbox"
                   checked={showSawah}
                   onChange={(e) => setShowSawah(e.target.checked)}
-                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Poktan / KWT */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>👨🌾</span> Poktan & KWT
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">👨🌾</span> Poktan & KWT
                 </span>
                 <input
                   type="checkbox"
@@ -1066,40 +1071,40 @@ export default function AIIntelligenceMap({
                     setShowKWT(e.target.checked);
                     setShowGapoktan(e.target.checked);
                   }}
-                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Kolam Ikan */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>🐟</span> Perikanan Budidaya
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">🐟</span> Perikanan Budidaya
                 </span>
                 <input
                   type="checkbox"
                   checked={showKolam}
                   onChange={(e) => setShowKolam(e.target.checked)}
-                  className="w-4 h-4 accent-cyan-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-cyan-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Nelayan Tangkap */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>⛵</span> Nelayan Tangkap
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">⛵</span> Nelayan Tangkap
                 </span>
                 <input
                   type="checkbox"
                   checked={showNelayan}
                   onChange={(e) => setShowNelayan(e.target.checked)}
-                  className="w-4 h-4 accent-teal-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-teal-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Horti & Palawija */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>🌶️</span> Hortikultura & Palawija
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">🌶️</span> Horti & Palawija
                 </span>
                 <input
                   type="checkbox"
@@ -1108,14 +1113,14 @@ export default function AIIntelligenceMap({
                     setShowHorti(e.target.checked);
                     setShowPalawija(e.target.checked);
                   }}
-                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Batas Wilayah */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors">
-                <span className="flex items-center gap-2">
-                  <span>🏛️</span> Batas Administrasi
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="text-[9px]">🏛️</span> Batas Administrasi
                 </span>
                 <input
                   type="checkbox"
@@ -1124,50 +1129,50 @@ export default function AIIntelligenceMap({
                     setShowKecamatan(e.target.checked);
                     setShowKelurahan(e.target.checked);
                   }}
-                  className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                  className="w-3 h-3 accent-amber-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Sub-toggles: Label Nama Kecamatan & Kelurahan */}
-              <div className="border-t border-slate-100 pt-2 flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-200/60">
-                <div className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-0.5">
+              <div className="border-t border-slate-100 pt-1 flex flex-col gap-0.5 bg-slate-50/80 p-1.5 rounded-lg border border-slate-200/60">
+                <div className="text-[7.5px] font-black uppercase text-slate-500 tracking-wider mb-0.5">
                   Label Teks Peta
                 </div>
 
                 {/* Toggle Label Nama Kecamatan (Besar) */}
-                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-lg cursor-pointer transition-colors text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <span>🏷️</span> Nama Kecamatan <span className="text-[9px] text-amber-700 bg-amber-100 px-1 py-0.2 rounded font-black">Besar</span>
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-0.5 rounded cursor-pointer transition-colors text-[8px]">
+                  <span className="flex items-center gap-1">
+                    <span>🏷️</span> Kecamatan
                   </span>
                   <input
                     type="checkbox"
                     checked={showKecamatanLabels}
                     onChange={(e) => setShowKecamatanLabels(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer"
+                    className="w-3 h-3 accent-amber-600 rounded cursor-pointer"
                   />
                 </label>
 
                 {/* Toggle Label Nama Kelurahan (Kecil) */}
-                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-lg cursor-pointer transition-colors text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <span>🏷️</span> Nama Kelurahan <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded font-black">Kecil</span>
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-0.5 rounded cursor-pointer transition-colors text-[8px]">
+                  <span className="flex items-center gap-1">
+                    <span>🏷️</span> Kelurahan
                   </span>
                   <input
                     type="checkbox"
                     checked={showKelurahanLabels}
                     onChange={(e) => setShowKelurahanLabels(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-emerald-600 rounded cursor-pointer"
+                    className="w-3 h-3 accent-emerald-600 rounded cursor-pointer"
                   />
                 </label>
               </div>
 
               {/* Overlay OSM switch */}
-              <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-600">Overlay Jalan & Sungai</span>
+              <div className="border-t border-slate-100 pt-1 flex items-center justify-between text-[8px]">
+                <span className="font-bold text-slate-600">Overlay Jalan/Sungai</span>
                 <button
                   type="button"
                   onClick={() => setShowOsm((p) => !p)}
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-md transition-colors ${
+                  className={`text-[7.5px] font-black px-1.5 py-0.2 rounded transition-colors ${
                     showOsm
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
