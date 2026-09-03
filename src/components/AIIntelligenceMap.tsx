@@ -23,6 +23,7 @@ import {
   MoveZoomControl,
   FitBoundsControl,
   MapZoomTracker,
+  MapInvalidator,
 } from './gis/MapHelpers';
 import LocateMe from './gis/LocateMe';
 import {
@@ -455,9 +456,9 @@ function ThematicKelurahanLayer({
                   ${metricInfoHtml}
 
                   <div style="font-size:11.5px;color:#334155;margin-top:6px;display:flex;flex-direction:column;gap:3px;">
-                    <div style="display:flex;justify-content:space-between;"><span>🌾 Sawah Baku:</span><b>${kelData.luasSawahHa.toFixed(2)} Ha</b></div>
-                    <div style="display:flex;justify-content:space-between;"><span>👥 Penduduk:</span><b>${kelData.penduduk ? kelData.penduduk.toLocaleString('id-ID') : '-'} Jiwa</b></div>
-                    <div style="display:flex;justify-content:space-between;"><span>📊 Rasio Sawah/Kapita:</span><b>${kelData.penduduk ? (kelData.luasSawahHa * 10000 / kelData.penduduk).toFixed(1) : 0} m²/jiwa</b></div>
+                    <div style="display:flex;justify-content:space-between;"><span>🌾 Sawah Baku:</span><b>${((kelData && typeof kelData.luasSawahHa === 'number') ? kelData.luasSawahHa : 0).toFixed(2)} Ha</b></div>
+                    <div style="display:flex;justify-content:space-between;"><span>👥 Penduduk:</span><b>${(kelData && kelData.penduduk) ? kelData.penduduk.toLocaleString('id-ID') : '-'} Jiwa</b></div>
+                    <div style="display:flex;justify-content:space-between;"><span>📊 Rasio Sawah/Kapita:</span><b>${(kelData && kelData.penduduk && typeof kelData.luasSawahHa === 'number') ? (kelData.luasSawahHa * 10000 / kelData.penduduk).toFixed(1) : 0} m²/jiwa</b></div>
                   </div>
 
                   <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;flex-direction:column;gap:6px;">
@@ -836,6 +837,7 @@ export default function AIIntelligenceMap({
         {/* Controls & Helpers */}
         <MapRefSetter mapRef={mapRef} />
         <MapZoomTracker setZoom={setMapZoom} />
+        <MapInvalidator />
         <MoveZoomControl />
         <FitBoundsControl />
         <LocateMe />

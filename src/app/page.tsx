@@ -34,6 +34,7 @@ const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ss
 const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
 const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView'), { ssr: false });
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -2161,7 +2162,9 @@ export default function DashboardPage() {
 
               {currentView === 'ai_intelligence' && (
                 <div className="w-full">
-                  <AIIntelligenceView />
+                  <ErrorBoundary fallbackTitle="Kendala Memuat Food Security Intelligence">
+                    <AIIntelligenceView />
+                  </ErrorBoundary>
                 </div>
               )}
 

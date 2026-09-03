@@ -19,11 +19,20 @@ export function MapRefSetter({ mapRef }: { mapRef: React.MutableRefObject<L.Map 
 export function MoveZoomControl() {
   const map = useMap();
   useEffect(() => {
-    if (map.zoomControl) {
-      map.zoomControl.remove();
-      map.zoomControl.setPosition('topleft');
-      map.zoomControl.addTo(map);
-    }
+    try {
+      if (map.zoomControl) {
+        map.zoomControl.remove();
+        map.zoomControl.setPosition('topleft');
+        map.zoomControl.addTo(map);
+      }
+    } catch {}
+    return () => {
+      try {
+        if (map.zoomControl) {
+          map.zoomControl.remove();
+        }
+      } catch {}
+    };
   }, [map]);
   return null;
 }
@@ -32,26 +41,35 @@ export function MoveZoomControl() {
 export function FitBoundsControl({ bounds }: { bounds?: L.LatLngBoundsExpression }) {
   const map = useMap();
   useEffect(() => {
-    const FitCtrl = L.Control.extend({
-      onAdd() {
-        const btn = L.DomUtil.create('button', 'sp-map-action-btn leaflet-bar');
-        btn.title = 'Pusatkan Peta ke Seluruh Wilayah Kota Cilegon';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
-        L.DomEvent.disableClickPropagation(btn);
-        L.DomEvent.on(btn, 'click', () => {
-          if (bounds) {
-            map.fitBounds(bounds, { animate: true, duration: 1.2, padding: [40, 40] });
-          } else {
-            map.flyTo([-6.01, 106.02], 12.5, { animate: true, duration: 1.2 });
-          }
-        });
-        return btn;
-      },
-    });
-    const ctrl = new FitCtrl({ position: 'topleft' });
-    ctrl.addTo(map);
+    let ctrl: L.Control | null = null;
+    try {
+      const FitCtrl = L.Control.extend({
+        onAdd() {
+          const btn = L.DomUtil.create('button', 'sp-map-action-btn leaflet-bar');
+          btn.title = 'Pusatkan Peta ke Seluruh Wilayah Kota Cilegon';
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+          L.DomEvent.disableClickPropagation(btn);
+          L.DomEvent.on(btn, 'click', () => {
+            try {
+              if (bounds) {
+                map.fitBounds(bounds, { animate: true, duration: 1.2, padding: [40, 40] });
+              } else {
+                map.flyTo([-6.01, 106.02], 12.5, { animate: true, duration: 1.2 });
+              }
+            } catch {}
+          });
+          return btn;
+        },
+      });
+      ctrl = new FitCtrl({ position: 'topleft' });
+      ctrl.addTo(map);
+    } catch {}
     return () => {
-      ctrl.remove();
+      if (ctrl) {
+        try {
+          ctrl.remove();
+        } catch {}
+      }
     };
   }, [map, bounds]);
   return null;
@@ -63,16 +81,34 @@ export function MapZoomTracker({ setZoom }: { setZoom?: (z: number) => void }) {
   useEffect(() => {
     const calcFs = (z: number) => Math.max(7, Math.min(13, (z - 8) * 1.5)).toFixed(1) + 'px';
     const onZoomEnd = () => {
-      const z = map.getZoom();
-      if (setZoom) setZoom(z);
-      document.querySelectorAll('.ikpg-kel-label span').forEach((el) => {
-        (el as HTMLElement).style.fontSize = calcFs(z);
-      });
+      try {
+        const z = map.getZoom();
+        if (setZoom) setZoom(z);
+        document.querySelectorAll('.ikpg-kel-label span').forEach((el) => {
+          (el as HTMLElement).style.fontSize = calcFs(z);
+        });
+      } catch {}
     };
     map.on('zoomend', onZoomEnd);
     return () => {
-      map.off('zoomend', onZoomEnd);
+      try {
+        map.off('zoomend', onZoomEnd);
+      } catch {}
     };
   }, [map, setZoom]);
+  return null;
+}
+
+// Komponen penyesuai ukuran peta saat tab / view berubah
+export function MapInvalidator() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch {}
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
   return null;
 }
