@@ -509,14 +509,31 @@ export async function POST(request: Request) {
     let knowledgeNarrative = '';
     let referencedDocs: string[] = [];
     try {
-      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 8);
+      const userQueryLower = userMessage.toLowerCase();
+      const detectedCategory = userQueryLower.includes('kolam') || userQueryLower.includes('budidaya')
+        ? 'statistik budidaya perikanan' : userQueryLower.includes('nelayan') || userQueryLower.includes('tangkap')
+        ? 'produksi tangkap nelayan' : userQueryLower.includes('konsumsi') || userQueryLower.includes('makan ikan')
+        ? 'angka konsumsi ikan' : userQueryLower.includes('perda') || userQueryLower.includes('regulasi')
+        ? 'cadangan pangan peraturan daerah' : '';
+
+      const ragQuery = detectedCategory ? `${userMessage} ${detectedCategory}` : userMessage;
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(ragQuery, 8);
+
+      console.log('[RAG DEBUG]', {
+        query: userMessage,
+        ragQuery,
+        chunksFound: matchedChunks.length,
+        scores: matchedChunks.map(c => c.score ?? 'no-score-field'),
+        docs: matchedChunks.map(c => c.doc_title)
+      });
+
       if (matchedChunks.length > 0) {
         referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
         const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title} | Bagian/Tabel ${c.chunk_index + 1}]\n${c.content}`);
-        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (RAG CHUNKS) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen di atas untuk melakukan kalkulasi, estimasi matematis, dan menjawab pertanyaan pengguna secara presisi.`;
+        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (RAG DOKUMEN RESMI) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen resmi di atas sebagai prioritas utama untuk melakukan kalkulasi, mengutip angka statistik, dan menjawab pertanyaan pengguna secara presisi.`;
       }
     } catch (e) {
-      console.warn('Failed searching knowledge base:', e);
+      console.warn('[RAG ERROR] Failed searching knowledge base:', e);
     }
 
     // 4. Build system prompt
@@ -547,6 +564,9 @@ Sebelum menjawab pertanyaan apa pun yang menyebut entitas bernama (nama keluraha
 | Nama entitas spesifik ("Kelompok tani mana yang paling aktif?") | KEDUANYA — nama entitas & keaktifan/produksinya dari dokumen + sebaran lokasinya di peta GIS. |
 
 **Default aman:** Jika ragu apakah query butuh satu atau dua dimensi, SELALU SERTAKAN KEDUANYA.
+
+PENTING SOAL PRIORITAS SUMBER DATA:
+- Jika ada bagian "DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT" di bawah, itu adalah dokumen resmi yang diunggah admin (PDF Perda, laporan tahunan, rekap Excel) dan HARUS diprioritaskan serta dikutip sumbernya untuk pertanyaan yang cocok topiknya — JANGAN hanya mengandalkan "DATA CACHE PENDUKUNG" di bawahnya, karena data itu adalah cache ringkasan yang bisa kurang lengkap/tidak mencakup detail spesifik yang ada di dokumen.
 
 ## 4. LARANGAN EKSPLISIT (anti-pattern yang harus dihindari)
 - ❌ JANGAN berhenti dan langsung menjawab hanya dengan menyebutkan koordinat/nama pin tanpa data dokumen/statistik.
@@ -589,10 +609,11 @@ Seluruh titik kelompok telah dipetakan pada layer KWT & Kelompok Tani di GIS."
 4. **Diagnosis Multimodal Vision (Hama Tanaman)**: Identifikasi OPT (Wereng Batang Coklat, Blas Padi, Hawar Daun Bakteri, Penggerek), tingkat serangan, langkah PHT (Pengendalian Hama Terpadu), dan konfirmasi pin bahaya ⚠️ di peta.
 5. **Kalkulasi Kebutuhan Pangan Lintas Dokumen**: Hitung kebutuhan konsumsi agregat Kota Cilegon (Penduduk 480.378 jiwa × konsumsi per kapita kg/tahun / 1.000 = Ton/Tahun), sajikan tabel sub-komoditas, dan evaluasi neraca pasokan mandiri vs pasokan luar.
 
-DATA LENGKAP DETAIL PANEL (Serumpun-Padi × Dashboard Ketapang):
-${spNarrative}
+=== SUMBER DOKUMEN & CACHE DATA ===
+${knowledgeNarrative ? `${knowledgeNarrative}\n` : '=== KNOWLEDGE BASE: Tidak ada dokumen spesifik terindeks yang cocok untuk query ini ===\n'}
 
-${knowledgeNarrative ? `${knowledgeNarrative}\n` : ''}`;
+=== DATA CACHE PENDUKUNG (Serumpun-Padi × Dashboard Ketapang) ===
+${spNarrative}`;
 
     // 5. Panggil Gemini API (dengan dukungan multimodal vision)
     const contents = buildGeminiContents(history, userMessage, imageData);
