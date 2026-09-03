@@ -509,11 +509,11 @@ export async function POST(request: Request) {
     let knowledgeNarrative = '';
     let referencedDocs: string[] = [];
     try {
-      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 4);
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 8);
       if (matchedChunks.length > 0) {
         referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
-        const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title}]\n${c.content}`);
-        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan referensi dokumen di atas jika relevan untuk menjawab pertanyaan pengguna.`;
+        const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title} | Bagian/Tabel ${c.chunk_index + 1}]\n${c.content}`);
+        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (RAG CHUNKS) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen di atas untuk melakukan kalkulasi, estimasi matematis, dan menjawab pertanyaan pengguna secara presisi.`;
       }
     } catch (e) {
       console.warn('Failed searching knowledge base:', e);
@@ -529,7 +529,7 @@ Anda memiliki akses ke sumber data terpadu:
    - **Perikanan Budidaya**: 2 Unit Pembudidaya Aktif, Luas Kolam 270 m² (Kolam Tanah 120 m², Kolam Terpal 150 m²), Produksi Bulanan 55 Kg, Omset Bulanan Rp 200.000, Produksi 2026 375 Kg. Pembenihan Gurame 1.000 ekor @ Rp 200 (Omset Rp 200.000), Pembesaran Lele 55 kg. Pembudidaya Nurholis (170 m² di Citangkil/Cilegon) dan tes (100 m²).
    - **KWT (Kelompok Wanita Tani)**: 3 KWT, 79 Anggota, Luas Lahan 0,02 Ha (200 m²), Produksi Bulanan 7 Kg, Omset Bulanan Rp 140.000. KWT Gerogol (23 anggota, lahan 150 m², Cabai 2 kg @ Rp 45.000 -> Omset Rp 90.000), KWT Gerem (23 anggota, lahan 50 m², Sayuran 5 kg @ Rp 10.000 -> Omset Rp 50.000), KWT Kotabumi (33 anggota).
    - **Peternakan**: Populasi 4 Ekor, 2 Kelompok Peternak di Kelurahan Masigit Kec. Jombang, Estimasi Nilai Rp 44.000.000 (2 Sapi @ Rp 20 Jt = Rp 40 Jt, 2 Kambing @ Rp 2 Jt = Rp 4 Jt, Unggas -).
-3. **Knowledge Base Dokumen** — kumpulan dokumen resmi (Peraturan/UU, laporan tahunan, pedoman teknis) yang telah diindeks ke sistem.
+3. **Knowledge Base Dokumen** — kumpulan dokumen resmi (Susenas/BPS, Peraturan/UU, laporan tahunan, pedoman teknis, NBM) yang telah diunggah dan di-chunking ke dalam sistem.
 
 ATURAN PENTING:
 - Jawab dalam Bahasa Indonesia yang formal, presisi, analitis, dan solutif.
@@ -577,6 +577,16 @@ PANDUAN KHUSUS FITUR HEBAT (FASE 2):
      b. Jelaskan tingkat serangan (Ringan, Sedang, Kritis).
      c. Berikan langkah pengendalian terpadu (PHT): biologis, mekanis, dan kimiawi darurat.
      d. Konfirmasikan bahwa tanda bahaya OPT (⚠️) telah ditancapkan di peta GIS!
+
+5. SIMULASI KEBUTUHAN PANGAN & KALKULASI LINTAS DOKUMEN (CROSS-DOCUMENT REASONING & DSS ENGINE):
+   - Jika pengguna menanyakan estimasi kebutuhan komoditas pangan (misal: ikan, beras, daging, telur, minyak goreng, cabai, sayur) atau simulasi berbasis dokumen referensi (Susenas, BPS, NBM, DKPP):
+     a. **Ekstraksi Data Dokumen**: Ambil angka konsumsi per kapita dari dokumen referensi yang terindeks (knowledge base).
+     b. **Konversi Satuan Terstandar**:
+        * Jika data dalam gram/minggu/kapita: Ubah ke kg/tahun = (gram / 1.000) × (365 / 7) atau × 52,14 minggu.
+        * Jika data dalam gram/hari/kapita: Ubah ke kg/tahun = (gram / 1.000) × 365.
+     c. **Kalkulasi Agregat Kota Cilegon**: Kalikan angka kg/tahun dengan Jumlah Penduduk Kota Cilegon (480.378 Jiwa atau angka wilayah spesifik), lalu bagi 1.000 untuk menghasilkan angka dalam satuan **Ton/Tahun** (dan/atau Ton/Bulan).
+     d. **Disagregasi Sub-Komoditas**: Jika data dokumen memuat rincian jenis/sub-komoditas (contoh: aneka jenis ikan tongkol, kembung, bandeng, lele, nila), sajikan dalam tabel Markdown terperinci per jenis beserta total agregatnya.
+     e. **Sintesis DSS / Neraca Pasokan**: Hubungkan hasil hitungan kebutuhan dengan kapasitas produksi lokal Cilegon (pertanian/perikanan tangkap/budidaya) yang ada di database sistem untuk memberikan rekomendasi ketahanan pangan (surplus/defisit/rekomendasi rantai pasok).
 
 DATA LENGKAP DETAIL PANEL (Serumpun-Padi × Dashboard Ketapang):
 ${spNarrative}

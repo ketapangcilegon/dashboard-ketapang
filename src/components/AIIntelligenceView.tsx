@@ -8,7 +8,7 @@ import ErrorBoundary from './ErrorBoundary';
 
 // ============================================================
 // AIIntelligenceView
-// Full-view split layout: 60% peta GIS kiri | 40% chat kanan
+// Full-view split layout: 40% peta GIS kiri | 60% chat AI kanan
 // Dilengkapi Single-Tree Rendering, Memory-Leak Prevention, & ErrorBoundary
 // ============================================================
 
@@ -130,8 +130,8 @@ export default function AIIntelligenceView() {
               
               {/* Peta GIS */}
               {(activeTab === 'split' || activeTab === 'map') && (
-                <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full ${
-                  activeTab === 'split' ? 'w-[58%] lg:w-[60%]' : 'w-full'
+                <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full shrink-0 ${
+                  activeTab === 'split' ? 'w-[42%] lg:w-[40%]' : 'w-full'
                 }`}>
                   <ErrorBoundary fallbackTitle="Kendala Memuat Peta GIS">
                     <AIIntelligenceMap 
@@ -146,7 +146,7 @@ export default function AIIntelligenceView() {
 
               {/* Panel Chat AI */}
               {(activeTab === 'split' || activeTab === 'chat') && (
-                <div className={`h-full min-h-0 flex flex-col ${activeTab === 'split' ? 'flex-1 min-w-0' : 'w-full'}`}>
+                <div className={`h-full min-h-0 flex flex-col ${activeTab === 'split' ? 'w-[58%] lg:w-[60%] flex-1 min-w-0' : 'w-full'}`}>
                   <ErrorBoundary fallbackTitle="Kendala Memuat Chat AI">
                     <AIIntelligencePanel
                       onWilayahHighlight={handleWilayahHighlight}
