@@ -594,48 +594,74 @@ function MapController({
         </div>
       </div>
 
-      {/* 2. FLOATING CONTROL BUTTONS (TOP-RIGHT) */}
+      {/* 2. FLOATING CONTROL BUTTONS (TOP-RIGHT) - Dark Glassmorphism Stack sesuai Mockup */}
       <div 
         ref={controlsRef}
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col gap-2 print:hidden"
+        className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col items-center print:hidden"
       >
-        {/* Locate Me */}
+        {/* Zoom In & Out Combined Box */}
+        <div className="flex flex-col rounded-xl overflow-hidden bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg mb-1.5">
+          <button
+            onClick={handleZoomIn}
+            title="Perbesar Peta (Zoom In)"
+            className="w-[34px] h-[32px] flex items-center justify-center text-white hover:bg-white/15 transition-all active:scale-95 cursor-pointer border-b border-white/15"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            title="Perkecil Peta (Zoom Out)"
+            className="w-[34px] h-[32px] flex items-center justify-center text-white hover:bg-white/15 transition-all active:scale-95 cursor-pointer"
+          >
+            <Minus className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* Fit Bounds / Focus City Center */}
+        <button
+          onClick={() => {
+            try {
+              map.setView([-6.012, 106.028], 12.5, { animate: true });
+            } catch {}
+          }}
+          title="Pusatkan Peta ke Seluruh Wilayah Kota Cilegon"
+          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 4H5a2 2 0 0 0-2 2v2M17 4h2a2 2 0 0 1 2 2v2M7 20H5a2 2 0 0 1-2-2v-2M17 20h2a2 2 0 0 0 2-2v-2"/>
+          </svg>
+        </button>
+
+        {/* Locate Me GPS */}
         <button
           onClick={handleLocateMe}
-          title="Locate Me"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 cursor-pointer"
+          title="Temukan Lokasi Saya (GPS)"
+          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
         >
-          <Navigation className="w-4 h-4" />
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="7"/>
+            <circle cx="12" cy="12" r="2" fill="#ffffff"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
         </button>
 
         {/* Map Layers / Basemap switch */}
         <button
           onClick={toggleBasemap}
-          title="Toggle Detailed Basemap"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 cursor-pointer"
+          title="Ganti Tampilan Basemap (Jalan / Satelit)"
+          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer"
         >
-          <Map className="w-4 h-4" />
-        </button>
-
-        {/* Zoom In */}
-        <button
-          onClick={handleZoomIn}
-          title="Zoom In"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-
-        {/* Zoom Out */}
-        <button
-          onClick={handleZoomOut}
-          title="Zoom Out"
-          className="w-8 h-8 rounded-lg bg-white shadow-md border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all active:scale-90 font-bold cursor-pointer"
-        >
-          <Minus className="w-4 h-4" />
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 12 12 17 22 12"/>
+            <polyline points="2 17 12 22 22 17"/>
+          </svg>
         </button>
       </div>
 

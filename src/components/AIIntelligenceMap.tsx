@@ -102,20 +102,27 @@ const HIGHLIGHT_KEL_STYLE: L.PathOptions = {
 function LayerToggleControl({ setShowOsm }: { setShowOsm: React.Dispatch<React.SetStateAction<boolean>> }) {
   const map = useMap();
   useEffect(() => {
-    const Ctrl = L.Control.extend({
-      onAdd() {
-        const btn = L.DomUtil.create('button', 'sp-map-action-btn sp-layer-toggle-btn leaflet-bar');
-        btn.title = 'Tampilkan / Sembunyikan layer jalan & sungai (OSM)';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>`;
-        L.DomEvent.disableClickPropagation(btn);
-        L.DomEvent.on(btn, 'click', () => setShowOsm((p) => !p));
-        return btn;
-      },
-    });
-    const ctrl = new Ctrl({ position: 'topleft' });
-    ctrl.addTo(map);
+    let ctrl: L.Control | null = null;
+    try {
+      const Ctrl = L.Control.extend({
+        onAdd() {
+          const btn = L.DomUtil.create('button', 'sp-map-action-btn sp-layer-toggle-btn leaflet-bar');
+          btn.title = 'Tampilkan / Sembunyikan layer jalan & sungai (OSM)';
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>`;
+          L.DomEvent.disableClickPropagation(btn);
+          L.DomEvent.on(btn, 'click', () => setShowOsm((p) => !p));
+          return btn;
+        },
+      });
+      ctrl = new Ctrl({ position: 'topleft' });
+      ctrl.addTo(map);
+    } catch {}
     return () => {
-      ctrl.remove();
+      if (ctrl) {
+        try {
+          ctrl.remove();
+        } catch {}
+      }
     };
   }, [map, setShowOsm]);
   return null;

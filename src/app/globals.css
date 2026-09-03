@@ -122,34 +122,39 @@ body {
   opacity: 1;
 }
 
-/* ─────────── Serumpun Padi Map Action Buttons ─────────── */
-.sp-map-action-btn {
-  width: 32px !important;
-  height: 32px !important;
-  line-height: 32px !important;
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-  border-radius: 8px !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+/* ─────────── Sleek Dark Glassmorphism Map Action Buttons ─────────── */
+.sp-map-action-btn,
+.sp-dark-nav-btn {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  background: rgba(9, 23, 40, 0.90) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   padding: 0 !important;
-  margin-bottom: 6px !important;
+  margin-bottom: 5px !important;
 }
 
-.sp-map-action-btn:hover {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  border-color: #94a3b8 !important;
-  transform: scale(1.06);
+.sp-map-action-btn:hover,
+.sp-dark-nav-btn:hover {
+  background: rgba(15, 33, 56, 0.98) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  transform: scale(1.05);
 }
 
-.sp-map-action-btn:active {
-  transform: scale(0.96);
+.sp-map-action-btn:active,
+.sp-dark-nav-btn:active {
+  transform: scale(0.95);
 }
 
 /* ─────────── LocateMe GPS Pulsing Dot & Beacon ─────────── */
@@ -185,27 +190,39 @@ body {
   }
 }
 
-/* ─────────── Leaflet Controls Top-Left Alignment ─────────── */
+/* ─────────── Leaflet Controls Dark Zoom Alignment ─────────── */
 .leaflet-top.leaflet-left .leaflet-control-zoom {
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   overflow: hidden !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  margin-bottom: 6px !important;
+  background: rgba(9, 23, 40, 0.90) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  margin-bottom: 5px !important;
 }
 
 .leaflet-top.leaflet-left .leaflet-control-zoom a {
-  width: 32px !important;
+  width: 34px !important;
   height: 32px !important;
   line-height: 30px !important;
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-  font-weight: 700 !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+}
+
+.leaflet-top.leaflet-left .leaflet-control-zoom a:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
 .leaflet-top.leaflet-left .leaflet-control-zoom a:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
 }
 
 /* ─────────── Leaflet Tooltip Transparent Text ─────────── */

@@ -47,7 +47,7 @@ export function FitBoundsControl({ bounds }: { bounds?: L.LatLngBoundsExpression
         onAdd() {
           const btn = L.DomUtil.create('button', 'sp-map-action-btn leaflet-bar');
           btn.title = 'Pusatkan Peta ke Seluruh Wilayah Kota Cilegon';
-          btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4H5a2 2 0 0 0-2 2v2M17 4h2a2 2 0 0 1 2 2v2M7 20H5a2 2 0 0 1-2-2v-2M17 20h2a2 2 0 0 0 2-2v-2"/></svg>`;
           L.DomEvent.disableClickPropagation(btn);
           L.DomEvent.on(btn, 'click', () => {
             try {
