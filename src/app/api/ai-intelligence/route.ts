@@ -401,6 +401,38 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   lines.push('• Estimasi Produksi: 1 pohon sukun produktif = ~200 kg buah sukun segar/tahun (~50 kg tepung sukun)');
   lines.push('• Peran Diversifikasi: Substitusi beras impor untuk sarapan pagi B2SA, PMT balita posyandu, dan olahan tepung sukun KWT.');
 
+  // ============================================================
+  // 7. DATA REKAP PROFESI DATABASE SASARAN (ARSIP 3.949 KK & KRS 2023)
+  // ============================================================
+  lines.push('\n=== 7. DATA REKAP PROFESI DATABASE SASARAN PETANI, NELAYAN, PEMBUDIDAYA, DAN PETERNAK (EXCEL RESMI) ===');
+  lines.push('• Pangkalan Data Arsip: "Data petani nelayan 3949 KK 2020.xlsx" (Total 3.949 Kepala Keluarga se-Kota Cilegon):');
+  lines.push('  - Profesi Petani: 1.759 KK (Mendominasi di seluruh kecamatan: Cibeber, Ciwandan, Citangkil, Gerogol, Jombang, Pulomerak, Purwakarta)');
+  lines.push('  - Profesi Nelayan: 297 KK (Terpusat di wilayah pesisir Pulomerak & Ciwandan)');
+  lines.push('  - Profesi Pembudidaya Ikan: 62 KK (Tersebar di Purwakarta, Jombang, Citangkil)');
+  lines.push('  - Profesi Peternak: TEPAT 15 KK TERDATA (TERBANYAK di Kelurahan Kotasari [8 KK], disusul Kelurahan Gerem [3 KK], Kelurahan Grogol [3 KK], dan Kelurahan Lebak Denok [1 KK]).');
+  lines.push('  - Rincian Lengkap Seluruh 15 KK Peternak di Cilegon:');
+  lines.push('    1. Kelurahan Kotasari, Kec. Grogol (8 KK - KELURAHAN TERBANYAK):');
+  lines.push('       • Rahmat (Link. Ciora Kawista Rt/Rw. 07/02)');
+  lines.push('       • Safani (Link. Ciora Kawista Rt/Rw. 03/04)');
+  lines.push('       • Salmani (Link. Ciora Kawista Rt/Rw. 03/04)');
+  lines.push('       • Samsudin b Kemidin (Link. Ciora Gede Rt/Rw. 05/02)');
+  lines.push('       • Satibi (Link. Masigit Rt/Rw. 03/01)');
+  lines.push('       • Sukra (Link. Masigit Rt/Rw. 03/01)');
+  lines.push('       • Suudi (Link. Masigit Rt/Rw. 03/01)');
+  lines.push('       • Syukur (Link. Ciora Kawista Rt/Rw. 07/02)');
+  lines.push('    2. Kelurahan Gerem, Kec. Grogol (3 KK):');
+  lines.push('       • Ari Aryadi (Link. Cikuasa Rt/Rw. 02/01)');
+  lines.push('       • Hoirul Akmal (Link. Cikuasa Rt/Rw. 02/01)');
+  lines.push('       • Sunardi (Link. Cikuasa Rt/Rw. 02/01)');
+  lines.push('    3. Kelurahan Grogol, Kec. Grogol (3 KK):');
+  lines.push('       • Damanhuri (Link. Ciora Jaya Rt. 001/ Rw. 001)');
+  lines.push('       • Didi Rosita (Link. Ciora Jaya Rt. 003/ Rw. 001)');
+  lines.push('       • Madarip (Link. Ciora Jaya Rt. 003/ Rw. 001)');
+  lines.push('    4. Kelurahan Lebak Denok, Kec. Citangkil (1 KK):');
+  lines.push('       • Hamsanah (Link. Kapudenok Julalen RT 003 RW 001)');
+  lines.push('• Pangkalan Data Arsip: "Data petani nelayan keluarga resiko stunting (KRS) 2023":');
+  lines.push('  - Petani: 803 KK | Nelayan: 214 KK | Pembudidaya Ikan: 39 KK | Peternak: 6 KK (Gerem 3 KK: Ari Aryadi, Hoirul Akmal, Sunardi; Grogol 3 KK: Damanhuri, Didi Rosita, Madarip).');
+
   return lines.join('\n');
 }
 
@@ -665,12 +697,11 @@ Seluruh titik kelompok telah dipetakan pada layer KWT & Kelompok Tani di GIS."
 - **KWT**: 3 KWT (Gerogol, Gerem, Kotabumi), 79 Anggota, Luas 200 m².
 - **Peternakan**: 4 Ekor (2 Sapi, 2 Kambing di Masigit Kec. Jombang), Nilai Rp 44.000.000.
 
-## 8. PANDUAN FITUR DSS SPESIFIK:
-1. **Simulasi Anggaran Bansos Pangan**: Hitung HET Beras Bulog SPHP Rp 12.500/kg atau Premium Rp 15.000/kg, kuota 10 kg/KK, alokasikan ke kelurahan prioritas tinggi kerentanan (Gerem, Bagendung, Lebakgede), sajikan tabel rincian drop-off.
-2. **Konsultasi Agronomi GPS**: Rekomendasikan varietas adaptif (salin pesisir: Inpari 42 Agritan GSR/Inpari 34 Salin; irigasi subur: Ciherang/Inpari 32 HDB), dosis pupuk/ha (Urea 200kg, NPK 300kg, Organik 500kg), dan jadwal musim tanam (MT 1 Rendengan, MT 2 Gadu, MT 3 Bera).
-3. **Reverse Intelligence (Briefing 360° Kelurahan)**: Ulas 🏛️ Profil Wilayah, 🌾 Sektor Pertanian, ⛵ Sektor Perikanan/KWT/Ternak, 📊 Status IKP/FSVA/Stunting, 🎯 Rekomendasi Program Aksi.
-4. **Diagnosis Multimodal Vision (Hama Tanaman)**: Identifikasi OPT (Wereng Batang Coklat, Blas Padi, Hawar Daun Bakteri, Penggerek), tingkat serangan, langkah PHT (Pengendalian Hama Terpadu), dan konfirmasi pin bahaya ⚠️ di peta.
-5. **Kalkulasi Kebutuhan Pangan Lintas Dokumen**: Hitung kebutuhan konsumsi agregat Kota Cilegon (Penduduk 480.378 jiwa × konsumsi per kapita kg/tahun / 1.000 = Ton/Tahun), sajikan tabel sub-komoditas, dan evaluasi neraca pasokan mandiri vs pasokan luar.
+6. **Panduan Analisis Profesi Peternak / Petani / Nelayan**:
+   - Jika ditanyakan *"di kelurahan mana yang paling banyak peternak?"* atau *"berapa jumlah peternak di data Excel 3949 KK?"*:
+     - JAWAB SECARA EKSPLISIT: Kelurahan dengan peternak terbanyak di basis data sasaran adalah **Kelurahan Kotasari (Kecamatan Grogol)** dengan **8 KK**, disusul **Kelurahan Gerem (3 KK)**, **Kelurahan Grogol (3 KK)**, dan **Kelurahan Lebak Denok (1 KK)** dengan **total 15 KK**.
+     - Sebutkan rincian nama dan alamatnya secara lengkap sesuai data resmi (misal: Rahmat, Safani, Salmani di Kotasari; Ari Aryadi di Gerem; Damanhuri di Grogol; Hamsanah di Lebak Denok).
+     - Jika relevan, hubungkan juga dengan data binaan kelompok berjalan GIS di Kelurahan Masigit (Jombang) yang mencatat 4 ekor ternak (2 sapi, 2 kambing).
 
 === KATALOG LENGKAP KNOWLEDGE BASE (DOKUMEN RESMI TERINDEKS DI SUPABASE) ===
 ${kbCatalogNarrative}
