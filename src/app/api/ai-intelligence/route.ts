@@ -130,6 +130,76 @@ async function getSpContextData(): Promise<Record<string, unknown>> {
   }
 }
 
+// Manifest & Katalog Seluruh Dokumen Knowledge Base (52+ Dokumen Terindeks)
+let kbCatalogCache: { data: string; timestamp: number } | null = null;
+
+async function getKnowledgeBaseCatalog(): Promise<string> {
+  if (kbCatalogCache && Date.now() - kbCatalogCache.timestamp < 60000) {
+    return kbCatalogCache.data;
+  }
+  try {
+    const { data: docs } = await supabase
+      .from('ai_knowledge_docs')
+      .select('id, judul, jenis, file_name, total_chunks, deskripsi')
+      .order('created_at', { ascending: false });
+
+    if (!docs || docs.length === 0) {
+      return 'Knowledge Base saat ini belum memiliki dokumen terindeks.';
+    }
+
+    const categories: Record<string, string[]> = {
+      'Tabel Data Demografi, Statistik & Excel/CSV': [],
+      'Regulasi, Peraturan Daerah & UU': [],
+      'Laporan FSVA & Dokumen Teknis': []
+    };
+
+    for (const d of docs) {
+      const type = (d.jenis || '').toLowerCase();
+      const title = d.judul;
+      const file = d.file_name ? ` (File: ${d.file_name})` : '';
+      const chunks = ` [${d.total_chunks} potongan data terindeks]`;
+      const item = `• ${title}${file}${chunks}`;
+
+      if (
+        type === 'excel' || 
+        type === 'csv' || 
+        title.toLowerCase().includes('realisasi') || 
+        title.toLowerCase().includes('data') || 
+        title.toLowerCase().includes('susenas') ||
+        title.toLowerCase().includes('petani') ||
+        title.toLowerCase().includes('nelayan') ||
+        title.toLowerCase().includes('stunting') ||
+        title.toLowerCase().includes('konsumsi')
+      ) {
+        categories['Tabel Data Demografi, Statistik & Excel/CSV'].push(item);
+      } else if (
+        title.toLowerCase().startsWith('uu') || 
+        title.toLowerCase().startsWith('pp') || 
+        title.toLowerCase().startsWith('perda') || 
+        title.toLowerCase().startsWith('pmk')
+      ) {
+        categories['Regulasi, Peraturan Daerah & UU'].push(item);
+      } else {
+        categories['Laporan FSVA & Dokumen Teknis'].push(item);
+      }
+    }
+
+    const lines: string[] = [`Total Dokumen Terindeks di Supabase: ${docs.length} Dokumen Resmi`];
+    for (const [cat, items] of Object.entries(categories)) {
+      if (items.length > 0) {
+        lines.push(`\n**${cat} (${items.length} file):**`);
+        lines.push(...items);
+      }
+    }
+
+    const res = lines.join('\n');
+    kbCatalogCache = { data: res, timestamp: Date.now() };
+    return res;
+  } catch {
+    return 'Gagal memuat katalog dokumen Knowledge Base.';
+  }
+}
+
 // Trigger sync jika ada cache yang stale
 async function triggerSyncIfStale(ctx: Record<string, unknown>): Promise<void> {
   const needed = ['sawah_status', 'kolam_budidaya', 'nelayan_tangkap', 'poktan_kwt', 'peternakan', 'pohon_sukun'];
@@ -508,20 +578,13 @@ export async function POST(request: Request) {
     // 3. Search Knowledge Base (RAG)
     let knowledgeNarrative = '';
     let referencedDocs: string[] = [];
-    try {
-      const userQueryLower = userMessage.toLowerCase();
-      const detectedCategory = userQueryLower.includes('kolam') || userQueryLower.includes('budidaya')
-        ? 'statistik budidaya perikanan' : userQueryLower.includes('nelayan') || userQueryLower.includes('tangkap')
-        ? 'produksi tangkap nelayan' : userQueryLower.includes('konsumsi') || userQueryLower.includes('makan ikan')
-        ? 'angka konsumsi ikan' : userQueryLower.includes('perda') || userQueryLower.includes('regulasi')
-        ? 'cadangan pangan peraturan daerah' : '';
+    const kbCatalogNarrative = await getKnowledgeBaseCatalog();
 
-      const ragQuery = detectedCategory ? `${userMessage} ${detectedCategory}` : userMessage;
-      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(ragQuery, 8);
+    try {
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 8);
 
       console.log('[RAG DEBUG]', {
         query: userMessage,
-        ragQuery,
         chunksFound: matchedChunks.length,
         scores: matchedChunks.map(c => c.score ?? 'no-score-field'),
         docs: matchedChunks.map(c => c.doc_title)
@@ -530,7 +593,7 @@ export async function POST(request: Request) {
       if (matchedChunks.length > 0) {
         referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
         const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title} | Bagian/Tabel ${c.chunk_index + 1}]\n${c.content}`);
-        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (RAG DOKUMEN RESMI) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen resmi di atas sebagai prioritas utama untuk melakukan kalkulasi, mengutip angka statistik, dan menjawab pertanyaan pengguna secara presisi.`;
+        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (POTONGAN DATA RESMI) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen resmi di atas sebagai prioritas utama untuk menjawab pertanyaan, mengutip nama petani/nelayan/wilayah, serta melakukan kalkulasi secara presisi.`;
       }
     } catch (e) {
       console.warn('[RAG ERROR] Failed searching knowledge base:', e);
@@ -609,8 +672,11 @@ Seluruh titik kelompok telah dipetakan pada layer KWT & Kelompok Tani di GIS."
 4. **Diagnosis Multimodal Vision (Hama Tanaman)**: Identifikasi OPT (Wereng Batang Coklat, Blas Padi, Hawar Daun Bakteri, Penggerek), tingkat serangan, langkah PHT (Pengendalian Hama Terpadu), dan konfirmasi pin bahaya ⚠️ di peta.
 5. **Kalkulasi Kebutuhan Pangan Lintas Dokumen**: Hitung kebutuhan konsumsi agregat Kota Cilegon (Penduduk 480.378 jiwa × konsumsi per kapita kg/tahun / 1.000 = Ton/Tahun), sajikan tabel sub-komoditas, dan evaluasi neraca pasokan mandiri vs pasokan luar.
 
-=== SUMBER DOKUMEN & CACHE DATA ===
-${knowledgeNarrative ? `${knowledgeNarrative}\n` : '=== KNOWLEDGE BASE: Tidak ada dokumen spesifik terindeks yang cocok untuk query ini ===\n'}
+=== KATALOG LENGKAP KNOWLEDGE BASE (DOKUMEN RESMI TERINDEKS DI SUPABASE) ===
+${kbCatalogNarrative}
+
+=== POTONGAN ISI DOKUMEN RELEVAN (RAG SEARCH RESULTS) ===
+${knowledgeNarrative ? `${knowledgeNarrative}\n` : 'Tidak ada potongan teks spesifik yang ditarik untuk query ini. Namun jika pengguna menanyakan keberadaan file atau daftar dokumen, konfirmasikan dengan tegas berdasarkan KATALOG LENGKAP KNOWLEDGE BASE di atas.'}
 
 === DATA CACHE PENDUKUNG (Serumpun-Padi × Dashboard Ketapang) ===
 ${spNarrative}`;

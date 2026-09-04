@@ -9,7 +9,7 @@ export interface MatchedKnowledgeChunk {
   content: string;
   rank?: number;
   score?: number;
-  source?: 'rpc' | 'ilike'; // untuk debugging: dari jalur mana chunk ini ditemukan
+  source?: 'doc_match_term' | 'doc_sample' | 'term_search' | 'rpc' | 'ilike';
 }
 
 const STOPWORDS = new Set([
@@ -18,125 +18,149 @@ const STOPWORDS = new Set([
   'oleh', 'saat', 'harus', 'sementara', 'setelah', 'belum', 'kami', 'sekitar',
   'bagi', 'serta', 'di', 'dari', 'terhadap', 'secara', 'bagaimana', 'kondisi', 'mana',
   'apakah', 'siapa', 'dimana', 'berapa', 'apa', 'tolong', 'jelaskan', 'berikan',
-  'tampilkan', 'informasi', 'tentang', 'data', 'ada', 'bisa', 'akan', 'sudah'
+  'tampilkan', 'informasi', 'tentang', 'data', 'ada', 'bisa', 'akan', 'sudah',
+  'file', 'dokumen', 'excel', 'xlsx', 'xls', 'pdf', 'csv', 'tabel', 'daftar',
+  'nama', 'nama-nama', 'adakah', 'punya', 'berisi', 'sebanyak', 'ribuan', 'semua',
+  'coba', 'carikan', 'lihat', 'minta', 'saja', 'atau', 'dalam', 'tersebut', 'tsb'
 ]);
 
 /**
- * Mencari potongan teks pengetahuan yang paling relevan dengan pertanyaan user.
- *
- * PENTING: fungsi ini TIDAK melakukan vector/semantic search — ini full-text +
- * ILIKE keyword matching. Jika Anda mengira ini RAG berbasis embedding,
- * verifikasi dulu isi RPC `match_knowledge_chunks` di Supabase SQL editor.
- * Kalau RPC itu tidak pernah dibuat, seluruh langkah RPC di bawah akan selalu
- * gagal diam-diam dan sistem 100% bergantung pada fallback ILIKE.
+ * Multi-Stage Intelligent Knowledge Base Search:
+ * 1. Document Metadata Match (Search by title, filename, desc across ai_knowledge_docs)
+ * 2. Scoped Document Chunk Retrieval (Fetch high-relevance chunks from matched docs)
+ * 3. Global Term Matching (Targeted entity/token ILIKE search with scoring)
+ * 4. Merged & Ranked deduplication
  */
-export async function searchKnowledgeBase(queryText: string, matchLimit: number = 6): Promise<MatchedKnowledgeChunk[]> {
+export async function searchKnowledgeBase(queryText: string, matchLimit: number = 8): Promise<MatchedKnowledgeChunk[]> {
   const cleanQuery = queryText.replace(/['"():*&|!?,.]/g, ' ').trim();
   if (!cleanQuery) return [];
 
-  const debug = { query: queryText, rpcAttempts: 0, rpcErrors: [] as string[], rpcHits: 0, ilikeHits: 0, ilikeError: '' as string };
-
   try {
-    const resultsMap = new Map<string, MatchedKnowledgeChunk>();
-
-    // 1. Ekstrak kata kunci inti — PRIORITASKAN kata yang huruf awalnya kapital
-    //    di query asli (biasanya nama entitas: kelurahan, orang, pangkalan, dsb),
-    //    karena entitas bernama adalah sinyal relevansi terkuat untuk data tabular.
-    const originalWords = cleanQuery.split(/\s+/).filter(Boolean);
-    const properNouns = originalWords
-      .filter(w => /^[A-Z]/.test(w) && w.length >= 3)
-      .map(w => w.toLowerCase());
-
     const rawTokens = cleanQuery
       .toLowerCase()
       .split(/\s+/)
-      .filter(t => t.length >= 3 && !STOPWORDS.has(t));
+      .filter(t => t.length >= 2 && !STOPWORDS.has(t));
 
-    // Gabungkan: proper nouns duluan (tidak boleh ke-cut saat slice top-N nanti)
-    const orderedTokens = Array.from(new Set([...properNouns, ...rawTokens]));
+    const originalWords = cleanQuery.split(/\s+/).filter(Boolean);
+    const properNouns = originalWords
+      .filter(w => /^[A-Z]/.test(w) && w.length >= 3 && !STOPWORDS.has(w.toLowerCase()))
+      .map(w => w.toLowerCase());
 
-    // 2. Query variations untuk RPC
-    const searchQueries = [cleanQuery];
-    if (orderedTokens.length > 0) {
-      searchQueries.push(orderedTokens.join(' '));
-    }
+    const searchTerms = Array.from(new Set([...properNouns, ...rawTokens]));
 
-    // 3. Coba RPC match_knowledge_chunks (jika ada semantic/full-text search di Supabase)
-    for (const sq of searchQueries.slice(0, 2)) {
-      debug.rpcAttempts++;
-      try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('match_knowledge_chunks', {
-          query_text: sq,
-          match_limit: matchLimit
-        });
+    // 1. Ambil metadata seluruh dokumen terindeks
+    const { data: allDocs } = await supabase
+      .from('ai_knowledge_docs')
+      .select('id, judul, jenis, file_name, total_chunks, deskripsi');
 
-        if (rpcError) {
-          debug.rpcErrors.push(rpcError.message);
-        } else if (rpcData && Array.isArray(rpcData)) {
-          for (const item of rpcData) {
-            if (item && item.id && !resultsMap.has(item.id)) {
-              resultsMap.set(item.id, { ...(item as MatchedKnowledgeChunk), source: 'rpc' });
-              debug.rpcHits++;
-            }
-          }
-        }
-      } catch (e) {
-        debug.rpcErrors.push(e instanceof Error ? e.message : String(e));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docsMap = new Map<string, any>((allDocs || []).map(d => [d.id, d]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const matchedDocs: any[] = [];
+
+    for (const doc of allDocs || []) {
+      const titleLower = (doc.judul || '').toLowerCase();
+      const fileLower = (doc.file_name || '').toLowerCase();
+      const descLower = (doc.deskripsi || '').toLowerCase();
+
+      let docScore = 0;
+      for (const term of searchTerms) {
+        if (titleLower.includes(term)) docScore += (properNouns.includes(term) ? 10 : 6);
+        if (fileLower.includes(term)) docScore += 4;
+        if (descLower.includes(term)) docScore += 3;
+      }
+
+      if (docScore > 0) {
+        matchedDocs.push({ ...doc, score: docScore });
       }
     }
 
-    // 4. ILIKE fallback — SELALU dijalankan bersamaan (bukan hanya jika RPC kurang),
-    //    karena RPC dan ILIKE menangkap jenis kecocokan yang berbeda; digabung
-    //    hasilnya lebih tangguh untuk dokumen tabular (xlsx) yang minim kalimat natural.
-    if (orderedTokens.length > 0) {
-      // Ambil top 6 kata kunci: proper nouns diprioritaskan, lalu token biasa
-      const keywords = orderedTokens.slice(0, 6);
-      const orFilter = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
+    matchedDocs.sort((a, b) => b.score - a.score);
+    const matchedDocIds = matchedDocs.slice(0, 5).map(d => d.id);
 
-      const { data: fallbackData, error: fbError } = await supabase
-        .from('ai_knowledge_chunks')
-        .select('id, doc_id, chunk_index, content, ai_knowledge_docs(judul)')
-        .or(orFilter)
-        .limit(matchLimit * 3);
+    const resultsMap = new Map<string, MatchedKnowledgeChunk>();
 
-      if (fbError) {
-        debug.ilikeError = fbError.message;
-      } else if (fallbackData && Array.isArray(fallbackData)) {
-        const scoredFallback = (fallbackData as any[]).map(row => {
-          const contentLower = (row.content || '').toLowerCase();
-          const docTitle = row.ai_knowledge_docs?.judul || 'Dokumen Referensi';
-          const docTitleLower = docTitle.toLowerCase();
-          let matchScore = 0;
+    // 2. Jika ada dokumen yang cocok judulnya, ambil chunk dari dokumen spesifik tersebut
+    if (matchedDocIds.length > 0) {
+      for (const docId of matchedDocIds) {
+        const doc = docsMap.get(docId);
 
-          for (const kw of keywords) {
-            const isProperNoun = properNouns.includes(kw);
-            if (contentLower.includes(kw)) matchScore += isProperNoun ? 4 : 2;
-            if (docTitleLower.includes(kw)) matchScore += isProperNoun ? 5 : 3;
-          }
+        // Cari chunk yang mengandung searchTerms di dalam dokumen ini
+        if (searchTerms.length > 0) {
+          const docOrFilter = searchTerms.slice(0, 4).map(t => `content.ilike.%${t}%`).join(',');
+          const { data: specificChunks } = await supabase
+            .from('ai_knowledge_chunks')
+            .select('id, doc_id, chunk_index, content')
+            .eq('doc_id', docId)
+            .or(docOrFilter)
+            .limit(4);
 
-          return {
-            id: row.id,
-            doc_id: row.doc_id,
-            doc_title: docTitle,
-            chunk_index: row.chunk_index,
-            content: row.content,
-            score: matchScore,
-            source: 'ilike' as const
-          };
-        }).filter(item => (item.score || 0) > 0);
-
-        scoredFallback.sort((a, b) => (b.score || 0) - (a.score || 0));
-        debug.ilikeHits = scoredFallback.length;
-
-        for (const item of scoredFallback) {
-          const existing = resultsMap.get(item.id);
-          // Kalau chunk sudah ada dari RPC, tambahkan skor ILIKE-nya (double-confirmed = lebih relevan)
-          if (existing) {
-            existing.score = (existing.score || 0) + (item.score || 0);
-          } else {
-            resultsMap.set(item.id, item);
+          if (specificChunks && specificChunks.length > 0) {
+            specificChunks.forEach(c => {
+              resultsMap.set(c.id, {
+                id: c.id,
+                doc_id: c.doc_id,
+                doc_title: doc?.judul || '',
+                chunk_index: c.chunk_index,
+                content: c.content,
+                score: 25,
+                source: 'doc_match_term'
+              });
+            });
           }
         }
+
+        // Jika belum ada chunk yang didapat untuk doc ini, ambil sample representative chunk
+        if (!Array.from(resultsMap.values()).some(r => r.doc_id === docId)) {
+          const { data: sampleChunks } = await supabase
+            .from('ai_knowledge_chunks')
+            .select('id, doc_id, chunk_index, content')
+            .eq('doc_id', docId)
+            .order('chunk_index', { ascending: true })
+            .limit(2);
+
+          (sampleChunks || []).forEach(c => {
+            resultsMap.set(c.id, {
+              id: c.id,
+              doc_id: c.doc_id,
+              doc_title: doc?.judul || '',
+              chunk_index: c.chunk_index,
+              content: c.content,
+              score: 18,
+              source: 'doc_sample'
+            });
+          });
+        }
+      }
+    }
+
+    // 3. Pencarian chunk global dengan token pencarian spesifik
+    if (searchTerms.length > 0) {
+      for (const term of searchTerms.slice(0, 5)) {
+        const { data: termChunks } = await supabase
+          .from('ai_knowledge_chunks')
+          .select('id, doc_id, chunk_index, content')
+          .ilike('content', `%${term}%`)
+          .limit(10);
+
+        (termChunks || []).forEach(c => {
+          const doc = docsMap.get(c.doc_id);
+          const existing = resultsMap.get(c.id);
+          const termScore = properNouns.includes(term) ? 8 : 4;
+          if (existing) {
+            existing.score = (existing.score || 0) + termScore;
+          } else {
+            resultsMap.set(c.id, {
+              id: c.id,
+              doc_id: c.doc_id,
+              doc_title: doc?.judul || 'Dokumen Referensi',
+              chunk_index: c.chunk_index,
+              content: c.content,
+              score: termScore,
+              source: 'term_search'
+            });
+          }
+        });
       }
     }
 
@@ -144,16 +168,10 @@ export async function searchKnowledgeBase(queryText: string, matchLimit: number 
       .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, matchLimit);
 
-    console.log('[searchKnowledgeBase]', {
-      ...debug,
-      totalReturned: finalResults.length,
-      topDocs: finalResults.map(r => `${r.doc_title} (score:${r.score ?? 'n/a'}, src:${r.source})`)
-    });
-
     return finalResults;
 
   } catch (err) {
-    console.error('[searchKnowledgeBase] FATAL ERROR:', err, debug);
+    console.error('[searchKnowledgeBase] FATAL ERROR:', err);
     return [];
   }
 }
