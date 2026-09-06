@@ -2178,7 +2178,7 @@ export default function DashboardPage() {
 
           {/* Footer with Visit Counter */}
           {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && (
-            <footer className="mt-12 pt-6 pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
+            <footer className="mt-12 pt-6 pb-12 sm:pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
               <VisitCounter />
             </footer>
           )}
