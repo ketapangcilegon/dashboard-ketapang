@@ -1,9 +1,165 @@
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 
 export interface KnowledgeChunk {
   chunkIndex: number;
   content: string;
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Helper decode XML entities
+ */
+function decodeXmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+/**
+ * Ekstrak teks dari dokumen Word (.docx) menggunakan JSZip
+ */
+export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer);
+  const documentXml = await zip.file('word/document.xml')?.async('string');
+  
+  if (!documentXml) {
+    throw new Error('Format file .docx tidak valid atau tidak memiliki word/document.xml');
+  }
+
+  // Ganti tag paragraf dan tabel dengan baris baru, hapus tag XML lainnya
+  const formatted = documentXml
+    .replace(/<\/w:p>/g, '\n')
+    .replace(/<\/w:tr>/g, '\n')
+    .replace(/<w:tab\/>/g, ' ')
+    .replace(/<[^>]+>/g, '');
+
+  const clean = decodeXmlEntities(formatted)
+    .replace(/\n\s*\n/g, '\n\n')
+    .trim();
+
+  return clean;
+}
+
+/**
+ * Ekstrak teks dari presentasi PowerPoint (.pptx) menggunakan JSZip
+ */
+export async function extractTextFromPptx(buffer: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer);
+  const slideFiles = Object.keys(zip.files)
+    .filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f))
+    .sort((a, b) => {
+      const matchA = a.match(/\d+/);
+      const matchB = b.match(/\d+/);
+      const numA = matchA ? parseInt(matchA[0], 10) : 0;
+      const numB = matchB ? parseInt(matchB[0], 10) : 0;
+      return numA - numB;
+    });
+
+  if (slideFiles.length === 0) {
+    throw new Error('File .pptx tidak memiliki slide yang dapat dibaca.');
+  }
+
+  const slideTexts: string[] = [];
+  for (let i = 0; i < slideFiles.length; i++) {
+    const xml = await zip.file(slideFiles[i])?.async('string');
+    if (xml) {
+      const formatted = xml
+        .replace(/<\/a:p>/g, '\n')
+        .replace(/<[^>]+>/g, '');
+      const clean = decodeXmlEntities(formatted)
+        .replace(/\n\s*\n/g, '\n\n')
+        .trim();
+
+      if (clean) {
+        slideTexts.push(`### Slide ${i + 1}\n${clean}`);
+      }
+    }
+  }
+
+  return slideTexts.join('\n\n');
+}
+
+/**
+ * Ekstrak printable teks dari dokumen biner warisan (.doc atau .ppt)
+ */
+export function extractTextFromLegacyDocOrPpt(buffer: Buffer): string {
+  // Ambil karakter ASCII dan UTF-8 printable string yang tersusun
+  const raw = buffer.toString('binary');
+  const cleanMatches = raw.match(/[\x20-\x7E\xA0-\xFF]{4,}/g) || [];
+  const text = cleanMatches
+    .filter(line => !/^[!@#$%^&*()_+=\-[\]{};':"\\|,.<>/?\s]+$/.test(line))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text;
+}
+
+/**
+ * Ekstrak teks dari gambar (JPG/PNG/WEBP) menggunakan Gemini Vision OCR
+ */
+export async function extractTextFromImage(
+  buffer: Buffer, 
+  mimeType: string, 
+  apiKey?: string
+): Promise<string> {
+  const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    throw new Error('GEMINI_API_KEY belum dikonfigurasi untuk menjalankan OCR gambar.');
+  }
+
+  const base64Data = buffer.toString('base64');
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+  
+  let lastError = '';
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: 'Anda adalah sistem OCR cerdas. Ekstrak dan transkripsikan SELURUH teks, judul, tabel, angka, bagan, dan informasi penting yang tertulis di dalam gambar ini secara lengkap, terstruktur, dan presisi tanpa meringkas.'
+              },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            maxOutputTokens: 3000,
+            temperature: 0.1
+          }
+        })
+      });
+
+      if (!response.ok) {
+        lastError = `HTTP ${response.status}: ${await response.text()}`;
+        continue;
+      }
+
+      const data = await response.json();
+      const extracted = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (extracted.trim()) {
+        return extracted.trim();
+      }
+    } catch (err) {
+      lastError = String(err);
+    }
+  }
+
+  throw new Error(`Gagal mengekstrak teks dari gambar: ${lastError || 'Tidak ada teks yang terdeteksi'}`);
 }
 
 /**
@@ -38,7 +194,7 @@ export function chunkText(
     const chunkWords = words.slice(startIndex, endIndex);
     
     // Gabungkan kembali
-    let content = chunkWords.join(' ').replace(/\s+\n\n\s+/g, '\n\n').trim();
+    const content = chunkWords.join(' ').replace(/\s+\n\n\s+/g, '\n\n').trim();
     if (content.length > 0) {
       chunks.push({
         chunkIndex: chunkIdx++,
@@ -106,3 +262,4 @@ export function parseExcelToTextChunks(buffer: Buffer): KnowledgeChunk[] {
 
   return chunks;
 }
+

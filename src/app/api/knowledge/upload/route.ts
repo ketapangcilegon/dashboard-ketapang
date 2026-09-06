@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { chunkText, parseExcelToTextChunks, KnowledgeChunk } from '@/lib/knowledgeChunker';
+import { 
+  chunkText, 
+  parseExcelToTextChunks, 
+  extractTextFromDocx, 
+  extractTextFromPptx, 
+  extractTextFromLegacyDocOrPpt, 
+  extractTextFromImage, 
+  KnowledgeChunk 
+} from '@/lib/knowledgeChunker';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PDFParser = require('pdf2json');
 
@@ -63,13 +71,73 @@ export async function POST(request: Request) {
       } else if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv')) {
         jenis = lowerName.endsWith('.csv') ? 'csv' : 'excel';
         chunks = parseExcelToTextChunks(buffer);
+      } else if (lowerName.endsWith('.docx')) {
+        jenis = 'docx';
+        const docxText = await extractTextFromDocx(buffer);
+        if (!docxText.trim()) {
+          return NextResponse.json(
+            { error: 'Dokumen Word (.docx) tidak berisi teks yang dapat diekstrak.' },
+            { status: 400 }
+          );
+        }
+        chunks = chunkText(docxText, 350, 50);
+      } else if (lowerName.endsWith('.doc')) {
+        jenis = 'doc';
+        const docText = extractTextFromLegacyDocOrPpt(buffer);
+        if (!docText.trim()) {
+          return NextResponse.json(
+            { error: 'Gagal membaca isi file .doc warisan. Disarankan menyimpan ulang sebagai format .docx.' },
+            { status: 400 }
+          );
+        }
+        chunks = chunkText(docText, 350, 50);
+      } else if (lowerName.endsWith('.pptx')) {
+        jenis = 'pptx';
+        const pptxText = await extractTextFromPptx(buffer);
+        if (!pptxText.trim()) {
+          return NextResponse.json(
+            { error: 'File PowerPoint (.pptx) tidak berisi teks slide yang dapat diekstrak.' },
+            { status: 400 }
+          );
+        }
+        chunks = chunkText(pptxText, 350, 50);
+      } else if (lowerName.endsWith('.ppt')) {
+        jenis = 'ppt';
+        const pptText = extractTextFromLegacyDocOrPpt(buffer);
+        if (!pptText.trim()) {
+          return NextResponse.json(
+            { error: 'Gagal membaca isi file .ppt warisan. Disarankan menyimpan ulang sebagai format .pptx.' },
+            { status: 400 }
+          );
+        }
+        chunks = chunkText(pptText, 350, 50);
+      } else if (
+        lowerName.endsWith('.jpg') || 
+        lowerName.endsWith('.jpeg') || 
+        lowerName.endsWith('.png') || 
+        lowerName.endsWith('.webp')
+      ) {
+        jenis = 'gambar';
+        const mimeType = lowerName.endsWith('.png') 
+          ? 'image/png' 
+          : lowerName.endsWith('.webp') 
+          ? 'image/webp' 
+          : 'image/jpeg';
+        const imageText = await extractTextFromImage(buffer, mimeType);
+        if (!imageText.trim()) {
+          return NextResponse.json(
+            { error: 'Tidak ada teks yang berhasil diekstrak atau terbaca dari gambar ini.' },
+            { status: 400 }
+          );
+        }
+        chunks = chunkText(imageText, 350, 50);
       } else if (lowerName.endsWith('.txt') || lowerName.endsWith('.md')) {
         jenis = 'teks';
         const textContent = buffer.toString('utf-8');
         chunks = chunkText(textContent, 350, 50);
       } else {
         return NextResponse.json(
-          { error: 'Format file tidak didukung. Harap upload format PDF, Excel (.xlsx/.xls), CSV, atau TXT.' },
+          { error: 'Format file tidak didukung. Harap upload format PDF, Word (.docx/.doc), PowerPoint (.pptx/.ppt), Excel (.xlsx/.xls), CSV, Gambar (.jpg/.png), atau TXT.' },
           { status: 400 }
         );
       }

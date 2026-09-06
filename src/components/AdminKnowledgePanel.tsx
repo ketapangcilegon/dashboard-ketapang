@@ -14,7 +14,11 @@ import {
   FileSpreadsheet, 
   FileCode,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Pencil,
+  X,
+  Save,
+  FileCheck
 } from 'lucide-react';
 
 interface KnowledgeDoc {
@@ -54,6 +58,12 @@ export default function AdminKnowledgePanel() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<TestSearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Edit Modal State
+  const [editingDoc, setEditingDoc] = useState<KnowledgeDoc | null>(null);
+  const [editJudul, setEditJudul] = useState('');
+  const [editDeskripsi, setEditDeskripsi] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const fetchDocs = async () => {
     setLoading(true);
@@ -164,6 +174,54 @@ export default function AdminKnowledgePanel() {
     }
   };
 
+  const handleOpenEdit = (doc: KnowledgeDoc) => {
+    setEditingDoc(doc);
+    setEditJudul(doc.judul);
+    setEditDeskripsi(doc.deskripsi || '');
+  };
+
+  const handleCloseEdit = () => {
+    setEditingDoc(null);
+    setEditJudul('');
+    setEditDeskripsi('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDoc) return;
+    if (!editJudul.trim()) {
+      alert('Judul dokumen tidak boleh kosong.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch('/api/knowledge', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingDoc.id,
+          judul: editJudul.trim(),
+          deskripsi: editDeskripsi.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDocs(prev => prev.map(d => d.id === editingDoc.id ? { ...d, judul: editJudul.trim(), deskripsi: editDeskripsi.trim() } : d));
+        setStatusMessage({ type: 'success', msg: `Dokumen "${editJudul}" berhasil diperbarui.` });
+        handleCloseEdit();
+      } else {
+        alert(data.error || 'Gagal memperbarui dokumen.');
+      }
+    } catch (err) {
+      console.error('Error updating document:', err);
+      alert('Terjadi kesalahan koneksi saat menyimpan perubahan.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleTestSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -185,6 +243,60 @@ export default function AdminKnowledgePanel() {
     }
   };
 
+  const renderFileIcon = (fileName: string | null, jenis: string) => {
+    const fn = (fileName || '').toLowerCase();
+    const j = (jenis || '').toLowerCase();
+
+    if (j === 'pdf' || fn.endsWith('.pdf')) {
+      return <FileText className="w-8 h-8 text-rose-500" />;
+    }
+    if (j === 'excel' || j === 'csv' || fn.endsWith('.xlsx') || fn.endsWith('.xls') || fn.endsWith('.csv')) {
+      return <FileSpreadsheet className="w-8 h-8 text-emerald-600" />;
+    }
+    if (j === 'docx' || j === 'doc' || fn.endsWith('.docx') || fn.endsWith('.doc')) {
+      return <FileText className="w-8 h-8 text-blue-600" />;
+    }
+    if (j === 'pptx' || j === 'ppt' || fn.endsWith('.pptx') || fn.endsWith('.ppt')) {
+      return <FileCheck className="w-8 h-8 text-amber-500" />;
+    }
+    if (j === 'gambar' || fn.endsWith('.jpg') || fn.endsWith('.jpeg') || fn.endsWith('.png') || fn.endsWith('.webp')) {
+      return <Sparkles className="w-8 h-8 text-purple-600" />;
+    }
+    return <FileCode className="w-8 h-8 text-slate-500" />;
+  };
+
+  const renderTypeBadge = (jenis: string) => {
+    const j = (jenis || '').toLowerCase();
+    let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
+    let label = jenis;
+
+    if (j === 'pdf') {
+      colorClass = 'bg-rose-100 text-rose-700 border-rose-200';
+      label = 'PDF';
+    } else if (j === 'excel' || j === 'csv') {
+      colorClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      label = j === 'csv' ? 'CSV' : 'EXCEL';
+    } else if (j === 'docx' || j === 'doc') {
+      colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
+      label = j.toUpperCase();
+    } else if (j === 'pptx' || j === 'ppt') {
+      colorClass = 'bg-amber-100 text-amber-700 border-amber-200';
+      label = j.toUpperCase();
+    } else if (j === 'gambar') {
+      colorClass = 'bg-purple-100 text-purple-700 border-purple-200';
+      label = 'GAMBAR / OCR';
+    } else if (j === 'teks') {
+      colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
+      label = 'TEKS';
+    }
+
+    return (
+      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${colorClass}`}>
+        {label}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       
@@ -197,7 +309,7 @@ export default function AdminKnowledgePanel() {
           </div>
           <h2 className="text-xl font-black tracking-wide">Pusat Pengetahuan & Dokumen AI</h2>
           <p className="text-xs text-emerald-100/80 mt-1 leading-relaxed">
-            Upload dokumen resmi (PDF peraturan/UU, laporan ketahanan pangan tahunan 50–100 halaman, tabel Excel/CSV) atau catatan teknis. Dokumen akan dipotong (*chunking*) dan diindeks secara otomatis ke Supabase agar AI Intelligence dapat mengutip isinya secara presisi saat menjawab pertanyaan.
+            Upload dokumen resmi (PDF peraturan/UU, Word .docx/.doc, PPT .pptx/.ppt, Excel .xlsx/.xls, CSV, Gambar/Infografis OCR, atau catatan teknis). Dokumen akan diekstrak, dipotong (*chunking*), dan diindeks secara otomatis ke Supabase agar AI Intelligence dapat mengutip isinya secara presisi saat menjawab pertanyaan.
           </p>
         </div>
       </div>
@@ -258,7 +370,7 @@ export default function AdminKnowledgePanel() {
             {inputType === 'file' ? (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  File Dokumen (PDF, Excel .xlsx/.xls, CSV, TXT)
+                  File Dokumen (PDF, Word .docx/.doc, PPT .pptx/.ppt, Excel .xlsx/.xls, CSV, Gambar, TXT)
                 </label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
@@ -267,19 +379,13 @@ export default function AdminKnowledgePanel() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.xlsx,.xls,.csv,.txt,.md"
+                    accept=".pdf,.xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.jpg,.jpeg,.png,.webp,.txt,.md"
                     onChange={handleFileChange}
                     className="hidden"
                   />
                   {selectedFile ? (
                     <div className="flex items-center gap-3">
-                      {selectedFile.name.endsWith('.pdf') ? (
-                        <FileText className="w-8 h-8 text-rose-500" />
-                      ) : selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls') || selectedFile.name.endsWith('.csv') ? (
-                        <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
-                      ) : (
-                        <FileCode className="w-8 h-8 text-blue-500" />
-                      )}
+                      {renderFileIcon(selectedFile.name, '')}
                       <div className="text-left">
                         <p className="text-xs font-extrabold text-slate-800 max-w-[280px] truncate">{selectedFile.name}</p>
                         <p className="text-[10px] text-slate-400 font-semibold">
@@ -294,7 +400,7 @@ export default function AdminKnowledgePanel() {
                         Klik untuk memilih file dokumen
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        PDF Peraturan (50-100 halaman), Laporan Tahunan, Excel Data Produksi
+                        PDF Peraturan, Word Dokumen, PPT Slide, Gambar/Infografis OCR, Excel Data Statistik
                       </p>
                     </>
                   )}
@@ -431,7 +537,7 @@ export default function AdminKnowledgePanel() {
               <div className="text-[11px] text-emerald-900 leading-relaxed space-y-1">
                 <p className="font-bold">Bagaimana AI menggunakan dokumen ini?</p>
                 <p className="text-slate-600">
-                  Saat user bertanya di <strong>AI Intelligence</strong>, sistem secara otomatis mencari 4 potongan teks paling relevan dari database dan menyisipkannya ke konteks prompt Gemini, sehingga AI dapat menjawab dengan mengutip pasal, angka, atau isi dokumen resmi secara akurat.
+                  Saat user bertanya di <strong>AI Intelligence</strong>, sistem secara otomatis mencari <strong>4 hingga 8 potongan teks paling relevan</strong> dari database dan menyisipkannya ke konteks prompt Gemini, sehingga AI dapat menjawab dengan mengutip pasal, angka, atau isi dokumen resmi secara akurat.
                 </p>
               </div>
             </div>
@@ -473,61 +579,68 @@ export default function AdminKnowledgePanel() {
             <BookOpen className="w-10 h-10 mx-auto text-slate-300" />
             <p className="text-xs font-bold text-slate-600">Belum ada dokumen yang diupload.</p>
             <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-              Silakan upload file PDF peraturan, laporan tahunan ketahanan pangan, atau tabel Excel melalui formulir di atas.
+              Silakan upload file PDF peraturan, dokumen Word, slide presentasi, gambar OCR, atau tabel Excel melalui formulir di atas.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs table-auto">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-black tracking-wider">
-                  <th className="py-3 px-3">Jenis</th>
-                  <th className="py-3 px-3">Judul Dokumen</th>
-                  <th className="py-3 px-3">Deskripsi</th>
-                  <th className="py-3 px-3 text-center">Jumlah Chunk</th>
-                  <th className="py-3 px-3">Tanggal Upload</th>
-                  <th className="py-3 px-3 text-right">Aksi</th>
+                  <th className="py-3 px-3 w-20">Jenis</th>
+                  <th className="py-3 px-3 min-w-[220px] max-w-[340px]">Judul Dokumen</th>
+                  <th className="py-3 px-3 min-w-[180px] max-w-[300px]">Deskripsi</th>
+                  <th className="py-3 px-3 text-center w-28 shrink-0">Jumlah Chunk</th>
+                  <th className="py-3 px-3 w-28 shrink-0">Tanggal Upload</th>
+                  <th className="py-3 px-3 text-right w-24 shrink-0">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {docs.map(doc => (
                   <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-3">
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
-                        doc.jenis === 'pdf' ? 'bg-rose-100 text-rose-700 border border-rose-200' :
-                        doc.jenis === 'excel' || doc.jenis === 'csv' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
-                        'bg-blue-100 text-blue-700 border border-blue-200'
-                      }`}>
-                        {doc.jenis}
-                      </span>
+                    <td className="py-3 px-3 align-top">
+                      {renderTypeBadge(doc.jenis)}
                     </td>
-                    <td className="py-3 px-3">
-                      <p className="font-extrabold text-slate-800 leading-snug">{doc.judul}</p>
-                      {doc.file_name && (
-                        <p className="text-[10px] text-slate-400 font-semibold">{doc.file_name}</p>
-                      )}
+                    <td className="py-3 px-3 align-top">
+                      <div className="min-w-[220px] max-w-[340px] break-words whitespace-normal space-y-0.5">
+                        <p className="font-extrabold text-slate-800 leading-snug break-words">{doc.judul}</p>
+                        {doc.file_name && (
+                          <p className="text-[10px] text-slate-400 font-semibold break-all">{doc.file_name}</p>
+                        )}
+                      </div>
                     </td>
-                    <td className="py-3 px-3 text-slate-500 font-medium max-w-xs truncate">
-                      {doc.deskripsi || '-'}
+                    <td className="py-3 px-3 align-top">
+                      <div className="min-w-[180px] max-w-[300px] break-words whitespace-normal text-slate-500 font-medium leading-relaxed">
+                        {doc.deskripsi ? doc.deskripsi : <span className="text-slate-300 italic">-</span>}
+                      </div>
                     </td>
-                    <td className="py-3 px-3 text-center font-black text-emerald-700">
+                    <td className="py-3 px-3 text-center align-top font-black text-emerald-700 whitespace-nowrap">
                       {doc.total_chunks} <span className="text-[10px] font-semibold text-slate-400">potongan</span>
                     </td>
-                    <td className="py-3 px-3 text-slate-400 font-semibold text-[11px]">
+                    <td className="py-3 px-3 text-slate-400 font-semibold text-[11px] align-top whitespace-nowrap">
                       {new Date(doc.created_at).toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric'
                       })}
                     </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => handleDelete(doc.id, doc.judul)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Hapus dokumen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <td className="py-3 px-3 text-right align-top whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenEdit(doc)}
+                          className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Edit judul & deskripsi dokumen"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(doc.id, doc.judul)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Hapus dokumen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -537,6 +650,107 @@ export default function AdminKnowledgePanel() {
         )}
       </div>
 
+      {/* EDIT MODAL DIALOG */}
+      {editingDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
+            
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">Edit Metadata Dokumen</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Perbarui judul dan keterangan dokumen untuk mempermudah pencarian AI</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseEdit}
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form Edit */}
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Judul Dokumen <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={editJudul}
+                  onChange={e => setEditJudul(e.target.value)}
+                  placeholder="Masukkan judul dokumen..."
+                  className="w-full text-xs font-semibold p-2.5 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Deskripsi / Ringkasan Dokumen
+                </label>
+                <textarea
+                  rows={3}
+                  value={editDeskripsi}
+                  onChange={e => setEditDeskripsi(e.target.value)}
+                  placeholder="Masukkan ringkasan atau keterangan dokumen..."
+                  className="w-full text-xs font-medium p-2.5 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                />
+              </div>
+
+              {/* Info Tambahan */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-slate-400">Jenis: </span>
+                  <span className="font-bold text-slate-700 uppercase">{editingDoc.jenis}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-400">Total Chunk: </span>
+                  <span className="font-bold text-emerald-700">{editingDoc.total_chunks} potongan</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleCloseEdit}
+                  disabled={isSavingEdit}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
