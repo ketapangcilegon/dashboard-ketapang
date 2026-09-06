@@ -128,13 +128,13 @@ body {
   width: 34px !important;
   height: 34px !important;
   line-height: 34px !important;
-  background: rgba(9, 23, 40, 0.90) !important;
+  background: rgba(9, 23, 40, 0.50) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   color: #ffffff !important;
   border-radius: 10px !important;
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -146,7 +146,7 @@ body {
 
 .sp-map-action-btn:hover,
 .sp-dark-nav-btn:hover {
-  background: rgba(15, 33, 56, 0.98) !important;
+  background: rgba(15, 33, 56, 0.75) !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.45) !important;
   transform: scale(1.05);
@@ -191,18 +191,20 @@ body {
 }
 
 /* ─────────── Leaflet Controls Dark Zoom Alignment ─────────── */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
+.leaflet-top.leaflet-left .leaflet-control-zoom,
+.leaflet-control-zoom {
   border-radius: 10px !important;
   overflow: hidden !important;
-  background: rgba(9, 23, 40, 0.90) !important;
+  background: rgba(9, 23, 40, 0.50) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
   margin-bottom: 5px !important;
 }
 
-.leaflet-top.leaflet-left .leaflet-control-zoom a {
+.leaflet-top.leaflet-left .leaflet-control-zoom a,
+.leaflet-control-zoom a {
   width: 34px !important;
   height: 32px !important;
   line-height: 30px !important;
@@ -216,14 +218,17 @@ body {
   transition: all 0.15s ease !important;
 }
 
-.leaflet-top.leaflet-left .leaflet-control-zoom a:first-child {
+.leaflet-top.leaflet-left .leaflet-control-zoom a:first-child,
+.leaflet-control-zoom a:first-child {
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
-.leaflet-top.leaflet-left .leaflet-control-zoom a:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
+.leaflet-top.leaflet-left .leaflet-control-zoom a:hover,
+.leaflet-control-zoom a:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
   color: #ffffff !important;
 }
+
 
 /* ─────────── Leaflet Tooltip Transparent Text ─────────── */
 .leaflet-tooltip.ikpg-kel-label {
