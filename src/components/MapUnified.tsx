@@ -603,7 +603,7 @@ function MapController({
         className="absolute top-4 right-4 z-[1000] pointer-events-auto flex flex-col items-center print:hidden"
       >
         {/* Zoom In & Out Combined Box */}
-        <div className="flex flex-col rounded-xl overflow-hidden bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg mb-1.5">
+        <div className="flex flex-col rounded-xl overflow-hidden bg-black/50 backdrop-blur-md border border-white/20 shadow-lg mb-1.5">
           <button
             onClick={handleZoomIn}
             title="Perbesar Peta (Zoom In)"
@@ -628,7 +628,7 @@ function MapController({
             } catch {}
           }}
           title="Pusatkan Peta ke Seluruh Wilayah Kota Cilegon"
-          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
+          className="w-[34px] h-[34px] rounded-xl bg-black/50 backdrop-blur-md border border-white/20 shadow-lg hover:bg-black/70 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M7 4H5a2 2 0 0 0-2 2v2M17 4h2a2 2 0 0 1 2 2v2M7 20H5a2 2 0 0 1-2-2v-2M17 20h2a2 2 0 0 0 2-2v-2"/>
@@ -639,7 +639,7 @@ function MapController({
         <button
           onClick={handleLocateMe}
           title="Temukan Lokasi Saya (GPS)"
-          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
+          className="w-[34px] h-[34px] rounded-xl bg-black/50 backdrop-blur-md border border-white/20 shadow-lg hover:bg-black/70 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer mb-1.5"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="7"/>
@@ -655,7 +655,7 @@ function MapController({
         <button
           onClick={toggleBasemap}
           title="Ganti Tampilan Basemap (Jalan / Satelit)"
-          className="w-[34px] h-[34px] rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/20 shadow-lg hover:bg-slate-800 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer"
+          className="w-[34px] h-[34px] rounded-xl bg-black/50 backdrop-blur-md border border-white/20 shadow-lg hover:bg-black/70 flex items-center justify-center text-white hover:border-white/40 transition-all active:scale-95 cursor-pointer"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -1306,8 +1306,8 @@ export default function MapUnified({
 
 
   const tileUrl = basemap === 'light'
-    ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    : "https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
 
   return (
     <div className="relative w-full h-full min-h-[350px] flex flex-col rounded-xl overflow-hidden bg-slate-50 border border-slate-200">

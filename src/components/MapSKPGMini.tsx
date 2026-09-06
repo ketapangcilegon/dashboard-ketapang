@@ -103,7 +103,7 @@ export default function MapSKPGMini({ level, dataStatus, height = '240px' }: Map
         style={{ width: '100%', height: '100%', background: '#F8FAFC' }}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {activeFeatures && activeFeatures.length > 0 && (
