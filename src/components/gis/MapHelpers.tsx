@@ -20,22 +20,14 @@ export function MoveZoomControl() {
   const map = useMap();
   useEffect(() => {
     try {
-      if (map.zoomControl) {
-        map.zoomControl.remove();
+      if (map && map.zoomControl) {
         map.zoomControl.setPosition('topleft');
-        map.zoomControl.addTo(map);
       }
     } catch {}
-    return () => {
-      try {
-        if (map.zoomControl) {
-          map.zoomControl.remove();
-        }
-      } catch {}
-    };
   }, [map]);
   return null;
 }
+
 
 // Komponen tombol Fit Bounds / Full View di topleft
 export function FitBoundsControl({ bounds }: { bounds?: L.LatLngBoundsExpression }) {
@@ -103,12 +95,24 @@ export function MapZoomTracker({ setZoom }: { setZoom?: (z: number) => void }) {
 export function MapInvalidator() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!map) return;
+    const invalidate = () => {
       try {
         map.invalidateSize();
       } catch {}
-    }, 150);
-    return () => clearTimeout(timer);
+    };
+
+    invalidate();
+    const t1 = setTimeout(invalidate, 100);
+    const t2 = setTimeout(invalidate, 350);
+
+    window.addEventListener('resize', invalidate);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', invalidate);
+    };
   }, [map]);
   return null;
 }
+

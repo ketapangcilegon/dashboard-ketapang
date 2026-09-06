@@ -133,24 +133,14 @@ function HighlightManager({
   highlightWilayah = [],
   highlightPins = [],
   mapAction = null,
-  thematicMode = 'none',
-  thematicOpacity = 0.65,
-  indicatorData,
-  kecLayerRef,
-  kelLayerRef,
-  filterActive = false,
-  filteredWilayah = [],
+  kelurahanFeatures = [],
+  kecamatanFeatures = [],
 }: {
   highlightWilayah: string[];
   highlightPins: MatchedPin[];
   mapAction?: MapAction | null;
-  thematicMode?: ThematicMode;
-  thematicOpacity?: number;
-  indicatorData?: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
-  kecLayerRef: React.RefObject<L.GeoJSON[]>;
-  kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
-  filterActive?: boolean;
-  filteredWilayah?: string[];
+  kelurahanFeatures?: any[];
+  kecamatanFeatures?: any[];
 }) {
   const map = useMap();
 
@@ -177,114 +167,6 @@ function HighlightManager({
       (p) => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
     );
 
-    const highlightedBounds: L.LatLngBounds[] = [];
-
-    // Re-style kecamatan layers
-    if (kecLayerRef.current) {
-      kecLayerRef.current.forEach((geoLayer) => {
-        if (!geoLayer) return;
-        geoLayer.eachLayer((sub) => {
-          const path = sub as L.Path & { feature?: GeoJSON.Feature };
-          if (!path.feature) return;
-          const name = path.feature.properties?.name || path.feature.properties?.Name || '';
-          const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(name, highlightWilayah);
-          path.setStyle(isHighlighted ? HIGHLIGHT_KEC_STYLE : KEC_DEFAULT_STYLE);
-          if (isHighlighted) {
-            try {
-              const poly = sub as L.Polygon;
-              if (typeof poly.getBounds === 'function') {
-                const b = poly.getBounds();
-                if (b && b.isValid()) highlightedBounds.push(b);
-              }
-            } catch {}
-          }
-        });
-      });
-    }
-
-    // Re-style kelurahan layers dengan integrasi Thematic Mode Choropleth & Spatial Filter Dimming (Fase 2)
-    if (kelLayerRef.current) {
-      kelLayerRef.current.forEach((geoLayer) => {
-        if (!geoLayer) return;
-        geoLayer.eachLayer((sub) => {
-          const path = sub as L.Path & { feature?: GeoJSON.Feature };
-          if (!path.feature) return;
-          const name = path.feature.properties?.name || path.feature.properties?.Name || '';
-
-          // Jika ada filter spasial aktif (Fase 2: Natural Language to GIS Querying)
-          if (filterActive && filteredWilayah.length > 0) {
-            const isMatch = isWilayahMatch(name, filteredWilayah);
-            if (isMatch) {
-              if (thematicMode === 'none') {
-                path.setStyle({
-                  color: '#10b981',
-                  weight: 3.5,
-                  fillColor: '#10b981',
-                  fillOpacity: 0.35,
-                  dashArray: undefined
-                });
-              } else {
-                const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, (thematicOpacity || 0.65) + 0.25), indicatorData);
-                path.setStyle({
-                  ...th,
-                  color: '#10b981',
-                  weight: 3.5,
-                  fillOpacity: Math.min(1, (thematicOpacity || 0.65) + 0.3),
-                  dashArray: undefined
-                });
-              }
-              try {
-                const poly = sub as L.Polygon;
-                if (typeof poly.getBounds === 'function') {
-                  const b = poly.getBounds();
-                  if (b && b.isValid()) highlightedBounds.push(b);
-                }
-              } catch {}
-            } else {
-              // Dimmed / Semi-transparan untuk kelurahan yang tidak memenuhi kriteria filter
-              path.setStyle({
-                color: '#cbd5e1',
-                weight: 1,
-                fillColor: '#94a3b8',
-                fillOpacity: 0.05,
-                dashArray: '3,5',
-              });
-            }
-            return;
-          }
-
-          const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(name, highlightWilayah);
-
-          if (isHighlighted) {
-            if (thematicMode === 'none') {
-              path.setStyle(HIGHLIGHT_KEL_STYLE);
-            } else {
-              const th = getThematicPolygonStyle(name, thematicMode, Math.min(1, (thematicOpacity || 0.65) + 0.25), indicatorData);
-              path.setStyle({
-                ...th,
-                color: '#f59e0b',
-                weight: 3.5,
-                fillOpacity: Math.min(1, (thematicOpacity || 0.65) + 0.3),
-              });
-            }
-            try {
-              const poly = sub as L.Polygon;
-              if (typeof poly.getBounds === 'function') {
-                const b = poly.getBounds();
-                if (b && b.isValid()) highlightedBounds.push(b);
-              }
-            } catch {}
-          } else {
-            if (thematicMode === 'none') {
-              path.setStyle(KEL_DEFAULT_STYLE);
-            } else {
-              path.setStyle(getThematicPolygonStyle(name, thematicMode, thematicOpacity || 0.65, indicatorData));
-            }
-          }
-        });
-      });
-    }
-
     // 1. Jika ada PIN GPS yang spesifik dari AI, fokus langsung ke titik PIN tersebut
     if (validPins.length > 0) {
       try {
@@ -301,15 +183,28 @@ function HighlightManager({
     }
 
     // 2. Fit bounds ke semua wilayah poligon yang di-highlight
-    if (highlightedBounds.length > 0 && highlightWilayah.length > 0) {
+    if (highlightWilayah.length > 0) {
       try {
-        const combined = highlightedBounds.reduce((acc, b) => acc.extend(b), L.latLngBounds([]));
-        if (combined.isValid()) {
-          map.fitBounds(combined, { padding: [50, 50], maxZoom: 14, animate: true });
+        const matchedKel = (kelurahanFeatures || []).filter(f => {
+          const name = f.properties?.name || f.properties?.Name || '';
+          return isWilayahMatch(name, highlightWilayah);
+        });
+        const matchedKec = (kecamatanFeatures || []).filter(f => {
+          const name = f.properties?.name || f.properties?.Name || '';
+          return isWilayahMatch(name, highlightWilayah);
+        });
+        const combinedFeatures = [...matchedKel, ...matchedKec];
+        
+        if (combinedFeatures.length > 0) {
+          const geoLayer = L.geoJSON(combinedFeatures as any);
+          const b = geoLayer.getBounds();
+          if (b && b.isValid()) {
+            map.fitBounds(b, { padding: [50, 50], maxZoom: 14.5, animate: true });
+          }
         }
       } catch {}
     }
-  }, [highlightWilayah, highlightPins, map, mapAction, thematicMode, thematicOpacity, indicatorData, kecLayerRef, kelLayerRef]);
+  }, [highlightWilayah, highlightPins, map, mapAction, kelurahanFeatures, kecamatanFeatures]);
 
   return null;
 }
@@ -320,7 +215,7 @@ function ThematicKelurahanLayer({
   thematicMode,
   thematicOpacity,
   indicatorData,
-  kelLayerRef,
+  highlightWilayah = [],
   filterActive = false,
   filteredWilayah = [],
   showKelurahanLabels = true,
@@ -330,7 +225,7 @@ function ThematicKelurahanLayer({
   thematicMode: ThematicMode;
   thematicOpacity: number;
   indicatorData: { fsvaMatang: any[]; skpgMatang: any[]; giziBalita: any[] };
-  kelLayerRef: React.MutableRefObject<L.GeoJSON[]>;
+  highlightWilayah?: string[];
   filterActive?: boolean;
   filteredWilayah?: string[];
   showKelurahanLabels?: boolean;
@@ -343,16 +238,18 @@ function ThematicKelurahanLayer({
       {data.map((f, i) => {
         const rawName = f.properties?.name || f.properties?.Name || '';
         const kelData = resolveKelurahanData(rawName, indicatorData);
-        let style = getThematicPolygonStyle(rawName, thematicMode, thematicOpacity, indicatorData);
+        let style: any = getThematicPolygonStyle(rawName, thematicMode, thematicOpacity, indicatorData);
+
+        const isHighlighted = highlightWilayah.length > 0 && isWilayahMatch(rawName, highlightWilayah);
+        const isFilterMatch = isWilayahMatch(rawName, filteredWilayah);
 
         // Jika filter spasial aktif (Fase 2: Natural Language to GIS Querying)
-        const isFilterMatch = isWilayahMatch(rawName, filteredWilayah);
         if (filterActive && filteredWilayah.length > 0) {
           if (isFilterMatch) {
             style = {
               ...style,
               color: '#10b981',
-              weight: 3,
+              weight: 3.5,
               fillOpacity: Math.min(1, thematicOpacity + 0.25),
             };
           } else {
@@ -364,15 +261,26 @@ function ThematicKelurahanLayer({
               dashArray: '3,5',
             };
           }
+        } else if (isHighlighted) {
+          if (thematicMode === 'none') {
+            style = { ...HIGHLIGHT_KEL_STYLE };
+          } else {
+            const th = getThematicPolygonStyle(rawName, thematicMode, Math.min(1, (thematicOpacity || 0.65) + 0.25), indicatorData);
+            style = {
+              ...th,
+              color: '#f59e0b',
+              weight: 3.5,
+              fillOpacity: Math.min(1, (thematicOpacity || 0.65) + 0.3),
+            };
+          }
         }
 
+
         let metricInfoHtml = '';
-        let metricBadgeText = '';
 
         if (thematicMode === 'ikp') {
           const score = kelData.ikpScore !== null && kelData.ikpScore !== undefined ? kelData.ikpScore.toFixed(2) : '-';
           const cat = kelData.ikpScore ? (kelData.ikpScore >= 77.29 ? 'Sangat Tahan' : kelData.ikpScore >= 69.71 ? 'Tahan' : kelData.ikpScore >= 61.83 ? 'Agak Tahan' : kelData.ikpScore >= 53.95 ? 'Agak Rentan' : kelData.ikpScore >= 46.37 ? 'Rentan' : 'Sangat Rentan') : 'Data Belum Tersedia';
-          metricBadgeText = ` | IKP: ${score}`;
           metricInfoHtml = `
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px;margin:5px 0;">
               <div style="font-size:10px;font-weight:800;color:#166534;text-transform:uppercase;">Indeks Ketahanan Pangan (IKP)</div>
@@ -382,7 +290,6 @@ function ThematicKelurahanLayer({
         } else if (thematicMode === 'penduduk') {
           const p = kelData.penduduk ? kelData.penduduk.toLocaleString('id-ID') : '-';
           const densityLabel = kelData.penduduk > 18000 ? 'Sangat Padat' : kelData.penduduk > 12500 ? 'Tinggi' : kelData.penduduk >= 7500 ? 'Sedang' : 'Rendah';
-          metricBadgeText = ` | ${p} Jiwa`;
           metricInfoHtml = `
             <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:6px;margin:5px 0;">
               <div style="font-size:10px;font-weight:800;color:#1e40af;text-transform:uppercase;">Jumlah Penduduk (Dukcapil 2025)</div>
@@ -391,7 +298,6 @@ function ThematicKelurahanLayer({
           `;
         } else if (thematicMode === 'fsva') {
           const p = kelData.fsvaPriority ? `Prioritas ${kelData.fsvaPriority}` : '-';
-          metricBadgeText = ` | FSVA: ${p}`;
           metricInfoHtml = `
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px;margin:5px 0;">
               <div style="font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;">Prioritas Kerentanan FSVA</div>
@@ -400,7 +306,6 @@ function ThematicKelurahanLayer({
           `;
         } else if (thematicMode === 'skpg') {
           const st = kelData.skpgStatus ? kelData.skpgStatus.toUpperCase() : 'AMAN';
-          metricBadgeText = ` | SKPG: ${st}`;
           metricInfoHtml = `
             <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:6px;margin:5px 0;">
               <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;">Status Kerawanan SKPG</div>
@@ -410,7 +315,6 @@ function ThematicKelurahanLayer({
         } else if (thematicMode === 'stunting') {
           const stVal = kelData.stuntingPct !== null && kelData.stuntingPct !== undefined ? `${kelData.stuntingPct.toFixed(1)}%` : '-';
           const stLabel = kelData.stuntingPct ? (kelData.stuntingPct > 7.5 ? 'Waspada' : kelData.stuntingPct > 5 ? 'Sedang' : 'Rendah') : 'Normal';
-          metricBadgeText = ` | Stunting: ${stVal}`;
           metricInfoHtml = `
             <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:6px;margin:5px 0;">
               <div style="font-size:10px;font-weight:800;color:#6b21a8;text-transform:uppercase;">Prevalensi Stunting Balita (Posyandu)</div>
@@ -423,18 +327,14 @@ function ThematicKelurahanLayer({
 
         return (
           <GeoJSONComp
-            key={`thematic-kel-${rawName}-${thematicMode}-${thematicOpacity}-${filterActive}-${isFilterMatch}`}
+            key={`thematic-kel-${rawName}-${thematicMode}-${thematicOpacity}-${filterActive}-${isFilterMatch}-${isHighlighted}`}
             data={f}
             style={style as any}
             onEachFeature={(_feat: any, layer: L.Layer) => {
-              if (kelLayerRef.current && !kelLayerRef.current.includes(layer as any)) {
-                kelLayerRef.current.push(layer as any);
-              }
-
               const pathLayer = layer as L.Path;
               pathLayer.on({
                 mouseover: () => {
-                  pathLayer.setStyle({ weight: 3, color: '#ffffff' });
+                  pathLayer.setStyle({ weight: 3.5, color: '#ffffff' });
                 },
                 mouseout: () => {
                   pathLayer.setStyle(style as any);
@@ -503,6 +403,7 @@ function ThematicKelurahanLayer({
     </>
   );
 }
+
 
 export default function AIIntelligenceMap({
   highlightWilayah = [],
@@ -626,9 +527,6 @@ export default function AIIntelligenceMap({
     palawija: [],
     warning: [],
   });
-
-  const kecLayerRef = useRef<L.GeoJSON[]>([]);
-  const kelLayerRef = useRef<L.GeoJSON[]>([]);
 
   // Load KMZ (Supabase Storage kmz-files / fallback)
   useEffect(() => {
@@ -855,22 +753,21 @@ export default function AIIntelligenceMap({
           highlightWilayah={combinedWilayah}
           highlightPins={validAiPins}
           mapAction={mapAction}
-          thematicMode={thematicMode}
-          thematicOpacity={thematicOpacity}
-          indicatorData={indicatorData}
-          kecLayerRef={kecLayerRef}
-          kelLayerRef={kelLayerRef}
-          filterActive={filterActive}
-          filteredWilayah={filteredWilayah}
+          kelurahanFeatures={layers.kelurahan}
+          kecamatanFeatures={layers.kecamatan}
         />
 
         {/* 1. Layer Kecamatan */}
         {showKecamatan && layers.kecamatan?.length > 0 && (
           <KecamatanLayer
-            key={`kec-layer-${showKecamatanLabels}`}
+            key={`kec-layer-${showKecamatanLabels}-${combinedWilayah.join('-')}`}
             data={layers.kecamatan}
             onEachFeature={(feat: any, l: L.Layer) => {
               const name = feat.properties?.name || feat.properties?.Name || '';
+              const isHighlighted = combinedWilayah.length > 0 && isWilayahMatch(name, combinedWilayah);
+              if (isHighlighted && typeof (l as L.Path).setStyle === 'function') {
+                (l as L.Path).setStyle(HIGHLIGHT_KEC_STYLE);
+              }
               if (showKecamatanLabels) {
                 l.bindTooltip(
                   `<span class="gis-label-kecamatan">${name.toUpperCase()}</span>`,
@@ -899,7 +796,7 @@ export default function AIIntelligenceMap({
             thematicMode={thematicMode}
             thematicOpacity={thematicOpacity}
             indicatorData={indicatorData}
-            kelLayerRef={kelLayerRef}
+            highlightWilayah={combinedWilayah}
             filterActive={filterActive}
             filteredWilayah={filteredWilayah}
             showKelurahanLabels={showKelurahanLabels}
