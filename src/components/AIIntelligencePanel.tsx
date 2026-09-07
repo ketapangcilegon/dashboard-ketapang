@@ -21,8 +21,7 @@ import {
   Edit3,
   Database,
   Camera,
-  FileText,
-  Printer,
+  Trash2,
   X
 } from 'lucide-react';
 
@@ -32,9 +31,11 @@ import ChatChart, { ChartConfig } from './ChatChart';
 // ============================================================
 // AIIntelligencePanel
 // Panel chat interaktif AI Food Intelligence (ChatGPT UI/UX Style)
-// Didukung Fase 2: Multimodal Vision, Executive PDF Generator,
+// Didukung: Multimodal Vision, Session Storage Persistence,
 // Reverse Intelligence Trigger, & Spatial Filter MapAction + Recharts Visualization
 // ============================================================
+
+const CHAT_SESSION_STORAGE_KEY = 'cilegon_food_intelligence_chat_session';
 
 interface Message {
   role: 'user' | 'model';
@@ -43,6 +44,25 @@ interface Message {
   referencedDocs?: string[];
   timestamp: Date;
   imageUrl?: string;
+}
+
+function loadSessionMessages(): Message[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(CHAT_SESSION_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return parsed.map((m: any) => ({
+        ...m,
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+      }));
+    }
+  } catch (e) {
+    console.warn('Failed loading chat session:', e);
+  }
+  return [];
 }
 
 interface SyncStatus {
@@ -279,107 +299,6 @@ function parseBold(text: string): React.ReactNode {
   });
 }
 
-// Komponen Modal Pratinjau Cetak Nota Dinas Eksekutif (Fase 2)
-function ExecutivePrintModal({
-  doc,
-  onClose,
-}: {
-  doc: { title: string; content: string; date: string; docNo: string };
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-5 sm:p-8 relative max-h-[92vh] flex flex-col border border-slate-200">
-        {/* Actions Bar Top */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0 print:hidden">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">📄</span>
-            <div>
-              <h3 className="text-sm font-black text-slate-800">Pratinjau Nota Dinas Eksekutif</h3>
-              <p className="text-[11px] text-slate-500">Format resmi Dinas Ketahanan Pangan dan Pertanian Kota Cilegon</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12px] px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Printable Document Content */}
-        <div id="executive-doc-print-area" className="flex-1 overflow-y-auto py-5 px-3 sm:px-6 print:p-0 font-serif text-slate-900 custom-scrollbar">
-          {/* Kop Dinas Resmi */}
-          <div className="text-center pb-3 border-b-4 border-double border-slate-900">
-            <h2 className="text-base sm:text-lg font-bold tracking-wider uppercase text-slate-900">
-              PEMERINTAH KOTA CILEGON
-            </h2>
-            <h1 className="text-lg sm:text-xl font-black tracking-wide uppercase text-slate-900 mt-0.5">
-              DINAS KETAHANAN PANGAN DAN PERTANIAN
-            </h1>
-            <p className="text-[11px] font-sans text-slate-600 mt-1">
-              Jl. KH. Wasyid No. 12, Kel. Jombang Wetan, Kec. Jombang, Kota Cilegon, Banten 42411
-            </p>
-            <p className="text-[10.5px] font-sans text-slate-500">
-              Laman: ketapang.cilegon.go.id | Pos-el: dkp@cilegon.go.id | Telp. (0254) 391234
-            </p>
-          </div>
-
-          {/* Metadata Nota Dinas */}
-          <div className="my-5 text-[12px] font-sans">
-            <div className="text-center font-bold text-[14px] uppercase tracking-wider underline mb-4 text-slate-900">
-              NOTA DINAS INTELIJEN KETAHANAN PANGAN
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[12px] border border-slate-300 p-3 rounded-lg bg-slate-50/50 mb-4">
-              <div>
-                <div><b>Nomor:</b> {doc.docNo}</div>
-                <div><b>Sifat:</b> PENTING / SEGERA</div>
-                <div><b>Lampiran:</b> 1 (Satu) Berkas Analisis GIS Terpadu</div>
-              </div>
-              <div>
-                <div><b>Tanggal:</b> {doc.date}</div>
-                <div><b>Kepada Yth:</b> Walikota Cilegon</div>
-                <div><b>Perihal:</b> {doc.title}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Isi Laporan */}
-          <div className="font-sans text-[12.5px] leading-relaxed text-slate-800 space-y-3">
-            {renderMarkdown(doc.content)}
-          </div>
-
-          {/* Kolom Pengesahan Pimpinan */}
-          <div className="mt-8 pt-4 flex justify-end font-sans text-[12px] break-inside-avoid">
-            <div className="text-center w-64">
-              <div>Cilegon, {doc.date}</div>
-              <div className="font-bold mt-1">Kepala Dinas Ketahanan Pangan dan Pertanian</div>
-              <div className="font-bold">Kota Cilegon</div>
-              <div className="h-16 flex items-center justify-center text-slate-300 italic text-[11px]">
-                (Ruang Tanda Tangan & Cap Dinas)
-              </div>
-              <div className="font-black text-slate-900 underline">Drs. H. M. Ridwan, M.Si</div>
-              <div className="text-slate-600 text-[11px]">Pembina Utama Muda (IV/c)</div>
-              <div className="text-slate-600 text-[11px]">NIP. 19740512 199803 1 004</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AIIntelligencePanel({
   onWilayahHighlight,
   onPinsHighlight,
@@ -388,7 +307,7 @@ export default function AIIntelligencePanel({
   externalPrompt,
   onClearExternalPrompt
 }: AIIntelligencePanelProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => loadSessionMessages());
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
@@ -405,12 +324,31 @@ export default function AIIntelligencePanel({
   const [selectedImage, setSelectedImage] = useState<{ file: File; preview: string; base64: string; mimeType: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Executive PDF Generator state (Fase 2)
-  const [executiveDoc, setExecutiveDoc] = useState<{ title: string; content: string; date: string; docNo: string } | null>(null);
-
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sinkronisasi riwayat pesan ke browser sessionStorage agar tidak hilang dalam 1 sesi
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (messages.length > 0) {
+          sessionStorage.setItem(CHAT_SESSION_STORAGE_KEY, JSON.stringify(messages));
+        } else {
+          sessionStorage.removeItem(CHAT_SESSION_STORAGE_KEY);
+        }
+      } catch (e) {
+        console.warn('Failed saving chat session to sessionStorage:', e);
+      }
+    }
+  }, [messages]);
+
+  const handleClearSession = () => {
+    setMessages([]);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(CHAT_SESSION_STORAGE_KEY);
+    }
+  };
 
   // Auto scroll to bottom saat pesan baru bertambah
   const scrollToBottom = useCallback((smooth = true) => {
@@ -526,19 +464,6 @@ export default function AIIntelligencePanel({
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  };
-
-  const handlePrintExecutive = (msgText: string) => {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    const monthRoman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][now.getMonth()];
-    const docNo = `500.1.1/ND-INTEL/${monthRoman}/${now.getFullYear()}`;
-    setExecutiveDoc({
-      title: 'LAPORAN INTELIJEN KETAHANAN PANGAN & SPASIAL',
-      content: msgText,
-      date: dateStr,
-      docNo
-    });
   };
 
   // Send message
@@ -727,15 +652,27 @@ export default function AIIntelligencePanel({
             </span>
           )}
         </div>
-        <button
-          onClick={handleManualSync}
-          disabled={syncing}
-          className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-emerald-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50 ml-auto"
-          title="Sinkron & Salin Manual Database Serumpun Padi ke Dashboard Ketapang"
-        >
-          <RefreshCw className={`w-2.5 h-2.5 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
-          {syncing ? 'Menyinkronkan…' : 'Sinkron Database'}
-        </button>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearSession}
+              className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-rose-700 bg-white border border-slate-200 hover:border-rose-200 px-2 py-0.5 rounded-md transition-all cursor-pointer"
+              title="Bersihkan riwayat percakapan dalam sesi ini"
+            >
+              <Trash2 className="w-2.5 h-2.5 text-rose-500" />
+              <span>Hapus Sesi</span>
+            </button>
+          )}
+          <button
+            onClick={handleManualSync}
+            disabled={syncing}
+            className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-emerald-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50"
+            title="Sinkron & Salin Manual Database Serumpun Padi ke Dashboard Ketapang"
+          >
+            <RefreshCw className={`w-2.5 h-2.5 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
+            {syncing ? 'Menyinkronkan…' : 'Sinkron Database'}
+          </button>
+        </div>
       </div>
 
       {/* Scrollable Chat Area */}
@@ -830,24 +767,7 @@ export default function AIIntelligencePanel({
                     </div>
                   )}
 
-                  {/* Referenced Docs tags */}
-                  {msg.referencedDocs && msg.referencedDocs.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1 items-center pt-1.5 border-t border-slate-100">
-                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-                        📚 Dokumen:
-                      </span>
-                      {msg.referencedDocs.map((doc, di) => (
-                        <span 
-                          key={di} 
-                          className="text-[9.5px] font-bold bg-blue-50 text-blue-800 border border-blue-200/70 px-1.5 py-0.5 rounded-md"
-                        >
-                          {doc}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Action Bar (Copy, Share, Feedback, Regenerate, PDF Export) */}
+                  {/* Action Bar (Copy, Share, Feedback, Regenerate) */}
                   <div className="flex items-center gap-1 pt-2 border-t border-slate-100 text-slate-400 text-xs flex-wrap">
                     <button
                       onClick={() => handleCopy(msg.text, idx)}
@@ -903,17 +823,7 @@ export default function AIIntelligencePanel({
                       <RotateCcw className="w-3 h-3" />
                     </button>
 
-                    {/* One-Click Executive PDF Generator (Fase 2) */}
-                    <button
-                      onClick={() => handlePrintExecutive(msg.text)}
-                      className="p-1 hover:bg-emerald-50 rounded text-slate-600 hover:text-emerald-700 transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold ml-1.5 border border-slate-200 hover:border-emerald-300 px-2.5 py-0.5 shadow-2xs bg-white"
-                      title="Cetak Nota Dinas Resmi / Simpan PDF"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>📄 Cetak Nota Dinas / PDF</span>
-                    </button>
-
-                    <span className="text-[9.5px] text-slate-400 font-semibold ml-2">
+                    <span className="text-[9.5px] text-slate-400 font-semibold ml-auto">
                       {formatTime(msg.timestamp)}
                     </span>
                   </div>
@@ -1172,14 +1082,6 @@ export default function AIIntelligencePanel({
           Enter kirim · Shift+Enter baris baru · Multimodal Vision & GIS AI Cilegon
         </p>
       </div>
-
-      {/* Executive Print Modal (Fase 2) */}
-      {executiveDoc && (
-        <ExecutivePrintModal
-          doc={executiveDoc}
-          onClose={() => setExecutiveDoc(null)}
-        />
-      )}
     </div>
   );
 }

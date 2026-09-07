@@ -108,7 +108,7 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
     if (!file) return;
 
     const confirmUpload = window.confirm(
-      "PERINGATAN: Mengunggah template baru akan menimpa/overwrite data gizi balita SKPG yang sudah ada untuk tahun dan bulan yang ditentukan dalam file Excel. Apakah Anda yakin ingin melanjutkan?"
+      "PERINGATAN: Mengunggah template baru akan memperbarui/menimpa data gizi balita SKPG untuk tahun dan bulan yang ditentukan dalam file Excel. Apakah Anda yakin ingin melanjutkan?"
     );
     if (!confirmUpload) {
       e.target.value = '';
@@ -117,138 +117,40 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
 
     setUploadError(null);
     setUploadMessage(null);
+    setLoading(true);
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const rawRows = XLSX.utils.sheet_to_json<any>(ws);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-        if (rawRows.length === 0) {
-          throw new Error("File Excel kosong atau tidak valid.");
-        }
+      const res = await fetch('/api/skpg/upload', {
+        method: 'POST',
+        body: formData
+      });
 
-        const firstRow = rawRows[0];
-        const requiredFields = ['Tahun', 'Bulan', 'Kecamatan', 'Kelurahan', 'bb_sangat_kurang', 'bb_kurang', 'bb_normal', 'bb_lebih'];
-        const missingFields = requiredFields.filter(f => !(f in firstRow));
-        if (missingFields.length > 0) {
-          throw new Error(`Kolom template tidak sesuai. Kolom berikut hilang: ${missingFields.join(', ')}`);
-        }
+      const data = await res.json();
 
-        // Group by targeted period (tahun, bulan) to delete cleanly for overwrite
-        const periodsToClear = new Map<string, { tahun: number; bulan: number }>();
-        for (const row of rawRows) {
-          const tahun = parseInt(row['Tahun']) || 2026;
-          const bulan = parseInt(row['Bulan']) || 6;
-          const key = `${tahun}-${bulan}`;
-          periodsToClear.set(key, { tahun, bulan });
-        }
-
-        for (const [_, { tahun, bulan }] of periodsToClear) {
-          const { error: delSkpgErr } = await supabase
-            .from('gizi_balita_skpg_kelurahan')
-            .delete()
-            .eq('tahun', tahun)
-            .eq('bulan', bulan);
-          if (delSkpgErr) throw delSkpgErr;
-
-          const { error: delBalitaErr } = await supabase
-            .from('gizi_balita')
-            .delete()
-            .eq('tahun', tahun)
-            .eq('bulan', bulan);
-          if (delBalitaErr) throw delBalitaErr;
-        }
-
-        const skpgRowsToInsert = [];
-        const balitaRowsToInsert = [];
-
-        for (const row of rawRows) {
-          const tahun = parseInt(row['Tahun']) || 2026;
-          const bulan = parseInt(row['Bulan']) || 6;
-          const kecamatan = String(row['Kecamatan'] || '').trim();
-          const kelurahan = String(row['Kelurahan'] || '').trim();
-          const bb_sangat_kurang = parseInt(row['bb_sangat_kurang']) || 0;
-          const bb_kurang = parseInt(row['bb_kurang']) || 0;
-          const bb_normal = parseInt(row['bb_normal']) || 0;
-          const bb_lebih = parseInt(row['bb_lebih']) || 0;
-
-          if (!kelurahan) continue;
-
-          const total_balita = bb_sangat_kurang + bb_kurang + bb_normal + bb_lebih;
-          const total_kurang = bb_sangat_kurang + bb_kurang;
-          const nilai = total_balita > 0 ? parseFloat(((total_kurang / total_balita) * 100).toFixed(2)) : 0;
-          
-          let bobot = 1;
-          let status = 'AMAN';
-          if (nilai >= 15) {
-            bobot = 3;
-            status = 'RENTAN';
-          } else if (nilai >= 10) {
-            bobot = 2;
-            status = 'WASPADA';
-          }
-
-          skpgRowsToInsert.push({
-            tahun,
-            bulan,
-            kecamatan,
-            kelurahan,
-            bb_sangat_kurang,
-            bb_kurang,
-            bb_normal,
-            bb_lebih,
-            total_balita,
-            total_kurang,
-            nilai,
-            bobot,
-            status
-          });
-
-          balitaRowsToInsert.push({
-            tahun,
-            bulan,
-            nama_kelurahan: kelurahan,
-            gizi_sangat_kurang: bb_sangat_kurang,
-            gizi_kurang: bb_kurang,
-            gizi_normal: bb_normal,
-            gizi_berlebih: bb_lebih,
-            status
-          });
-        }
-
-        if (skpgRowsToInsert.length > 0) {
-          const { error: insSkpgErr } = await supabase
-            .from('gizi_balita_skpg_kelurahan')
-            .insert(skpgRowsToInsert);
-          if (insSkpgErr) throw insSkpgErr;
-        }
-
-        if (balitaRowsToInsert.length > 0) {
-          const { error: insBalitaErr } = await supabase
-            .from('gizi_balita')
-            .insert(balitaRowsToInsert);
-          if (insBalitaErr) throw insBalitaErr;
-        }
-
-        setUploadSuccess(true);
-        setUploadMessage(`Berhasil mengunggah ${skpgRowsToInsert.length} data gizi balita ke database.`);
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-
-      } catch (err: any) {
-        console.error('Upload error:', err);
-        setUploadError(err.message || 'Gagal memproses file Excel.');
-        setUploadSuccess(false);
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Gagal mengunggah data SKPG.');
       }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = '';
+
+      setUploadSuccess(true);
+      setUploadMessage(data.message || 'Upload data SKPG berhasil diperbarui!');
+      
+      // Auto reload after brief success notification
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Upload error:', msg);
+      setUploadError(msg);
+      setUploadSuccess(false);
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
   };
 
   // Dynamic state computed from database
