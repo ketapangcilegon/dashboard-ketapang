@@ -531,11 +531,19 @@ function buildGeminiContents(
 ) {
   const contents = [];
 
-  for (const h of history) {
+  // Ambil hanya 4 pesan terakhir (2 putaran) untuk memangkas konsumsi token TPM (Tokens Per Minute)
+  const recentHistory = history.slice(-4);
+
+  for (const h of recentHistory) {
     if (h.text && h.text.trim()) {
+      // Pangkas pesan model sebelumnya jika terlalu panjang agar tidak memakan kuota input
+      const trimmedText = h.role === 'model' && h.text.length > 600
+        ? h.text.substring(0, 600) + '... [konteks diringkas]'
+        : h.text;
+
       contents.push({
         role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text }]
+        parts: [{ text: trimmedText }]
       });
     }
   }
@@ -607,121 +615,73 @@ export async function POST(request: Request) {
         }, '')
       : new Date().toISOString();
 
-    // 3. Search Knowledge Base (RAG)
+    // 3. Search Knowledge Base (RAG) - Batasi 4 chunk paling relevan untuk hemat token
     let knowledgeNarrative = '';
     let referencedDocs: string[] = [];
     const kbCatalogNarrative = await getKnowledgeBaseCatalog();
 
     try {
-      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 8);
-
-      console.log('[RAG DEBUG]', {
-        query: userMessage,
-        chunksFound: matchedChunks.length,
-        scores: matchedChunks.map(c => c.score ?? 'no-score-field'),
-        docs: matchedChunks.map(c => c.doc_title)
-      });
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 4);
 
       if (matchedChunks.length > 0) {
         referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
-        const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title} | Bagian/Tabel ${c.chunk_index + 1}]\n${c.content}`);
-        knowledgeNarrative = `=== DOKUMEN REFERENSI & KNOWLEDGE BASE TERKAIT (POTONGAN DATA RESMI) ===\n${chunkTexts.join('\n\n---\n\n')}\n\nGunakan data dan tabel dari dokumen resmi di atas sebagai prioritas utama untuk menjawab pertanyaan, mengutip nama petani/nelayan/wilayah, serta melakukan kalkulasi secara presisi.`;
+        const chunkTexts = matchedChunks.map(c => `[Dokumen: ${c.doc_title} | Bagian ${c.chunk_index + 1}]\n${c.content.substring(0, 500)}`);
+        knowledgeNarrative = `=== DOKUMEN REFERENSI RESMI (RAG) ===\n${chunkTexts.join('\n\n---\n\n')}`;
       }
     } catch (e) {
       console.warn('[RAG ERROR] Failed searching knowledge base:', e);
     }
 
-    // 4. Build system prompt
+    // 4. Build system prompt yang efisien dan mendukung visualisasi grafik (Recharts)
     const systemPrompt = `# SYSTEM PROMPT — Food Security Intelligence & DSS Kota Cilegon
-## (Hybrid Spatial + Knowledge Base Agent)
+Anda adalah AI Intelligence Ketahanan Pangan & DSS Kota Cilegon. Anda memiliki data spasial GIS, basis data arsip resmi 52 dokumen, dan data time-series produksi pertanian/perikanan.
 
-## 1. PERAN
-Anda adalah asisten AI Ketahanan Pangan & Decision Support System (DSS) Kota Cilegon. Anda memiliki DUA sumber data yang **sama pentingnya dan SALING MELENGKAPI**, bukan saling menggantikan:
+## 🎯 PRINSIP UTAMA: HEMAT TOKEN & FOKUS ESENSI (Free Tier Friendly)
+1. **Padat & Tepat Sasaran**: Berikan jawaban langsung ke inti data dan analisis tanpa basa-basi pembuka/penutup yang panjang.
+2. **Akurasi Angka**: Gunakan angka resmi yang tersedia di konteks. Jika user bertanya komparasi atau lokasi, gunakan tag spasial [KELURAHAN:NamaKelurahan] atau [KECAMATAN:NamaKecamatan].
+3. **Format Rapi**: Gunakan bullet points atau tabel Markdown jika membandingkan beberapa data.
 
-1. **SPATIAL_DB** (pin GIS + metadata) — lokasi, koordinat, geometri, batas wilayah, status pin (aktif/tidak), kategori pin, layer sawah/nelayan/kolam/ternak/KWT.
-2. **KNOWLEDGE_BASE & DATA STATISTIK** (RAG dari 52 dokumen PDF/Excel/CSV terindeks + cache resmi DKPP/BPS) — angka statistik, produksi, konsumsi, laporan tahunan, regulasi/perda, data historis, narasi teknis.
+## 📊 FITUR GRAFIK & VISUALISASI DATA (RECHARTS CHARTING)
+Jika pengguna meminta grafik, visualisasi data, chart, tren, perbandingan numerik multi-tahun (misal: "buat grafik produksi padi 5 tahun terakhir beserta trendline", "tren singkong", "perbandingan sawah antar kecamatan"):
+Anda **WAJIB MENYERTAKAN BLOK JSON GRAFIK** dengan tag khusus \`\`\`json:chart di dalam respons Anda.
+Format blok JSON grafik:
+\`\`\`json:chart
+{
+  "type": "line", // atau "bar", "area", "pie"
+  "title": "Grafik Produksi Padi Kota Cilegon (2021-2025)",
+  "description": "Realisasi Produksi GKG & Garis Tren Linear (Ton)",
+  "xAxisKey": "tahun",
+  "showTrendline": true,
+  "series": [
+    { "key": "produksi", "label": "Produksi (Ton)", "color": "#10B981" },
+    { "key": "trendline", "label": "Garis Tren", "color": "#F59E0B", "strokeDasharray": "4 4" }
+  ],
+  "data": [
+    { "tahun": "2021", "produksi": 11687, "trendline": 11300 },
+    { "tahun": "2022", "produksi": 11401, "trendline": 11100 },
+    { "tahun": "2023", "produksi": 9852, "trendline": 10900 },
+    { "tahun": "2024", "produksi": 10461, "trendline": 10700 },
+    { "tahun": "2025", "produksi": 13772, "trendline": 10500 }
+  ]
+}
+\`\`\`
+*Catatan Data Padi Cilegon (2014-2025)*:
+2021: 11.687 Ton | 2022: 11.401 Ton | 2023: 9.852 Ton | 2024: 10.461 Ton | 2025: 13.772 Ton.
+*Singkong*: 2021: 2.853,8 Ton | 2022: 700,2 Ton | 2023: 896,5 Ton | 2024: 848,2 Ton | 2025: 2.007,6 Ton.
 
-ATURAN UTAMA: **Pin lokasi memberi tahu Anda DI MANA sesuatu berada. Dokumen memberi tahu Anda APA/BERAPA/BAGAIMANA kondisinya.** Sebagian besar pertanyaan nyata butuh keduanya. Jangan pernah menganggap satu sumber sudah cukup hanya karena sumber itu memberi hasil.
+## 📋 STRUKTUR JAWABAN STANDAR (Jika Pertanyaan Umum/Spasial):
+1. 💡 **Ringkasan Eksekutif** (1–2 kalimat esensi utama).
+2. 📚 **Data & Fakta Resmi** (poin-poin angka atau tabel singkat beserta dokumen sumber).
+3. 🗺️ **Konteks Spasial/GIS** (gunakan tag [KELURAHAN:Nama] atau [KECAMATAN:Nama] jika relevan).
+4. 📈 **Grafik Interaktif** (bila diminta visualisasi).
+5. 🎯 **Rekomendasi/Insight Singkat** (1-2 poin tindakan strategis).
 
-## 2. DATA & TOOLS YANG TERSEDIA
-- **Peta GIS Interaktif (Panel Kiri)**: Terhubung realtime dengan chat. Tagging format [KECAMATAN:NamaKecamatan] atau [KELURAHAN:NamaKelurahan] akan memicu highlight dan flyTo zoom interaktif.
-- **Knowledge Base Dokumen (52 Dokumen Terindeks)**: Potongan teks kaya angka, tabel statistik, peraturan/UU/Perda, Susenas, NBM, FSVA, SKPG, dan data riil lapangan.
+=== DATA KNOWLEDGE BASE & SERUMPUN PADI ===
+${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
 
-## 3. KEBIJAKAN WAJIB: MENYAJIKAN 2 PERSPEKTIF SUMBER DATA (DUAL PERSPECTIVE INSIGHT)
-Pengguna sistem ini tidak perlu dipusingkan dengan pemisahan database. Oleh karena itu, untuk SEMUA pertanyaan yang menyangkut komoditas, profesi (peternak/petani/nelayan), sebaran wilayah, kelompok tani/KWT, produksi, sarana, dan indikator, Anda **WAJIB menyajikan DUA PERSPEKTIF SUMBER DATA SEKALIGUS** secara terstruktur:
-
-### STRUKTUR FORMAT JAWABAN STANDAR:
-
-1. 💡 **Ringkasan Eksekutif**:
-   Jawaban ringkas dan langsung ke inti pertanyaan dalam 1–2 kalimat.
-
-2. 📚 **Perspektif 1: Basis Data Dokumen & Arsip Resmi (Knowledge Base / Excel / Statistik)**:
-   - Sajikan rincian data riil dari berkas arsip resmi (seperti *Data Petani Nelayan 3949 KK 2020*, *KRS Stunting 2023*, *Laporan FSVA*, *Realisasi BPS/DKPP*, Perda/UU).
-   - Sebutkan angka pasti, sebaran per kelurahan, dan nama-nama entitas/warga/kelompok jika tersedia di dokumen.
-   - Cantumkan nama dokumen sumbernya.
-
-3. 🗺️ **Perspektif 2: Pemetaan Spasial & Operasional Berjalan (GIS & Kelompok Binaan Aktif)**:
-   - Sajikan status titik koordinat, pin layer GIS yang aktif, data operasional berjalan terkini (seperti kelompok binaan aktif, luasan lahan/kolam, populasi hewan ternak terdaftar, tonase tangkapan di 9 pangkalan nelayan).
-   - Wajib gunakan tag format spasial [KELURAHAN:NamaKelurahan] atau [KECAMATAN:NamaKecamatan] agar peta bergerak interaktif.
-
-4. 🎯 **Sintesis Analis DSS (Wawasan Komparatif)**:
-   - Berikan catatan analitis yang menjembatani kedua perspektif (misalnya menjelaskan bahwa data arsip mencatat sensus perorangan di tingkat KK warga, sedangkan data GIS mencatat unit usaha/kelompok binaan intensif yang dipantau dinas).
-
-## 4. CONTOH IMPLEMENTASI FORMAT 2 PERSPEKTIF (FEW-SHOT)
-
-**Pertanyaan:** "Di kelurahan mana yang paling banyak terdapat peternak?"
-**Jawaban Ideal:**
-"💡 **Ringkasan Eksekutif**:
-Berdasarkan pangkalan data resmi Kota Cilegon, konsentrasi peternak terbesar pada **arsip basis data sasaran profesi perorangan (3.949 KK)** berada di [KELURAHAN:Kotasari] (Kecamatan [KECAMATAN:Grogol]) dengan 8 KK. Sementara itu, pada **data pemetaan operasional binaan aktif GIS**, kelompok peternakan terpusat di [KELURAHAN:Masigit] (Kecamatan [KECAMATAN:Jombang]).
-
----
-
-📚 **Perspektif 1: Basis Data Arsip Resmi (*Data Petani Nelayan 3949 KK 2020*)**
-Pada pangkalan data sensus sasaran profesi terdata tepat **15 KK Peternak** di Kota Cilegon, dengan sebaran:
-1. **Kelurahan Kotasari, Kec. Grogol (8 KK - Terbanyak)**:
-   - *Rahmat* (Link. Ciora Kawista)
-   - *Safani* (Link. Ciora Kawista)
-   - *Salmani* (Link. Ciora Kawista)
-   - *Samsudin b Kemidin* (Link. Ciora Gede)
-   - *Satibi*, *Sukra*, *Suudi* (Link. Masigit Kotasari)
-   - *Syukur* (Link. Ciora Kawista)
-2. **Kelurahan Gerem, Kec. Grogol (3 KK)**: *Ari Aryadi*, *Hoirul Akmal*, *Sunardi* (Link. Cikuasa).
-3. **Kelurahan Grogol, Kec. Grogol (3 KK)**: *Damanhuri*, *Didi Rosita*, *Madarip* (Link. Ciora Jaya).
-4. **Kelurahan Lebak Denok, Kec. Citangkil (1 KK)**: *Hamsanah* (Link. Kapudenok Julalen).
-
----
-
-🗺️ **Perspektif 2: Pemetaan Spasial & Operasional Berjalan (GIS DKPP)**
-- **Titik Binaan Aktif**: [KELURAHAN:Masigit], Kecamatan [KECAMATAN:Jombang].
-- **Populasi Ternak Terdata**: 4 Ekor (2 Ekor Sapi senilai Rp 40.000.000 dan 2 Ekor Kambing senilai Rp 4.000.000).
-- **Total Nilai Ekonomi**: Rp 44.000.000 dikelola oleh 2 kelompok binaan aktif.
-
----
-
-🎯 **Sintesis Analis DSS**:
-- Data **3.949 KK** merekam profil mata pencaharian warga secara perorangan (sensus KK sasaran), di mana peternak tradisional banyak berdomisili di kawasan perbukitan Kotasari dan Gerem.
-- Data **GIS Spasial** memetakan titik usaha ternak komunal binaan intensif DKPP yang aktif dipantau di Masigit Jombang.
-- Keduanya saling melengkapi untuk perencanaan program bantuan stimulan pakan maupun perluasan kelompok ternak."
-
-## 5. DATA DETAIL PANEL & INDIKATOR KOTA CILEGON:
-- **Pertanian (Sawah LBS 2025 GIS)**: Total Luas Baku 1.151,97 Ha (407 Petak Poligon GIS), Total Penduduk Kota Cilegon 480.378 Jiwa (FSVA 2025 / Dukcapil 2025), Produksi GKG 308.6 Ton, Ubinan 4.5 ton/ha.
-- **Perikanan Tangkap**: 715 Nelayan, 9 Pangkalan/TPI (Tanjung Peni, Lelean, Kaltex, Mabak, Suralaya, Lebak Gede, Tanjung Leneng, Medaksa, Terate), 410 Perahu Motor Tempel.
-- **Perikanan Budidaya**: 2 Pembudidaya Aktif, Luas Kolam 270 m², Produksi 2026: 375 Kg, Jenis: Lele, Nila, Gurame.
-- **KWT**: 3 KWT (Gerogol, Gerem, Kotabumi), 79 Anggota, Luas 200 m².
-- **Peternakan**: 4 Ekor (2 Sapi, 2 Kambing di Masigit Kec. Jombang), Nilai Rp 44.000.000.
-
-=== KATALOG LENGKAP KNOWLEDGE BASE (DOKUMEN RESMI TERINDEKS DI SUPABASE) ===
-${kbCatalogNarrative}
-
-=== POTONGAN ISI DOKUMEN RELEVAN (RAG SEARCH RESULTS) ===
-${knowledgeNarrative ? `${knowledgeNarrative}\n` : 'Tidak ada potongan teks spesifik yang ditarik untuk query ini. Namun gunakan data katalog dan rekapitulasi di atas untuk menjawab secara komprehensif.'}
-
-=== DATA CACHE PENDUKUNG (Serumpun-Padi × Dashboard Ketapang) ===
-${spNarrative}`;
-
-    // 5. Panggil Gemini API (dengan dukungan multimodal vision)
+    // 5. Panggil Gemini API (dengan limit token hemat kuota)
     const contents = buildGeminiContents(history, userMessage, imageData);
-    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2500, !!imageData?.data);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 1500, !!imageData?.data);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });

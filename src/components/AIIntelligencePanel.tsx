@@ -27,12 +27,13 @@ import {
 } from 'lucide-react';
 
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
+import ChatChart, { ChartConfig } from './ChatChart';
 
 // ============================================================
 // AIIntelligencePanel
 // Panel chat interaktif AI Food Intelligence (ChatGPT UI/UX Style)
 // Didukung Fase 2: Multimodal Vision, Executive PDF Generator,
-// Reverse Intelligence Trigger, & Spatial Filter MapAction
+// Reverse Intelligence Trigger, & Spatial Filter MapAction + Recharts Visualization
 // ============================================================
 
 interface Message {
@@ -82,12 +83,12 @@ interface AIIntelligencePanelProps {
 }
 
 const QUICK_PROMPTS = [
-  'Warnai peta berdasarkan kepadatan penduduk Cilegon',
-  'Tampilkan peta tematik IKP seluruh kelurahan',
-  'Kecamatan mana yang paling rentan jika terjadi El Niño?',
-  'Berapa total luas sawah siap panen sekarang?',
-  'Bagaimana kondisi kolam budidaya dan nelayan di Cilegon?',
-  'Kelompok tani mana yang paling aktif?',
+  '📈 Buat grafik produksi padi 5 tahun terakhir beserta trendline',
+  '📊 Grafik tren produksi ubi kayu/singkong Cilegon',
+  '🗺️ Tampilkan peta tematik IKP seluruh kelurahan',
+  '🌾 Berapa total luas sawah siap panen sekarang?',
+  '🐟 Bagaimana kondisi kolam budidaya dan nelayan di Cilegon?',
+  '👨‍🌾 Di kelurahan mana yang paling banyak terdapat peternak?'
 ];
 
 function formatTime(d: Date): string {
@@ -103,6 +104,56 @@ function renderMarkdown(text: string): React.ReactNode {
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
+
+    // Deteksi Blok Visualisasi Grafik (```json:chart atau ```chart atau ```json dengan struktur chart)
+    if (trimmed.startsWith('```json:chart') || trimmed.startsWith('```chart') || trimmed.startsWith('```json')) {
+      const isChartTag = trimmed.startsWith('```json:chart') || trimmed.startsWith('```chart');
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length && lines[i].trim().startsWith('```')) {
+        i++; // skip closing ```
+      }
+
+      const rawCode = codeLines.join('\n').trim();
+      let parsedChart: ChartConfig | null = null;
+      try {
+        const jsonObj = JSON.parse(rawCode);
+        if (jsonObj && (jsonObj.data || jsonObj.type || jsonObj.xAxisKey || isChartTag)) {
+          parsedChart = {
+            type: jsonObj.type || 'line',
+            title: jsonObj.title || 'Visualisasi Data',
+            description: jsonObj.description || '',
+            xAxisKey: jsonObj.xAxisKey || Object.keys(jsonObj.data?.[0] || {})[0] || 'label',
+            series: jsonObj.series || [
+              { key: Object.keys(jsonObj.data?.[0] || {}).find(k => k !== jsonObj.xAxisKey) || 'value', label: 'Nilai' }
+            ],
+            data: jsonObj.data || [],
+            showTrendline: jsonObj.showTrendline ?? true
+          };
+        }
+      } catch {
+        parsedChart = null;
+      }
+
+      if (parsedChart && parsedChart.data && parsedChart.data.length > 0) {
+        elements.push(
+          <ChatChart key={`chart-${i}`} config={parsedChart} />
+        );
+        continue;
+      } else {
+        // Fallback jika blok kode biasa
+        elements.push(
+          <pre key={`code-${i}`} className="my-2 p-3 bg-slate-900 text-slate-100 rounded-xl text-xs overflow-x-auto font-mono custom-scrollbar">
+            <code>{rawCode}</code>
+          </pre>
+        );
+        continue;
+      }
+    }
 
     // Deteksi tabel Markdown (| Kolom 1 | Kolom 2 |)
     if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].includes('---')) {
