@@ -37,7 +37,9 @@ import {
   WarningDBPins,
 } from './gis/MapLayers';
 import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures } from '@/lib/agro-satellite';
-import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X } from 'lucide-react';
+import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
+import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X, Store, Trees, Camera } from 'lucide-react';
 
 // ============================================================
 // AIIntelligenceMap
@@ -425,6 +427,170 @@ function ThematicKelurahanLayer({
   );
 }
 
+// Builder Icon Teardrop Tematik Kamera Cerdas untuk Peta AI Intelligence
+function createKameraObservasiIcon(item: ObservasiRecord) {
+  const isPasokan = item.mode === 'pasokan_beras';
+  let emoji = isPasokan ? '🏪' : '🥔';
+  let bgColor = isPasokan ? '#2563eb' : '#16a34a';
+
+  if (isPasokan) {
+    const s = SARANA_DISTRIBUSI_LIST.find((x) => x.id === item.kategori);
+    if (s) {
+      emoji = s.icon;
+      bgColor = s.color;
+    }
+  } else {
+    const t = TANAMAN_PANGAN_LIST.find((x) => x.id === item.kategori);
+    if (t) {
+      emoji = t.icon;
+      bgColor = t.color;
+    }
+  }
+
+  const size = 32;
+
+  return L.divIcon({
+    className: 'kamera-cerdas-pin-gis',
+    html: `
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
+        <!-- Glowing Radar Pulse -->
+        <div class="sp-loc-pulse" style="width:44px;height:44px;background:${bgColor}44;top:calc(100% - 16px);left:50%;margin-left:-22px;margin-top:-22px;"></div>
+        
+        <!-- Transparent Label with Sharp Shadow -->
+        <div style="background:transparent;color:#ffffff;font-weight:900;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:3px;z-index:10;pointer-events:none;">
+          ${item.nama_lokasi || item.kategori_label || (isPasokan ? 'Pemasok Beras' : 'Pangan Lokal')}
+        </div>
+
+        <!-- Teardrop Marker Pin -->
+        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,0.45);z-index:5;">
+          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.52)}px">${emoji}</span>
+        </div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+// Komponen Layer Pin Hasil Input Data Kamera Cerdas (Pasokan Beras & Pangan Lokal)
+function KameraObservasiPins({
+  data,
+  mode,
+  onTriggerChatPrompt,
+}: {
+  data: ObservasiRecord[];
+  mode: 'pasokan_beras' | 'tanaman_pangan';
+  onTriggerChatPrompt?: (prompt: string) => void;
+}) {
+  if (!data?.length) return null;
+
+  return (
+    <>
+      {data.map((item, idx) => {
+        const lat = Number(item.latitude);
+        const lng = Number(item.longitude);
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+
+        const isBeras = mode === 'pasokan_beras';
+        const btnId = `btn-kamera-brief-${item.id || idx}`;
+
+        return (
+          <GeoJSONComp
+            key={`kamera-obs-${mode}-${item.id || idx}-${lat}-${lng}`}
+            data={
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lng, lat] },
+                properties: {},
+              } as any
+            }
+            pointToLayer={(_: any, ll: any) =>
+              L.marker(ll, {
+                icon: createKameraObservasiIcon(item),
+                zIndexOffset: 1600,
+              })
+            }
+            onEachFeature={(_: any, layer: any) => {
+              const photoHtml = item.foto_url
+                ? `<div style="margin-bottom:8px;border-radius:8px;overflow:hidden;border:1px solid #cbd5e1;max-height:130px;background:#0f172a;">
+                    <img src="${item.foto_url}" alt="Foto Observasi" style="width:100%;height:120px;object-fit:cover;display:block;" />
+                   </div>`
+                : '';
+
+              const detailHtml = isBeras
+                ? `
+                  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:6px 8px;margin-top:6px;display:flex;flex-direction:column;gap:3px;font-size:11px;">
+                    <div style="display:flex;justify-content:space-between;">
+                      <span style="color:#475569;">📦 Stok Pasokan:</span>
+                      <b style="color:#1d4ed8;">${(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
+                    </div>
+                    ${item.asal_pasokan ? `<div style="display:flex;justify-content:space-between;"><span style="color:#475569;">🚚 Asal Pasokan:</span><b style="color:#0f172a;">${item.asal_pasokan}</b></div>` : ''}
+                    ${item.merek_beras ? `<div style="display:flex;justify-content:space-between;"><span style="color:#475569;">🏷️ Merek:</span><b style="color:#0f172a;">${item.merek_beras}</b></div>` : ''}
+                  </div>
+                `
+                : `
+                  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 8px;margin-top:6px;display:flex;flex-direction:column;gap:3px;font-size:11px;">
+                    <div style="display:flex;justify-content:space-between;">
+                      <span style="color:#475569;">🌳 Est. Produksi:</span>
+                      <b style="color:#15803d;">${(item.estimasi_produksi_kg || 0).toLocaleString('id-ID')} Kg</b>
+                    </div>
+                    ${item.jumlah_pohon_rumpun ? `<div style="display:flex;justify-content:space-between;"><span style="color:#475569;">🌱 Rumpun/Pohon:</span><b style="color:#0f172a;">${item.jumlah_pohon_rumpun} Pohon</b></div>` : ''}
+                    ${item.luas_lahan_m2 ? `<div style="display:flex;justify-content:space-between;"><span style="color:#475569;">📐 Luas Lahan:</span><b style="color:#0f172a;">${item.luas_lahan_m2} m²</b></div>` : ''}
+                    ${item.fase_pertumbuhan ? `<div style="display:flex;justify-content:space-between;"><span style="color:#475569;">🌿 Fase:</span><b style="color:#0f172a;">${item.fase_pertumbuhan}</b></div>` : ''}
+                  </div>
+                `;
+
+              layer.bindPopup(`
+                <div style="font-family:system-ui;font-size:12px;padding:4px 2px;min-width:240px;max-width:270px;">
+                  ${photoHtml}
+                  <div style="border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:6px;">
+                    <div style="display:flex;align-items:center;gap:5px;">
+                      <span style="font-size:14px;">${isBeras ? '🏪' : '🥔'}</span>
+                      <b style="color:#0f172a;font-size:13px;line-height:1.2;">${item.nama_lokasi || item.kategori_label || (isBeras ? 'Pemasok Beras' : 'Pangan Lokal')}</b>
+                    </div>
+                    <p style="margin:2px 0 0 0;font-size:10.5px;color:#64748b;">
+                      📍 Kel. ${item.kelurahan || '-'}, Kec. ${item.kecamatan || '-'}
+                    </p>
+                  </div>
+
+                  ${detailHtml}
+
+                  <div style="margin-top:6px;display:flex;align-items:center;justify-content:space-between;font-size:9.5px;color:#64748b;">
+                    <span>📅 ${item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : 'Realtime'}</span>
+                    <span style="color:#16a34a;font-weight:800;background:#dcfce7;border:1px solid #bbf7d0;padding:1px 5px;border-radius:4px;">
+                      ✅ Kamera Cerdas
+                    </span>
+                  </div>
+
+                  <button
+                    id="${btnId}"
+                    type="button"
+                    style="width:100%;margin-top:8px;background:${isBeras ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : 'linear-gradient(135deg, #059669, #10b981)'};color:#ffffff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.15);"
+                  >
+                    ⚡ Analisis Titik Ini di AI Chatbot
+                  </button>
+                </div>
+              `);
+
+              layer.on('popupopen', () => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                  btn.onclick = () => {
+                    const prompt = isBeras
+                      ? `Analisis pasokan beras di lokasi ${item.nama_lokasi || item.kategori_label || 'Toko Beras'}, Kelurahan ${item.kelurahan}, Kecamatan ${item.kecamatan} dengan stok ${(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg (Asal: ${item.asal_pasokan || 'Lokal'}). Bagaimana kestabilan stok pangan dan rekomendasi distribusinya?`
+                      : `Analisis potensi tanaman pangan ${item.kategori_label || 'Pangan Lokal'} di lokasi ${item.nama_lokasi || item.kategori_label}, Kelurahan ${item.kelurahan}, Kecamatan ${item.kecamatan} (${item.jumlah_pohon_rumpun ? item.jumlah_pohon_rumpun + ' pohon' : (item.luas_lahan_m2 ? item.luas_lahan_m2 + ' m²' : '')}, estimasi produksi ${(item.estimasi_produksi_kg || 0).toLocaleString('id-ID')} Kg). Bagaimana kontribusinya terhadap ketahanan pangan dan B2SA?`;
+                    onTriggerChatPrompt?.(prompt);
+                  };
+                }
+              });
+            }}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 
 export default function AIIntelligenceMap({
   activeTab = 'split',
@@ -469,6 +635,11 @@ export default function AIIntelligenceMap({
   const [showWarning, setShowWarning] = useState(true);
   const [showKecamatan, setShowKecamatan] = useState(true);
   const [showKelurahan, setShowKelurahan] = useState(true);
+
+  // Kamera Cerdas Observasi Pins & Layer Toggles
+  const [showKameraBeras, setShowKameraBeras] = useState(true);
+  const [showKameraPanganLokal, setShowKameraPanganLokal] = useState(true);
+  const [kameraObservasiList, setKameraObservasiList] = useState<ObservasiRecord[]>([]);
 
   // Supabase indicator data state
   const [indicatorData, setIndicatorData] = useState<{
@@ -532,8 +703,41 @@ export default function AIIntelligenceMap({
       if (l.includes('palawija')) setShowPalawija(true);
       if (l.includes('kelurahan')) setShowKelurahan(true);
       if (l.includes('kecamatan')) setShowKecamatan(true);
+      if (l.includes('kamera_beras') || l.includes('pasokan_beras') || l.includes('beras')) setShowKameraBeras(true);
+      if (l.includes('kamera_pangan') || l.includes('pangan_lokal') || l.includes('sukun')) setShowKameraPanganLokal(true);
     }
   }, [mapAction]);
+
+  // Fetch data observasi kamera cerdas dari Supabase (dengan fallback ke sp_cache_data)
+  useEffect(() => {
+    async function fetchKameraObservasi() {
+      try {
+        const { data, error } = await supabase
+          .from('kamera_cerdas_observasi')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setKameraObservasiList(data);
+          return;
+        }
+
+        const { data: cacheData } = await supabase
+          .from('sp_cache_data')
+          .select('data')
+          .eq('tabel_sumber', 'kamera_cerdas_observasi')
+          .single();
+
+        if (cacheData?.data && Array.isArray(cacheData.data)) {
+          setKameraObservasiList(cacheData.data);
+        }
+      } catch (err) {
+        console.warn('Gagal memuat observasi kamera cerdas:', err);
+      }
+    }
+
+    fetchKameraObservasi();
+  }, []);
 
   // Database pin data fetched from sp_cache_data
   const [dbData, setDbData] = useState<{
@@ -617,6 +821,33 @@ export default function AIIntelligenceMap({
     );
   }, [highlightPins, mapAction]);
 
+  // Pisahkan observasi Kamera Cerdas: Pasokan Beras & Pangan Lokal
+  const kameraBerasList = useMemo(() => {
+    return kameraObservasiList.filter(
+      (item) =>
+        item.mode === 'pasokan_beras' &&
+        typeof item.latitude === 'number' &&
+        typeof item.longitude === 'number' &&
+        !isNaN(item.latitude) &&
+        !isNaN(item.longitude) &&
+        item.latitude !== 0 &&
+        item.longitude !== 0
+    );
+  }, [kameraObservasiList]);
+
+  const kameraPanganList = useMemo(() => {
+    return kameraObservasiList.filter(
+      (item) =>
+        item.mode === 'tanaman_pangan' &&
+        typeof item.latitude === 'number' &&
+        typeof item.longitude === 'number' &&
+        !isNaN(item.latitude) &&
+        !isNaN(item.longitude) &&
+        item.latitude !== 0 &&
+        item.longitude !== 0
+    );
+  }, [kameraObservasiList]);
+
   // Gabungkan highlight wilayah dari MapAction target
   const combinedWilayah = useMemo(() => {
     const set = new Set(highlightWilayah || []);
@@ -634,6 +865,8 @@ export default function AIIntelligenceMap({
 
   // Dynamic custom pin icon builder for AI highlights
   const createAiPinIcon = (category: string, name: string) => {
+    const isBeras = category === 'beras' || category === 'pasokan_beras';
+    const isPanganLokal = category === 'pangan_lokal' || category === 'tanaman_pangan';
     const isSawah = category === 'sawah';
     const isWilayah = category === 'wilayah';
     const isNelayan = category === 'nelayan';
@@ -645,7 +878,9 @@ export default function AIIntelligenceMap({
     const isPalawija = category === 'palawija';
     const isWarning = category === 'warning';
 
-    const bgClass = isSawah ? '#15803d'
+    const bgClass = isBeras ? '#2563eb'
+      : isPanganLokal ? '#16a34a'
+      : isSawah ? '#15803d'
       : isNelayan ? '#2ec4b6'
       : isKolam ? '#0096c7'
       : isTernak ? '#d97706'
@@ -657,7 +892,9 @@ export default function AIIntelligenceMap({
       : isWilayah ? '#e11d48'
       : '#16a34a';
 
-    const iconEmoji = isSawah ? '🌾'
+    const iconEmoji = isBeras ? '🏪'
+      : isPanganLokal ? '🥔'
+      : isSawah ? '🌾'
       : isNelayan ? '⛵'
       : isKolam ? '🐟'
       : isTernak ? '🐄'
@@ -1022,6 +1259,24 @@ export default function AIIntelligenceMap({
           <WarningDBPins data={dbData.warning} show={showWarning} />
         )}
 
+        {/* 4b. Layer Pin Kamera Cerdas: Pasokan Beras */}
+        {showKameraBeras && kameraBerasList.length > 0 && (
+          <KameraObservasiPins
+            data={kameraBerasList}
+            mode="pasokan_beras"
+            onTriggerChatPrompt={onTriggerChatPrompt}
+          />
+        )}
+
+        {/* 4c. Layer Pin Kamera Cerdas: Pangan Lokal */}
+        {showKameraPanganLokal && kameraPanganList.length > 0 && (
+          <KameraObservasiPins
+            data={kameraPanganList}
+            mode="tanaman_pangan"
+            onTriggerChatPrompt={onTriggerChatPrompt}
+          />
+        )}
+
         {/* 5. Active AI Matched Pins (Glow Highlight) */}
         {validAiPins.map((pin, pidx) => (
           <GeoJSONComp
@@ -1188,6 +1443,42 @@ export default function AIIntelligenceMap({
                     setShowHorti(e.target.checked);
                     setShowPalawija(e.target.checked);
                   }}
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
+                />
+              </label>
+
+              {/* Section Header: Hasil Survei Kamera Cerdas */}
+              <div className="border-t border-slate-100 pt-2 mt-0.5 flex items-center justify-between">
+                <span className="font-extrabold text-slate-800 text-[10.5px] uppercase tracking-wider flex items-center gap-1">
+                  <span>📸</span> Kamera Cerdas
+                </span>
+                <span className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-black border border-blue-200">
+                  {kameraObservasiList.length} Titik
+                </span>
+              </div>
+
+              {/* Toggle Kamera: Pemasok Beras */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🏪</span> Pemasok Beras ({kameraBerasList.length})
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showKameraBeras}
+                  onChange={(e) => setShowKameraBeras(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600 rounded cursor-pointer shrink-0 ml-1"
+                />
+              </label>
+
+              {/* Toggle Kamera: Pangan Lokal */}
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🥔</span> Pangan Lokal / Sukun ({kameraPanganList.length})
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showKameraPanganLokal}
+                  onChange={(e) => setShowKameraPanganLokal(e.target.checked)}
                   className="w-4 h-4 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>

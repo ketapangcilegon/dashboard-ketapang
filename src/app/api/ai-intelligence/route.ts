@@ -124,6 +124,23 @@ async function getSpContextData(): Promise<Record<string, unknown>> {
         age_minutes: Math.round((Date.now() - new Date(row.fetched_at).getTime()) / 60000)
       };
     }
+
+    // Ambil data observasi kamera cerdas langsung dari tabel kamera_cerdas_observasi
+    try {
+      const { data: obsData } = await supabase
+        .from('kamera_cerdas_observasi')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (obsData && obsData.length > 0) {
+        ctx['kamera_cerdas_observasi'] = {
+          data: obsData,
+          fetched_at: new Date().toISOString(),
+          age_minutes: 0
+        };
+      }
+    } catch {}
+
     return ctx;
   } catch {
     return {};
@@ -433,6 +450,39 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   lines.push('• Pangkalan Data Arsip: "Data petani nelayan keluarga resiko stunting (KRS) 2023":');
   lines.push('  - Petani: 803 KK | Nelayan: 214 KK | Pembudidaya Ikan: 39 KK | Peternak: 6 KK (Gerem 3 KK: Ari Aryadi, Hoirul Akmal, Sunardi; Grogol 3 KK: Damanhuri, Didi Rosita, Madarip).');
 
+  // ============================================================
+  // 8. HASIL SURVEI LAPANGAN REALTIME KAMERA CERDAS (GPS & FOTO ADMIN VERIFIED)
+  // ============================================================
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const kameraRaw = (ctx['kamera_cerdas_observasi'] as any)?.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const kameraList: any[] = Array.isArray(kameraRaw) ? kameraRaw : [];
+  if (kameraList.length > 0) {
+    const berasSurveys = kameraList.filter((k) => k.mode === 'pasokan_beras');
+    const panganSurveys = kameraList.filter((k) => k.mode === 'tanaman_pangan');
+    const totalStokBerasKg = berasSurveys.reduce((acc, curr) => acc + (Number(curr.estimasi_pasokan_kg) || 0), 0);
+    const totalProduksiPanganKg = panganSurveys.reduce((acc, curr) => acc + (Number(curr.estimasi_produksi_kg) || 0), 0);
+
+    lines.push('\n=== 8. HASIL SURVEI LAPANGAN REALTIME KAMERA CERDAS (GPS & FOTO ADMIN VERIFIED) ===');
+    lines.push(`• Total Titik Observasi Terinput: ${kameraList.length} Titik Lapangan`);
+    lines.push(`• Titik Pasokan Beras Terpetakan: ${berasSurveys.length} Titik (Total Akumulasi Stok: ${(totalStokBerasKg / 1000).toFixed(2)} Ton / ${totalStokBerasKg.toLocaleString('id-ID')} Kg)`);
+    lines.push(`• Titik Tanaman Pangan / Pangan Lokal Terpetakan: ${panganSurveys.length} Titik (Estimasi Potensi Produksi: ${(totalProduksiPanganKg / 1000).toFixed(2)} Ton / ${totalProduksiPanganKg.toLocaleString('id-ID')} Kg)`);
+
+    if (berasSurveys.length > 0) {
+      lines.push('\n• Rincian Titik Pasokan Beras Hasil Input Kamera Cerdas:');
+      berasSurveys.forEach((b, idx) => {
+        lines.push(`  ${idx + 1}. ${b.nama_lokasi || b.kategori_label || 'Toko Beras'} (Kel. ${b.kelurahan || '-'}, Kec. ${b.kecamatan || '-'}): Stok ${(b.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} kg, Asal: ${b.asal_pasokan || 'Lokal'}, Merek: ${b.merek_beras || '-'}, Lat/Lng: [${b.latitude}, ${b.longitude}]`);
+      });
+    }
+
+    if (panganSurveys.length > 0) {
+      lines.push('\n• Rincian Titik Tanaman Pangan & Pangan Lokal Hasil Input Kamera Cerdas:');
+      panganSurveys.forEach((p, idx) => {
+        lines.push(`  ${idx + 1}. ${p.nama_lokasi || p.kategori_label || 'Tanaman Pangan'} (Kel. ${p.kelurahan || '-'}, Kec. ${p.kecamatan || '-'}): Komoditas ${p.kategori_label || p.kategori}, ${p.jumlah_pohon_rumpun ? `${p.jumlah_pohon_rumpun} pohon/rumpun` : (p.luas_lahan_m2 ? `${p.luas_lahan_m2} m²` : '')}, Est. Produksi ${(p.estimasi_produksi_kg || 0).toLocaleString('id-ID')} kg, Fase: ${p.fase_pertumbuhan || '-'}, Lat/Lng: [${p.latitude}, ${p.longitude}]`);
+      });
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -712,7 +762,7 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
     const combinedText = userQueryLower + ' ' + rawTextLower;
 
     // Database lengkap Pin Tematik Serumpun Padi Cilegon
-    const allThematicPins = [
+    const allThematicPins: Array<{ lat: number; lng: number; name: string; category: string; kelurahan: string; kecamatan: string }> = [
       // ─── Pangkalan Nelayan ───
       { lat: -6.02121, lng: 105.95186, name: 'Pangkalan Nelayan Tanjung Leneng', category: 'nelayan', kelurahan: 'Tanjung Leneng', kecamatan: 'Ciwandan' },
       { lat: -5.94000, lng: 105.99996, name: 'Pangkalan Nelayan Medaksa', category: 'nelayan', kelurahan: 'Tamansari', kecamatan: 'Pulomerak' },
@@ -743,6 +793,24 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
       { lat: -5.99214, lng: 106.06231, name: 'Lahan Palawija Jombang', category: 'palawija', kelurahan: 'Sukmajaya', kecamatan: 'Jombang' }
     ];
 
+    // Injeksi pin observasi Kamera Cerdas ke dalam daftar pin pencarian
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const kameraRawList = (spCtx['kamera_cerdas_observasi'] as any)?.data;
+    if (Array.isArray(kameraRawList)) {
+      for (const obs of kameraRawList) {
+        if (obs.latitude && obs.longitude && Number(obs.latitude) !== 0) {
+          allThematicPins.push({
+            lat: Number(obs.latitude),
+            lng: Number(obs.longitude),
+            name: obs.nama_lokasi || (obs.mode === 'pasokan_beras' ? `Pemasok: ${obs.kategori_label || 'Beras'}` : `Pangan: ${obs.kategori_label || 'Tanaman'}`),
+            category: obs.mode === 'pasokan_beras' ? 'beras' : 'pangan_lokal',
+            kelurahan: obs.kelurahan || '',
+            kecamatan: obs.kecamatan || '',
+          });
+        }
+      }
+    }
+
     // Cek kecocokan spesifik: nama pangkalan / KWT / kata kunci kategori
     for (const p of allThematicPins) {
       const nameLower = p.name.toLowerCase();
@@ -756,8 +824,10 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
       const isKolamQuery = (userQueryLower.includes('kolam') || userQueryLower.includes('budidaya') || userQueryLower.includes('ikan')) && p.category === 'kolam';
       const isTernakQuery = (userQueryLower.includes('ternak') || userQueryLower.includes('sapi') || userQueryLower.includes('kambing')) && p.category === 'ternak';
       const isHortiQuery = (userQueryLower.includes('hortikultura') || userQueryLower.includes('cabai') || userQueryLower.includes('sayur')) && (p.category === 'horti' || p.category === 'kwt');
+      const isBerasQuery = (userQueryLower.includes('beras') || userQueryLower.includes('pemasok') || userQueryLower.includes('toko beras') || userQueryLower.includes('agen beras') || userQueryLower.includes('warung')) && (p.category === 'beras');
+      const isPanganLokalQuery = (userQueryLower.includes('pangan lokal') || userQueryLower.includes('sukun') || userQueryLower.includes('singkong') || userQueryLower.includes('ubi') || userQueryLower.includes('jagung') || userQueryLower.includes('kamera cerdas')) && (p.category === 'pangan_lokal' || p.category === 'beras');
 
-      const kelurahanMatch = (userQueryLower.includes(kelLower) || userQueryLower.includes(kecLower)) && (isNelayanQuery || isKwtQuery || isPoktanQuery || isKolamQuery || isTernakQuery || isHortiQuery);
+      const kelurahanMatch = (userQueryLower.includes(kelLower) || userQueryLower.includes(kecLower)) && (isNelayanQuery || isKwtQuery || isPoktanQuery || isKolamQuery || isTernakQuery || isHortiQuery || isBerasQuery || isPanganLokalQuery);
 
       if (nameMatch || kelurahanMatch || (userQueryLower.includes(p.category) && (userQueryLower.includes(kelLower) || userQueryLower.includes(kecLower)))) {
         if (!matchedPins.some(mp => mp.name === p.name)) {
@@ -776,6 +846,10 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
         matchedPins.push(...allThematicPins.filter(p => p.category === 'kolam'));
       } else if (userQueryLower.includes('ternak') || userQueryLower.includes('peternakan')) {
         matchedPins.push(...allThematicPins.filter(p => p.category === 'ternak'));
+      } else if (userQueryLower.includes('pemasok') || userQueryLower.includes('distribusi beras') || userQueryLower.includes('toko beras')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'beras'));
+      } else if (userQueryLower.includes('pangan lokal') || userQueryLower.includes('sukun') || userQueryLower.includes('kamera cerdas')) {
+        matchedPins.push(...allThematicPins.filter(p => p.category === 'pangan_lokal' || p.category === 'beras'));
       }
     }
 
