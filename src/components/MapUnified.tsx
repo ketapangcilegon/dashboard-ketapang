@@ -24,7 +24,7 @@ interface MapUnifiedProps {
 }
 
 type MapMode = 'fsva' | 'skpg' | 'borda' | 'intervensi';
-type BasemapMode = 'light' | 'streets';
+type BasemapMode = 'streets' | 'light' | 'satellite';
 
 // A helper inner component to handle map movements and custom overlay panels
 interface MapControllerProps {
@@ -255,7 +255,9 @@ function MapController({
     map.setView([-6.012, 106.028], 13);
   };
   const toggleBasemap = () => {
-    setBasemap(basemap === 'light' ? 'streets' : 'light');
+    if (basemap === 'streets') setBasemap('satellite');
+    else if (basemap === 'satellite') setBasemap('light');
+    else setBasemap('streets');
   };
 
   const toggleLayers = (e?: React.MouseEvent) => {
@@ -588,6 +590,54 @@ function MapController({
                   onChange={(e) => setOpacity(parseInt(e.target.value))}
                   className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
                 />
+              </div>
+
+              {/* Basemap Selection (3 Options: Standar Laut Biru, Satelit, Terang) */}
+              <div className="border-t border-slate-100 pt-3 space-y-1.5">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide block">
+                  Tipe Basemap
+                </span>
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setBasemap('streets')}
+                    className={`py-1.5 px-1 rounded-lg text-[8px] font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+                      basemap === 'streets'
+                        ? 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-500'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Peta Standar Topografi & Laut Biru (Default)"
+                  >
+                    <span>🌊</span>
+                    <span>Standar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBasemap('satellite')}
+                    className={`py-1.5 px-1 rounded-lg text-[8px] font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+                      basemap === 'satellite'
+                        ? 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-500'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Citra Satelit Resolusi Tinggi (Esri World Imagery)"
+                  >
+                    <span>🛰️</span>
+                    <span>Satelit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBasemap('light')}
+                    className={`py-1.5 px-1 rounded-lg text-[8px] font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+                      basemap === 'light'
+                        ? 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-500'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Peta Terang / Minimalis (OSM Light)"
+                  >
+                    <span>⚪</span>
+                    <span>Terang</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1305,9 +1355,28 @@ export default function MapUnified({
 
 
 
-  const tileUrl = basemap === 'light'
-    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    : "https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
+  const getTileConfig = () => {
+    switch (basemap) {
+      case 'satellite':
+        return {
+          url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+        };
+      case 'light':
+        return {
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        };
+      case 'streets':
+      default:
+        return {
+          url: "https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'
+        };
+    }
+  };
+
+  const tileConfig = getTileConfig();
 
   return (
     <div className="relative w-full h-full min-h-[350px] flex flex-col rounded-xl overflow-hidden bg-slate-50 border border-slate-200">
@@ -1330,8 +1399,9 @@ export default function MapUnified({
           style={{ background: '#EEF2F6' }}
         >
           <TileLayer
-            url={tileUrl}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            key={basemap}
+            url={tileConfig.url}
+            attribution={tileConfig.attribution}
           />
           
           <KecamatanLayer data={getFilteredKecamatanLayers()} />

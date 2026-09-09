@@ -130,6 +130,8 @@ export function SawahLayer({
   onEachFeature,
   sawahStatus,
   fillOpacity = 0.50,
+  showSentinelNdvi = false,
+  pane = 'sawahBorderPane',
 }: {
   data: any[];
   showSawah?: boolean;
@@ -137,12 +139,27 @@ export function SawahLayer({
   onEachFeature?: (feature: any, layer: L.Layer) => void;
   sawahStatus?: Record<string, any>;
   fillOpacity?: number;
+  showSentinelNdvi?: boolean;
+  pane?: string;
 }) {
   if (!showSawah || !data?.length) return null;
 
   const defaultSawahStyle = (feature: any): L.PathOptions => {
     const sid = feature._id || feature.properties?.name || feature.properties?.Name || '';
     const st = sawahStatus?.[sid]?.status;
+    
+    if (showSentinelNdvi) {
+      // Style khusus mode Sentinel-2 10m: border Fluorescent Green solid tajam di atas piksel sentinel
+      return {
+        color: '#08FF08', // Fluorescent Green: #08FF08, RGB: (8,255,8)
+        weight: 2.8,      // Ketebalan tegas & solid
+        dashArray: '',    // Garis solid tanpa putus-putus
+        fillColor: 'transparent',
+        fillOpacity: 0,
+        pane: pane || 'sawahBorderPane',
+      };
+    }
+
     let fillColor = '#4ade80'; // Hijau muda cerah (terang)
     let color = '#22c55e';     // Garis hijau muda menyala & kontras
     if (st === 'bera') {
@@ -157,6 +174,7 @@ export function SawahLayer({
       weight: 1.8,
       fillColor,
       fillOpacity: fillOpacity ?? 0.50,
+      pane: pane || 'sawahBorderPane',
     };
   };
 
@@ -164,19 +182,27 @@ export function SawahLayer({
     <>
       {data.map((f, i) => (
         <GeoJSONComp
-          key={`sawah-${f._id || i}-${JSON.stringify(sawahStatus?.[f._id] || {})}-${fillOpacity}`}
+          key={`sawah-${f._id || i}-${showSentinelNdvi ? 'ndvi' : 'std'}-${JSON.stringify(sawahStatus?.[f._id] || {})}-${fillOpacity}`}
+          pane={pane}
           data={f}
           style={(getStyle ? getStyle(f) : defaultSawahStyle(f)) as any}
-          onEachFeature={onEachFeature || ((feat, l) => {
-            const name = feat.properties?.name || feat.properties?.Name || `Petak Sawah #${i + 1}`;
-            const luas = feat.properties?.luas_m2 ? `${(feat.properties.luas_m2 / 10000).toFixed(2)} Ha` : '';
-            l.bindPopup(`
-              <div style="font-family:system-ui;font-size:12px;padding:4px 0">
-                <b style="color:#166534">🌾 ${name}</b>
-                ${luas ? `<br/><span style="color:#475569">📐 Luas: ${luas}</span>` : ''}
-              </div>
-            `);
-          })}
+          onEachFeature={(feat: any, l: L.Layer) => {
+            try {
+              (l as any).bringToFront?.();
+            } catch {}
+            if (onEachFeature) {
+              onEachFeature(feat, l);
+            } else {
+              const name = feat.properties?.name || feat.properties?.Name || `Petak Sawah #${i + 1}`;
+              const luas = feat.properties?.luas_m2 ? `${(feat.properties.luas_m2 / 10000).toFixed(2)} Ha` : '';
+              l.bindPopup(`
+                <div style="font-family:system-ui;font-size:12px;padding:4px 0">
+                  <b style="color:#166534">🌾 ${name}</b>
+                  ${luas ? `<br/><span style="color:#475569">📐 Luas: ${luas}</span>` : ''}
+                </div>
+              `);
+            }
+          }}
         />
       ))}
     </>

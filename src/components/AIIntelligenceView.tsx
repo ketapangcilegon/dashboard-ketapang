@@ -130,11 +130,12 @@ export default function AIIntelligenceView() {
               
               {/* Peta GIS */}
               {(activeTab === 'split' || activeTab === 'map') && (
-                <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full shrink-0 ${
-                  activeTab === 'split' ? 'w-[42%] lg:w-[40%]' : 'w-full'
+                <div className={`relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-full transition-all duration-200 ${
+                  activeTab === 'split' ? 'w-[42%] lg:w-[40%] shrink-0' : 'w-full flex-1'
                 }`}>
                   <ErrorBoundary fallbackTitle="Kendala Memuat Peta GIS">
                     <AIIntelligenceMap 
+                      activeTab={activeTab}
                       highlightWilayah={highlightWilayah} 
                       highlightPins={highlightPins}
                       mapAction={mapAction}
@@ -207,6 +208,7 @@ export default function AIIntelligenceView() {
                 <div className="h-[70vh] min-h-[460px] max-h-[720px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 relative shrink-0 w-full">
                   <ErrorBoundary fallbackTitle="Kendala Memuat Peta GIS">
                     <AIIntelligenceMap 
+                      activeTab={activeTab}
                       highlightWilayah={highlightWilayah} 
                       highlightPins={highlightPins}
                       mapAction={mapAction}

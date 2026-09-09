@@ -36,7 +36,8 @@ import {
   PalawijaDBPins,
   WarningDBPins,
 } from './gis/MapLayers';
-import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures } from '@/lib/agro-satellite';
+import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X } from 'lucide-react';
 
 // ============================================================
 // AIIntelligenceMap
@@ -47,6 +48,7 @@ import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal } from 'luc
 // ============================================================
 
 interface AIIntelligenceMapProps {
+  activeTab?: 'split' | 'map' | 'chat';
   highlightWilayah?: string[];
   highlightPins?: MatchedPin[];
   mapAction?: MapAction | null;
@@ -125,6 +127,25 @@ function LayerToggleControl({ setShowOsm }: { setShowOsm: React.Dispatch<React.S
       }
     };
   }, [map, setShowOsm]);
+  return null;
+}
+
+// Custom Panes: Memastikan batas poligon sawah baku (z-index 450) SELALU berada di atas mozaik piksel Sentinel-2 (z-index 350)
+function CustomMapPanes() {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    try {
+      if (!map.getPane('sentinelPixelPane')) {
+        const p1 = map.createPane('sentinelPixelPane');
+        p1.style.zIndex = '350';
+      }
+      if (!map.getPane('sawahBorderPane')) {
+        const p2 = map.createPane('sawahBorderPane');
+        p2.style.zIndex = '450';
+      }
+    } catch {}
+  }, [map]);
   return null;
 }
 
@@ -406,6 +427,7 @@ function ThematicKelurahanLayer({
 
 
 export default function AIIntelligenceMap({
+  activeTab = 'split',
   highlightWilayah = [],
   highlightPins = [],
   mapAction = null,
@@ -435,6 +457,8 @@ export default function AIIntelligenceMap({
 
   // Sector layer toggles
   const [showSawah, setShowSawah] = useState(true);
+  const [showSentinelNdvi, setShowSentinelNdvi] = useState(true);
+  const [showSentinelLegend, setShowSentinelLegend] = useState(true);
   const [showPoktan, setShowPoktan] = useState(true);
   const [showKWT, setShowKWT] = useState(true);
   const [showGapoktan, setShowGapoktan] = useState(true);
@@ -602,6 +626,12 @@ export default function AIIntelligenceMap({
     return Array.from(set);
   }, [highlightWilayah, mapAction]);
 
+  // Generate multi-colored 10m Sentinel-2 pixel grid cells inside sawah polygons
+  const sentinelGridFeatures = useMemo(() => {
+    if (!layers.sawah?.length) return [];
+    return generateSawahPixelGridFeatures(layers.sawah);
+  }, [layers.sawah]);
+
   // Dynamic custom pin icon builder for AI highlights
   const createAiPinIcon = (category: string, name: string) => {
     const isSawah = category === 'sawah';
@@ -740,9 +770,10 @@ export default function AIIntelligenceMap({
         )}
 
         {/* Controls & Helpers */}
+        <CustomMapPanes />
         <MapRefSetter mapRef={mapRef} />
         <MapZoomTracker setZoom={setMapZoom} />
-        <MapInvalidator />
+        <MapInvalidator invalidationKey={activeTab} />
         <MoveZoomControl />
         <FitBoundsControl />
         <LocateMe />
@@ -804,36 +835,147 @@ export default function AIIntelligenceMap({
           />
         )}
 
-        {/* 3. Layer Sawah Baku (407 Petak) dengan Agri-Advisory GPS (Fase 2) */}
+        {/* 3a. Layer Sentinel-2 Multi-Colored 10m Pixel Grid (Sub-Polygon Heterogeneity) */}
+        {showSawah && showSentinelNdvi && sentinelGridFeatures.length > 0 && (
+          <GeoJSONComp
+            key={`sentinel-sub-grid-${sentinelGridFeatures.length}`}
+            pane="sentinelPixelPane"
+            data={sentinelGridFeatures as any}
+            style={(feat: any) => ({
+              fillColor: feat?.properties?.fillColor || '#16a34a',
+              fillOpacity: 0.85,
+              color: feat?.properties?.strokeColor || '#15803d',
+              weight: 0.6,
+              opacity: 0.8,
+              pane: 'sentinelPixelPane',
+            })}
+            onEachFeature={(feat: any, layer: any) => {
+              const sawahName = feat?.properties?.sawahName || 'Petak Sawah';
+              const pixelType = feat?.properties?.pixelType || 'Kapasitas Lapang (Optimal)';
+              const smVal = feat?.properties?.soilMoistureVal || '0.28 m³/m³';
+              const status = feat?.properties?.status || 'Kondisi Prima';
+              const interpretasi = feat?.properties?.interpretasi || 'Porositas tanah seimbang, air perakaran ideal untuk pertumbuhan padi.';
+              layer.bindTooltip(
+                `<div style="font-family:system-ui;font-size:11.5px;padding:6px 9px;background:#0f172a;color:#ffffff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.5);border:1.5px solid #334155;max-width:270px;">
+                  <div style="font-weight:900;color:#34d399;font-size:12px;border-bottom:1px solid #1e293b;padding-bottom:4px;margin-bottom:4px;">
+                    🌾 ${sawahName}
+                  </div>
+                  <div style="font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:space-between;">
+                    <span style="color:#94a3b8;">ECMWF ERA5 (0–28cm):</span>
+                    <span style="color:${feat?.properties?.fillColor};font-family:monospace;font-size:12px;font-weight:900;">${smVal}</span>
+                  </div>
+                  <div style="font-size:10.5px;font-weight:700;color:#f8fafc;margin-top:2px;">
+                    Status: <span style="color:${feat?.properties?.fillColor};">${pixelType}</span>
+                  </div>
+                  <div style="font-size:10px;color:#cbd5e1;margin-top:4px;line-height:1.35;border-top:1px dashed #334155;padding-top:4px;">
+                    💡 <b>Arti Ilmiah:</b> ${interpretasi}
+                  </div>
+                </div>`,
+                { sticky: true, direction: 'top', className: 'transparent-gis-label' }
+              );
+            }}
+          />
+        )}
+
+        {/* 3b. Garis Batas Poligon Baku Sawah GIS Operator (Selalu di atas piksel sentinel) */}
         {showSawah && layers.sawah?.length > 0 && (
           <SawahLayer
             data={layers.sawah}
             showSawah={showSawah}
-            fillOpacity={0.50}
+            showSentinelNdvi={showSentinelNdvi}
+            pane="sawahBorderPane"
+            fillOpacity={showSentinelNdvi ? 0 : 0.50}
             onEachFeature={(feat: any, l: L.Layer) => {
-              const name = feat.properties?.name || feat.properties?.Name || 'Petak Sawah Baku Cilegon';
-              const rawLuas = feat.properties?.luas_m2 ? (feat.properties.luas_m2 / 10000).toFixed(2) : '0.85';
+              try {
+                (l as any).bringToFront?.();
+              } catch {}
+              const name = feat.properties?.name || feat.properties?.Name || 'Hamparan Sawah Cilegon';
+              const rawLuasM2 = feat.properties?.luas_m2 || 12500;
+              const rawLuasHa = (rawLuasM2 / 10000).toFixed(2);
               const sid = feat._id || Math.random().toString(36).substring(7);
 
+              // Ambil koordinat titik tengah poligon
+              let lat = -6.0271;
+              let lng = 106.0712;
+              try {
+                if (feat.geometry?.type === 'Polygon' && feat.geometry.coordinates?.[0]?.[0]) {
+                  lng = feat.geometry.coordinates[0][0][0];
+                  lat = feat.geometry.coordinates[0][0][1];
+                } else if (feat.geometry?.type === 'MultiPolygon' && feat.geometry.coordinates?.[0]?.[0]?.[0]) {
+                  lng = feat.geometry.coordinates[0][0][0][0];
+                  lat = feat.geometry.coordinates[0][0][0][1];
+                }
+              } catch {}
+
+              const telemetry = evaluateSawahAgroTelemetry(name, { lat, lng }, rawLuasM2);
+              const { pixelBreakdown } = telemetry;
+
               l.bindPopup(`
-                <div style="font-family:system-ui;font-size:12px;padding:4px 0;min-width:215px;">
-                  <div style="display:flex;align-items:center;gap:6px;border-bottom:1px solid #e2e8f0;padding-bottom:5px;">
-                    <span style="font-size:18px;">🌾</span>
+                <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;padding:4px 0;min-width:280px;max-width:320px;color:#1e293b;">
+                  
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">
                     <div>
-                      <b style="color:#166534;font-size:13px;">${name}</b>
-                      <div style="font-size:10px;color:#64748b;">Estimasi Luas: ~${rawLuas} Ha</div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:18px;">🌾</span>
+                        <b style="color:#0f172a;font-size:14px;line-height:1.2;">${name}</b>
+                      </div>
+                      <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:600;">
+                        Luas Area: <b style="color:#0f172a;">${rawLuasHa} Ha</b> (${pixelBreakdown.totalPixels10m} Kotak Mikro 10m)
+                      </div>
                     </div>
                   </div>
-                  <div style="margin-top:6px;font-size:11px;color:#334155;display:flex;flex-direction:column;gap:3px;">
-                    <div><b>Status Lahan:</b> Lahan Pertanian Pangan Abadi (LP2B)</div>
-                    <div><b>Lokasi:</b> Sentra Produksi Kota Cilegon</div>
+
+                  <div style="margin-top:10px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px;">
+                    <div style="font-size:10.5px;font-weight:900;color:#0284c7;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                      <span>🌱 Telemetri Lengas Tanah (10m)</span>
+                      <span style="color:#059669;font-weight:900;background:#dcfce7;padding:2px 6px;border-radius:4px;">ECMWF Reanalisis</span>
+                    </div>
+
+                    <div style="width:100%;height:13px;border-radius:6px;overflow:hidden;display:flex;border:1.5px solid #cbd5e1;margin-bottom:8px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);">
+                      <div style="width:${pixelBreakdown.persenOptimalHijau}%;background:#16a34a;" title="Optimal: ${pixelBreakdown.persenOptimalHijau}% (${pixelBreakdown.luasLebatHa} Ha)"></div>
+                      <div style="width:${pixelBreakdown.persenSedangKuning}%;background:#eab308;" title="Sedang: ${pixelBreakdown.persenSedangKuning}% (${pixelBreakdown.luasBaruTanamHa} Ha)"></div>
+                      <div style="width:${pixelBreakdown.persenDefisitMerah}%;background:#dc2626;" title="Defisit: ${pixelBreakdown.persenDefisitMerah}% (${pixelBreakdown.luasBeraHa} Ha)"></div>
+                      <div style="width:${pixelBreakdown.persenJenuhBiru}%;background:#0284c7;" title="Jenuh: ${pixelBreakdown.persenJenuhBiru}% (${pixelBreakdown.luasAirHa} Ha)"></div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10.5px;color:#334155;font-weight:700;">
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="width:9px;height:9px;background:#16a34a;border-radius:2px;display:inline-block;border:1px solid #15803d;"></span>
+                        <span>Optimal: <b>${pixelBreakdown.persenOptimalHijau}%</b> (${pixelBreakdown.luasLebatHa} Ha)</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="width:9px;height:9px;background:#eab308;border-radius:2px;display:inline-block;border:1px solid #ca8a04;"></span>
+                        <span>Sedang: <b>${pixelBreakdown.persenSedangKuning}%</b> (${pixelBreakdown.luasBaruTanamHa} Ha)</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="width:9px;height:9px;background:#dc2626;border-radius:2px;display:inline-block;border:1px solid #b91c1c;"></span>
+                        <span>Defisit: <b>${pixelBreakdown.persenDefisitMerah}%</b> (${pixelBreakdown.luasBeraHa} Ha)</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="width:9px;height:9px;background:#0284c7;border-radius:2px;display:inline-block;border:1px solid #0369a1;"></span>
+                        <span>Jenuh: <b>${pixelBreakdown.persenJenuhBiru}%</b> (${pixelBreakdown.luasAirHa} Ha)</span>
+                      </div>
+                    </div>
                   </div>
+
+                  <div style="margin-top:8px;background:${telemetry.stressStatus === 'ALARM_KRITIS' ? '#fef2f2' : telemetry.stressStatus === 'WASPADA_RINGAN' ? '#fffbeb' : '#f0fdf4'};border:1.5px solid ${telemetry.statusColor}66;border-radius:10px;padding:8px 9px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+                      <span style="font-size:11.5px;font-weight:900;color:${telemetry.statusColor};">${telemetry.statusLabel}</span>
+                    </div>
+                    <div style="font-size:11px;color:#334155;line-height:1.4;font-weight:600;">
+                      Lengas Tanah: <b>${telemetry.avgSoilMoistureRootZone} m³/m³</b> • Evapotranspirasi: <b>${telemetry.evapotranspirationMmDay} mm/hari</b>
+                    </div>
+                    <div style="font-size:10.5px;color:#64748b;margin-top:4px;font-weight:500;line-height:1.3;">
+                      💡 ${telemetry.rekomendasiAksi}
+                    </div>
+                  </div>
+
                   <button
                     id="btn-agri-${sid}"
                     type="button"
-                    style="width:100%;margin-top:8px;background:linear-gradient(135deg, #047857, #065f46);color:#ffffff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.15);"
+                    style="width:100%;margin-top:10px;background:linear-gradient(135deg, #047857, #065f46);color:#ffffff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 3px 6px rgba(0,0,0,0.18);"
                   >
-                    🌱 Konsultasi Agronomi Presisi AI
+                    <span>🌱</span> Analisis Agronomi Presisi AI
                   </button>
                 </div>
               `);
@@ -842,7 +984,7 @@ export default function AIIntelligenceMap({
                 const btn = document.getElementById(`btn-agri-${sid}`);
                 if (btn) {
                   btn.onclick = () => {
-                    onTriggerChatPrompt?.(`Konsultasi agronomi presisi untuk ${name} seluas ${rawLuas} Ha: rekomendasi varietas benih padi adaptif kekeringan/salinitas, jadwal pola tanam optimal, dan dosis pupuk subsidi berimbang.`);
+                    onTriggerChatPrompt?.(`Analisis agrometeorologi dan lengas tanah ECMWF untuk ${name} seluas ${rawLuasHa} Ha: Distribusi ${pixelBreakdown.persenOptimalHijau}% optimal (${pixelBreakdown.luasLebatHa} Ha), ${pixelBreakdown.persenSedangKuning}% sedang (${pixelBreakdown.luasBaruTanamHa} Ha), ${pixelBreakdown.persenDefisitMerah}% defisit, rata-rata kadar air ${telemetry.avgSoilMoistureRootZone} m³/m³ (Status: ${telemetry.stressStatus}). Berikan rekomendasi mitigasi irigasi dan manajemen air tersier.`);
                   };
                 }
               });
@@ -917,21 +1059,21 @@ export default function AIIntelligenceMap({
       </MapContainer>
 
       {/* Floating Top-Right Toolbar: Layer Filter */}
-      <div className="absolute top-2 right-2 z-[500] flex items-center gap-1.5">
+      <div className="absolute top-3 right-3 z-[500] flex items-center gap-2">
         {/* Layer Filter Panel Button */}
         <div className="relative">
           <button
             onClick={() => {
               setShowLayersPanel((p) => !p);
             }}
-            className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-2 py-1 rounded-lg shadow-sm hover:bg-white hover:border-slate-300 transition-all text-[8.5px] font-black tracking-wide cursor-pointer"
+            className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 px-3 py-1.5 rounded-xl shadow-md hover:bg-white hover:border-slate-300 transition-all text-[11px] font-black tracking-wider cursor-pointer"
           >
-            <Layers className="w-3 h-3 text-emerald-600" />
+            <Layers className="w-3.5 h-3.5 text-emerald-600" />
             <span>LAYER</span>
             {showLayersPanel ? (
-              <ChevronUp className="w-2.5 h-2.5 text-slate-400" />
+              <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
             ) : (
-              <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
             )}
           </button>
 
@@ -940,34 +1082,61 @@ export default function AIIntelligenceMap({
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
-              className="absolute top-full right-0 mt-1.5 w-44 sm:w-48 bg-white/98 backdrop-blur-md border border-slate-200/90 rounded-xl shadow-lg p-2 text-[8px] flex flex-col gap-1 max-h-[65vh] overflow-y-auto custom-scrollbar z-[600] animate-in fade-in slide-in-from-top-1 duration-150"
+              className="absolute top-full right-0 mt-2 w-56 sm:w-64 bg-white/98 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-2xl p-3 text-[11px] flex flex-col gap-1.5 max-h-[70vh] overflow-y-auto custom-scrollbar z-[600] animate-in fade-in slide-in-from-top-1 duration-150"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                <span className="font-extrabold text-slate-800 text-[8px] uppercase tracking-wider">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1">
+                <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
                   Filter Layer GIS
                 </span>
-                <span className="text-[7.5px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded-full font-bold border border-emerald-200">
+                <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-extrabold border border-emerald-200">
                   Serumpun Padi
                 </span>
               </div>
 
               {/* Toggle Sawah Baku */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">🌾</span> Sawah Baku ({layers.sawah?.length || 407})
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🌾</span> Sawah Baku ({layers.sawah?.length || 407})
                 </span>
                 <input
                   type="checkbox"
                   checked={showSawah}
-                  onChange={(e) => setShowSawah(e.target.checked)}
-                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setShowSawah(isChecked);
+                    if (isChecked && showSentinelNdvi) {
+                      setShowSentinelLegend(true);
+                    }
+                  }}
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
+              {/* Sub-Toggle: Mode Telemetri Lengas Tanah & Agroklimat (10m) */}
+              {showSawah && (
+                <label className="flex items-center justify-between text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 font-black p-1.5 rounded-lg cursor-pointer transition-colors text-[10.5px] ml-2 my-0.5 shadow-xs">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span>🌱</span> Telemetri Lengas Tanah (10m)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showSentinelNdvi}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setShowSentinelNdvi(isChecked);
+                      if (isChecked) {
+                        setShowSentinelLegend(true); // Munculkan kembali box legenda saat dicentang ulang
+                      }
+                    }}
+                    className="w-3.5 h-3.5 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
+                  />
+                </label>
+              )}
+
               {/* Toggle Poktan / KWT */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">👨🌾</span> Poktan & KWT
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">👨🌾</span> Poktan & KWT
                 </span>
                 <input
                   type="checkbox"
@@ -977,40 +1146,40 @@ export default function AIIntelligenceMap({
                     setShowKWT(e.target.checked);
                     setShowGapoktan(e.target.checked);
                   }}
-                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Kolam Ikan */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">🐟</span> Perikanan Budidaya
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🐟</span> Perikanan Budidaya
                 </span>
                 <input
                   type="checkbox"
                   checked={showKolam}
                   onChange={(e) => setShowKolam(e.target.checked)}
-                  className="w-3 h-3 accent-cyan-600 rounded cursor-pointer shrink-0 ml-1"
+                  className="w-4 h-4 accent-cyan-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Nelayan Tangkap */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">⛵</span> Nelayan Tangkap
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">⛵</span> Nelayan Tangkap
                 </span>
                 <input
                   type="checkbox"
                   checked={showNelayan}
                   onChange={(e) => setShowNelayan(e.target.checked)}
-                  className="w-3 h-3 accent-teal-600 rounded cursor-pointer shrink-0 ml-1"
+                  className="w-4 h-4 accent-teal-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Horti & Palawija */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">🌶️</span> Horti & Palawija
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🌶️</span> Horti & Palawija
                 </span>
                 <input
                   type="checkbox"
@@ -1019,14 +1188,14 @@ export default function AIIntelligenceMap({
                     setShowHorti(e.target.checked);
                     setShowPalawija(e.target.checked);
                   }}
-                  className="w-3 h-3 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Toggle Batas Wilayah */}
-              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1 rounded-md cursor-pointer transition-colors text-[8px]">
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-[9px]">🏛️</span> Batas Administrasi
+              <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-slate-50 p-1.5 rounded-lg cursor-pointer transition-colors text-[11px]">
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-[13px]">🏛️</span> Batas Administrasi
                 </span>
                 <input
                   type="checkbox"
@@ -1035,52 +1204,52 @@ export default function AIIntelligenceMap({
                     setShowKecamatan(e.target.checked);
                     setShowKelurahan(e.target.checked);
                   }}
-                  className="w-3 h-3 accent-amber-600 rounded cursor-pointer shrink-0 ml-1"
+                  className="w-4 h-4 accent-amber-600 rounded cursor-pointer shrink-0 ml-1"
                 />
               </label>
 
               {/* Sub-toggles: Label Nama Kecamatan & Kelurahan */}
-              <div className="border-t border-slate-100 pt-1 flex flex-col gap-0.5 bg-slate-50/80 p-1.5 rounded-lg border border-slate-200/60">
-                <div className="text-[7.5px] font-black uppercase text-slate-500 tracking-wider mb-0.5">
+              <div className="border-t border-slate-100 pt-2 flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-200/60 mt-1">
+                <div className="text-[9.5px] font-black uppercase text-slate-500 tracking-wider mb-0.5">
                   Label Teks Peta
                 </div>
 
                 {/* Toggle Label Nama Kecamatan (Besar) */}
-                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-0.5 rounded cursor-pointer transition-colors text-[8px]">
-                  <span className="flex items-center gap-1">
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-md cursor-pointer transition-colors text-[10.5px]">
+                  <span className="flex items-center gap-1.5">
                     <span>🏷️</span> Kecamatan
                   </span>
                   <input
                     type="checkbox"
                     checked={showKecamatanLabels}
                     onChange={(e) => setShowKecamatanLabels(e.target.checked)}
-                    className="w-3 h-3 accent-amber-600 rounded cursor-pointer"
+                    className="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer"
                   />
                 </label>
 
                 {/* Toggle Label Nama Kelurahan (Kecil) */}
-                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-0.5 rounded cursor-pointer transition-colors text-[8px]">
-                  <span className="flex items-center gap-1">
+                <label className="flex items-center justify-between text-slate-700 font-bold hover:bg-white p-1 rounded-md cursor-pointer transition-colors text-[10.5px]">
+                  <span className="flex items-center gap-1.5">
                     <span>🏷️</span> Kelurahan
                   </span>
                   <input
                     type="checkbox"
                     checked={showKelurahanLabels}
                     onChange={(e) => setShowKelurahanLabels(e.target.checked)}
-                    className="w-3 h-3 accent-emerald-600 rounded cursor-pointer"
+                    className="w-3.5 h-3.5 accent-emerald-600 rounded cursor-pointer"
                   />
                 </label>
               </div>
 
               {/* Overlay OSM switch */}
-              <div className="border-t border-slate-100 pt-1 flex items-center justify-between text-[8px]">
+              <div className="border-t border-slate-100 pt-2 flex items-center justify-between text-[10.5px] mt-1">
                 <span className="font-bold text-slate-600">Overlay Jalan/Sungai</span>
                 <button
                   type="button"
                   onClick={() => setShowOsm((p) => !p)}
-                  className={`text-[7.5px] font-black px-1.5 py-0.2 rounded transition-colors ${
+                  className={`text-[9.5px] font-black px-2 py-0.5 rounded-md transition-colors ${
                     showOsm
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -1159,6 +1328,83 @@ export default function AIIntelligenceMap({
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Floating Lengas Tanah 10m Telemetry Indicator (Bottom-Left) - Transparan 60% */}
+      {showSawah && showSentinelNdvi && showSentinelLegend && (
+        <div className="absolute bottom-3 left-3 z-[500] bg-slate-950/60 text-white backdrop-blur-md border border-emerald-500/40 rounded-2xl shadow-2xl p-3.5 max-w-[320px] animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <span className="text-xs font-black text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+                <span>🌱</span> Lengas Tanah 10m
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-black px-2 py-0.5 rounded border border-emerald-500/30">
+                ECMWF Realtime
+              </span>
+              <button
+                onClick={() => setShowSentinelLegend(false)}
+                className="w-5 h-5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-1"
+                title="Tutup Legenda Lengas Tanah"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="text-[10.5px] text-slate-200 mb-2 leading-relaxed">
+            Interpretasi kadar lengas tanah perakaran ECMWF ERA5-Land (Kedalaman 0–28 cm):
+          </div>
+
+          {/* Color Matrix Legend */}
+          <div className="flex flex-col gap-1.5 text-[10.5px] font-bold">
+            <div className="flex items-center gap-2 bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/40">
+              <span className="w-3.5 h-3.5 rounded-xs bg-[#16a34a] shrink-0 border border-white/20" />
+              <div className="flex flex-col">
+                <span className="text-emerald-400 font-extrabold">0.24 – 0.32 m³/m³ : Optimal</span>
+                <span className="text-slate-200 text-[9.5px] font-normal">Kapasitas Lapang (Fotosintesis Prima)</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/40">
+              <span className="w-3.5 h-3.5 rounded-xs bg-[#eab308] shrink-0 border border-white/20" />
+              <div className="flex flex-col">
+                <span className="text-yellow-400 font-extrabold">0.18 – 0.24 m³/m³ : Sedang</span>
+                <span className="text-slate-200 text-[9.5px] font-normal">Mulai Deplesi (Perlu Suplesi Pintu Air)</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/40">
+              <span className="w-3.5 h-3.5 rounded-xs bg-[#dc2626] shrink-0 border border-white/20" />
+              <div className="flex flex-col">
+                <span className="text-red-400 font-extrabold">&lt; 0.18 m³/m³ : Defisit Kritis</span>
+                <span className="text-slate-200 text-[9.5px] font-normal">Titik Layu Permanen (Ancaman Puso/Kering)</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/40">
+              <span className="w-3.5 h-3.5 rounded-xs bg-[#0284c7] shrink-0 border border-white/20" />
+              <div className="flex flex-col">
+                <span className="text-cyan-400 font-extrabold">&gt; 0.32 m³/m³ : Jenuh Air</span>
+                <span className="text-slate-200 text-[9.5px] font-normal">Tergenang (Fase Olah Tanah / Tanam)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Telemetri Status Agroklimat di Margin Bawah (Wraptext tanpa latar belakang) */}
+      {showSawah && showSentinelNdvi && (
+        <div className="absolute bottom-2.5 right-3 z-[450] pointer-events-none text-right select-none">
+          <div className="text-[11px] font-black text-emerald-400 tracking-wide leading-[1.15] [text-shadow:0_1px_3px_rgba(0,0,0,0.98),0_0_5px_rgba(0,0,0,0.95),-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+            🌱 TELEMETRI AGROKLIMAT & LENGAS TANAH
+          </div>
+          <div className="text-[10px] font-bold text-white tracking-normal leading-[1.15] mt-[2px] [text-shadow:0_1px_3px_rgba(0,0,0,0.98),0_0_5px_rgba(0,0,0,0.95),-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+            Model: ECMWF ERA5-Land (Realtime)
+          </div>
+          <div className="text-[9.5px] font-semibold text-emerald-200 tracking-normal leading-[1.15] mt-[2px] [text-shadow:0_1px_3px_rgba(0,0,0,0.98),0_0_5px_rgba(0,0,0,0.95),-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+            Kedalaman Akar: 0–28 cm • Cilegon
+          </div>
         </div>
       )}
 

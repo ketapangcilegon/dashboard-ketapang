@@ -91,8 +91,8 @@ export function MapZoomTracker({ setZoom }: { setZoom?: (z: number) => void }) {
   return null;
 }
 
-// Komponen penyesuai ukuran peta saat tab / view berubah
-export function MapInvalidator() {
+// Komponen penyesuai ukuran peta saat tab / view berubah atau resize container
+export function MapInvalidator({ invalidationKey }: { invalidationKey?: any } = {}) {
   const map = useMap();
   useEffect(() => {
     if (!map) return;
@@ -102,17 +102,38 @@ export function MapInvalidator() {
       } catch {}
     };
 
+    // Panggil langsung & debounce beberapa frame agar transisi CSS lebar container selesai
     invalidate();
-    const t1 = setTimeout(invalidate, 100);
-    const t2 = setTimeout(invalidate, 350);
+    const t1 = setTimeout(invalidate, 50);
+    const t2 = setTimeout(invalidate, 150);
+    const t3 = setTimeout(invalidate, 350);
+    const t4 = setTimeout(invalidate, 600);
+
+    let resizeObserver: ResizeObserver | null = null;
+    try {
+      const container = map.getContainer();
+      if (container && typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          invalidate();
+        });
+        resizeObserver.observe(container);
+      }
+    } catch {}
 
     window.addEventListener('resize', invalidate);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
       window.removeEventListener('resize', invalidate);
+      if (resizeObserver) {
+        try {
+          resizeObserver.disconnect();
+        } catch {}
+      }
     };
-  }, [map]);
+  }, [map, invalidationKey]);
   return null;
 }
 
