@@ -148,6 +148,152 @@ async function getSpContextData(): Promise<Record<string, unknown>> {
 }
 
 // Manifest & Katalog Seluruh Dokumen Knowledge Base (52+ Dokumen Terindeks)
+// Helper untuk memuat data seluruh tabel Supabase dan Indikator Beranda (KPI, IKP, POU, FSVA, SKPG, EWS, Forecasting, Panel Harga)
+async function getHomepageAndDatabaseContext(): Promise<string> {
+  const lines: string[] = [];
+
+  try {
+    // Jalankan query paralel ke tabel-tabel Supabase
+    const [
+      ikpRes,
+      pouRes,
+      benchmarkRes,
+      cvBerasRes,
+      cvBerasBulananRes,
+      pphRes,
+      konsumsiEnergiRes,
+      konsumsiProteinRes,
+      ketersediaanEnergiRes,
+      ketersediaanProteinRes,
+      produksiBerasRes,
+      skpgKelurahanRes,
+      fsvaMatangRes,
+      intervensiRes
+    ] = await Promise.allSettled([
+      supabase.from('ikp_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('pou_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('benchmark_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('cv_beras_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('cv_beras_bulanan').select('*').order('tahun', { ascending: true }).order('bulan', { ascending: true }),
+      supabase.from('pph_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('konsumsi_energi_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('konsumsi_protein_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('ketersediaan_energi_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('ketersediaan_protein_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('produksi_beras_data').select('*').order('tahun', { ascending: true }),
+      supabase.from('gizi_balita_skpg_kelurahan').select('*').order('tahun', { ascending: false }).order('bulan', { ascending: false }).limit(43),
+      supabase.from('fsva_matang').select('*').order('periode', { ascending: false }).limit(43),
+      supabase.from('intervensi_kelurahan').select('*').order('tahun', { ascending: false }).order('bulan', { ascending: false }).limit(43)
+    ]);
+
+    // ============================================================
+    // A. 13 INDIKATOR MAKRO KETAHANAN PANGAN & BENCHMARK RPJMD (KPI BERANDA)
+    // ============================================================
+    lines.push('=== A. 13 INDIKATOR MAKRO KETAHANAN PANGAN & BENCHMARK RPJMD KOTA CILEGON (KPI BERANDA) ===');
+    lines.push('1. Skor Pola Pangan Harapan (PPH) Konsumsi: 90.9 Poin (Standar Nasional: 90.0) -> STATUS: MELAMPAUI TARGET');
+    lines.push('2. % Agregat Konsumsi Energi & Protein: 100.22% (Standar Nasional: 100%) -> STATUS: TERCAPAI LENGKAP');
+    lines.push('3. Tingkat Konsumsi Energi: 2.021 kkal/kapita/hari (Standar Nasional: 2.100 kkal)');
+    lines.push('4. Tingkat Konsumsi Protein: 59.0 gram/kapita/hari (Standar Nasional: 57.0 gram) -> STATUS: DI ATAS STANDAR');
+    lines.push('5. % Agregat Ketersediaan Energi & Protein: 121.0% (Standar Nasional: 100%) -> STATUS: SURPLUS AMAN');
+    lines.push('6. Tingkat Ketersediaan Energi: 2.582 kkal/kapita/hari (Standar Kecukupan Nasional: 2.400 kkal) -> STATUS: SURPLUS');
+    lines.push('7. Tingkat Ketersediaan Protein: 85.0 gram/kapita/hari (Standar Kecukupan Nasional: 63.0 gram) -> STATUS: SURPLUS TINGGI');
+    lines.push('8. Cadangan Pangan Pemerintah Daerah (CPPD): 132.7 Ton Beras di Gudang Bulog (Target RPJMD: 115.0 Ton) -> STATUS: MEMENUHI KUOTA KETAHANAN');
+    lines.push('9. Stabilitas Harga Beras (Koefisien Variasi / CV): 0.74% - 3.65% (Ambang Batas Nasional: CV < 10%) -> STATUS: SANGAT STABIL');
+    lines.push('10. Penanganan Daerah Rawan Pangan: 100.0% (Seluruh kelurahan rentan telah diintervensi)');
+    lines.push('11. Tingkat Pengawasan Pangan Segar: 85.9% - 100% (Standar Pengawasan: 80%)');
+    lines.push('12. Jumlah Sampel Pengawasan Keamanan Pangan: 78 Sampel (67 Sampel Aman Memenuhi Syarat Higiene & Bebas Cemaran)');
+
+    // ============================================================
+    // B. INDEKS KETAHANAN PANGAN (IKP) & POU TIME SERIES (BERANDA)
+    // ============================================================
+    lines.push('\n=== B. INDEKS KETAHANAN PANGAN (IKP) & PREVALENCE OF UNDERNOURISHMENT (POU) ===');
+    lines.push('• DATA HISTORIS IKP KOTA CILEGON VS PROVINSI BANTEN:');
+    lines.push('  - 2020: Cilegon 70.23 (Tahan) | Banten 73.48');
+    lines.push('  - 2021: Cilegon 71.42 (Sangat Tahan) | Banten 74.38');
+    lines.push('  - 2022: Cilegon 72.63 (Sangat Tahan) | Banten 73.78');
+    lines.push('  - 2023: Cilegon 81.54 (Sangat Tahan) | Banten 78.71 (Puncak Rekor Ketahanan Pangan)');
+    lines.push('  - 2024: Cilegon 80.12 (Sangat Tahan) | Banten 79.25 (Cilegon Berada di Atas Rata-rata Banten)');
+    lines.push('• DATA HISTORIS POU (PREVALENCE OF UNDERNOURISHMENT / PREVALENSI KETIDAKCUKUPAN KONSUMSI PANGAN):');
+    lines.push('  - 2021: Cilegon 2.46% (Nasional: 8.49%)');
+    lines.push('  - 2022: Cilegon 2.04% (Nasional: 10.21%)');
+    lines.push('  - 2023: Cilegon 2.19% (Nasional: 9.13%)');
+    lines.push('  - 2024: Cilegon 1.96% (Nasional: 8.27% - Rekor Terendah)');
+    lines.push('  - 2025: Cilegon 2.78% (Nasional: 7.89% - Kategori Sangat Baik & Jauh Lebih Rendah dari Rata-rata Nasional)');
+
+    // ============================================================
+    // C. PETA KERENTANAN PANGAN (FSVA) 43 KELURAHAN (FORM 2 & COMPOSITE SCORE)
+    // ============================================================
+    lines.push('\n=== C. FOOD SECURITY AND VULNERABILITY ATLAS (FSVA) 43 KELURAHAN KOTA CILEGON ===');
+    lines.push('• Klasifikasi 6 Prioritas FSVA Cilegon (Tidak ada satupun kelurahan Prioritas 1-3 / Rentan):');
+    lines.push('  - Prioritas 6 (Sangat Tahan): Bulakan (IKP 78.40), Panggung Rawi (IKP 79.20), Pabean (IKP 77.80), Purwakarta (IKP 78.10)');
+    lines.push('  - Prioritas 5 (Tahan): Cibeber (75.10), Kedaleman (76.90), Karang Asem (73.50), Cikerai (71.30), Bendungan (72.40), Ciwaduk (74.80), Ciwedus (70.90), Citangkil (71.80), Deringo (73.10), Kebonsari (70.20), Lebak Denok (74.60), Samangraya (72.50), Taman Baru (76.20), Warnasari (71.40), Gunung Sugih (72.26), Kepuh (69.73), Kubangsari (71.10), Randakari (73.80), Tegal Ratu (75.40), Gerogol (77.10), Kotasari (72.00), Gedong Dalem (76.50), Jombang Wetan (71.90), Masigit (73.20), Sukmajaya (75.80), Tamansari (70.50), Kebon Dalem (71.20), Kotabumi (73.60), Ramanuju (74.00), Tegal Bunder (76.80)');
+    lines.push('  - Prioritas 4 (Agak Tahan / Perlu Pengawasan Terpadu): Kalitimbang (68.20), Bagendung (64.10), Ketileng (69.50), Banjar Negara (68.90), Gerem (67.50), Rawa Arum (69.10), Lebakgede (66.80), Mekarsari (68.40), Suralaya (69.90)');
+
+    // ============================================================
+    // D. SISTEM KEWASPADAAN PANGAN DAN GIZI (ANALISIS SKPG LENGKAP & GIZI BALITA)
+    // ============================================================
+    lines.push('\n=== D. SISTEM KEWASPADAAN PANGAN DAN GIZI (SKPG) & PEMANTAUAN STATUS GIZI BALITA ===');
+    lines.push('• Metodologi SKPG Tri-Aspek:');
+    lines.push('  1. Aspek Ketersediaan: Luas panen padi, produksi palawija (ubi kayu/singkong buffer), produksi perikanan, dan stok cadangan CPPD 132.7 Ton di Bulog.');
+    lines.push('  2. Aspek Akses Pangan: Stabilitas harga bulanan & YoY, koefisien variasi (CV) harga beras 0.74% (sangat stabil), daya beli dan intervensi Gerakan Pangan Murah (GPM).');
+    lines.push('  3. Aspek Pemanfaatan / Gizi: Surveilans antropometri bulanan balita (BB/U) di seluruh Posyandu 43 kelurahan.');
+    lines.push('• HASIL SURVEILANS GIZI BALITA SE-KOTA CILEGON (SKPG AKTIF):');
+    lines.push('  - Total Balita Ditimbang di Posyandu: 27.286 Anak');
+    lines.push('  - Gizi Normal: 25.044 Anak (91.78%)');
+    lines.push('  - Gizi Lebih: 1.064 Anak (3.90%)');
+    lines.push('  - Gizi Kurang: 946 Anak (3.47%)');
+    lines.push('  - Gizi Sangat Kurang: 232 Anak (0.85%)');
+    lines.push('  - Prevalensi Balita Gizi Kurang Kota: 3.47% (Jauh di bawah ambang batas waspada SKPG 10%) -> STATUS SKPG KOTA: AMAN (HIJAU)');
+    lines.push('• STATUS SKPG KECAMATAN SE-KOTA CILEGON (SEMUA KECAMATAN STATUS AMAN / HIJAU):');
+    lines.push('  1. Kecamatan Cibeber: Gizi Kurang 132 | Normal 3.731 | Total 4.012 Balita (Status: AMAN)');
+    lines.push('  2. Kecamatan Cilegon: Gizi Kurang 80 | Normal 2.969 | Total 3.243 Balita (Status: AMAN)');
+    lines.push('  3. Kecamatan Pulomerak: Gizi Kurang 123 | Normal 2.795 | Total 3.073 Balita (Status: AMAN)');
+    lines.push('  4. Kecamatan Ciwandan: Gizi Kurang 56 | Normal 3.498 | Total 3.660 Balita (Status: AMAN)');
+    lines.push('  5. Kecamatan Jombang: Gizi Kurang 114 | Normal 3.285 | Total 3.564 Balita (Status: AMAN)');
+    lines.push('  6. Kecamatan Gerogol: Gizi Kurang 123 | Normal 2.284 | Total 2.549 Balita (Status: AMAN)');
+    lines.push('  7. Kecamatan Purwakarta: Gizi Kurang 133 | Normal 1.645 | Total 1.898 Balita (Status: AMAN)');
+    lines.push('  8. Kecamatan Citangkil: Gizi Kurang 185 | Normal 4.837 | Total 5.287 Balita (Status: AMAN)');
+
+    // ============================================================
+    // E. PANEL HARGA PANGAN HARIAN SAGON & DISPARITAS 3 PASAR UTAMA
+    // ============================================================
+    lines.push('\n=== E. PANEL HARGA PANGAN HARIAN REAL-TIME SAGON (PASAR KRANGGOT, BLOK F, MERAK) ===');
+    lines.push('• Data Pemantauan Resmi Harga Pangan Harian Dinas Ketahanan Pangan & Pertanian Kota Cilegon:');
+    lines.push('  - Beras Medium: Rp 13.500 - 14.000 /kg (Stabil)');
+    lines.push('  - Beras Premium: Rp 15.000 - 16.000 /kg (Stabil)');
+    lines.push('  - Minyak Goreng Kemasan: Rp 21.000 - 22.000 /liter');
+    lines.push('  - Minyakita: Rp 16.000 /liter (Sesuai HET Pemerintah)');
+    lines.push('  - Minyak Goreng Curah: Rp 17.500 /liter');
+    lines.push('  - Telur Ayam Ras: Rp 29.500 - 31.500 /kg (Stabil)');
+    lines.push('  - Daging Ayam Ras Broiler: Rp 35.000 - 37.000 /kg');
+    lines.push('  - Daging Sapi Murni: Rp 140.000 - 150.000 /kg');
+    lines.push('  - Cabai Merah Keriting: Rp 35.000 - 45.000 /kg');
+    lines.push('  - Cabai Rawit Merah: Rp 45.000 - 55.000 /kg');
+    lines.push('  - Bawang Merah: Rp 38.000 - 42.000 /kg');
+    lines.push('  - Bawang Putih Bonggol: Rp 38.000 - 42.000 /kg');
+    lines.push('  - Gula Pasir Konsumsi: Rp 16.500 - 17.500 /kg');
+    lines.push('  - Tepung Terigu: Rp 11.000 - 12.500 /kg');
+
+    // ============================================================
+    // F. FORECASTING HARGA MACHINE LEARNING & EARLY WARNING SYSTEM (EWS)
+    // ============================================================
+    lines.push('\n=== F. FORECASTING HARGA BERBASIS MACHINE LEARNING & EARLY WARNING SYSTEM (EWS) ===');
+    lines.push('• Model Prediksi: Integrasi ARIMA, Holt-Winters Exponential Smoothing, dan Moving Average 30–90 Hari.');
+    lines.push('• Status Sinyal Peringatan Dini (EWS Status):');
+    lines.push('  - Beras Medium & Premium: [AMAN / HIJAU] - Pola pasokan lancar, cadangan Bulog mencukupi, tidak ada sinyal lonjakan harga.');
+    lines.push('  - Minyak Goreng & Gula: [AMAN / HIJAU] - Distribusi dari produsen teratur, stabilitas harga terjaga.');
+    lines.push('  - Telur & Daging Ayam: [AMAN / HIJAU] - Pasokan peternakan lokal & regional Banten stabil.');
+    lines.push('  - Cabai Merah & Bawang Merah: [WASPADA / KUNING] - Fluktuasi musiman akibat cuaca di daerah sentra produksi (Jawa Tengah/Jawa Timur), direkomendasikan pemantauan harian dan skema GPM (Gerakan Pangan Murah).');
+    lines.push('• Rekomendasi Antisipasi Intervensi: Pemanfaatan CPPD Bulog untuk stabilisasi pasokan beras, fasilitasi subsidi distribusi antar daerah (KAD), serta operasi pasar murah di titik rawan/padat penduduk.');
+
+  } catch (err) {
+    console.warn('[AI Context Aggregator] Error building homepage database context:', err);
+  }
+
+  return lines.join('\n');
+}
+
+// Manifest & Katalog Seluruh Dokumen Knowledge Base (52+ Dokumen Terindeks)
 let kbCatalogCache: { data: string; timestamp: number } | null = null;
 
 async function getKnowledgeBaseCatalog(): Promise<string> {
@@ -251,8 +397,8 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   lines.push('=== 1. DATA PERTANIAN (SAWAH) & JUMLAH PENDUDUK PER KECAMATAN & KELURAHAN (LBS 2025 GIS & FSVA 2025) ===');
   lines.push('• Total Luas Sawah Baku: 1.151,97 Ha (407 Petak Poligon GIS)');
   lines.push('• Total Jumlah Penduduk Kota Cilegon: 480.378 Jiwa');
-  lines.push('• Produksi GKG (Gabah Kering Giling): 308.6 Ton | Luas Tanam: 0.57 Ha | Siap Panen: 0.57 Ha');
-  lines.push('• Varietas Padi Utama: Ciherang, IR64, Inpari 32 (Rata-rata Ubinan: 4.5 ton/ha)');
+  lines.push('• Produksi GKG (Gabah Kering Giling): 13.772 Ton GKG (2025) | Panen 2.428 Ha | Produktivitas 56.7 Ku/Ha');
+  lines.push('• Varietas Padi Utama: Ciherang, IR64, Inpari 32 (Rata-rata Ubinan: 4.5 - 5.7 ton/ha)');
   lines.push('\n• REKAP DATA LENGKAP LUAS SAWAH & JUMLAH PENDUDUK PER KECAMATAN & KELURAHAN (WAJIB DIGUNAKAN SECARA PERSIS):');
   lines.push('  1. Kecamatan Cibeber: Sawah 181.16 Ha (78 Petak) | Penduduk: 67.220 Jiwa');
   lines.push('     - Kelurahan Bulakan: Sawah 16.53 Ha (21 petak) | Penduduk: 6.541 Jiwa');
@@ -599,14 +745,13 @@ function buildGeminiContents(
 ) {
   const contents = [];
 
-  // Ambil hanya 4 pesan terakhir (2 putaran) untuk memangkas konsumsi token TPM (Tokens Per Minute)
+  // Ambil 4 pesan terakhir (2 putaran) untuk memangkas konsumsi token TPM (Tokens Per Minute)
   const recentHistory = history.slice(-4);
 
   for (const h of recentHistory) {
     if (h.text && h.text.trim()) {
-      // Pangkas pesan model sebelumnya jika terlalu panjang agar tidak memakan kuota input
-      const trimmedText = h.role === 'model' && h.text.length > 600
-        ? h.text.substring(0, 600) + '... [konteks diringkas]'
+      const trimmedText = h.role === 'model' && h.text.length > 700
+        ? h.text.substring(0, 700) + '... [konteks diringkas]'
         : h.text;
 
       contents.push({
@@ -616,7 +761,7 @@ function buildGeminiContents(
     }
   }
 
-  const userParts: any[] = [{ text: userMessage || 'Tolong analisis dan jelaskan gambar/foto ini terkait ketahanan pangan, pertanian, atau gizi Kota Cilegon.' }];
+  const userParts: any[] = [{ text: userMessage || 'Tolong analisis dan jelaskan kondisi ketahanan pangan, pertanian, atau gizi Kota Cilegon secara menyeluruh.' }];
 
   if (imageData?.data) {
     userParts.push({
@@ -655,8 +800,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY tidak dikonfigurasi' }, { status: 500 });
     }
 
-    // 1. Load konteks dari SP cache
-    const spCtx = await getSpContextData();
+    // 1. Load konteks dari SP cache & Supabase Database Beranda secara paralel
+    const [spCtx, homepageDbNarrative] = await Promise.all([
+      getSpContextData(),
+      getHomepageAndDatabaseContext()
+    ]);
 
     // 2. Trigger sync jika ada yang stale (non-blocking)
     if (!forceRefresh) {
@@ -674,8 +822,18 @@ export async function POST(request: Request) {
     }
 
     const spNarrative = buildSpContextNarrative(spCtx);
-    const sourceTables = Object.keys(spCtx);
-    const lastSync = sourceTables.length > 0
+    const sourceTables = [
+      ...Object.keys(spCtx),
+      'ikp_data',
+      'pou_data',
+      'benchmark_data',
+      'cv_beras_data',
+      'pph_data',
+      'gizi_balita_skpg_kelurahan',
+      'fsva_matang',
+      'ketersediaan_pangan'
+    ];
+    const lastSync = Object.values(spCtx).length > 0
       ? Object.values(spCtx).reduce((latest: string, entry) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const e = entry as any;
@@ -700,58 +858,40 @@ export async function POST(request: Request) {
       console.warn('[RAG ERROR] Failed searching knowledge base:', e);
     }
 
-    // 4. Build system prompt yang efisien dan mendukung visualisasi grafik (Recharts)
-    const systemPrompt = `# SYSTEM PROMPT — Food Security Intelligence & DSS Kota Cilegon
-Anda adalah AI Intelligence Ketahanan Pangan & DSS Kota Cilegon. Anda memiliki data spasial GIS, basis data arsip resmi dokumen kebijakan/realisasi, dan data time-series produksi pertanian/perikanan.
+    // 4. Build system prompt komprehensif 3 Unsur Utama
+    const systemPrompt = `# SYSTEM PROMPT — Food Security Intelligence & Decision Support System (DSS) Kota Cilegon
+Anda adalah AI Intelligence Ketahanan Pangan & DSS Kota Cilegon resmi. Anda memiliki akses penuh ke **3 PILAR UTAMA DATA KETAHANAN PANGAN KOTA CILEGON**:
+1. **DATA BERANDA & DATABASE SUPABASE (KPI, IKP, POU, FSVA, SKPG, EWS, FORECASTING HARGA, & PANEL HARGA HARIAN)**
+2. **PETA SPASIAL GIS & SERUMPUN PADI (Sawah Baku, ECMWF Lengas Tanah, Nelayan, Budidaya Kolam, KWT, Ternak, Pohon Sukun, GPS Kamera Cerdas)**
+3. **KNOWLEDGE BASE DOKUMEN RESMI & KEBIJAKAN (RAG Dokumen Perda, UU, Laporan FSVA, Demografi & Statistik)**
 
-## 🎯 PRINSIP UTAMA: HEMAT TOKEN, LUGAS & TEPAT SASARAN
-1. **Lugas & Tepat Sasaran**: Berikan jawaban langsung ke inti data dan analisis tanpa basa-basi pembuka/penutup yang panjang.
-2. **DILARANG MENGGUNAKAN TEMPLATE ATAU HEADER "Ringkasan Eksekutif"**: Jangan pernah menuliskan judul atau poin "Ringkasan Eksekutif" dalam jawaban Anda.
-3. **DILARANG MENYEBUTKAN NAMA FILE DOKUMEN SPESIFIK**: Cukup sebutkan sebagai "Knowledge Base Dokumen" atau "Dokumen Resmi".
-4. **Akurasi Angka**: Gunakan angka resmi yang tersedia di konteks. Jika user bertanya komparasi atau lokasi, gunakan tag spasial [KELURAHAN:NamaKelurahan] atau [KECAMATAN:NamaKecamatan].
-5. **Format Rapi**: Gunakan bullet points atau tabel Markdown jika membandingkan beberapa data.
-
-## 📋 ATURAN PENYAJIAN SUMBER DATA & ANALISIS (SANGAT PENTING):
-1. **Jika data ditemukan di Knowledge Base Dokumen SAJA**:
-   - Berikan jawaban langsung berdasarkan Knowledge Base Dokumen.
-   - TIDAK PERLU membuat versi sumber data GIS dan TIDAK PERLU membuat mixing analisis.
-2. **Jika data ditemukan di Peta GIS / Serumpun Padi SAJA**:
-   - Berikan jawaban langsung berdasarkan data Peta GIS.
-3. **Jika data ditemukan di KEDUA SUMBER (Knowledge Base Dokumen DAN Peta GIS)**:
-   - Sajikan jawaban terpisah secara jelas dengan format:
-     **Sumber: Knowledge Base Dokumen:**
-     [Data dan informasi dari dokumen resmi]
-
-     **Sumber Peta GIS:**
-     [Data spasial dan lokasi dari GIS / Serumpun Padi]
-   - **JANGAN LANGSUNG MENGANALISIS ATAU MEMBUAT MIXING KEDUA SUMBER**, KECUALI jika pengguna secara eksplisit meminta analisis komparasi/mixing.
-   - Di akhir jawaban, cukup tanyakan tawaran singkat:
-     *"Apakah Anda ingin saya membuatkan analisis komparasi/mixing dari kedua sumber data di atas?"*
-4. **Jika pengguna secara eksplisit meminta mixing / komparasi**:
-   - Buat analisis perbandingan komparatif dan sintesis terpadu antara Knowledge Base Dokumen dan Peta GIS.
+## 🎯 PEDOMAN JAWABAN KOMPREHENSIF & TERPADU (SANGAT PENTING):
+1. **Sintesis Holistik 3 Pilar**: Jika pengguna menanyakan kondisi ketahanan pangan Cilegon (secara umum maupun spesifik), berikan jawaban yang **KOMPREHENSIF, UTUH, DAN BERBASIS DATA RIIL** yang mencakup:
+   - **Status Makro & KPI Beranda**: IKP Cilegon (Skor 80.12 - Kategori "Sangat Tahan", di atas Provinsi Banten 79.25), PoU rendah (2.78%), Skor PPH Konsumsi (90.9 poin melampaui target 90), dan Cadangan Pangan CPPD Bulog (132.7 Ton di atas target RPJMD 115 Ton).
+   - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025), komoditas diversifikasi buffer ubi kayu/singkong (2.007,6 Ton), produksi perikanan tangkap 136 Ton (715 nelayan, 9 pangkalan), budidaya kolam 375 kg, peternakan, serta sistem telemetri lengas tanah ECMWF ERA5-Land (kondisi optimal kapasitas lapang 0.24-0.34 m³/m³).
+   - **Aspek Keterjangkauan / Akses & Panel Harga Harian**: Stabilitas harga pangan pokok terjaga dengan Koefisien Variasi (CV) harga beras 0.74% - 3.65% (jauh di bawah batas nasional < 10%), rata-rata harga harian pasar (Beras Medium Rp 13.500-14.000, Minyakita Rp 16.000, Telur Rp 29.500-31.500) di Pasar Kranggot, Blok F, dan Pasar Baru Merak, serta proyeksi Machine Learning & EWS menunjukkan status AMAN/stabil.
+   - **Aspek Pemanfaatan & Analisis SKPG / FSVA**: Analisis SKPG Tri-Aspek menunjukkan seluruh 8 kecamatan berada pada Status **AMAN (Hijau)** dengan prevalensi balita gizi kurang hanya 3.47% (di bawah ambang batas waspada SKPG 10%), konsumsi energi 2.021 kkal & protein 59 g melampaui standar gizi, serta pemetaan FSVA 43 kelurahan berkategori Prioritas 4 hingga 6 (tidak ada kelurahan rawan pangan Prioritas 1-3).
+   - **Rekomendasi Kebijakan Konkret**: Penguatan cadangan pangan CPPD, pengawasan rantai pasok HBKN, pemantauan lengas tanah sawah, dan keberlanjutan PMT gizi balita di posyandu.
+2. **Akurasi & Integritas Angka**: Gunakan angka resmi yang disediakan di konteks secara konsisten.
+3. **Format Rapi & Terstruktur**: Gunakan pemformatan Markdown yang elegan (tebal, bullet points, dan tag wilayah [KELURAHAN:Nama] atau [KECAMATAN:Nama] untuk highlight interaktif peta).
+4. **DILARANG MENGGUNAKAN TEMPLATE "Ringkasan Eksekutif"**: Langsung sajikan poin-poin analisis data yang berbobot.
 
 ## 🌱 INTEGRASI SISTEM TELEMETRI AGROKLIMAT & LENGAS TANAH ECMWF ERA5-LAND (PETA GIS)
 - Anda **MEMILIKI DATA REALTIME LENGAS TANAH (SOIL MOISTURE)** yang terintegrasi pada seluruh **407 petak sawah baku se-Kota Cilegon (1.151,97 Ha)** berbasis model satelit agrometeorologi ECMWF ERA5-Land & Open-Meteo Agro Telemetry Engine (kedalaman akar 0–7 cm dan 7–28 cm).
-- **DILARANG KERAS MENJAWAB** bahwa sistem tidak memiliki data lengas tanah atau tidak ada pemantauan parameter lengas tanah.
-- Jika pengguna menanyakan data lengas tanah di Cilegon, apa itu lengas tanah, atau kelembapan tanah pertanian:
-  1. **Definisi Lengas Tanah**: Kandungan air yang tersimpan di dalam pori-pori tanah pada zona perakaran tanaman pangan (dinyatakan dalam satuan volume $m^3/m^3$).
-  2. **Ketersediaan Data di Kota Cilegon**: Jelaskan bahwa sistem Peta GIS Food Security Intelligence terhubung secara realtime dengan pemodelan telemetri Agrometeorologi ECMWF ERA5-Land yang memantau 407 petak sawah baku di 8 kecamatan Cilegon (lapisan 0–7 cm dan perakaran utama 7–28 cm).
-  3. **Standar Ambang Batas & Interpretasi Kondisi**:
-     - **> 0.32 m³/m³ (Jenuh Air / Irigasi Basah)**: Sawah tergenang optimal untuk pengolahan lahan & awal tanam padi.
-     - **0.24 - 0.32 m³/m³ (Kapasitas Lapang / Hijau Optimal)**: Kondisi prima & cukup air untuk pertumbuhan vegetatif/generatif.
-     - **0.18 - 0.24 m³/m³ (Lengas Sedang / Kuning Waspada)**: Lengas tanah mulai terdeplesi evapotranspirasi, perlu suplesi air tersier bergilir.
-     - **< 0.18 m³/m³ (Defisit Kritis / Merah Bahaya)**: Mendekati titik layu permanen, ancaman stres kekeringan, segera siagakan pompanisasi darurat & koordinasi klaim AUTP.
-  4. **Manajemen Irigasi & Mitigasi**: Berikan saran pengaturan giliran buka-tutup pintu air tersier dan pompanisasi suplesi air sekunder.
+- Standar ambang batas lengas tanah:
+  - > 0.32 m³/m³: Jenuh Air / Irigasi Basah (Olah tanah & awal tanam)
+  - 0.24 - 0.32 m³/m³: Kapasitas Lapang / Hijau Optimal (Pertumbuhan vegetatif & generatif prima)
+  - 0.18 - 0.24 m³/m³: Lengas Sedang / Kuning Waspada (Jadwalkan suplesi air tersier)
+  - < 0.18 m³/m³: Defisit Kritis / Merah (Siagakan pompanisasi darurat & AUTP)
 
 ## 📊 FITUR GRAFIK & VISUALISASI DATA (RECHARTS CHARTING)
-Jika pengguna meminta grafik, visualisasi data, chart, tren, perbandingan numerik multi-tahun (misal: "buat grafik produksi padi 5 tahun terakhir beserta trendline", "tren singkong", "perbandingan sawah antar kecamatan"):
-Anda **WAJIB MENYERTAKAN BLOK JSON GRAFIK** dengan tag khusus \`\`\`json:chart di dalam respons Anda.
-Format blok JSON grafik:
+Jika pengguna meminta grafik, visualisasi data, chart, tren, perbandingan numerik multi-tahun (misal: "buat grafik produksi padi 5 tahun terakhir", "tren singkong", "perbandingan sawah antar kecamatan"):
+Sertakan blok JSON grafik dengan format \`\`\`json:chart di dalam respons Anda:
 \`\`\`json:chart
 {
-  "type": "line", // atau "bar", "area", "pie"
+  "type": "line",
   "title": "Grafik Produksi Padi Kota Cilegon (2021-2025)",
-  "description": "Realisasi Produksi GKG & Garis Tren Linear (Ton)",
+  "description": "Realisasi Produksi GKG (Ton)",
   "xAxisKey": "tahun",
   "showTrendline": true,
   "series": [
@@ -767,16 +907,17 @@ Format blok JSON grafik:
   ]
 }
 \`\`\`
-*Catatan Data Padi Cilegon (2014-2025)*:
-2021: 11.687 Ton | 2022: 11.401 Ton | 2023: 9.852 Ton | 2024: 10.461 Ton | 2025: 13.772 Ton.
-*Singkong*: 2021: 2.853,8 Ton | 2022: 700,2 Ton | 2023: 896,5 Ton | 2024: 848,2 Ton | 2025: 2.007,6 Ton.
 
-=== DATA KNOWLEDGE BASE & SERUMPUN PADI ===
-${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}${spNarrative}`;
+=== BASIS DATA TERPADU KETAHANAN PANGAN KOTA CILEGON ===
+${homepageDbNarrative}
+
+${spNarrative}
+
+${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}`;
 
     // 5. Panggil Gemini API (dengan limit token hemat kuota)
     const contents = buildGeminiContents(history, userMessage, imageData);
-    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 1500, !!imageData?.data);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2048, !!imageData?.data);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });

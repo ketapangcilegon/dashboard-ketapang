@@ -103,11 +103,11 @@ interface AIIntelligencePanelProps {
 }
 
 const QUICK_PROMPTS = [
+  '📊 Bagaimana kondisi ketahanan pangan Cilegon saat ini (IKP, FSVA, SKPG, POU)?',
+  '💰 Bagaimana kondisi harga pangan harian SAGON dan peramalan EWS inflasi?',
   '📈 Buat grafik produksi padi 5 tahun terakhir beserta trendline',
-  '📊 Grafik tren produksi ubi kayu/singkong Cilegon',
-  '🗺️ Tampilkan peta tematik IKP seluruh kelurahan',
-  '🌾 Berapa total luas sawah siap panen sekarang?',
-  '🐟 Bagaimana kondisi kolam budidaya dan nelayan di Cilegon?',
+  '🌾 Berapa luas sawah baku dan kondisi lengas tanah ECMWF di Cilegon?',
+  '🐟 Bagaimana kondisi kolam budidaya dan nelayan tangkap Cilegon?',
   '👨‍🌾 Di kelurahan mana yang paling banyak terdapat peternak?'
 ];
 
