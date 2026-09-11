@@ -644,8 +644,41 @@ function buildSpContextNarrative(ctx: Record<string, unknown>): string {
   lines.push('  1. > 0.32 m³/m³ [JENUH AIR / BIRU]: Kondisi sawah tergenang optimal untuk fase olah tanah & awal tanam padi.');
   lines.push('  2. 0.24 - 0.32 m³/m³ [OPTIMAL KAPASITAS LAPANG / HIJAU]: Kondisi prima & cukup air untuk fase vegetatif/generatif.');
   lines.push('  3. 0.18 - 0.24 m³/m³ [WASPADA / SEDANG / KUNING]: Lengas tanah mulai terdeplesi, jadwalkan giliran buka pintu air tersier.');
-  lines.push('  4. < 0.18 m³/m³ [ALARM KRITIS / MERAH DEFISIT]: Tanah mendekati titik layu permanen, ancaman stres kering, segera siagakan pompanisasi suplesi air sekunder & koordinasi AUTP.');
+  lines.push('  4. < 0.18 m³/m³ [ALARM KRITIS / MERAH DEFISIT]: Tanah mendekati titik layu permanen, ancaman stres kering, segera siagakan pompanisasi darurat.');
   lines.push('• Resolusi Spasial Mikro: Setiap petak sawah baku di peta GIS memiliki mozaik sel mikro 10m x 10m (100 m²) untuk mendeteksi variasi heterogenitas kelembapan tanah di dalam satu hamparan.');
+
+  // ============================================================
+  // 10. DATA RESMI KONSUMSI SUSENAS 2023, PENDUDUK TERBARU DKB 2025, DAN NERACA PANGAN KOTA CILEGON
+  // ============================================================
+  lines.push('\n=== 10. DATA RESMI KONSUMSI MAKANAN (SUSENAS 2023), PENDUDUK (DKB 2025: 480.378 JIWA), DAN NERACA PANGAN KOTA CILEGON ===');
+  lines.push('Data resmi gabungan dari Dokumen "16. Banten Susenas 2023.xlsx", "Data Penduduk DKB Semester 1 2025", dan "Realisasi_2025.xlsx" (DKPP Cilegon):');
+  lines.push('• BERAS:');
+  lines.push('  - Konsumsi per kapita seminggu (Susenas 2023): 1.296,52 gram (1,2965 kg/pekan)');
+  lines.push('  - Konsumsi per kapita sehari: 185,22 gram (0,1852 kg/hari)');
+  lines.push('  - Konsumsi riil per kapita setahun: 67,60 kg/tahun (Standar Normatif PPH: 80,91 kg/tahun)');
+  lines.push('  - Total Konsumsi Se-Kota Cilegon (480.378 Jiwa 2025): 88,97 Ton/hari | 32.475,55 Ton/tahun (Kebutuhan Normatif: 38.865,08 Ton/tahun)');
+  lines.push('  - Realisasi Produksi Padi Lokal (2025): 13.772,30 Ton GKG dari 2.428,32 Ha Panen (Produktivitas 56,72 Ku/Ha)');
+  lines.push('  - Produksi Beras Bersih Lokal (Rendemen BPS 64,02%): 8.816,83 Ton Beras Bersih');
+  lines.push('  - Tingkat Kemandirian Beras Lokal: 27,15% (Dipenuhi sawah lokal Cilegon)');
+  lines.push('  - Defisit / Pasokan Impor Luar Daerah yang Wajib Didatangkan (2025): 23.658,72 Ton Beras (72,85%)');
+  lines.push('  - Proyeksi 2026 (Penduduk 486.623 Jiwa @ +1,30% laju BPS): Konsumsi 32.897,74 Ton | Kebutuhan Impor 24.080,91 Ton Beras');
+  lines.push('• UBI KAYU / SINGKONG (PENYANGGA KARBOHIDRAT UTAMA):');
+  lines.push('  - Konsumsi Susenas 2023: 84,41 gram/pekan = 12,06 gram/hari = 4,40 kg/tahun');
+  lines.push('  - Konsumsi Se-Kota Cilegon: 2.070,38 Ton/tahun');
+  lines.push('  - Produksi Lokal 2025: 2.007,60 Ton (Panen 167,3 Ha di Cibeber, Pulomerak, Purwakarta)');
+  lines.push('  - Tingkat Kemandirian Pangan Singkong: 96,97% (Hampir 100% Swasembada Lokal)');
+  lines.push('• UBI JALAR: Konsumsi Susenas 43,43 g/pekan (2,26 kg/tahun) = 1.065,09 Ton/tahun | Produksi Lokal 2025: 4.415,10 Ton (Surplus Pangan)');
+  lines.push('• JAGUNG: Konsumsi Susenas 44,84 g/pekan (2,34 kg/tahun) = 1.099,78 Ton/tahun | Produksi Lokal 2025: 143,56 Ton (Kemandirian ~13%)');
+  lines.push('• KACANG TANAH: Produksi Lokal 2025: 928,20 Ton (Panen 672 Ha, Produktivitas 13,8 Ku/Ha)');
+  lines.push('• IKAN LAUT (TANGKAP): Konsumsi Susenas 254 g/pekan (13,24 kg/tahun) = 6.229,82 Ton/tahun | Produksi Tangkap Lokal: ~240,13 Ton (Kemandirian ~3,9%)');
+  lines.push('• IKAN AIR TAWAR (BUDIDAYA): Konsumsi Susenas 190 g/pekan (9,91 kg/tahun) = 4.660,10 Ton/tahun | Produksi Budidaya Lokal: ~371,63 Ton (Kemandirian ~8,0%)');
+  lines.push('• IKAN OLAHAN / AWETAN: Konsumsi Susenas 165 g/pekan (8,60 kg/tahun) = 4.046,93 Ton/tahun');
+  lines.push('• DAGING AYAM RAS: Konsumsi Susenas 153,54 g/pekan (8,01 kg/tahun) = 3.765,95 Ton/tahun');
+  lines.push('• DAGING SAPI: Konsumsi Susenas 12,78 g/pekan (0,67 kg/tahun) = 313,54 Ton/tahun');
+  lines.push('• TELUR AYAM RAS: Konsumsi Susenas ~116 g/pekan (6,05 kg/tahun) = 2.846 Ton/tahun (Populasi ayam petelur lokal minim, dipasok Blitar/Cianjur)');
+  lines.push('• MINYAK GORENG: Konsumsi Susenas 0,22 liter/pekan (11,47 liter/tahun) = 5.510.000 liter/tahun');
+  lines.push('• GULA PASIR: Konsumsi Susenas 132 g/pekan (6,88 kg/tahun) = 3.305 Ton/tahun');
+  lines.push('• CABAI & BAWANG: Cabai 49,8 g/pekan (2,60 kg/tahun = 1.249 Ton), Bawang Merah 46,2 g/pekan (2,41 kg/tahun = 1.158 Ton), Bawang Putih 28,5 g/pekan (1,49 kg/tahun = 716 Ton)');
 
   return lines.join('\n');
 }
@@ -663,9 +696,17 @@ function extractWilayahHighlights(text: string): string[] {
 }
 
 function cleanResponseText(text: string): string {
-  return text.replace(/\[(WILAYAH|KECAMATAN|KELURAHAN):([^\]]+)\]/g, (_match, _type, name) => {
-    return `**${name.trim()}**`;
-  });
+  if (!text) return '';
+  return text
+    .replace(/\[(WILAYAH|KECAMATAN|KELURAHAN):([^\]]+)\]/g, (_match, _type, name) => `**${name.trim()}**`)
+    .replace(/\$\\rightarrow\$/g, '→')
+    .replace(/\$\\to\$/g, '→')
+    .replace(/\$\\times\$/g, '×')
+    .replace(/\\rightarrow/g, '→')
+    .replace(/\\times/g, '×')
+    .replace(/\$\s*([^$]+)\s*\$/g, '$1') // bersihkan wrapper dollar LaTeX
+    .replace(/#{4,}\s*/g, '#### ')
+    .trim();
 }
 
 // Build conversation history untuk Gemini (multi-turn) dengan multimodal image support
@@ -841,34 +882,65 @@ export async function POST(request: Request) {
         }, '')
       : new Date().toISOString();
 
-    // 3. Search Knowledge Base (RAG) - Batasi 4 chunk paling relevan untuk hemat token
+    // 3. Search Knowledge Base (RAG) - Ambil hingga 8 chunk paling relevan untuk sintesis multi-dokumen
     let knowledgeNarrative = '';
     let referencedDocs: string[] = [];
     const kbCatalogNarrative = await getKnowledgeBaseCatalog();
 
     try {
-      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 4);
+      const matchedChunks: MatchedKnowledgeChunk[] = await searchKnowledgeBase(userMessage, 8);
 
       if (matchedChunks.length > 0) {
         referencedDocs = Array.from(new Set(matchedChunks.map(c => c.doc_title)));
-        const chunkTexts = matchedChunks.map(c => `[Kutipan Dokumen Resmi | Bagian ${c.chunk_index + 1}]\n${c.content.substring(0, 500)}`);
-        knowledgeNarrative = `=== DOKUMEN REFERENSI RESMI (RAG) ===\n${chunkTexts.join('\n\n---\n\n')}`;
+        const chunkTexts = matchedChunks.map(c => `[Kutipan Dokumen: ${c.doc_title} | Chunk #${c.chunk_index + 1}]\n${c.content.substring(0, 800)}`);
+        knowledgeNarrative = `=== DOKUMEN REFERENSI RESMI (RAG KNOWLEDGE BASE) ===\n${chunkTexts.join('\n\n---\n\n')}`;
       }
     } catch (e) {
       console.warn('[RAG ERROR] Failed searching knowledge base:', e);
     }
 
-    // 4. Build system prompt komprehensif 3 Unsur Utama
+    // 4. Build system prompt komprehensif 3 Unsur Utama & Algoritma Berpikir Sintesis
     const systemPrompt = `# SYSTEM PROMPT — Food Security Intelligence & Decision Support System (DSS) Kota Cilegon
 Anda adalah AI Intelligence Ketahanan Pangan & DSS Kota Cilegon resmi. Anda memiliki akses penuh ke **3 PILAR UTAMA DATA KETAHANAN PANGAN KOTA CILEGON**:
 1. **DATA BERANDA & DATABASE SUPABASE (KPI, IKP, POU, FSVA, SKPG, EWS, FORECASTING HARGA, & PANEL HARGA HARIAN)**
 2. **PETA SPASIAL GIS & SERUMPUN PADI (Sawah Baku, ECMWF Lengas Tanah, Nelayan, Budidaya Kolam, KWT, Ternak, Pohon Sukun, GPS Kamera Cerdas)**
-3. **KNOWLEDGE BASE DOKUMEN RESMI & KEBIJAKAN (RAG Dokumen Perda, UU, Laporan FSVA, Demografi & Statistik)**
+3. **KNOWLEDGE BASE DOKUMEN RESMI & KEBIJAKAN (RAG Dokumen Susenas 2023, DKB Penduduk 2025, Realisasi DKPP 2014-2025, Perda, UU, Laporan FSVA)**
+
+## 🧠 ALGORITMA & CARA BERPIKIR SINTESIS MULTI-DOKUMEN (METODOLOGI NERACA & KEMANDIRIAN PANGAN):
+Setiap kali pengguna meminta laporan ketahanan pangan, analisis neraca, konsumsi vs produksi, swasembada, kebutuhan impor, atau komoditas pangan apapun (Beras, Singkong, Jagung, Ikan, Daging, Telur, Minyak, dsb.), Anda **WAJIB MENGIKUTI ALGORITMA PERHITUNGAN SISTEMATIS INI**:
+
+1. **Langkah 1 (Identifikasi Komoditas & Waktu)**:
+   - Tentukan komoditas yang dianalisis dan tahun rujukan (misal data riil 2025 dan proyeksi 2026).
+2. **Langkah 2 (Ambil Data Konsumsi Per Kapita - Susenas 2023 & Standar Normatif PPH)**:
+   - Ekstrak konsumsi mingguan dari Susenas 2023: \`gram/kapita/pekan\`.
+   - Konversi ke konsumsi harian: \`gram/pekan ÷ 7 = gram/kapita/hari\`.
+   - Konversi ke konsumsi tahunan: \`(gram/hari × 365) ÷ 1.000 = kg/kapita/tahun\`.
+   - Bandingkan dengan standar kebutuhan normatif PPH (Pola Pangan Harapan) nasional jika tersedia.
+3. **Langkah 3 (Agregasikan ke Kebutuhan Total Kota - DKB 2025: 480.378 Jiwa)**:
+   - \`Konsumsi Harian Kota (Ton/hari) = (Jumlah Penduduk × gram/hari) ÷ 1.000.000\`
+   - \`Konsumsi Tahunan Kota (Ton/tahun) = (Jumlah Penduduk × kg/tahun) ÷ 1.000\`
+4. **Langkah 4 (Ambil & Konversikan Produksi Lokal - Realisasi DKPP 2025 / GIS)**:
+   - Ambil data luas tanam, luas panen, produktivitas, dan produksi kotor lokal.
+   - Terapkan rendemen konversi bersih resmi:
+     • Gabah Kering Giling (GKG) ke Beras Bersih = **64,02%**
+     • Jagung tongkol ke pipilan kering = **75%**
+     • Daging sapi hidup ke daging karkas = **50%**
+     • Daging ayam hidup ke daging karkas = **70%**
+5. **Langkah 5 (Hitung Neraca Pangan, Kemandirian, dan Defisit Impor)**:
+   - \`Tingkat Kemandirian Pangan (%) = (Produksi Bersih Lokal ÷ Total Konsumsi Kota) × 100%\`
+   - \`Kekurangan / Kebutuhan Impor Luar Daerah (Ton) = Total Konsumsi Kota - Produksi Bersih Lokal\`
+   - \`Porsi Ketergantungan Pasokan Luar (%) = 100% - Tingkat Kemandirian (%)\`
+6. **Langkah 6 (Proyeksikan Kebutuhan Masa Depan - Tahun 2026)**:
+   - Gunakan laju pertumbuhan penduduk resmi BPS Cilegon (+1,30% per tahun $\\to$ Proyeksi 2026: **486.623 Jiwa**).
+   - Hitung estimasi konsumsi baru dan kuota impor/pasokan luar yang wajib diamankan pemerintah daerah.
+7. **Langkah 7 (Format Penyajian Sangat Bersih & Bebas Glitch)**:
+   - DILARANG menampilkan formula LaTeX mentah seperti \`$\\rightarrow$\`, \`$\\times$\`, tanda dolar berantakan, teks mentah, atau simbol tidak terformat. Gunakan simbol panah \`→\` atau simbol \`×\` secara rapi.
+   - Sajikan dalam struktur subbab bernomor yang jelas, tabel markdown komparatif, tebalkan (**bold**) angka kunci, dan akhiri dengan 3-4 rekomendasi kebijakan strategis yang konkret.
 
 ## 🎯 PEDOMAN JAWABAN KOMPREHENSIF & TERPADU (SANGAT PENTING):
 1. **Sintesis Holistik 3 Pilar**: Jika pengguna menanyakan kondisi ketahanan pangan Cilegon (secara umum maupun spesifik), berikan jawaban yang **KOMPREHENSIF, UTUH, DAN BERBASIS DATA RIIL** yang mencakup:
    - **Status Makro & KPI Beranda**: IKP Cilegon (Skor 80.12 - Kategori "Sangat Tahan", di atas Provinsi Banten 79.25), PoU rendah (2.78%), Skor PPH Konsumsi (90.9 poin melampaui target 90), dan Cadangan Pangan CPPD Bulog (132.7 Ton di atas target RPJMD 115 Ton).
-   - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025), komoditas diversifikasi buffer ubi kayu/singkong (2.007,6 Ton), produksi perikanan tangkap 136 Ton (715 nelayan, 9 pangkalan), budidaya kolam 375 kg, peternakan, serta sistem telemetri lengas tanah ECMWF ERA5-Land (kondisi optimal kapasitas lapang 0.24-0.34 m³/m³).
+   - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025) / 8.816,83 Ton beras, komoditas diversifikasi buffer ubi kayu/singkong (2.007,6 Ton), produksi perikanan tangkap 136 Ton (715 nelayan, 9 pangkalan), budidaya kolam 375 kg, peternakan, serta sistem telemetri lengas tanah ECMWF ERA5-Land (kondisi optimal kapasitas lapang 0.24-0.34 m³/m³).
    - **Aspek Keterjangkauan / Akses & Panel Harga Harian**: Stabilitas harga pangan pokok terjaga dengan Koefisien Variasi (CV) harga beras 0.74% - 3.65% (jauh di bawah batas nasional < 10%), rata-rata harga harian pasar (Beras Medium Rp 13.500-14.000, Minyakita Rp 16.000, Telur Rp 29.500-31.500) di Pasar Kranggot, Blok F, dan Pasar Baru Merak, serta proyeksi Machine Learning & EWS menunjukkan status AMAN/stabil.
    - **Aspek Pemanfaatan & Analisis SKPG / FSVA**: Analisis SKPG Tri-Aspek menunjukkan seluruh 8 kecamatan berada pada Status **AMAN (Hijau)** dengan prevalensi balita gizi kurang hanya 3.47% (di bawah ambang batas waspada SKPG 10%), konsumsi energi 2.021 kkal & protein 59 g melampaui standar gizi, serta pemetaan FSVA 43 kelurahan berkategori Prioritas 4 hingga 6 (tidak ada kelurahan rawan pangan Prioritas 1-3).
    - **Rekomendasi Kebijakan Konkret**: Penguatan cadangan pangan CPPD, pengawasan rantai pasok HBKN, pemantauan lengas tanah sawah, dan keberlanjutan PMT gizi balita di posyandu.
@@ -917,7 +989,7 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}`;
 
     // 5. Panggil Gemini API (dengan limit token hemat kuota)
     const contents = buildGeminiContents(history, userMessage, imageData);
-    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 2048, !!imageData?.data);
+    const { text: rawText, model: usedModel } = await callGeminiWithFallback(apiKey, contents, systemPrompt, 3500, !!imageData?.data);
 
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini tidak menghasilkan respons' }, { status: 502 });

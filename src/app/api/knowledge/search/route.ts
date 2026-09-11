@@ -96,9 +96,14 @@ export async function searchKnowledgeBase(queryText: string, matchLimit: number 
         (termChunks || []).forEach(c => {
           const doc = docsMap.get(c.doc_id);
           const existing = resultsMap.get(c.id);
-          // Beri bobot ekstra jika term adalah kata kunci profesi/entitas penting
-          const isDomainKeyword = ['peternak', 'ternak', 'nelayan', 'pembudidaya', 'petani', 'stunting', 'krs'].includes(term);
-          const termScore = properNouns.includes(term) ? 15 : (isDomainKeyword ? 20 : 10);
+          // Beri bobot ekstra jika term adalah kata kunci profesi/entitas/komoditas/neraca penting
+          const isDomainKeyword = [
+            'peternak', 'ternak', 'nelayan', 'pembudidaya', 'petani', 'stunting', 'krs',
+            'susenas', 'konsumsi', 'neraca', 'produksi', 'panen', 'gkg', 'impor', 
+            'swasembada', 'kemandirian', 'beras', 'singkong', 'jagung', 'kedelai', 
+            'ikan', 'daging', 'telur', 'cabai', 'bawang', 'minyak', 'gula'
+          ].includes(term);
+          const termScore = properNouns.includes(term) ? 18 : (isDomainKeyword ? 25 : 10);
           
           if (existing) {
             existing.score = (existing.score || 0) + termScore;
