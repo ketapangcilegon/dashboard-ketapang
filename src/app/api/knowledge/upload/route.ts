@@ -7,6 +7,7 @@ import {
   extractTextFromPptx, 
   extractTextFromLegacyDocOrPpt, 
   extractTextFromImage, 
+  extractTextFromPdfWithGemini,
   KnowledgeChunk 
 } from '@/lib/knowledgeChunker';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -14,29 +15,62 @@ const PDFParser = require('pdf2json');
 
 export const dynamic = 'force-dynamic';
 
+function safeDecodeURIComponent(str: string): string {
+  if (!str) return '';
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    try {
+      return str.replace(/%([0-9A-Fa-f]{2})/g, (_, hex) => {
+        try {
+          return decodeURIComponent(`%${hex}`);
+        } catch {
+          return `%${hex}`;
+        }
+      });
+    } catch {
+      return str;
+    }
+  }
+}
+
 function extractTextFromPDF(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParser = new (PDFParser as any)(null, 1);
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    pdfParser.on('pdfParser_dataError', (errData: any) => {
-      reject(errData?.parserError || new Error('Gagal memproses file PDF'));
-    });
-
-    pdfParser.on('pdfParser_dataReady', () => {
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawText: string = (pdfParser as any).getRawTextContent();
-      // Decode URL encoding yang biasa dihasilkan pdf2json
-      try {
-        const decoded = decodeURIComponent(rawText);
-        resolve(decoded);
-      } catch {
-        resolve(rawText || '');
-      }
-    });
+      const pdfParser = new (PDFParser as any)(null, 1);
+      
+      const timer = setTimeout(() => {
+        try {
+          pdfParser.destroy?.();
+        } catch {
+          // ignore
+        }
+        reject(new Error('Waktu pemrosesan PDF lokal habis'));
+      }, 10000);
 
-    pdfParser.parseBuffer(buffer);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfParser.on('pdfParser_dataError', (errData: any) => {
+        clearTimeout(timer);
+        reject(errData?.parserError || new Error('Gagal memproses file PDF lokal'));
+      });
+
+      pdfParser.on('pdfParser_dataReady', () => {
+        clearTimeout(timer);
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rawText: string = (pdfParser as any).getRawTextContent();
+          const decoded = safeDecodeURIComponent(rawText);
+          resolve(decoded || '');
+        } catch (e) {
+          reject(e);
+        }
+      });
+
+      pdfParser.parseBuffer(buffer);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -60,10 +94,28 @@ export async function POST(request: Request) {
 
       if (lowerName.endsWith('.pdf')) {
         jenis = 'pdf';
-        const extractedText = await extractTextFromPDF(buffer);
-        if (!extractedText.trim()) {
+        let extractedText = '';
+        
+        // 1. Coba ekstraksi lokal dengan pdf2json
+        try {
+          extractedText = await extractTextFromPDF(buffer);
+        } catch (pdfErr) {
+          console.warn('Ekstraksi PDF lokal tidak berhasil, mencoba Gemini OCR...', pdfErr);
+        }
+
+        // 2. Jika teks kosong atau sangat sedikit (hasil scan gambar / OCR), gunakan Gemini Multimodal OCR
+        if (!extractedText || extractedText.trim().length < 40) {
+          try {
+            console.log(`Memanggil Gemini OCR untuk file PDF "${fileName}"...`);
+            extractedText = await extractTextFromPdfWithGemini(buffer);
+          } catch (geminiErr) {
+            console.error('Gemini PDF OCR error:', geminiErr);
+          }
+        }
+
+        if (!extractedText || !extractedText.trim()) {
           return NextResponse.json(
-            { error: 'Gagal mengekstrak teks dari PDF. Pastikan PDF bukan hasil scan murni tanpa teks/OCR.' },
+            { error: 'Gagal mengekstrak teks dari dokumen PDF. Pastikan file PDF tidak terenkripsi kata sandi dan berisi teks/konten yang dapat dibaca.' },
             { status: 400 }
           );
         }
@@ -197,6 +249,12 @@ export async function POST(request: Request) {
 
       if (chunkError) {
         console.error('Error inserting chunk batch:', chunkError);
+        // Rollback dokumen jika insert chunk gagal
+        await supabase.from('ai_knowledge_docs').delete().eq('id', docId);
+        return NextResponse.json(
+          { error: `Gagal menyimpan indeks potongan pengetahuan: ${chunkError.message}` },
+          { status: 500 }
+        );
       }
     }
 

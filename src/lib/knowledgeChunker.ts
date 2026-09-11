@@ -100,6 +100,68 @@ export function extractTextFromLegacyDocOrPpt(buffer: Buffer): string {
 }
 
 /**
+ * Ekstrak teks dari dokumen PDF menggunakan Gemini Multimodal OCR
+ * Mampu membaca PDF hasil scan, infografis, tabel kompleks, dan dokumen resmi pemerintah
+ */
+export async function extractTextFromPdfWithGemini(
+  buffer: Buffer, 
+  apiKey?: string
+): Promise<string> {
+  const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    throw new Error('GEMINI_API_KEY belum dikonfigurasi untuk menjalankan OCR PDF.');
+  }
+
+  const base64Data = buffer.toString('base64');
+  const models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.7-flash'];
+  let lastError = '';
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: 'Anda adalah asisten ekstraksi dan OCR dokumen resmi. Ekstrak dan transkripsikan SELURUH teks, pasal-pasal, tabel data, angka, judul, dan isi dokumen PDF ini secara lengkap, runtut, dan terstruktur tanpa memotong atau meringkas.'
+              },
+              {
+                inline_data: {
+                  mime_type: 'application/pdf',
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            temperature: 0.1
+          }
+        })
+      });
+
+      if (!response.ok) {
+        lastError = `HTTP ${response.status}: ${await response.text()}`;
+        continue;
+      }
+
+      const data = await response.json();
+      const extracted = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (extracted.trim()) {
+        return extracted.trim();
+      }
+    } catch (err) {
+      lastError = String(err);
+    }
+  }
+
+  throw new Error(`Gagal mengekstrak teks dari PDF via Gemini OCR: ${lastError || 'Tidak ada teks yang dapat dibaca'}`);
+}
+
+/**
  * Ekstrak teks dari gambar (JPG/PNG/WEBP) menggunakan Gemini Vision OCR
  */
 export async function extractTextFromImage(
@@ -113,7 +175,7 @@ export async function extractTextFromImage(
   }
 
   const base64Data = buffer.toString('base64');
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+  const models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.7-flash'];
   
   let lastError = '';
 
@@ -138,7 +200,7 @@ export async function extractTextFromImage(
             ]
           }],
           generationConfig: {
-            maxOutputTokens: 3000,
+            maxOutputTokens: 4096,
             temperature: 0.1
           }
         })

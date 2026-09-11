@@ -18,7 +18,10 @@ import {
   Pencil,
   X,
   Save,
-  FileCheck
+  FileCheck,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from 'lucide-react';
 
 interface KnowledgeDoc {
@@ -30,6 +33,9 @@ interface KnowledgeDoc {
   total_chunks: number;
   created_at: string;
 }
+
+type SortField = 'jenis' | 'judul' | 'deskripsi' | 'total_chunks' | 'created_at';
+type SortDirection = 'asc' | 'desc';
 
 interface TestSearchResult {
   id: string;
@@ -44,6 +50,35 @@ export default function AdminKnowledgePanel() {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | ''; msg: string }>({ type: '', msg: '' });
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'created_at' || field === 'total_chunks' ? 'desc' : 'asc');
+    }
+  };
+
+  const sortedDocs = [...docs].sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'total_chunks') {
+      cmp = (a.total_chunks || 0) - (b.total_chunks || 0);
+    } else if (sortField === 'created_at') {
+      cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sortField === 'jenis') {
+      cmp = (a.jenis || '').localeCompare(b.jenis || '', 'id-ID');
+    } else if (sortField === 'judul') {
+      cmp = (a.judul || '').localeCompare(b.judul || '', 'id-ID');
+    } else if (sortField === 'deskripsi') {
+      cmp = (a.deskripsi || '').localeCompare(b.deskripsi || '', 'id-ID');
+    }
+    return sortDirection === 'asc' ? cmp : -cmp;
+  });
 
   // Form input state
   const [inputType, setInputType] = useState<'file' | 'text'>('file');
@@ -587,16 +622,118 @@ export default function AdminKnowledgePanel() {
             <table className="w-full text-left text-xs table-auto">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-black tracking-wider">
-                  <th className="py-3 px-3 w-20">Jenis</th>
-                  <th className="py-3 px-3 min-w-[220px] max-w-[340px]">Judul Dokumen</th>
-                  <th className="py-3 px-3 min-w-[180px] max-w-[300px]">Deskripsi</th>
-                  <th className="py-3 px-3 text-center w-28 shrink-0">Jumlah Chunk</th>
-                  <th className="py-3 px-3 w-28 shrink-0">Tanggal Upload</th>
-                  <th className="py-3 px-3 text-right w-24 shrink-0">Aksi</th>
+                  <th className="py-3 px-3 w-24">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('jenis')}
+                      className={`group inline-flex items-center gap-1.5 cursor-pointer font-black uppercase text-[10px] tracking-wider transition-colors hover:text-slate-800 select-none ${
+                        sortField === 'jenis' ? 'text-emerald-700' : 'text-slate-500'
+                      }`}
+                      title="Urutkan berdasarkan jenis dokumen"
+                    >
+                      <span>Jenis</span>
+                      {sortField === 'jenis' ? (
+                        sortDirection === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 min-w-[220px] max-w-[340px]">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('judul')}
+                      className={`group inline-flex items-center gap-1.5 cursor-pointer font-black uppercase text-[10px] tracking-wider transition-colors hover:text-slate-800 select-none ${
+                        sortField === 'judul' ? 'text-emerald-700' : 'text-slate-500'
+                      }`}
+                      title="Urutkan berdasarkan judul dokumen"
+                    >
+                      <span>Judul Dokumen</span>
+                      {sortField === 'judul' ? (
+                        sortDirection === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 min-w-[180px] max-w-[300px]">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('deskripsi')}
+                      className={`group inline-flex items-center gap-1.5 cursor-pointer font-black uppercase text-[10px] tracking-wider transition-colors hover:text-slate-800 select-none ${
+                        sortField === 'deskripsi' ? 'text-emerald-700' : 'text-slate-500'
+                      }`}
+                      title="Urutkan berdasarkan deskripsi"
+                    >
+                      <span>Deskripsi</span>
+                      {sortField === 'deskripsi' ? (
+                        sortDirection === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 text-center w-32 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('total_chunks')}
+                      className={`group inline-flex items-center justify-center gap-1.5 cursor-pointer font-black uppercase text-[10px] tracking-wider transition-colors hover:text-slate-800 select-none mx-auto ${
+                        sortField === 'total_chunks' ? 'text-emerald-700' : 'text-slate-500'
+                      }`}
+                      title="Urutkan berdasarkan jumlah chunk"
+                    >
+                      <span>Jumlah Chunk</span>
+                      {sortField === 'total_chunks' ? (
+                        sortDirection === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 w-36 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('created_at')}
+                      className={`group inline-flex items-center gap-1.5 cursor-pointer font-black uppercase text-[10px] tracking-wider transition-colors hover:text-slate-800 select-none ${
+                        sortField === 'created_at' ? 'text-emerald-700' : 'text-slate-500'
+                      }`}
+                      title="Urutkan berdasarkan tanggal upload"
+                    >
+                      <span>Tanggal Upload</span>
+                      {sortField === 'created_at' ? (
+                        sortDirection === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 text-right w-24 shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {docs.map(doc => (
+                {sortedDocs.map(doc => (
                   <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-3 align-top">
                       {renderTypeBadge(doc.jenis)}
