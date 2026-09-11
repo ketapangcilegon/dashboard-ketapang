@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import JSZip from 'jszip';
 import togeojson from '@mapbox/togeojson';
+import { calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 
 // Supabase Storage KMZ URL in bucket 'kmz-files' with fallback to local public asset
 const SUPABASE_STORAGE_URL = process.env.NEXT_PUBLIC_KMZ_URL || (
@@ -29,7 +30,19 @@ export function useKMZLoader() {
       const ec = ex.geometry.type === 'MultiPolygon' ? ex.geometry.coordinates : [ex.geometry.coordinates];
       const nc = feature.geometry.type === 'MultiPolygon' ? feature.geometry.coordinates : [feature.geometry.coordinates];
       ex.geometry = { type: 'MultiPolygon', coordinates: [...ec, ...nc] };
+      const areaM2 = calculateGeometryAreaM2(ex.geometry);
+      ex.properties = {
+        ...ex.properties,
+        luas_m2: areaM2,
+        luas_ha: Number((areaM2 / 10000).toFixed(2)),
+      };
     } else {
+      const areaM2 = calculateGeometryAreaM2(feature.geometry);
+      feature.properties = {
+        ...feature.properties,
+        luas_m2: areaM2,
+        luas_ha: Number((areaM2 / 10000).toFixed(2)),
+      };
       list.push({ ...feature });
     }
   };
@@ -128,10 +141,17 @@ export function useKMZLoader() {
         else if (top === 'Kelurahan') mergeIntoList(kelF, feature, pmName);
         else if (top === 'Sawah') {
           const namaId = pmName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+          const areaM2 = calculateGeometryAreaM2(feature.geometry);
+          const areaHa = Number((areaM2 / 10000).toFixed(2));
           sawahF.push({
             ...feature,
             _id: `sawah_${namaId}_${Math.abs(pmCoord.lng * 10000).toFixed(0)}_${Math.abs(pmCoord.lat * 10000).toFixed(0)}`,
-            properties: { ...feature.properties, name: pmName }
+            properties: {
+              ...feature.properties,
+              name: pmName,
+              luas_m2: areaM2,
+              luas_ha: areaHa,
+            }
           });
         }
       });

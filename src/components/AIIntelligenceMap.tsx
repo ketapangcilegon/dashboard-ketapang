@@ -36,7 +36,7 @@ import {
   PalawijaDBPins,
   WarningDBPins,
 } from './gis/MapLayers';
-import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures } from '@/lib/agro-satellite';
+import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures, calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X, Store, Trees, Camera } from 'lucide-react';
@@ -1127,7 +1127,7 @@ export default function AIIntelligenceMap({
                 (l as any).bringToFront?.();
               } catch {}
               const name = feat.properties?.name || feat.properties?.Name || 'Hamparan Sawah Cilegon';
-              const rawLuasM2 = feat.properties?.luas_m2 || 12500;
+              const rawLuasM2 = feat.properties?.luas_m2 ?? calculateGeometryAreaM2(feat.geometry);
               const rawLuasHa = (rawLuasM2 / 10000).toFixed(2);
               const sid = feat._id || Math.random().toString(36).substring(7);
 

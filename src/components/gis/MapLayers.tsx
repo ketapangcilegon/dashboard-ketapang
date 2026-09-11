@@ -10,6 +10,7 @@ import {
   FSVA_COLORS, SKPG_COLORS, BORDA_DESIL_COLORS,
   NO_DATA_COLOR, getFSVACategory,
 } from '@/lib/ikpg';
+import { calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 
 /* ─────────── Admin boundary styles ─────────── */
 const kecStyle = { color: '#c0392b', weight: 3, fillOpacity: 0, dashArray: '8,4' };
@@ -194,7 +195,8 @@ export function SawahLayer({
               onEachFeature(feat, l);
             } else {
               const name = feat.properties?.name || feat.properties?.Name || `Petak Sawah #${i + 1}`;
-              const luas = feat.properties?.luas_m2 ? `${(feat.properties.luas_m2 / 10000).toFixed(2)} Ha` : '';
+              const areaM2 = feat.properties?.luas_m2 ?? calculateGeometryAreaM2(feat.geometry);
+              const luas = areaM2 ? `${(areaM2 / 10000).toFixed(2)} Ha` : '';
               l.bindPopup(`
                 <div style="font-family:system-ui;font-size:12px;padding:4px 0">
                   <b style="color:#166534">🌾 ${name}</b>

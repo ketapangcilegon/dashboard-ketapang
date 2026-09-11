@@ -43,6 +43,50 @@ export interface SawahAgroTelemetry {
 }
 
 /**
+ * Menghitung luas poligon geodesik WGS84 nyata dalam meter persegi (m²)
+ * Menggunakan algoritma spherical excess (Chamberlain-Duquette)
+ */
+export function calculateGeometryAreaM2(geometry: any): number {
+  if (!geometry || !geometry.coordinates) return 0;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const EARTH_RADIUS = 6378137; // Jari-jari authalic WGS84 (meter)
+
+  const calculateRingArea = (coords: number[][]): number => {
+    if (!coords || coords.length < 3) return 0;
+    let total = 0;
+    const n = coords.length;
+    for (let i = 0; i < n; i++) {
+      const p1 = coords[i];
+      const p2 = coords[(i + 1) % n];
+      if (!p1 || !p2 || p1.length < 2 || p2.length < 2) continue;
+      total += rad(p2[0] - p1[0]) * (2 + Math.sin(rad(p1[1])) + Math.sin(rad(p2[1])));
+    }
+    return Math.abs((total * EARTH_RADIUS * EARTH_RADIUS) / 2);
+  };
+
+  let totalArea = 0;
+  if (geometry.type === 'Polygon') {
+    if (geometry.coordinates.length > 0) {
+      totalArea += calculateRingArea(geometry.coordinates[0]);
+      for (let i = 1; i < geometry.coordinates.length; i++) {
+        totalArea -= calculateRingArea(geometry.coordinates[i]);
+      }
+    }
+  } else if (geometry.type === 'MultiPolygon') {
+    for (const poly of geometry.coordinates) {
+      if (poly.length > 0) {
+        let polyArea = calculateRingArea(poly[0]);
+        for (let i = 1; i < poly.length; i++) {
+          polyArea -= calculateRingArea(poly[i]);
+        }
+        totalArea += Math.max(0, polyArea);
+      }
+    }
+  }
+  return Math.max(0, Math.round(totalArea));
+}
+
+/**
  * Menghitung estimasi distribusi zona lengas tanah (Soil Moisture) mikro 10m
  * berbasis telemetri agroklimat riil dan topografi Cilegon.
  */
@@ -52,9 +96,10 @@ export function computeSubPolygonPixelBreakdown(
   lng: number,
   namaSawah: string
 ): SawahPixelBreakdown {
-  const luasHa = Number((luasM2 / 10000).toFixed(2)) || 1.25;
+  const safeLuasM2 = Math.max(10, Number(luasM2) || 100);
+  const luasHa = Number((safeLuasM2 / 10000).toFixed(2));
   // 1 Kotak Mikro = 10m x 10m = 100 m²
-  const totalPixels = Math.max(10, Math.round(luasM2 / 100));
+  const totalPixels = Math.max(1, Math.round(safeLuasM2 / 100));
 
   // Pseudorandom deterministic spatial distribution berdasarkan koordinat riil
   const hashSeed = Math.abs(
@@ -97,7 +142,7 @@ export function computeSubPolygonPixelBreakdown(
 export function evaluateSawahAgroTelemetry(
   nama: string,
   coords: { lat: number; lng: number },
-  luasM2: number = 12500,
+  luasM2?: number,
   liveWeather?: {
     soilMoisture0to7cm?: number;
     soilMoisture7to28cm?: number;
@@ -105,7 +150,8 @@ export function evaluateSawahAgroTelemetry(
     rain7Days?: number;
   }
 ): SawahAgroTelemetry {
-  const pixelBreakdown = computeSubPolygonPixelBreakdown(luasM2, coords.lat, coords.lng, nama);
+  const safeLuasM2 = luasM2 && luasM2 > 0 ? luasM2 : 10000;
+  const pixelBreakdown = computeSubPolygonPixelBreakdown(safeLuasM2, coords.lat, coords.lng, nama);
 
   // Nilai default dari pola klimatologi Cilegon jika API realtime offline
   const sm0_7 = liveWeather?.soilMoisture0to7cm ?? (0.22 + (Math.abs(coords.lat * 100) % 0.12));
@@ -203,7 +249,7 @@ export function generateSawahPixelGridFeatures(sawahFeatures: any[]): any[] {
 
   sawahFeatures.forEach((feat, sIdx) => {
     const name = feat.properties?.name || feat.properties?.Name || `Sawah #${sIdx + 1}`;
-    const rawLuas = feat.properties?.luas_m2 || 12500;
+    const rawLuas = feat.properties?.luas_m2 || calculateGeometryAreaM2(feat.geometry) || 10000;
     
     // Cari Bounding Box poligon
     let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
