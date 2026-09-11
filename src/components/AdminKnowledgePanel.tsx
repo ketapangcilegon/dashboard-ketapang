@@ -119,6 +119,8 @@ export default function AdminKnowledgePanel() {
     fetchDocs();
   }, []);
 
+  const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; // 4.5 MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -127,6 +129,14 @@ export default function AdminKnowledgePanel() {
         // Auto fill judul dari nama file tanpa ekstensi
         setJudul(file.name.replace(/\.[^/.]+$/, ''));
       }
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setStatusMessage({
+          type: 'error',
+          msg: `Peringatan: Ukuran file "${file.name}" (${(file.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas toleransi sistem (maksimal 4.5 MB - serverless free-tier). Harap kompres file sebelum mengunggah.`
+        });
+      } else {
+        setStatusMessage({ type: '', msg: '' });
+      }
     }
   };
 
@@ -134,6 +144,13 @@ export default function AdminKnowledgePanel() {
     e.preventDefault();
     if (inputType === 'file' && !selectedFile) {
       setStatusMessage({ type: 'error', msg: 'Pilih file dokumen terlebih dahulu.' });
+      return;
+    }
+    if (inputType === 'file' && selectedFile && selectedFile.size > MAX_FILE_SIZE_BYTES) {
+      setStatusMessage({
+        type: 'error',
+        msg: `Gagal mengunggah: Ukuran file "${selectedFile.name}" (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas toleransi sistem (maksimal 4.5 MB pada environment free-tier). Silakan kompres berkas Anda terlebih dahulu.`
+      });
       return;
     }
     if (inputType === 'text' && !rawText.trim()) {
@@ -404,12 +421,21 @@ export default function AdminKnowledgePanel() {
             {/* File Dropzone or Textarea */}
             {inputType === 'file' ? (
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  File Dokumen (PDF, Word .docx/.doc, PPT .pptx/.ppt, Excel .xlsx/.xls, CSV, Gambar, TXT)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    File Dokumen (PDF, Word .docx/.doc, PPT .pptx/.ppt, Excel .xlsx/.xls, CSV, Gambar, TXT)
+                  </label>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                    Maks. 4.5 MB
+                  </span>
+                </div>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center group"
+                  className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center group ${
+                    selectedFile && selectedFile.size > MAX_FILE_SIZE_BYTES
+                      ? 'border-rose-400 bg-rose-50/40 hover:bg-rose-50/60'
+                      : 'border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30'
+                  }`}
                 >
                   <input
                     ref={fileInputRef}
@@ -423,9 +449,15 @@ export default function AdminKnowledgePanel() {
                       {renderFileIcon(selectedFile.name, '')}
                       <div className="text-left">
                         <p className="text-xs font-extrabold text-slate-800 max-w-[280px] truncate">{selectedFile.name}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Klik untuk ganti
-                        </p>
+                        {selectedFile.size > MAX_FILE_SIZE_BYTES ? (
+                          <p className="text-[11px] text-rose-600 font-bold mt-0.5">
+                            ❌ {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB — Melebihi batas toleransi sistem (Maks. 4.5 MB)
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                            ✅ {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ukuran berkas valid (Klik untuk ganti)
+                          </p>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -436,6 +468,9 @@ export default function AdminKnowledgePanel() {
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
                         PDF Peraturan, Word Dokumen, PPT Slide, Gambar/Infografis OCR, Excel Data Statistik
+                      </p>
+                      <p className="text-[10px] text-amber-600/90 font-bold mt-2 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 inline-flex items-center gap-1">
+                        <span>⚠️ Ukuran maksimal berkas: 4.5 MB (Batas Serverless Free-Tier)</span>
                       </p>
                     </>
                   )}

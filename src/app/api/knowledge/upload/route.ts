@@ -86,8 +86,20 @@ export async function POST(request: Request) {
     let chunks: KnowledgeChunk[] = [];
     let fileName: string | null = null;
 
+    const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; // 4.5 MB Limit (Serverless free-tier)
+
     if (file && file.size > 0) {
       fileName = file.name;
+      
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        return NextResponse.json(
+          { 
+            error: `Ukuran file "${file.name}" (${(file.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas toleransi sistem (maksimal 4.5 MB pada environment free-tier). Silakan kompres berkas Anda sebelum diunggah.` 
+          },
+          { status: 400 }
+        );
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const lowerName = file.name.toLowerCase();
