@@ -988,7 +988,13 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
               {/* Kolom 1: Peta (Span 4) */}
               <div className="lg:col-span-4 flex flex-col justify-between">
                 <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Akses Pangan</h4>
-                <MapSKPGMini level="kecamatan" dataStatus={getAksesStatusMap()} height="230px" />
+                <MapSKPGMini 
+                  level="kecamatan" 
+                  dataStatus={getAksesStatusMap()} 
+                  height="230px" 
+                  mapTitle="Peta Indikator Akses Pangan"
+                  periodLabel={`${MONTH_NAMES_INDO[displayMonth]} ${displayYear}`}
+                />
               </div>
               
               {/* Kolom 2: Grafik (Span 5) */}
@@ -1255,7 +1261,13 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                   {/* Kolom 1: Peta (Span 4) */}
                   <div className="lg:col-span-4 flex flex-col justify-between">
                     <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Pemanfaatan Pangan</h4>
-                    <MapSKPGMini level="kecamatan" dataStatus={getGiziStatusMap()} height="230px" />
+                    <MapSKPGMini 
+                      level="kecamatan" 
+                      dataStatus={getGiziStatusMap()} 
+                      height="230px" 
+                      mapTitle="Peta Indikator Pemanfaatan Pangan"
+                      periodLabel={`${MONTH_NAMES_INDO[displayMonth]} ${displayYear}`}
+                    />
                   </div>
                   
                   {/* Kolom 2: Grafik (Span 5) */}
@@ -1413,7 +1425,13 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
                 {/* Kolom 1: Peta (Span 4) */}
                 <div className="lg:col-span-4 flex flex-col justify-between">
                   <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Peta Indikator Komposit SKPG</h4>
-                  <MapSKPGMini level="kecamatan" dataStatus={getKompositStatusMap()} height="240px" />
+                  <MapSKPGMini 
+                    level="kecamatan" 
+                    dataStatus={getKompositStatusMap()} 
+                    height="240px" 
+                    mapTitle="Peta Indikator Komposit SKPG"
+                    periodLabel={`${MONTH_NAMES_INDO[displayMonth]} ${displayYear}`}
+                  />
                 </div>
                 
                 {/* Kolom 2: Grafik (Span 4) */}
