@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { Loader2, Camera, Check, ChevronDown, Plus, Minus, RotateCcw } from 'lucide-react';
 import { toPng, toJpeg } from 'html-to-image';
 import { useMap } from 'react-leaflet';
+import L from 'leaflet';
 
 // Dynamically import Leaflet components to bypass SSR errors
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 
 interface MapSKPGMiniProps {
   level: 'kecamatan' | 'kelurahan';
@@ -19,6 +21,43 @@ interface MapSKPGMiniProps {
   height?: string;
   mapTitle?: string;
   periodLabel?: string;
+}
+
+// Exact centroid coordinates for all 8 Kecamatan in Kota Cilegon
+const KECAMATAN_CENTROIDS: { name: string; coord: [number, number] }[] = [
+  { name: 'PULOMERAK', coord: [-5.925, 106.012] },
+  { name: 'GEROGOL', coord: [-5.984, 106.030] },
+  { name: 'PURWAKARTA', coord: [-5.996, 106.050] },
+  { name: 'CILEGON', coord: [-6.016, 106.046] },
+  { name: 'JOMBANG', coord: [-6.009, 106.069] },
+  { name: 'CIBEBER', coord: [-6.048, 106.074] },
+  { name: 'CITANGKIL', coord: [-6.016, 106.006] },
+  { name: 'CIWANDAN', coord: [-6.042, 105.970] }
+];
+
+// Helper to calculate centroid of polygon
+function getFeatureCentroid(feature: any): [number, number] | null {
+  try {
+    const geom = feature.geometry;
+    if (!geom) return null;
+    let coords: number[][] = [];
+    if (geom.type === 'Polygon') {
+      coords = geom.coordinates[0];
+    } else if (geom.type === 'MultiPolygon') {
+      coords = geom.coordinates[0][0];
+    }
+    if (!coords || coords.length === 0) return null;
+    let sumLng = 0, sumLat = 0;
+    coords.forEach((c: number[]) => {
+      if (c && c.length >= 2) {
+        sumLng += c[0];
+        sumLat += c[1];
+      }
+    });
+    return [sumLat / coords.length, sumLng / coords.length];
+  } catch {
+    return null;
+  }
 }
 
 // Inner component for custom interactive zoom controls
@@ -99,11 +138,45 @@ export default function MapSKPGMini({
     };
   }, [showMenu]);
 
+  // Create memoized label markers
+  const labelMarkers = useMemo(() => {
+    if (typeof window === 'undefined') return [];
+
+    if (level === 'kecamatan') {
+      return KECAMATAN_CENTROIDS.map(k => {
+        const icon = L.divIcon({
+          className: 'skpg-marker-label-container',
+          html: `<div class="skpg-marker-label">${k.name}</div>`,
+          iconSize: [80, 20],
+          iconAnchor: [40, 10]
+        });
+        return { name: k.name, coord: k.coord, icon };
+      });
+    } else {
+      // Kelurahan centroids computed from KMZ features
+      if (!layers.kelurahan || layers.kelurahan.length === 0) return [];
+      return layers.kelurahan
+        .map(f => {
+          const name = String(f.properties?.name || f.properties?.Name || '').trim();
+          const coord = getFeatureCentroid(f);
+          if (!coord || !name) return null;
+          const icon = L.divIcon({
+            className: 'skpg-marker-label-container',
+            html: `<div class="skpg-marker-label" style="font-size: 7px; padding: 0.5px 3px;">${name}</div>`,
+            iconSize: [70, 16],
+            iconAnchor: [35, 8]
+          });
+          return { name, coord, icon };
+        })
+        .filter(Boolean) as { name: string; coord: [number, number]; icon: any }[];
+    }
+  }, [level, layers.kelurahan]);
+
   if (!mounted || loading) {
     return (
       <div 
         style={{ height }} 
-        className="w-full bg-slate-50/70 flex flex-col items-center justify-center rounded-xl border border-slate-100/80 shadow-sm"
+        className="w-full bg-slate-100 flex flex-col items-center justify-center rounded-xl border border-slate-200 shadow-sm"
       >
         <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mb-1.5" />
         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Memuat Peta Spasial...</p>
@@ -113,7 +186,7 @@ export default function MapSKPGMini({
 
   const activeFeatures = level === 'kecamatan' ? layers.kecamatan : layers.kelurahan;
 
-  // Zoomed out by ~20% (from original 10.5 down to 9.85 with zoomSnap 0.05) and optimized center
+  // Zoomed out by ~20% (from original 10.5 down to 9.85 with zoomSnap 0.05) and centered on Kota Cilegon
   const center: [number, number] = [-6.012, 106.026];
   const zoom = 9.85;
 
@@ -138,32 +211,19 @@ export default function MapSKPGMini({
     const status = dataStatus[lookupKey] || 'aman';
 
     const colors = {
-      aman: { fill: '#6ABD45', border: '#408027' },
-      waspada: { fill: '#F7EC13', border: '#B8AF07' },
-      rentan: { fill: '#ED1E24', border: '#9E0E13' }
+      aman: { fill: '#6ABD45', border: '#2D6618' },
+      waspada: { fill: '#F7EC13', border: '#8F8800' },
+      rentan: { fill: '#ED1E24', border: '#82070B' }
     };
 
     const c = colors[status] || colors.aman;
 
     return {
       color: c.border,
-      weight: 1.6,
+      weight: 1.8,
       fillColor: c.fill,
-      fillOpacity: 0.70
+      fillOpacity: 0.68
     };
-  };
-
-  const onEachFeature = (feature: any, layer: any) => {
-    const rawName = feature.properties?.name || feature.properties?.Name || '';
-    const name = String(rawName).trim();
-    if (name) {
-      layer.bindTooltip(`<span class="skpg-label-text">${name}</span>`, {
-        permanent: true,
-        direction: 'center',
-        className: 'skpg-polygon-label',
-        interactive: false
-      });
-    }
   };
 
   const handleDownload = async (format: 'png' | 'jpeg') => {
@@ -187,7 +247,7 @@ export default function MapSKPGMini({
         cacheBust: true,
         pixelRatio: 2, // High resolution export
         filter: (child: HTMLElement) => {
-          // Exclude the floating UI controls from the screenshot
+          // Exclude floating controls from screenshot
           if (child.classList && child.classList.contains('map-download-control')) {
             return false;
           }
@@ -196,7 +256,7 @@ export default function MapSKPGMini({
       };
 
       const dataUrl = format === 'jpeg' 
-        ? await toJpeg(node, { ...options, quality: 0.95, backgroundColor: '#FFFFFF' }) 
+        ? await toJpeg(node, { ...options, quality: 0.95, backgroundColor: '#AAD3DF' }) 
         : await toPng(node, options);
 
       const link = document.createElement('a');
@@ -217,7 +277,7 @@ export default function MapSKPGMini({
     <div 
       ref={mapContainerRef}
       style={{ height }} 
-      className="w-full relative rounded-xl overflow-hidden border border-slate-200/90 shadow-xs z-0 group bg-slate-50"
+      className="w-full relative rounded-xl overflow-hidden border border-slate-200 shadow-xs z-0 group bg-[#AAD3DF]"
     >
       <MapContainer
         center={center}
@@ -229,20 +289,32 @@ export default function MapSKPGMini({
         doubleClickZoom={true}
         touchZoom={true}
         dragging={true}
-        style={{ width: '100%', height: '100%', background: '#F8FAFC' }}
+        style={{ width: '100%', height: '100%', background: '#AAD3DF' }}
       >
+        {/* Basemap showing clear land, topography, and blue sea (Selat Sunda & Teluk Banten) */}
         <TileLayer
-          url="https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
+
+        {/* Polygons with status colors */}
         {activeFeatures && activeFeatures.length > 0 && (
           <GeoJSON
             key={`${level}-${activeFeatures.length}-${Object.keys(dataStatus).length}`}
             data={activeFeatures as any}
             style={styleFeature}
-            onEachFeature={onEachFeature}
           />
         )}
+
+        {/* Guaranteed Precision Centered Labels for all 8 Kecamatan / Kelurahan */}
+        {labelMarkers.map(lm => (
+          <Marker
+            key={lm.name}
+            position={lm.coord}
+            icon={lm.icon}
+            interactive={false}
+          />
+        ))}
         
         {/* Floating Zoom In, Zoom Out, and Reset Controls (Top-Left) */}
         <MapZoomControls defaultCenter={center} defaultZoom={zoom} />

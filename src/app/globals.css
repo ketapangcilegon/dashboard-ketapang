@@ -249,33 +249,34 @@ body {
   border: none !important;
 }
 
-/* ─────────── SKPG Mini Map Polygon Labels ─────────── */
-.leaflet-tooltip.skpg-polygon-label {
-  background: rgba(255, 255, 255, 0.94) !important;
-  border: 1px solid rgba(15, 23, 42, 0.22) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.18) !important;
-  padding: 1px 4.5px !important;
+/* ─────────── SKPG Mini Map Polygon Labels & Markers ─────────── */
+.skpg-marker-label-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   pointer-events: none !important;
-  white-space: nowrap !important;
-  transform: translate3d(-50%, -50%, 0) !important;
-  margin: 0 !important;
 }
 
-.leaflet-tooltip.skpg-polygon-label .skpg-label-text {
+.skpg-marker-label {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1.2px solid rgba(15, 23, 42, 0.3) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+  padding: 1px 4.5px !important;
   font-size: 7.5px !important;
   font-weight: 900 !important;
-  color: #0F172A !important;
+  color: #0B1E41 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
-  display: block !important;
-  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  pointer-events: none !important;
 }
 
-.leaflet-tooltip.skpg-polygon-label::before,
-.leaflet-tooltip.skpg-polygon-label::after {
-  display: none !important;
-}
 
 
 
