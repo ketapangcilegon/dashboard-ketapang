@@ -23,16 +23,16 @@ interface MapSKPGMiniProps {
   periodLabel?: string;
 }
 
-// Exact centroid coordinates for all 8 Kecamatan in Kota Cilegon
+// Exact centroid coordinates for all 8 Kecamatan in Kota Cilegon (fine-tuned for clean spacing)
 const KECAMATAN_CENTROIDS: { name: string; coord: [number, number] }[] = [
-  { name: 'PULOMERAK', coord: [-5.925, 106.012] },
-  { name: 'GEROGOL', coord: [-5.984, 106.030] },
+  { name: 'PULOMERAK', coord: [-5.922, 106.012] },
+  { name: 'GEROGOL', coord: [-5.975, 106.028] },
   { name: 'PURWAKARTA', coord: [-5.996, 106.050] },
-  { name: 'CILEGON', coord: [-6.016, 106.046] },
-  { name: 'JOMBANG', coord: [-6.009, 106.069] },
-  { name: 'CIBEBER', coord: [-6.048, 106.074] },
-  { name: 'CITANGKIL', coord: [-6.016, 106.006] },
-  { name: 'CIWANDAN', coord: [-6.042, 105.970] }
+  { name: 'CITANGKIL', coord: [-6.022, 106.002] },
+  { name: 'CILEGON', coord: [-6.022, 106.042] },
+  { name: 'JOMBANG', coord: [-6.006, 106.074] },
+  { name: 'CIBEBER', coord: [-6.052, 106.072] },
+  { name: 'CIWANDAN', coord: [-6.045, 105.968] }
 ];
 
 // Helper to calculate centroid of polygon
@@ -293,8 +293,8 @@ export default function MapSKPGMini({
       >
         {/* Basemap showing clear land, topography, and blue sea (Selat Sunda & Teluk Banten) */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
 
         {/* Polygons with status colors */}
