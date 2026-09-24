@@ -8,21 +8,20 @@ import {
   Copy, 
   Check, 
   ChevronDown, 
-  Maximize2, 
-  Minimize2, 
   Plus, 
   Mic, 
+  MicOff,
   ArrowUp, 
   ThumbsUp, 
   ThumbsDown, 
   Share2, 
-  RotateCcw, 
   ArrowDown, 
   Edit3,
   Database,
   Camera,
   Trash2,
-  X
+  X,
+  Brain
 } from 'lucide-react';
 
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
@@ -30,9 +29,14 @@ import ChatChart, { ChartConfig } from './ChatChart';
 
 // ============================================================
 // AIIntelligencePanel
-// Panel chat interaktif AI Food Intelligence (ChatGPT UI/UX Style)
-// Didukung: Multimodal Vision, Session Storage Persistence,
-// Reverse Intelligence Trigger, & Spatial Filter MapAction + Recharts Visualization
+// Panel chat interaktif AI Food Intelligence (Sesuai UI/UX dkpp-info)
+// Fitur:
+// - Kotak input text dinamis (Pill rounded-full / Multiline rounded-2xl, auto-resize)
+// - Warna latar chat user: bg-[#A8DCAB] text-emerald-950
+// - Batas margin mobile responsive yang ramping (px-1.5 sm:px-4)
+// - Ikon resmi ChatDKPP (/ikon-chatDKPP.png)
+// - Mode Berpikir (Think Mode Pill) & Voice Input (Web Speech API)
+// - Tombol kirim biru bulat (#1A73E8)
 // ============================================================
 
 const CHAT_SESSION_STORAGE_KEY = 'cilegon_food_intelligence_chat_session';
@@ -168,7 +172,6 @@ function renderMarkdown(text: string): React.ReactNode {
         );
         continue;
       } else {
-        // Fallback jika blok kode biasa
         elements.push(
           <pre key={`code-${i}`} className="my-2 p-3 bg-slate-900 text-slate-100 rounded-xl text-xs overflow-x-auto font-mono custom-scrollbar">
             <code>{rawCode}</code>
@@ -250,53 +253,72 @@ function renderMarkdown(text: string): React.ReactNode {
       i++;
       continue;
     }
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+
+    if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
       elements.push(
-        <div key={i} className="flex gap-2 mb-1 ml-2 items-start">
-          <span className="text-emerald-600 font-bold mt-0.5 shrink-0">•</span>
-          <span className="text-[12.5px] text-slate-700 font-medium leading-relaxed">
-            {parseBold(trimmed.substring(2))}
-          </span>
-        </div>
+        <li key={i} className="text-[12.5px] text-slate-700 leading-relaxed ml-4 list-disc pl-1 mb-1">
+          {parseBold(trimmed.replace(/^[-•*]\s*/, ''))}
+        </li>
       );
       i++;
       continue;
     }
-    const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
     if (numMatch) {
       elements.push(
-        <div key={i} className="flex gap-2 mb-1 ml-2 items-start">
-          <span className="text-emerald-700 font-extrabold text-[12px] shrink-0 mt-0.5">{numMatch[1]}.</span>
-          <span className="text-[12.5px] text-slate-700 font-medium leading-relaxed">
-            {parseBold(numMatch[2])}
-          </span>
+        <div key={i} className="flex gap-2 text-[12.5px] text-slate-700 leading-relaxed ml-1 mb-1">
+          <span className="font-bold text-emerald-700">{numMatch[1]}.</span>
+          <span className="flex-1">{parseBold(numMatch[2])}</span>
         </div>
       );
       i++;
       continue;
     }
+
+    if (trimmed.startsWith('> ')) {
+      elements.push(
+        <blockquote key={i} className="border-l-3 border-emerald-600 pl-3 py-1 my-2 bg-emerald-50/60 rounded-r-lg text-[12px] text-emerald-950 font-medium italic">
+          {parseBold(trimmed.replace(/^>\s*/, ''))}
+        </blockquote>
+      );
+      i++;
+      continue;
+    }
+
     if (trimmed === '') {
-      elements.push(<div key={i} className="h-1.5" />);
+      elements.push(<div key={i} className="h-1" />);
       i++;
       continue;
     }
 
     elements.push(
-      <p key={i} className="text-[12.5px] text-slate-700 font-medium leading-relaxed mb-1.5">
+      <p key={i} className="text-[12.5px] text-slate-700 leading-relaxed mb-2 font-normal">
         {parseBold(line)}
       </p>
     );
     i++;
   }
 
-  return elements;
+  return <div>{elements}</div>;
 }
 
 function parseBold(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, i) => {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-black text-slate-900">{part.slice(2, -2)}</strong>;
+      return (
+        <strong key={idx} className="font-extrabold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={idx} className="bg-slate-100 text-emerald-800 px-1 py-0.5 rounded text-[11px] font-mono font-bold">
+          {part.slice(1, -1)}
+        </code>
+      );
     }
     return part;
   });
@@ -317,7 +339,7 @@ export default function AIIntelligencePanel({
   const [syncing, setSyncing] = useState(false);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isThinkingMode, setIsThinkingMode] = useState(false);
   const [feedbackState, setFeedbackState] = useState<{ [key: number]: 'like' | 'dislike' | null }>({});
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -330,6 +352,15 @@ export default function AIIntelligencePanel({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea seamlessly (seperti ChatInput dkpp-info)
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const scrollH = inputRef.current.scrollHeight;
+      inputRef.current.style.height = `${Math.min(Math.max(scrollH, 24), 180)}px`;
+    }
+  }, [inputValue]);
 
   // Sinkronisasi riwayat pesan ke browser sessionStorage agar tidak hilang dalam 1 sesi
   useEffect(() => {
@@ -495,8 +526,6 @@ export default function AIIntelligencePanel({
         const isSawah = queryLower.includes('sawah');
         const layers = ['kelurahan'];
         if (isSawah) layers.push('sawah');
-        if (queryLower.includes('nelayan') || queryLower.includes('pangkalan')) layers.push('nelayan');
-        if (queryLower.includes('kolam') || queryLower.includes('budidaya')) layers.push('kolam');
 
         const prePin: MatchedPin = {
           lat: coord.lat,
@@ -525,13 +554,16 @@ export default function AIIntelligencePanel({
     }
 
     const history = messages.map(m => ({ role: m.role, text: m.text }));
+    const payloadMessage = isThinkingMode 
+      ? `[MODE BERPIKIR MENDALAM: Uraikan data, metodologi perhitungan komprehensif, dan analisis bertahap]\n${trimmed || 'Tolong diagnosis foto/data ini dan berikan rekomendasi penanganan.'}`
+      : trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.';
 
     try {
       const res = await fetch('/api/ai-intelligence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.',
+          message: payloadMessage,
           history,
           imageData: currentImg ? { data: currentImg.base64, mimeType: currentImg.mimeType } : undefined
         })
@@ -592,7 +624,7 @@ export default function AIIntelligencePanel({
     }
 
     setLoading(false);
-  }, [loading, messages, onWilayahHighlight, onPinsHighlight, onMapAction]);
+  }, [loading, messages, onWilayahHighlight, onPinsHighlight, onMapAction, selectedImage, isThinkingMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -609,15 +641,6 @@ export default function AIIntelligencePanel({
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleRegenerate = (msgIndex: number) => {
-    for (let i = msgIndex - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') {
-        sendMessage(messages[i].text);
-        break;
-      }
-    }
-  };
-
   const handleEditPrompt = (text: string) => {
     setInputValue(text);
     if (inputRef.current) {
@@ -632,25 +655,54 @@ export default function AIIntelligencePanel({
     }));
   };
 
+  // Web Speech API Voice Recognition (Sesuai ChatInput dkpp-info)
   const toggleSpeechRecognition = () => {
     if (typeof window === 'undefined') return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const win = window as any;
-    if (!win.webkitSpeechRecognition && !win.SpeechRecognition) {
-      alert('Fitur input suara belum didukung di browser ini.');
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Browser Anda tidak mendukung Web Speech API.');
       return;
     }
-    setIsListening(!isListening);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'id-ID';
+      recognition.interimResults = false;
+
+      if (!isListening) {
+        setIsListening(true);
+        recognition.start();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInputValue(prev => (prev ? `${prev} ${transcript}` : transcript));
+          setIsListening(false);
+        };
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+      } else {
+        setIsListening(false);
+      }
+    } catch {
+      setIsListening(false);
+    }
   };
+
+  const isMultiline = inputValue.includes('\n') || inputValue.length > 60;
 
   return (
     <div className={`flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative ${isFullScreen ? 'h-full' : 'h-[580px]'}`}>
       
-      {/* Top Subtle Sync Status Bar */}
-      <div className="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
+      {/* Top Subtle Status Bar */}
+      <div className="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
         <div className="flex items-center gap-1.5 font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-slate-700 font-extrabold">Food Security Intelligence</span>
+          <span className="hidden sm:inline text-slate-400">|</span>
+          <span className="hidden sm:inline text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded font-bold">DKPP Cilegon</span>
           {syncSuccessMsg && (
-            <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-black animate-pulse">
+            <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-black animate-pulse ml-2">
               {syncSuccessMsg}
             </span>
           )}
@@ -673,203 +725,298 @@ export default function AIIntelligencePanel({
             title="Sinkron & Salin Manual Database Serumpun Padi ke Dashboard Ketapang"
           >
             <RefreshCw className={`w-2.5 h-2.5 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
-            {syncing ? 'Menyinkronkan…' : 'Sinkron Database'}
+            <span className="hidden xs:inline">{syncing ? 'Menyinkronkan…' : 'Sinkron DB'}</span>
           </button>
         </div>
       </div>
 
-      {/* Scrollable Chat Area */}
+      {/* Scrollable Chat Area (Mobile Margins Ramping: px-1.5 sm:px-4, py-2.5 sm:py-6 sesuai dkpp-info) */}
       <div 
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-4 md:px-5 py-3 space-y-4 custom-scrollbar bg-slate-50/30 relative"
+        className="flex-1 min-h-0 overflow-y-auto px-1.5 sm:px-4 py-2.5 sm:py-5 space-y-4 sm:space-y-5 custom-scrollbar bg-slate-50/30 relative"
       >
-        
-        {/* Initial / Empty State — ChatGPT Style Quick Prompts (Mockup 1) */}
-        {messages.length === 0 && !loading && (
-          <div className="flex flex-col justify-center min-h-[340px] py-2">
-            <div className="w-full max-w-xl mx-auto space-y-2.5">
-              
-              <div className="flex items-center justify-center gap-1.5 text-slate-400 font-extrabold text-[10.5px] uppercase tracking-wider mb-1">
-                <ChevronDown className="w-3 h-3" />
-                <span>PERTANYAAN CEPAT</span>
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5 w-full px-0">
+          
+          {/* Initial / Empty State — Sesuai dkpp-info (Center Greeting + 6 Showcase Cards) */}
+          {messages.length === 0 && !loading && (
+            <div className="max-w-2xl mx-auto min-h-[50vh] flex flex-col items-center justify-center text-center animate-in fade-in duration-300 space-y-4 px-2 py-3">
+              {/* Logo Resmi ChatDKPP */}
+              <div className="w-16 h-16 sm:w-24 sm:h-24 relative flex items-center justify-center select-none">
+                <img
+                  src="/ikon-chatDKPP.png"
+                  alt="Food Security Intelligence Kota Cilegon"
+                  className="w-full h-full object-contain select-none"
+                />
               </div>
 
-              {/* List Pertanyaan Cepat (Pills Card Sesuai Mockup 1) */}
-              <div className="space-y-2">
-                {QUICK_PROMPTS.map((prompt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => sendMessage(prompt)}
-                    className="w-full text-left bg-white hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 rounded-full px-4 py-2.5 text-slate-700 hover:text-emerald-950 font-bold text-xs shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99] flex items-center justify-between group"
-                  >
-                    <span className="line-clamp-1">{prompt}</span>
-                    <span className="opacity-0 group-hover:opacity-100 text-emerald-600 text-xs font-black transition-opacity ml-2 shrink-0">
-                      →
-                    </span>
-                  </button>
-                ))}
+              {/* Center Greeting Title */}
+              <div className="space-y-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+                  What’s on the agenda today?
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 font-medium max-w-md mx-auto">
+                  Asisten Cerdas Ketahanan Pangan, Pertanian, Perikanan & Pemantauan Wilayah Kota Cilegon
+                </p>
+              </div>
+
+              {/* Feature Showcase Shortcuts Grid */}
+              <div className="w-full pt-2">
+                <div className="text-[10.5px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">
+                  Jelajahi Fitur & Analisis Live DKPP:
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-left">
+                  {[
+                    {
+                      icon: '📈',
+                      title: 'IKP & PoU 5 Tahun',
+                      desc: 'Tren Indeks Ketahanan Pangan vs Banten & Nasional',
+                      prompt: '📊 Bagaimana kondisi ketahanan pangan Cilegon saat ini (IKP, FSVA, SKPG, POU)?',
+                    },
+                    {
+                      icon: '🎯',
+                      title: 'Renstra DKPP 2026',
+                      desc: 'Target IKU, Sasaran Strategis & Pagu Program 2026-2030',
+                      prompt: '🎯 Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2026-2030?',
+                    },
+                    {
+                      icon: '👩‍🌾',
+                      title: '84 KWT se-Cilegon',
+                      desc: 'Sebaran dan profil Kelompok Wanita Tani 8 Kecamatan',
+                      prompt: '👩‍🌾 Tampilkan sebaran dan profil 84 KWT (Kelompok Wanita Tani) se-Kota Cilegon!',
+                    },
+                    {
+                      icon: '🐟',
+                      title: 'Potensi Perikanan',
+                      desc: 'Data 723 Nelayan, 58 KUB, 410 Kapal & Produksi Ikan',
+                      prompt: '🐟 Bagaimana data potensi perikanan, sebaran 723 nelayan, dan produksi ikan Cilegon?',
+                    },
+                    {
+                      icon: '💰',
+                      title: 'Harga Pangan SAGON',
+                      desc: 'Update harian Pasar Kranggot, Blok F, Merak & EWS',
+                      prompt: '💰 Bagaimana kondisi harga pangan harian SAGON dan peramalan EWS inflasi?',
+                    },
+                    {
+                      icon: '🌾',
+                      title: 'Sawah & Agro-Satelit',
+                      desc: '407 Petak Sawah Baku & Lengas Tanah ECMWF',
+                      prompt: '🌾 Berapa luas sawah baku dan kondisi lengas tanah ECMWF di Cilegon?',
+                    },
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => sendMessage(item.prompt)}
+                      className="p-2.5 sm:p-3 rounded-xl border border-gray-200/90 hover:border-emerald-400 bg-white hover:bg-emerald-50/40 text-left transition-all duration-150 group shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-gray-900 group-hover:text-emerald-800">
+                        <span className="text-sm">{item.icon}</span>
+                        <span className="truncate">{item.title}</span>
+                      </div>
+                      <p className="text-[10px] sm:text-[10.5px] text-gray-500 group-hover:text-emerald-950 mt-1 line-clamp-2 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Message Stream */}
-        {messages.map((msg, idx) => (
-          <div key={idx} className="w-full">
-            {msg.role === 'user' ? (
-              
-              /* USER MESSAGE */
-              <div className="flex flex-col items-end mb-3 group">
-                <div className="bg-slate-900 text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[85%] md:max-w-[75%] font-medium text-[12.5px] leading-relaxed">
-                  {msg.imageUrl && (
-                    <div className="mb-2 rounded-lg overflow-hidden border border-white/20">
-                      <img src={msg.imageUrl} alt="Lampiran Foto" className="max-h-52 w-auto object-cover rounded-lg" />
+          {/* Message Stream */}
+          {messages.map((msg, idx) => (
+            <div key={idx} className="w-full">
+              {msg.role === 'user' ? (
+                
+                /* USER MESSAGE (Sesuai dkpp-info: bg-[#A8DCAB] text-emerald-950) */
+                <div className="flex gap-0 sm:gap-3 justify-end mb-3 sm:mb-4 group">
+                  <div className="max-w-[92%] sm:max-w-[80%] rounded-2xl sm:rounded-3xl px-3.5 sm:px-5 py-2 sm:py-3 shadow-xs bg-[#A8DCAB] text-emerald-950 font-medium rounded-tr-xs ml-auto">
+                    {msg.imageUrl && (
+                      <div className="mb-2 rounded-xl overflow-hidden border border-emerald-800/20">
+                        <img src={msg.imageUrl} alt="Lampiran Foto" className="max-h-52 w-auto object-cover rounded-xl" />
+                      </div>
+                    )}
+                    <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <div className="flex items-center justify-end gap-2 mt-1 text-[9.5px] text-emerald-900/60 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span>{formatTime(msg.timestamp)}</span>
+                      <button 
+                        onClick={() => handleEditPrompt(msg.text)}
+                        className="hover:text-emerald-950 cursor-pointer flex items-center gap-1"
+                        title="Edit prompt"
+                      >
+                        <Edit3 className="w-2.5 h-2.5" /> Edit
+                      </button>
                     </div>
-                  )}
-                  {msg.text}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 mr-1 text-[9.5px] text-slate-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>{formatTime(msg.timestamp)}</span>
-                  <button 
-                    onClick={() => handleEditPrompt(msg.text)}
-                    className="hover:text-slate-700 cursor-pointer flex items-center gap-1"
-                    title="Edit prompt"
+
+              ) : (
+
+                /* ASSISTANT MESSAGE (Sesuai dkpp-info: hidden sm:flex avatar, rounded-2xl card, copy top-right) */
+                <div className="flex gap-0 sm:gap-3 justify-start mb-4 group">
+                  {/* Assistant Avatar: Ikon Resmi Chat DKPP (Tampil di Desktop sm:flex, disembunyikan di Mobile) */}
+                  <div
+                    className="hidden sm:flex w-8 h-8 items-center justify-center shrink-0 mt-0.5 select-none"
+                    title="Food Security Intelligence Assistant"
                   >
-                    <Edit3 className="w-2.5 h-2.5" /> Edit
-                  </button>
-                </div>
-              </div>
-
-            ) : (
-
-              /* MODEL MESSAGE (Full width without left avatar column) */
-              <div className="mb-4 group w-full">
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 md:p-4 shadow-xs space-y-1.5 w-full">
-                  <div className="prose prose-sm max-w-none text-slate-800">
-                    {renderMarkdown(msg.text)}
+                    <img
+                      src="/ikon-chatDKPP.png"
+                      alt="DKPP AI"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
 
-                  {/* Wilayah highlight tags */}
-                  {msg.wilayah && msg.wilayah.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
-                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-                        📍 Sorotan:
-                      </span>
-                      {msg.wilayah.map((w, wi) => (
-                        <button 
-                          key={wi} 
-                          onClick={() => handleWilayahClick(w)}
-                          className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
-                          title={`Klik untuk mengarahkan peta ke ${w}`}
-                        >
-                          <span>📍</span>
-                          <span>{w}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Action Bar (Copy, Share, Feedback, Regenerate) */}
-                  <div className="flex items-center gap-1 pt-2 border-t border-slate-100 text-slate-400 text-xs flex-wrap">
+                  <div className="relative group w-full rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs bg-white border border-gray-200/80 rounded-tl-xs pr-7 sm:pr-8">
+                    {/* Top-Right Copy Icon */}
                     <button
+                      type="button"
                       onClick={() => handleCopy(msg.text, idx)}
-                      className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer flex items-center gap-1 text-[10.5px] font-medium"
-                      title="Salin jawaban"
+                      className="absolute top-2 right-2 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all cursor-pointer z-10"
+                      title="Salin jawaban ini"
                     >
                       {copiedIndex === idx ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-600" />
-                          <span className="text-emerald-600">Tersalin</span>
-                        </>
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Tersalin</span>
+                        </span>
                       ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>Salin</span>
-                        </>
+                        <Copy className="w-3.5 h-3.5" />
                       )}
                     </button>
 
-                    <button
-                      onClick={() => toggleFeedback(idx, 'like')}
-                      className={`p-1 hover:bg-slate-200/60 rounded transition-all cursor-pointer ${
-                        feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                      title="Bagus / Akurat"
-                    >
-                      <ThumbsUp className="w-3 h-3" />
-                    </button>
+                    <div className="prose prose-sm max-w-none text-slate-800">
+                      {renderMarkdown(msg.text)}
+                    </div>
 
-                    <button
-                      onClick={() => toggleFeedback(idx, 'dislike')}
-                      className={`p-1 hover:bg-slate-200/60 rounded transition-all cursor-pointer ${
-                        feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                      title="Perlu perbaikan"
-                    >
-                      <ThumbsDown className="w-3 h-3" />
-                    </button>
+                    {/* Wilayah / Kelurahan Sorotan */}
+                    {msg.wilayah && msg.wilayah.length > 0 && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
+                        <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
+                          📍 Sorotan:
+                        </span>
+                        {msg.wilayah.map((w, wi) => (
+                          <button 
+                            key={wi} 
+                            onClick={() => handleWilayahClick(w)}
+                            className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
+                            title={`Klik untuk mengarahkan peta ke ${w}`}
+                          >
+                            <span>📍</span>
+                            <span>{w}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                    <button
-                      onClick={() => handleCopy(msg.text, idx)}
-                      className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
-                      title="Bagikan jawaban"
-                    >
-                      <Share2 className="w-3 h-3" />
-                    </button>
+                    {/* Action Bar (Copy, Feedback, Share) */}
+                    <div className="flex items-center gap-2 pt-2.5 mt-2 border-t border-gray-100 text-gray-400 text-xs">
+                      <button
+                        onClick={() => handleCopy(msg.text, idx)}
+                        className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-emerald-600 transition-colors p-1 rounded cursor-pointer"
+                        title="Salin jawaban bersih"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Salin</span>
+                      </button>
 
-                    <button
-                      onClick={() => handleRegenerate(idx)}
-                      className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
-                      title="Regenerasi respons"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                    </button>
+                      <button
+                        onClick={() => toggleFeedback(idx, 'like')}
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'hover:text-gray-700'
+                        }`}
+                        title="Bagus / Akurat"
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      </button>
 
-                    <span className="text-[9.5px] text-slate-400 font-semibold ml-auto">
-                      {formatTime(msg.timestamp)}
-                    </span>
+                      <button
+                        onClick={() => toggleFeedback(idx, 'dislike')}
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'hover:text-gray-700'
+                        }`}
+                        title="Perlu perbaikan"
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Tawaran Beralih ke Mode Peta GIS jika ada sorotan wilayah */}
+                    {msg.wilayah && msg.wilayah.length > 0 && onMapAction && (
+                      <div className="mt-3 p-3 sm:p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+                        <div className="flex items-start sm:items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <span className="text-sm">🗺️</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-emerald-950">
+                              Tampilan Peta Geospasial Wilayah Terkait
+                            </span>
+                            <span className="text-[11px] text-emerald-700 leading-tight mt-0.5">
+                              Lihat visualisasi spasial 407 petak sawah, lengas tanah & fasilitas pangan.
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleWilayahClick(msg.wilayah![0])}
+                          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                        >
+                          <span>Buka Peta Wilayah</span>
+                          <span className="text-xs font-black">→</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Loading Indicator */}
-        {loading && (
-          <div className="w-full mb-4">
-            <div className="bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 shadow-xs flex items-center gap-2 w-fit">
-              <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
-              <span className="text-[11.5px] font-bold text-slate-600 animate-pulse">
-                Sedang menganalisis data spasial & menghitung respons…
-              </span>
+              )}
             </div>
-          </div>
-        )}
+          ))}
 
-        <div ref={chatEndRef} />
+          {/* Loading Indicator (Bouncing Dots #A8DCAB Sesuai dkpp-info) */}
+          {loading && (
+            <div className="flex gap-2.5 sm:gap-3 justify-start items-center mb-4">
+              <div className="hidden sm:flex w-8 h-8 items-center justify-center shrink-0 select-none">
+                <img
+                  src="/ikon-chatDKPP.png"
+                  alt="DKPP AI"
+                  className="w-full h-full object-contain animate-pulse"
+                />
+              </div>
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-gray-200 text-xs text-gray-600 shadow-xs">
+                <div className="flex gap-1 items-center">
+                  <div className="w-2 h-2 rounded-full bg-[#A8DCAB] animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-[#A8DCAB] animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-2 h-2 rounded-full bg-[#A8DCAB] animate-bounce [animation-delay:0.4s]" />
+                </div>
+                <span className="font-medium text-slate-600">Chatbot sedang menganalisis database & menghitung respons…</span>
+              </div>
+            </div>
+          )}
+
+          <div ref={chatEndRef} />
+        </div>
       </div>
 
       {/* Floating Scroll to Bottom Button */}
       {showScrollBottom && (
         <button
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-20 right-6 z-30 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-md text-slate-600 hover:text-emerald-700 flex items-center justify-center transition-all cursor-pointer hover:shadow-lg active:scale-95"
+          className="absolute bottom-24 right-6 z-30 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-md text-slate-600 hover:text-emerald-700 flex items-center justify-center transition-all cursor-pointer hover:shadow-lg active:scale-95"
           title="Gulir ke paling bawah"
         >
           <ArrowDown className="w-3.5 h-3.5" />
         </button>
       )}
 
-      {/* Permanently Anchored Input Box Area (Reduced Height by 50% as in Capture 2) */}
-      <div className="p-2 md:p-2.5 bg-white border-t border-slate-200 shrink-0 relative z-20">
+      {/* Sticky ChatInput Container (Sesuai ChatInput dkpp-info) */}
+      <div className="px-2 sm:px-6 pb-2.5 sm:pb-3 pt-1.5 bg-white border-t border-gray-100 shrink-0 relative z-20">
         
-        {/* Multimodal Image Preview Card (Fase 2) */}
+        {/* Multimodal Image Preview Chip jika ada foto terlampir */}
         {selectedImage && (
-          <div className="mb-2 p-1.5 bg-slate-900/90 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2">
+          <div className="max-w-3xl mx-auto mb-2 p-1.5 bg-slate-900 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2 overflow-hidden">
-              <img src={selectedImage.preview} alt="Upload" className="w-9 h-9 object-cover rounded-lg border border-white/20 shrink-0" />
+              <img src={selectedImage.preview} alt="Upload" className="w-8 h-8 object-cover rounded-lg border border-white/20 shrink-0" />
               <div className="text-[11px] truncate">
                 <div className="font-bold text-emerald-400 flex items-center gap-1">
                   <span>📷 Foto Siap Dianalisis AI</span>
@@ -897,194 +1044,129 @@ export default function AIIntelligencePanel({
           onChange={handleImageSelect}
         />
 
-        {/* Expanded Mode */}
-        {isExpanded ? (
-          <div className="w-full bg-white border border-slate-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 rounded-xl transition-all duration-200 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between px-2.5 pt-1.5 pb-0.5 border-b border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mode Input Penuh</span>
-              <button
-                type="button"
-                onClick={() => setIsExpanded(false)}
-                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
-                title="Perkecil input (Collapse)"
-              >
-                <Minimize2 className="w-3.5 h-3.5 text-emerald-700" />
-              </button>
-            </div>
-            
-            <div className="flex-1 px-2.5 py-1 overflow-hidden flex flex-col">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Tanyakan atau upload foto daun padi/hama/posyandu…"
-                rows={3}
-                disabled={loading}
-                className="w-full flex-1 bg-transparent resize-none outline-none text-[12.5px] text-slate-800 font-semibold placeholder:text-slate-400 placeholder:font-normal leading-relaxed custom-scrollbar disabled:opacity-50 overflow-y-auto"
-              />
-            </div>
-
-            <div className="flex items-center justify-between px-2.5 pb-1.5 pt-0.5 border-t border-slate-100">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPlusMenuOpen(s => !s)}
-                  className="w-6 h-6 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
-                  title="Pilihan / Pertanyaan Cepat"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Upload Foto / Vision Button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-6 h-6 rounded-full text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer"
-                  title="Unggah Foto Daun/Hama/Posyandu (Multimodal Vision)"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={toggleSpeechRecognition}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                    isListening ? 'bg-rose-100 text-rose-600 animate-pulse' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
-                  }`}
-                  title="Input suara (Mic)"
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => sendMessage(inputValue)}
-                  disabled={loading || (!inputValue.trim() && !selectedImage)}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 ${
-                    (inputValue.trim() || selectedImage) && !loading
-                      ? 'bg-emerald-600 hover:bg-emerald-700'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
-                  title="Kirim (Enter)"
-                >
-                  {loading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                  ) : (
-                    <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-
-          /* Normal Mode (Sleek Compact Single Row ~50% Height) */
-          <div className="w-full bg-white border border-slate-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-100 rounded-xl transition-all duration-200 shadow-xs flex items-center px-2 py-1 gap-1.5">
-            
-            {/* Plus Button */}
-            <div className="relative shrink-0">
+        {/* Dynamic ChatInput Box (Pill / Multiline Rounded-2xl sesuai dkpp-info) */}
+        <div className="w-full max-w-3xl mx-auto">
+          <div
+            className={`relative flex items-end bg-white border border-gray-200/90 shadow-xs focus-within:border-gray-300 focus-within:shadow-md transition-all duration-200 ${
+              isMultiline
+                ? 'rounded-2xl p-2 sm:p-2.5'
+                : 'rounded-full px-2.5 py-1 sm:px-3.5 sm:py-1.5'
+            }`}
+          >
+            {/* Plus / Quick Prompts Button */}
+            <div className="relative shrink-0 mb-0.5">
               <button
                 type="button"
                 onClick={() => setPlusMenuOpen(s => !s)}
-                className="w-6 h-6 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
-                title="Pilihan / Pertanyaan Cepat"
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Pilihan & Pertanyaan Cepat"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4 text-gray-600" />
               </button>
 
               {plusMenuOpen && (
-                <div className="absolute bottom-8 left-0 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                  <div className="text-[9.5px] font-black text-slate-400 uppercase px-2 py-1">Pilih Cepat Topik:</div>
-                  {QUICK_PROMPTS.slice(0, 4).map((qp, qpi) => (
-                    <button
-                      key={qpi}
-                      onClick={() => {
-                        setInputValue(qp);
-                        setPlusMenuOpen(false);
-                        if (inputRef.current) inputRef.current.focus();
-                      }}
-                      className="w-full text-left text-[11px] font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 px-2 py-1 rounded-md transition-colors cursor-pointer truncate"
-                    >
-                      {qp}
-                    </button>
-                  ))}
+                <div className="absolute bottom-10 left-0 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="text-[10px] font-black text-slate-400 uppercase px-2 py-1 tracking-wider">Topik Cepat Analisis:</div>
+                  <div className="space-y-1">
+                    {QUICK_PROMPTS.map((qp, qpi) => (
+                      <button
+                        key={qpi}
+                        onClick={() => {
+                          setInputValue(qp);
+                          setPlusMenuOpen(false);
+                          if (inputRef.current) inputRef.current.focus();
+                        }}
+                        className="w-full text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer truncate flex items-center gap-1.5"
+                      >
+                        <span className="truncate">{qp}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Upload Foto / Vision Button */}
+            {/* Camera / Multimodal Vision Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-6 h-6 rounded-full text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shrink-0"
+              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-emerald-700 rounded-full hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer mb-0.5"
               title="Unggah Foto Daun/Hama/Posyandu (Multimodal Vision)"
             >
-              <Camera className="w-3.5 h-3.5" />
+              <Camera className="w-4 h-4 text-gray-600" />
             </button>
 
-            {/* Input Textarea (Single Row Auto-Expanding) */}
+            {/* Textarea Input (Auto-Resize Seamlessly) */}
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tanyakan atau upload foto hama/pertanian…"
+              placeholder="Ask anything or upload photo..."
               rows={1}
               disabled={loading}
-              className="flex-1 bg-transparent resize-none outline-none text-[12.5px] text-slate-800 font-semibold placeholder:text-slate-400 placeholder:font-normal leading-normal custom-scrollbar max-h-16 py-0.5 disabled:opacity-50"
+              className="flex-1 bg-transparent px-2 py-1 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none resize-none min-h-[24px] max-h-48 leading-relaxed self-center"
             />
 
-            {/* Right Tools: Mic, Expand Diagonal, Send */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Right Action Tools */}
+            <div className="flex items-center gap-1 shrink-0 mb-0.5">
+              {/* Think Mode Pill Button (Sesuai dkpp-info) */}
+              <button
+                type="button"
+                onClick={() => setIsThinkingMode(prev => !prev)}
+                title="Mode Berpikir Mendalam"
+                className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                  isThinkingMode
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <Brain className="w-3.5 h-3.5 text-gray-500" />
+                <span>Think</span>
+              </button>
+
+              {/* Voice Input (Web Speech API) */}
               <button
                 type="button"
                 onClick={toggleSpeechRecognition}
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                  isListening ? 'bg-rose-100 text-rose-600 animate-pulse' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                title={isListening ? 'Mendengarkan...' : 'Gunakan Suara'}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  isListening
+                    ? 'text-red-500 bg-red-50 animate-pulse'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
                 }`}
-                title="Input suara (Mic)"
               >
-                <Mic className="w-3.5 h-3.5" />
+                {isListening ? <MicOff className="w-4 h-4 text-rose-600" /> : <Mic className="w-4 h-4 text-gray-600" />}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsExpanded(true)}
-                className="w-6 h-6 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
-                title="Perluas input (Expand)"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-
+              {/* Send Button — Blue Rounded Circle (#1A73E8 Sesuai dkpp-info) */}
               <button
                 type="button"
                 onClick={() => sendMessage(inputValue)}
                 disabled={loading || (!inputValue.trim() && !selectedImage)}
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 ${
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all shrink-0 ${
                   (inputValue.trim() || selectedImage) && !loading
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    ? 'bg-[#1A73E8] hover:bg-blue-600 text-white shadow-xs cursor-pointer active:scale-95'
+                    : 'bg-[#1A73E8]/85 text-white opacity-80 cursor-default'
                 }`}
-                title="Kirim (Enter)"
+                title="Kirim Pesan"
               >
                 {loading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+                  <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
                 )}
               </button>
             </div>
           </div>
-        )}
 
-        {/* Footer Subtext */}
-        <p className="text-[9.5px] text-slate-400 font-medium mt-1 text-center">
-          Enter kirim · Shift+Enter baris baru · Multimodal Vision & GIS AI Cilegon
-        </p>
+          {/* Centered Disclaimer below input (Sesuai dkpp-info) */}
+          <div className="text-[11px] text-center text-gray-400 mt-1.5 px-2 select-none">
+            Food Security Intelligence can make mistakes. Check important info.
+          </div>
+        </div>
       </div>
+
     </div>
   );
 }
