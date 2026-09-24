@@ -56,6 +56,7 @@ export default function Sidebar({
   };
 
   const fiturUtamaSub = [
+    { label: 'Chatbot PanganCilegon', view: 'ai_intelligence' },
     { label: 'Panel Harga Pangan Strategis', view: 'harga_full' },
     { label: 'Peta Tematik FSVA dan SKPG', view: 'peta_full' },
     { label: 'Forecast Harga Pangan & EWS', view: 'forecasting' },
@@ -121,28 +122,6 @@ export default function Sidebar({
             <Home className="w-4 h-4 text-emerald-400 shrink-0" />
             {!isCollapsed && (
               <span className="text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words">BERANDA</span>
-            )}
-          </a>
-
-          {/* 2. FOOD SECURITY INTELLIGENCE (Di bawah Beranda) */}
-          <a
-            href="/?view=ai_intelligence"
-            onClick={(e) => handleNavClick(e, 'ai_intelligence')}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-200 hover:text-white hover:bg-white/10 text-left ${
-              currentView === 'ai_intelligence'
-                ? 'bg-emerald-800/80 text-white font-extrabold shadow-sm'
-                : 'hover:bg-emerald-900/40'
-            } ${isCollapsed ? 'justify-center px-0' : ''}`}
-            title={isCollapsed ? "FOOD SECURITY INTELLIGENCE" : undefined}
-          >
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            {!isCollapsed && (
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-black tracking-wider uppercase text-left whitespace-normal break-words leading-tight flex-1">
-                <span>FOOD SECURITY INTELLIGENCE</span>
-                <span className="text-[8px] font-black bg-amber-500/80 text-white px-1.5 py-0.5 rounded-full tracking-widest leading-none inline-block">
-                  BETA
-                </span>
-              </div>
             )}
           </a>
 

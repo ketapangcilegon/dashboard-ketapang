@@ -602,7 +602,8 @@ export default function AIIntelligenceMap({
   const mapRef = useRef<L.Map | null>(null);
   const { layers, loading: kmzLoading, loadFromURL } = useKMZLoader();
 
-  // Basemap & Layer visibility state
+  // Basemap & Layer visibility state (Default: osm_hot seperti pada Peta Tematik FSVA & SKPG)
+  const [basemap, setBasemap] = useState<'osm_hot' | 'satellite'>('osm_hot');
   const [showOsm, setShowOsm] = useState(false);
   const [mapZoom, setMapZoom] = useState(12.5);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
@@ -970,11 +971,20 @@ export default function AIIntelligenceMap({
         zoomControl={true}
         attributionControl={false}
       >
-        {/* Basemap Satelit Esri */}
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          attribution='<span style="background:#fff;border:1.5px solid #e0e0e0;border-radius:5px;padding:2px 9px 2px 6px;font-weight:800;color:#c45200;font-size:11px;display:inline-flex;align-items:center;gap:5px;vertical-align:middle">🐺 RidwanS</span> Tiles &copy; Esri'
-        />
+        {/* Basemap Utama: Default OSM HOT (Tematik Topo seperti di FSVA - Laut Biru & Ikon Gunung) */}
+        {basemap === 'osm_hot' ? (
+          <TileLayer
+            key="basemap-osm-hot"
+            url="https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'
+          />
+        ) : (
+          <TileLayer
+            key="basemap-satellite"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution='<span style="background:#fff;border:1.5px solid #e0e0e0;border-radius:5px;padding:2px 9px 2px 6px;font-weight:800;color:#c45200;font-size:11px;display:inline-flex;align-items:center;gap:5px;vertical-align:middle">🐺 RidwanS</span> Tiles &copy; Esri'
+          />
+        )}
 
         {/* Overlay Jalan & Sungai OSM (Toggleable) */}
         {showOsm && (
@@ -1346,6 +1356,37 @@ export default function AIIntelligenceMap({
                 <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-extrabold border border-emerald-200">
                   Serumpun Padi
                 </span>
+              </div>
+
+              {/* Pilihan Basemap Utama (Default OSM HOT seperti pada FSVA) */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-1.5 mb-1 flex flex-col gap-1">
+                <span className="text-[9.5px] font-black uppercase text-slate-500 tracking-wider">
+                  Model Basemap Dasar
+                </span>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setBasemap('osm_hot')}
+                    className={`px-2 py-1.5 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer ${
+                      basemap === 'osm_hot'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    🗺️ Topo / FSVA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBasemap('satellite')}
+                    className={`px-2 py-1.5 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer ${
+                      basemap === 'satellite'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    🛰️ Satelit Esri
+                  </button>
+                </div>
               </div>
 
               {/* Toggle Sawah Baku */}

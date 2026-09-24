@@ -102,6 +102,7 @@ interface AIIntelligencePanelProps {
   onPinsHighlight?: (pins: MatchedPin[]) => void;
   onMapAction?: (action: MapAction) => void;
   isFullScreen?: boolean;
+  isFullChat?: boolean;
   externalPrompt?: string | null;
   onClearExternalPrompt?: () => void;
 }
@@ -329,6 +330,7 @@ export default function AIIntelligencePanel({
   onPinsHighlight,
   onMapAction,
   isFullScreen = false,
+  isFullChat = false,
   externalPrompt,
   onClearExternalPrompt
 }: AIIntelligencePanelProps) {
@@ -699,8 +701,6 @@ export default function AIIntelligencePanel({
         <div className="flex items-center gap-1.5 font-bold">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-slate-700 font-extrabold">Food Security Intelligence</span>
-          <span className="hidden sm:inline text-slate-400">|</span>
-          <span className="hidden sm:inline text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded font-bold">DKPP Cilegon</span>
           {syncSuccessMsg && (
             <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-black animate-pulse ml-2">
               {syncSuccessMsg}
@@ -734,9 +734,9 @@ export default function AIIntelligencePanel({
       <div 
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-1.5 sm:px-4 py-2.5 sm:py-5 space-y-4 sm:space-y-5 custom-scrollbar bg-slate-50/30 relative"
+        className={`flex-1 min-h-0 overflow-y-auto ${isFullChat ? 'px-2 sm:px-6 md:px-8' : 'px-1.5 sm:px-4'} py-2.5 sm:py-5 space-y-4 sm:space-y-5 custom-scrollbar bg-slate-50/30 relative`}
       >
-        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5 w-full px-0">
+        <div className={`mx-auto space-y-4 sm:space-y-5 w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} px-0`}>
           
           {/* Initial / Empty State — Sesuai dkpp-info (Center Greeting + 6 Showcase Cards) */}
           {messages.length === 0 && !loading && (
@@ -889,26 +889,6 @@ export default function AIIntelligencePanel({
                       {renderMarkdown(msg.text)}
                     </div>
 
-                    {/* Wilayah / Kelurahan Sorotan */}
-                    {msg.wilayah && msg.wilayah.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
-                        <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-                          📍 Sorotan:
-                        </span>
-                        {msg.wilayah.map((w, wi) => (
-                          <button 
-                            key={wi} 
-                            onClick={() => handleWilayahClick(w)}
-                            className="text-[9.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-2xs"
-                            title={`Klik untuk mengarahkan peta ke ${w}`}
-                          >
-                            <span>📍</span>
-                            <span>{w}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
                     {/* Action Bar (Copy, Feedback, Share) */}
                     <div className="flex items-center gap-2 pt-2.5 mt-2 border-t border-gray-100 text-gray-400 text-xs">
                       <button
@@ -940,33 +920,6 @@ export default function AIIntelligencePanel({
                         <ThumbsDown className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
-                    {/* Tawaran Beralih ke Mode Peta GIS jika ada sorotan wilayah */}
-                    {msg.wilayah && msg.wilayah.length > 0 && onMapAction && (
-                      <div className="mt-3 p-3 sm:p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
-                        <div className="flex items-start sm:items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                            <span className="text-sm">🗺️</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-emerald-950">
-                              Tampilan Peta Geospasial Wilayah Terkait
-                            </span>
-                            <span className="text-[11px] text-emerald-700 leading-tight mt-0.5">
-                              Lihat visualisasi spasial 407 petak sawah, lengas tanah & fasilitas pangan.
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleWilayahClick(msg.wilayah![0])}
-                          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                        >
-                          <span>Buka Peta Wilayah</span>
-                          <span className="text-xs font-black">→</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -1014,7 +967,7 @@ export default function AIIntelligencePanel({
         
         {/* Multimodal Image Preview Chip jika ada foto terlampir */}
         {selectedImage && (
-          <div className="max-w-3xl mx-auto mb-2 p-1.5 bg-slate-900 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2">
+          <div className={`${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto mb-2 p-1.5 bg-slate-900 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2`}>
             <div className="flex items-center gap-2 overflow-hidden">
               <img src={selectedImage.preview} alt="Upload" className="w-8 h-8 object-cover rounded-lg border border-white/20 shrink-0" />
               <div className="text-[11px] truncate">
@@ -1045,7 +998,7 @@ export default function AIIntelligencePanel({
         />
 
         {/* Dynamic ChatInput Box (Pill / Multiline Rounded-2xl sesuai dkpp-info) */}
-        <div className="w-full max-w-3xl mx-auto">
+        <div className={`w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto`}>
           <div
             className={`relative flex items-end bg-white border border-gray-200/90 shadow-xs focus-within:border-gray-300 focus-within:shadow-md transition-all duration-200 ${
               isMultiline

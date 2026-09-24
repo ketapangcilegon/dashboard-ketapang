@@ -89,9 +89,6 @@ export default function AIIntelligenceView() {
                 <h2 className="font-extrabold text-slate-800 text-sm sm:text-base uppercase tracking-wide leading-snug">
                   FOOD SECURITY INTELLIGENCE
                 </h2>
-                <span className="text-[8.5px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest leading-none">
-                  BETA
-                </span>
               </div>
             </div>
           </div>
@@ -156,6 +153,7 @@ export default function AIIntelligenceView() {
                       externalPrompt={pendingPrompt}
                       onClearExternalPrompt={handleClearPendingPrompt}
                       isFullScreen={true}
+                      isFullChat={activeTab === 'chat'}
                     />
                   </ErrorBoundary>
                 </div>
@@ -199,6 +197,7 @@ export default function AIIntelligenceView() {
                       externalPrompt={pendingPrompt}
                       onClearExternalPrompt={handleClearPendingPrompt}
                       isFullScreen={true}
+                      isFullChat={activeTab === 'chat'}
                     />
                   </ErrorBoundary>
                 </div>
