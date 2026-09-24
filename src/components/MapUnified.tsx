@@ -606,10 +606,10 @@ function MapController({
                         ? 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-500'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
-                    title="Peta Standar Topografi & Laut Biru (Default)"
+                    title="Peta Jalan Standar (Default)"
                   >
-                    <span>🌊</span>
-                    <span>Standar</span>
+                    <span>🗺️</span>
+                    <span>Jalan</span>
                   </button>
                   <button
                     type="button"
@@ -1364,14 +1364,14 @@ export default function MapUnified({
         };
       case 'light':
         return {
-          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url: "https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
         };
       case 'streets':
       default:
         return {
-          url: "https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         };
     }
   };
