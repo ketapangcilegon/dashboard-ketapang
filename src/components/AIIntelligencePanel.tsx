@@ -104,10 +104,13 @@ interface AIIntelligencePanelProps {
 
 const QUICK_PROMPTS = [
   '📊 Bagaimana kondisi ketahanan pangan Cilegon saat ini (IKP, FSVA, SKPG, POU)?',
+  '🎯 Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2026-2030?',
+  '👩‍🌾 Tampilkan sebaran dan profil 84 KWT (Kelompok Wanita Tani) se-Kota Cilegon!',
   '💰 Bagaimana kondisi harga pangan harian SAGON dan peramalan EWS inflasi?',
   '📈 Buat grafik produksi padi 5 tahun terakhir beserta trendline',
   '🌾 Berapa luas sawah baku dan kondisi lengas tanah ECMWF di Cilegon?',
-  '🐟 Bagaimana kondisi kolam budidaya dan nelayan tangkap Cilegon?',
+  '🐟 Bagaimana data potensi perikanan, sebaran 723 nelayan, dan produksi ikan Cilegon?',
+  '⛵ Tampilkan data profil perikanan Cilegon (pangkalan, 58 KUB, koperasi, dan kapal tangkap)',
   '👨‍🌾 Di kelurahan mana yang paling banyak terdapat peternak?'
 ];
 

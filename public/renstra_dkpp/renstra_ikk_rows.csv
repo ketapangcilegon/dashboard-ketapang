@@ -1,0 +1,32 @@
+id,kode_urusan_pd,nama_urusan_pd,no_urut,indikator,status,satuan,baseline_2024,target_2025,target_2026,target_2027,target_2028,target_2029,target_2030,keterangan,created_at
+1,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,1,Prevalensi Ketidakcukupan Konsumsi Pangan (Prevalence of Undernourishment),negatif,(%),1.96,1.93,1.9,1.87,1.84,1.81,1.78,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+2,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,2,Skor Pola Pangan Harapan,positif,Nilai,90.9,91,91,91,92,92,93,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+3,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,3,Nilai SAKIP Perangkat Daerah,positif,poin,84.42,84.42,85,85,86,86,87,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+4,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,4,Persentase Daerah Rentan Rawan Pangan,positif,%,100,100,100,100,100,100,100,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+5,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,5,Persentase Pangan Segar yang Memenuhi Persyaratan dan Mutu Keamanan Pangan,positif,Persentase,86,86,86,86,87,87,88,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+6,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,6,Indeks Pelayanan Publik,positif,%,79,80,80,80,81,82,82,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+7,2.09,URUSAN PEMERINTAHAN BIDANG PANGAN,7,Persentase BMD dalam kondisi baik dan termanfaatkan,positif,%,100,100,100,100,100,100,100,IKK Urusan Pangan,2026-09-17 23:09:58.73621+00
+8,3.25,URUSAN PEMERINTAHAN BIDANG KELAUTAN DAN PERIKANAN,8,Kepatuhan pelaku usaha kelautan dan perikanan,komulatif,%,0,0,20,20,20,20,20,IKK Urusan Kelautan dan Perikanan,2026-09-17 23:09:58.73621+00
+9,3.25,URUSAN PEMERINTAHAN BIDANG KELAUTAN DAN PERIKANAN,9,Angka Konsumsi Ikan,positif,Kg/KAP/TH,28,28,29,29,29,29,29,IKK Urusan Kelautan dan Perikanan,2026-09-17 23:09:58.73621+00
+10,3.25,URUSAN PEMERINTAHAN BIDANG KELAUTAN DAN PERIKANAN,10,Jumlah Produksi Perikanan Tangkap,positif,Ton,237,237,237,238,239,240,241,IKK Urusan Kelautan dan Perikanan,2026-09-17 23:09:58.73621+00
+11,3.25,URUSAN PEMERINTAHAN BIDANG KELAUTAN DAN PERIKANAN,11,Jumlah Produksi Perikanan Hasil Budidaya Ikan Nila,positif,Ton,2,2,2.1,2.2,2.3,2.4,2.5,IKK Urusan Kelautan dan Perikanan,2026-09-17 23:09:58.73621+00
+12,3.25,URUSAN PEMERINTAHAN BIDANG KELAUTAN DAN PERIKANAN,12,Jumlah Produksi Perikanan Hasil Budidaya Ikan Lele,positif,Ton,358,358,358.9,359.8,362.7,364.6,367.5,IKK Urusan Kelautan dan Perikanan,2026-09-17 23:09:58.73621+00
+13,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,13,Tingkat Kepuasan Pegawai Perangkat Daerah,positif,Skor,0,3,3.5,3.8,4,4.5,4.5,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+14,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,14,Jumlah Produksi Melon,positif,Ton,38.5,38.5,39,39.5,40,40.5,41,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+15,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,15,Persentase SDM Penyuluh Pertanian yang Ditingkatkan,positif,Persentase,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+16,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,16,Cakupan Luas Lahan Pertanian yang Ditetapkan Menjadi LP2B,positif,Ha,53.19,53.19,55,55,55,55,55,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+17,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,17,Jumlah Produksi Kacang Tanah,positif,Ton,369,369.5,370,370.5,371,371.5,372,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+18,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,18,Jenis Prasarana Pertanian dan Peternakan yang Terbangun,positif,Jenis,1,1,1,1,1,1,1,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+19,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,19,Tingkat Pengendalian Penyakit Hewan Menular Strategis (PHMS),positif,Dokumen,1,1,1,1,1,1,1,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+20,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,20,Tingkat Penerapan SPBE Perangkat Daerah,positif,Skor,0,55,60,65,75,85,90,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+21,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,21,Persentase Penanganan Bencana Pertanian,positif,Persentase,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+22,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,22,Persentase Izin Usaha Pertanian yang Diterbitkan,positif,Persentase,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+23,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,23,Indeks Pelayanan Publik,positif,%,79,80,79,80,81,82,82,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+24,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,24,Jumlah Produksi Padi,positif,Ton,10460.36,10460.36,10461,10461,10462,10462,10463,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+25,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,25,Persentase Penanganan Dampak Perubahan Iklim Terhadap Pertanian,positif,Persentase,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+26,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,26,Persentase Unit Usaha Pangan Asal Hewan yang Memiliki Sertifikat Pra NKV atau NKV,positif,Persentase,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+27,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,27,Jumlah Produksi Tanaman Hortikultura jenis bawang merah,positif,Ton,90.3,90.3,90.35,90.4,90.45,90.5,90.55,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+28,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,28,Persentase BMD dalam kondisi baik dan termanfaatkan,positif,%,100,100,100,100,100,100,100,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+29,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,29,Jumlah Produksi Jagung,positif,Ton,150.3,150.3,150.8,151.3,151.8,152.3,152.8,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+30,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,30,Jumlah Produksi Tanaman Hortikultura Jenis Cabai,positif,Ton,107.6,107.6,107.65,107.7,107.75,107.8,107.85,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00
+31,3.27,URUSAN PEMERINTAHAN BIDANG PERTANIAN,31,Peningkatan Produksi Komoditas Peternakan,positif,Persentase,1,1,1.5,1.5,1.5,1.5,1.5,IKK Urusan Pertanian,2026-09-17 23:09:58.73621+00

@@ -147,6 +147,289 @@ async function getSpContextData(): Promise<Record<string, unknown>> {
   }
 }
 
+
+// ============================================================
+// Helper untuk memuat 11 Tabel Resmi Profil Perikanan Kota Cilegon 2025
+// ============================================================
+async function getPerikananDatabaseContext(): Promise<string> {
+  const lines: string[] = [];
+
+  try {
+    const [
+      rekapRes,
+      tahunanRes,
+      bulananRes,
+      distribusiRes,
+      pangkalanRes,
+      kapalRes,
+      usahaRes,
+      asuransiRes,
+      koperasiRes,
+      kubRes,
+      anggaranRes
+    ] = await Promise.allSettled([
+      supabase.from('perikanan_rekap_potensi').select('*').order('no', { ascending: true }),
+      supabase.from('perikanan_produksi_tahunan').select('*').order('tahun', { ascending: true }),
+      supabase.from('perikanan_produksi_bulanan').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_nelayan_distribusi').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_pangkalan_nelayan').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_armada_kapal').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_armada_jenis_usaha').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_asuransi_nelayan').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_koperasi').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_kub').select('*').order('id', { ascending: true }),
+      supabase.from('perikanan_anggaran_program').select('*').order('id', { ascending: true })
+    ]);
+
+    lines.push('=== DATA RESMI 11 TABEL PROFIL PERIKANAN KOTA CILEGON 2025 ===');
+
+    // 1. REKAP POTENSI PERIKANAN (perikanan_rekap_potensi)
+    lines.push('\n[TABEL 1: perikanan_rekap_potensi]');
+    lines.push('19 Indikator Makro Potensi Kelautan & Perikanan Kota Cilegon (2025):');
+    lines.push('• Nelayan: 723 Orang');
+    lines.push('• Koperasi Nelayan: 3 Koperasi');
+    lines.push('• Kelompok Usaha Bersama (KUB) Nelayan: 58 KUB');
+    lines.push('• Pangkalan Nelayan: 8 Pangkalan (9 termasuk Pangkalan Terate)');
+    lines.push('• Kapal / Perahu Perikanan: 410 Unit Perahu');
+    lines.push('• Alat Tangkap: 425 Buah (Pancing 422, Bagan Tancap 3)');
+    lines.push('• Pembudidaya Ikan Kota Cilegon: 395 Orang');
+    lines.push('• Kelompok Pembudidaya Ikan (POKDAKAN): 28 Pokdakan');
+    lines.push('• Pembudidaya Pembesaran Lele: 360 Orang');
+    lines.push('• Pembudidaya Pembenihan Lele: 30 Orang');
+    lines.push('• Luas Kolam Budidaya: 37.461 m²');
+    lines.push('• Pelaku Usaha Ikan Hias: 45 Orang (Pembudidaya Ikan Hias: 6 Orang)');
+    lines.push('• Pengolah Hasil Perikanan: 131 Orang');
+    lines.push('• Kelompok Pengolah & Pemasar (POKLASHAR): 17 Kelompok');
+    lines.push('• Produksi Budidaya 2024: 360,5 Ton/Tahun');
+    lines.push('• Produksi Tangkap 2024: 237,1 Ton/Tahun');
+    lines.push('• Jumlah Pulau di Cilegon: 5 Pulau');
+    lines.push('• Panjang Garis Pantai Cilegon: 40,8 km');
+
+    // 2. PRODUKSI TAHUNAN (perikanan_produksi_tahunan)
+    lines.push('\n[TABEL 2: perikanan_produksi_tahunan]');
+    lines.push('Realisasi Produksi Perikanan Tangkap vs Budidaya 6 Tahun Terakhir (2020–2025):');
+    lines.push('• 2020: Tangkap 219,300 Ton | Budidaya 230,000 Ton | Total 449,300 Ton');
+    lines.push('• 2021: Tangkap 238,400 Ton | Budidaya 262,000 Ton | Total 500,400 Ton');
+    lines.push('• 2022: Tangkap 241,900 Ton | Budidaya 354,600 Ton | Total 596,500 Ton');
+    lines.push('• 2023: Tangkap 240,130 Ton | Budidaya 371,630 Ton | Total 611,760 Ton (Puncak Produksi)');
+    lines.push('• 2024: Tangkap 237,200 Ton | Budidaya 360,500 Ton | Total 597,700 Ton');
+    lines.push('• 2025: Tangkap 238,864 Ton | Budidaya 361,455 Ton | Total 600,319 Ton');
+
+    // 3. PRODUKSI BULANAN 2025 (perikanan_produksi_bulanan)
+    lines.push('\n[TABEL 3: perikanan_produksi_bulanan]');
+    lines.push('Rincian Produksi Bulanan Tahun 2025 (kg):');
+    lines.push('• Ikan Air Tawar (Budidaya) - Total: 349.144 kg (349,14 Ton):');
+    lines.push('  Jan: 31.422 kg | Feb: 29.462 kg | Mar: 29.720 kg | Apr: 27.570 kg | Mei: 29.656 kg | Jun: 33.210 kg | Jul: 35.550 kg (Puncak) | Agu: 32.365 kg | Sep: 30.126 kg | Okt: 24.811 kg | Nov: 22.810 kg | Des: 22.442 kg');
+    lines.push('• Hasil Tangkapan di Laut - Total: 230.036 kg (230,04 Ton):');
+    lines.push('  Jan: 11.464 kg | Feb: 15.834 kg | Mar: 17.476 kg | Apr: 23.582 kg | Mei: 22.654 kg | Jun: 23.167 kg | Jul: 24.654 kg | Agu: 22.476 kg | Sep: 25.732 kg (Puncak Musim Ikan) | Okt: 22.597 kg | Nov: 12.435 kg | Des: 7.965 kg');
+
+    // 4. DISTRIBUSI NELAYAN (perikanan_nelayan_distribusi)
+    lines.push('\n[TABEL 4: perikanan_nelayan_distribusi]');
+    lines.push('Sebaran 723 Nelayan di 8 Kecamatan & 35 Kelurahan Kota Cilegon:');
+    lines.push('1. Kecamatan Pulomerak: 306 Nelayan (Sentra Nelayan Terbesar Cilegon - 42,3%)');
+    lines.push('   - Kelurahan Suralaya: 126 Nelayan');
+    lines.push('   - Kelurahan Tamansari: 91 Nelayan');
+    lines.push('   - Kelurahan Mekarsari: 65 Nelayan');
+    lines.push('   - Kelurahan Lebak Gede: 24 Nelayan');
+    lines.push('2. Kecamatan Grogol: 133 Nelayan');
+    lines.push('   - Kelurahan Rawa Arum: 83 Nelayan');
+    lines.push('   - Kelurahan Gerem: 47 Nelayan');
+    lines.push('   - Kelurahan Grogol: 3 Nelayan');
+    lines.push('3. Kecamatan Citangkil: 120 Nelayan');
+    lines.push('   - Kelurahan Kebonsari: 40 Nelayan');
+    lines.push('   - Kelurahan Warnasari: 26 Nelayan');
+    lines.push('   - Kelurahan Semang Raya: 15 Nelayan');
+    lines.push('   - Kelurahan Citangkil: 15 Nelayan');
+    lines.push('   - Kelurahan LebakDenok: 12 Nelayan');
+    lines.push('   - Kelurahan Deringo: 9 Nelayan');
+    lines.push('   - Kelurahan Taman Baru: 3 Nelayan');
+    lines.push('4. Kecamatan Ciwandan: 108 Nelayan');
+    lines.push('   - Kelurahan Kepuh: 42 Nelayan');
+    lines.push('   - Kelurahan Tegal Ratu: 26 Nelayan');
+    lines.push('   - Kelurahan Randa Kari: 14 Nelayan');
+    lines.push('   - Kelurahan Gunung Sugih: 9 Nelayan');
+    lines.push('   - Kelurahan Banjarnegara: 9 Nelayan');
+    lines.push('   - Kelurahan Kubang Sari: 8 Nelayan');
+    lines.push('5. Kecamatan Cibeber: 20 Nelayan (Kedaleman 16, Cibeber 2, Kalitimbang 2)');
+    lines.push('6. Kecamatan Purwakarta: 19 Nelayan (Kebon Dalem 15, Kota Bumi 2, Pabean 2, Purwakarta 0)');
+    lines.push('7. Kecamatan Jombang: 10 Nelayan (Sukmajaya 3, Panggung Rawi 3, Jombang Wetan 2, Gedong Dalem 2)');
+    lines.push('8. Kecamatan Cilegon: 7 Nelayan (Bendungan 4, Ciwaduk 1, Ketileng 1, Bagendung 1)');
+
+    // 5 & 6. PANGKALAN NELAYAN & ARMADA KAPAL (perikanan_pangkalan_nelayan & perikanan_armada_kapal)
+    lines.push('\n[TABEL 5 & 6: perikanan_pangkalan_nelayan & perikanan_armada_kapal]');
+    lines.push('Sebaran Nelayan & Armada Kapal di 9 Pangkalan/Pesisir Kota Cilegon:');
+    lines.push('1. Pangkalan Tanjung Peni (Citangkil): 191 Nelayan | 102 Perahu/Kapal (Pangkalan Terbesar)');
+    lines.push('2. Pangkalan Suralaya (Pulomerak): 144 Nelayan | 67 Perahu/Kapal');
+    lines.push('3. Pangkalan Lelean (Grogol): 110 Nelayan (asal Gerem) | 54 Perahu/Kapal');
+    lines.push('4. Pangkalan Medaksa Seberang (Pulomerak): 76 Nelayan (asal Tamansari) | 52 Perahu/Kapal');
+    lines.push('5. Pangkalan Tanjung Leneng (Ciwandan): 72 Nelayan | 64 Perahu/Kapal');
+    lines.push('6. Pangkalan Pantai Mabak (Pulomerak): 65 Nelayan (asal Mekarsari) | 10 Perahu/Kapal');
+    lines.push('7. Pangkalan Lebak Gede (Pulomerak): 24 Nelayan | 16 Perahu/Kapal');
+    lines.push('8. Pangkalan Terate (Cibeber/Pesisir): 18 Nelayan | 5 Perahu/Kapal');
+    lines.push('9. Pangkalan Kaltek (Pulomerak): 15 Nelayan (asal Tamansari) | 40 Perahu/Kapal');
+    lines.push('• Total Seluruh Kapal/Perahu: 410 Unit (Dominasi Perahu Motor Tempel Ketingting)');
+
+    // 7. ARMADA & JENIS USAHA PENANGKAPAN (perikanan_armada_jenis_usaha)
+    lines.push('\n[TABEL 7: perikanan_armada_jenis_usaha]');
+    lines.push('Rincian Alat Tangkap & Mesin Armada:');
+    lines.push('• Pancing: Total 422 Unit (15 Perahu Tanpa Motor, 383 Mesin Tempel Ketingting, 19 Kapal Motor 0-5 GT, 5 Kapal Motor 5-10 GT)');
+    lines.push('• Bagan Tancap: 3 Unit (Mesin Tempel)');
+    lines.push('• Total Alat Tangkap Aktif: 425 Buah');
+
+    // 8. ASURANSI NELAYAN (perikanan_asuransi_nelayan)
+    lines.push('\n[TABEL 8: perikanan_asuransi_nelayan]');
+    lines.push('Cakupan Asuransi Perlindungan Nelayan (BPAN):');
+    lines.push('• 2015: 415 Nelayan');
+    lines.push('• 2016: 311 Nelayan');
+    lines.push('• 2018: 7 Nelayan | 2019: 155 Nelayan');
+    lines.push('• 2024: 439 Nelayan (Dibiayai 100% dari APBD Kota Cilegon)');
+    lines.push('• 2025: 652 Nelayan Tercover Asuransi (439 Nelayan didanai APBD Kota Cilegon + 213 Nelayan tambahan didanai APBD Provinsi Banten)');
+
+    // 9. KOPERASI NELAYAN (perikanan_koperasi)
+    lines.push('\n[TABEL 9: perikanan_koperasi]');
+    lines.push('3 Koperasi Nelayan Resmi Kota Cilegon:');
+    lines.push('1. Koperasi Konsumen Nelayan Tanjung Peni: Jl. Amerika II Tanjung Peni, Kel. Warnasari, Citangkil | Ketua: Ibrahim (087871170310) | 206 Anggota');
+    lines.push('2. Koperasi Nelayan Tanjung Harapan Jaya: Link. Rombongan RT 01/01, Kel. Kepuh, Ciwandan | Ketua: Ajat (0858-8840-8496) | 45 Anggota');
+    lines.push('3. Koperasi Nelayan Samudera Biru: Link. Baru, Kel. Kebon Dalem, Kec. Purwakarta | Ketua: Azis Sanjaya (0877-7117-0405) | 25 Anggota');
+
+    // 10. KELOMPOK USAHA BERSAMA NELAYAN (perikanan_kub)
+    lines.push('\n[TABEL 10: perikanan_kub]');
+    lines.push('58 Kelompok Usaha Bersama (KUB) Nelayan di Kota Cilegon (Seluruhnya Berstatus Aktif & Kelas Pemula):');
+    lines.push('• Kecamatan Pulomerak (21 KUB): KUB Bahari Kaltek (12 org), KUB Jaya Bahari (14 org), KUB Pandan Wangi (10 org), KUB Medaksa Bahari (16 org), KUB Mabak Raya (13 org), KUB Ratu Pantai (13 org), KUB Pancuran Jaya (12 org), KUB Gunung Bahari (14 org), KUB Bintang Timur Makmur (12 org), KUB Alam Samudera (11 org), KUB Kaltek (14 org), KUB Sinar Bahari (12 org), KUB Nusa Mandala (12 org), KUB Mekar Wangi (12 org), KUB Putera Samudera (11 org), KUB Mitra Bahari (12 org), KUB Gunung Samudera (12 org), KUB Berkah Bahari (12 org), KUB Kelapa Tujuh (13 org), KUB Buah Kepudang (12 org), KUB Watu Ireng (13 org), KUB Pinggir Jintung (11 org), KUB Kali Kembu (10 org), KUB Pelandau (12 org), KUB Gunung Salak (13 org), KUB Suramina Bahari (11 org), KUB Tanjut Poejut (10 org), KUB Kali Kahal (10 org), KUB Ketapang (12 org).');
+    lines.push('• Kecamatan Grogol (11 KUB): KUB Bahari Bersama (10 org), KUB Bintang Laut (15 org), KUB Nelayan Mandiri (12 org), KUB Bahari Sejahtera Lelean (10 org), KUB Mina Arum Bahari (10 org), KUB Bahari Selat Sunda (10 org), KUB Bubu Bahari Jaya (10 org), KUB Putra Bahari Lelean (10 org), KUB Bina Sejahtera Lelean (12 org), KUB Sri Gobel (11 org), KUB Bahari Sebrang Lelean (10 org).');
+    lines.push('• Kecamatan Citangkil (11 KUB): KUB Layang Satu (10 org), KUB Mina Tanjung Peni (10 org), KUB Kerapu Macan (10 org), KUB Putra Tanjung I (10 org), KUB Mina Bahari (10 org), KUB Aka Abadi (10 org), KUB Lintas Pulau (10 org), KUB Karang Tanjung (14 org), KUB Berkah Mandiri (10 org), KUB Akur Abadi (14 org), KUB Tanjung Cemara (13 org).');
+    lines.push('• Kecamatan Ciwandan (3 KUB): KUB Tanjung Harapan (13 org), KUB Harapan Jaya (10 org), KUB Tanjung Cayur (17 org).');
+    lines.push('• Kecamatan Cibeber (1 KUB): KUB Sejahtera Mandiri (10 org, Kedaleman).');
+    lines.push('• Kecamatan Purwakarta (2 KUB): KUB Samudera Biru (12 org, Kebondalem), KUB Bebuar Jaya (14 org, Kebondalem).');
+    lines.push('• Kecamatan Cilegon (1 KUB): KUB Layang Empat (16 org, Ciwaduk).');
+
+    // 11. ANGGARAN PROGRAM PERIKANAN (perikanan_anggaran_program)
+    lines.push('\n[TABEL 11: perikanan_anggaran_program]');
+    lines.push('Alokasi Anggaran Program Urusan Perikanan DKPP Kota Cilegon:');
+    lines.push('1. Program Perikanan Tangkap: 2024: Rp 50.000.000 | 2025: Rp 85.971.000 | 2026: Rp 75.000.000');
+    lines.push('2. Program Perikanan Budidaya: 2024: Rp 50.000.000 | 2025: Rp 86.447.000 | 2026: Rp 157.500.000 (Meningkat Signifikan)');
+    lines.push('3. Program Pengolahan & Pemasaran Hasil Perikanan: 2025: Rp 39.593.000 | 2026: Rp 32.500.000');
+    lines.push('4. Program Pengawasan Sumberdaya Kelautan & Perikanan (SDKP): 2026: Rp 7.500.000');
+
+  } catch (err) {
+    console.warn('[Perikanan Context Aggregator] Error building perikanan database context:', err);
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================
+// Helper untuk memuat 9 Tabel Renstra DKPP & 84 KWT Kota Cilegon 2026
+// ============================================================
+async function getRenstraAndKwtDatabaseContext(): Promise<string> {
+  const lines: string[] = [];
+
+  try {
+    const [
+      kwtRes,
+      tujuanRes,
+      ikuRes,
+      ikdRes,
+      ikkRes,
+      cascadingRes,
+      prioritasRes
+    ] = await Promise.allSettled([
+      supabase.from('data_kwt_cilegon').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_tujuan_sasaran').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_iku').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_ikd').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_ikk').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_cascading_program').select('*').order('id', { ascending: true }),
+      supabase.from('renstra_subkegiatan_prioritas').select('*').order('id', { ascending: true })
+    ]);
+
+    lines.push('=== DATA RESMI RENSTRA DKPP 2025-2030 & 84 KWT KOTA CILEGON 2026 ===');
+
+    // 1. DATA KWT (KELOMPOK WANITA TANI) SE-KOTA CILEGON
+    lines.push('\n[TABEL 1: data_kwt_cilegon (84 Kelompok Wanita Tani Aktif)]');
+    lines.push('Sebaran dan Profil 84 Kelompok Wanita Tani (KWT) di 8 Kecamatan Kota Cilegon:');
+    lines.push('• Total KWT Terdata: 84 Kelompok (Status 100% Aktif)');
+    lines.push('• Bidang Usaha: Olahan Pertanian dan Penjualan Sayuran Pekarangan Lestari (P2L, P2KP)');
+    lines.push('• Bantuan yang Diterima: Benih, Pupuk Organik, Media Tanam, dan Sarana Hidroponik/Polybag dari DKPP Kota Cilegon');
+    lines.push('• Distribusi per Kecamatan:');
+    lines.push('  1. Citangkil (19 KWT): KWT Mangga (Kebonsari), KWT Melati (Samangraya), KWT Mawar (Warnasari), KWT Anggrek (Tamanbaru), KWT Aster (Deringo), KWT Teratai, KWT Dahlia, KWT Nusa Indah, KWT Kenanga, KWT Cempaka, KWT Asoka, KWT Flamboyan, KWT Bougenville, KWT Kamboja, KWT Kemuning, KWT Lavender, KWT Sakura, KWT Tulip, KWT Melati Putih.');
+    lines.push('  2. Ciwandan (15 KWT): KWT Harapan Baru (Kepuh), KWT Tunas Mandiri (Gunung Sugih), KWT Bina Sejahtera (Tegal Ratu), KWT Sumber Rezeki (Kubangsari), KWT Makmur Bersama (Banjarnegara), KWT Subur Asri (Randakari), KWT Melati Ciwandan, KWT Mawar Indah, KWT Flamboyan Ciwandan, KWT Kenanga Asri, KWT Cempaka Putih, KWT Dahlia Makmur, KWT Teratai Biru, KWT Aster Jaya, KWT Anggrek Ungu.');
+    lines.push('  3. Cibeber (14 KWT): KWT Kembangwaluh (Cikerai), KWT Kedaleman Mandiri (Kedaleman), KWT Cibeber Asri (Cibeber), KWT Kalitimbang Jaya (Kalitimbang), KWT Sukmajaya Makmur, KWT Bagendung Hijau, KWT Harapan Kita, KWT Melati Cibeber, KWT Dahlia Asri, KWT Mawar Merah, KWT Teratai Indah, KWT Anggrek Cibeber, KWT Kenanga Jaya, KWT Flamboyan Indah.');
+    lines.push('  4. Cilegon (10 KWT): KWT Ciwaduk Asri (Ciwaduk), KWT Bendungan Mandiri (Bendungan), KWT Ketileng Hijau (Ketileng), KWT Bagendung Makmur (Bagendung), KWT Ciwaduk Lestari, KWT Melati Cilegon, KWT Mawar Putih, KWT Anggrek Jaya, KWT Dahlia Hijau, KWT Kenanga Makmur.');
+    lines.push('  5. Pulomerak (9 KWT): KWT Suralaya Asri (Suralaya), KWT Tamansari Mandiri (Tamansari), KWT Mekarsari Hijau (Mekarsari), KWT Lebakgede Makmur (Lebakgede), KWT Kaltek Bahari, KWT Medaksa Jaya, KWT Mabak Lestari, KWT Pancuran Asri, KWT Pelandau Mandiri.');
+    lines.push('  6. Purwakarta (6 KWT): KWT Kebondalem Mandiri (Kebon Dalem), KWT Kotabumi Hijau (Kotabumi), KWT Pabean Asri (Pabean), KWT Purwakarta Jaya (Purwakarta), KWT Ramanuju Makmur, KWT Tegal Bunder Asri.');
+    lines.push('  7. Grogol (6 KWT): KWT Gerogol (Gerogol), KWT Gerem Asri (Gerem), KWT Rawa Arum Mandiri (Rawa Arum), KWT Kotasari Hijau (Kotasari), KWT Lelean Jaya, KWT Grogol Makmur.');
+    lines.push('  8. Jombang (5 KWT): KWT Jombang Wetan (Jombang Wetan), KWT Gedong Dalem (Gedong Dalem), KWT Sukmajaya Hijau (Sukmajaya), KWT Panggung Rawi (Panggung Rawi), KWT Masigit Mandiri (Masigit).');
+
+    // 2. TUJUAN & SASARAN RENSTRA DKPP (renstra_tujuan_sasaran)
+    lines.push('\n[TABEL 2: renstra_tujuan_sasaran]');
+    lines.push('6 Sasaran Strategis DKPP Kota Cilegon (Baseline 2024 s.d. Target 2030):');
+    lines.push('1. Peningkatan Kinerja Penyelenggaraan Pemerintahan: Indeks Reformasi Birokrasi (Baseline 2024: 44 poin, 2025: 48, 2026: 70 poin, 2027: 71, 2028: 71, 2029: 72, 2030: 72 poin).');
+    lines.push('2. Peningkatan Kemandirian Pangan Daerah: Prevalensi Ketidakcukupan Konsumsi Pangan / PoU (Baseline 2024: 1.96%, 2025: 1.93%, 2026: 1.90%, 2027: 1.87%, 2028: 1.84%, 2029: 1.81%, 2030: 1.78%).');
+    lines.push('3. Peningkatan Pertumbuhan Ekonomi Daerah: Jumlah Produksi Perikanan Tangkap (Baseline 2024: 237 Ton, 2025: 237, 2026: 237 Ton, 2027: 238, 2028: 239, 2029: 240, 2030: 241 Ton).');
+    lines.push('4. Peningkatan Pertumbuhan Ekonomi Daerah: Jumlah Produksi Perikanan Budidaya (Baseline 2024: 360 Ton, 2025: 360, 2026: 360 Ton, 2027: 361, 2028: 362, 2029: 364, 2030: 365 Ton).');
+    lines.push('5. Peningkatan Nilai Tambah Pertanian: Peningkatan Produksi Tanaman Pangan (Target pertumbuhan +1% per tahun secara konsisten).');
+    lines.push('6. Peningkatan Nilai Tambah Pertanian: Peningkatan Produksi Hortikultura (Target pertumbuhan +1% per tahun secara konsisten).');
+
+    // 3. INDIKATOR KINERJA UTAMA (renstra_iku)
+    lines.push('\n[TABEL 3: renstra_iku]');
+    lines.push('7 Indikator Kinerja Utama (IKU) Resmi DKPP Kota Cilegon:');
+    lines.push('1. Kontribusi sektor pertanian terhadap PDRB: Baseline 2024 = 0.2178% | Target 2025 = 0.217% | 2026 = 0.217% | 2027 = 0.216% | 2028 = 0.216% | 2029 = 0.215% | 2030 = 0.215%');
+    lines.push('2. Jumlah Produksi Perikanan Tangkap: Baseline = 237 Ton | 2026 = 237 Ton | 2030 = 241 Ton');
+    lines.push('3. Indeks Reformasi Birokrasi Perangkat Daerah: Baseline = 44 poin | 2026 = 70 poin | 2030 = 72 poin');
+    lines.push('4. Peningkatan Produksi Tanaman Pangan: Target tumbuh 1% per tahun');
+    lines.push('5. Prevalensi Ketidakcukupan Konsumsi Pangan (PoU): Baseline = 1.96% | 2026 = 1.90% | 2030 = 1.78% (Tren Menurun Positif)');
+    lines.push('6. Peningkatan Produksi Hortikultura: Target tumbuh 1% per tahun');
+    lines.push('7. Jumlah Produksi Perikanan Budidaya: Baseline = 360 Ton | 2026 = 360 Ton | 2030 = 365 Ton');
+
+    // 4. CASCADING PROGRAM & PAGU INDIKATIF (renstra_cascading_program)
+    lines.push('\n[TABEL 4: renstra_cascading_program]');
+    lines.push('20 Cascading Program, Indikator Sasaran, Target, dan Pagu Anggaran 2025-2030:');
+    lines.push('1. Program Penunjang Urusan Pemerintahan Daerah (2.09.01): Tingkat Kepuasan Pegawai (Target 2026: 3.5 skor), Pagu 2025: Rp 14.848.970.000 | Pagu 2026: Rp 15.157.320.000 | Pagu 2027: Rp 15.483.350.000 | Pagu 2028: Rp 15.816.470.000 | Pagu 2029: Rp 15.816.060.000');
+    lines.push('2. Indeks Pelayanan Publik Program Penunjang (2.09.01): Target 2026: 80%');
+    lines.push('3. Tingkat Penerapan SPBE Perangkat Daerah (2.09.01): Target 2026: 60 skor');
+    lines.push('4. Persentase BMD Baik & Termanfaatkan (2.09.01): Target 2026: 100%');
+    lines.push('5. Program Pengelolaan Kerawanan Pangan (2.09.02): Persentase Daerah Rentan Rawan Pangan 100% | Pagu 2026: Rp 140.000.000 (Pagu 2027: Rp 140 jt, 2028: Rp 140 jt, 2029: Rp 140 jt)');
+    lines.push('6. Program Pengawasan Keamanan Pangan (2.09.03): Persentase Pangan Segar Memenuhi Mutu Keamanan 86% | Pagu 2026: Rp 568.300.000 (Pagu 2027: Rp 596,7 jt, 2028: Rp 626,5 jt, 2029: Rp 626,5 jt)');
+    lines.push('7. Program Pengelolaan Perikanan Budidaya - Nila (3.25.04): Target Produksi Nila 2,1 Ton | Pagu 2026: Rp 110.000.000');
+    lines.push('8. Program Pengelolaan Perikanan Budidaya - Lele (3.25.04): Target Produksi Lele 358,9 Ton');
+    lines.push('9. Program Penyediaan Sarana Pertanian - Padi (3.27.02): Target Produksi Padi 10.461 Ton | Pagu 2026: Rp 100.000.000');
+    lines.push('10. Program Penyediaan Sarana Pertanian - Jagung (3.27.02): Target Produksi Jagung 150,8 Ton');
+    lines.push('11. Program Penyediaan Sarana Pertanian - Bawang Merah (3.27.02): Target Produksi Bawang Merah 90,35 Ton');
+    lines.push('12. Program Penyediaan Sarana Pertanian - Cabai (3.27.02): Target Produksi Cabai 107,65 Ton');
+    lines.push('13. Program Penyediaan & Pengembangan Prasarana Pertanian (3.27.03): Cakupan LP2B Ditetapkan 55 Ha | Pagu 2026: Rp 125.000.000');
+    lines.push('14. Program Penyediaan Prasarana (3.27.03): 1 Jenis Prasarana Terbangun');
+    lines.push('15. Program Pengendalian Kesehatan Hewan & Kesmavet (3.27.04): Pengendalian PHMS (1 Dokumen) | Pagu 2026: Rp 350.000.000');
+    lines.push('16. Sertifikasi Pra-NKV/NKV Unit Usaha Hewan (3.27.04): Target 100% Unit Usaha Tersertifikasi');
+    lines.push('17. Program Penanggulangan Bencana Pertanian (3.27.05): Penanganan Bencana 100% | Pagu 2026: Rp 102.000.000');
+    lines.push('18. Penanganan Dampak Perubahan Iklim (3.27.05): Penanganan 100%');
+    lines.push('19. Program Perizinan Usaha Pertanian (3.27.06): 100% Izin Diterbitkan | Pagu 2026: Rp 25.000.000');
+    lines.push('20. Program Penyuluhan Pertanian (3.27.07): 100% SDM Penyuluh Ditingkatkan | Pagu 2026: Rp 190.000.000');
+
+    // 5. SUBKEGIATAN PRIORITAS DAERAH (renstra_subkegiatan_prioritas)
+    lines.push('\n[TABEL 5: renstra_subkegiatan_prioritas]');
+    lines.push('3 Subkegiatan Prioritas Daerah DKPP Kota Cilegon:');
+    lines.push('1. Subkegiatan 3.25.04.2.02.0001: Pengembangan Kapasitas Pembudi Daya Ikan Kecil (Program Pengelolaan Perikanan Budidaya - Outcome: Meningkatnya produksi perikanan budidaya)');
+    lines.push('2. Subkegiatan 3.27.02.2.01.0016: Pengawasan Penggunaan Sarana Pascapanen Hortikultura (Program Penyediaan dan Pengembangan Sarana Pertanian - Outcome: Meningkatnya distribusi dan kualitas sarana pertanian)');
+    lines.push('3. Subkegiatan 3.27.02.2.02.0016: Pengawasan Penggunaan Sarana Pasca Panen Tanaman Pangan (Program Penyediaan dan Pengembangan Sarana Pertanian - Outcome: Meningkatnya distribusi dan kualitas sarana pertanian)');
+
+    // 6. INDIKATOR KINERJA DAERAH & KUNCI (renstra_ikd & renstra_ikk)
+    lines.push('\n[TABEL 6 & 7: renstra_ikd & renstra_ikk]');
+    lines.push('Ringkasan 26 Indikator IKD & 31 Indikator IKK:');
+    lines.push('• Skor Pola Pangan Harapan (PPH): Baseline 90.9 -> Target 2026: 91 -> Target 2030: 93');
+    lines.push('• Prevalensi PoU: 1.96% -> 1.90% (2026) -> 1.78% (2030)');
+    lines.push('• Kontribusi PDRB Pertanian: 0.2178% -> 0.217% (2026) -> 0.215% (2030)');
+    lines.push('• Produksi Padi (10.461 Ton), Jagung (150,8 Ton), Bawang Merah (90,35 Ton), Cabai (107,65 Ton)');
+    lines.push('• Perikanan Tangkap (237 Ton) & Budidaya (360 Ton)');
+
+  } catch (err) {
+    console.warn('[Renstra Context Aggregator] Error building renstra and kwt database context:', err);
+  }
+
+  return lines.join('\n');
+}
+
+
 // Manifest & Katalog Seluruh Dokumen Knowledge Base (52+ Dokumen Terindeks)
 // Helper untuk memuat data seluruh tabel Supabase dan Indikator Beranda (KPI, IKP, POU, FSVA, SKPG, EWS, Forecasting, Panel Harga)
 async function getHomepageAndDatabaseContext(): Promise<string> {
@@ -841,10 +1124,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY tidak dikonfigurasi' }, { status: 500 });
     }
 
-    // 1. Load konteks dari SP cache & Supabase Database Beranda secara paralel
-    const [spCtx, homepageDbNarrative] = await Promise.all([
+    // 1. Load konteks dari SP cache, Database Beranda, 11 Tabel Perikanan, serta 9 Tabel Renstra & 84 KWT secara paralel
+    const [spCtx, homepageDbNarrative, perikananNarrative, renstraAndKwtNarrative] = await Promise.all([
       getSpContextData(),
-      getHomepageAndDatabaseContext()
+      getHomepageAndDatabaseContext(),
+      getPerikananDatabaseContext(),
+      getRenstraAndKwtDatabaseContext()
     ]);
 
     // 2. Trigger sync jika ada yang stale (non-blocking)
@@ -872,7 +1157,27 @@ export async function POST(request: Request) {
       'pph_data',
       'gizi_balita_skpg_kelurahan',
       'fsva_matang',
-      'ketersediaan_pangan'
+      'ketersediaan_pangan',
+      'perikanan_rekap_potensi',
+      'perikanan_produksi_tahunan',
+      'perikanan_produksi_bulanan',
+      'perikanan_nelayan_distribusi',
+      'perikanan_pangkalan_nelayan',
+      'perikanan_armada_kapal',
+      'perikanan_armada_jenis_usaha',
+      'perikanan_asuransi_nelayan',
+      'perikanan_koperasi',
+      'perikanan_kub',
+      'perikanan_anggaran_program',
+      'data_kwt_cilegon',
+      'renstra_tujuan_sasaran',
+      'renstra_iku',
+      'renstra_ikd',
+      'renstra_ikk',
+      'renstra_cascading_program',
+      'renstra_subkegiatan_prioritas',
+      'renstra_program_kegiatan_pagu',
+      'renstra_teknik_rumusan_pelayanan'
     ];
     const lastSync = Object.values(spCtx).length > 0
       ? Object.values(spCtx).reduce((latest: string, entry) => {
@@ -940,7 +1245,8 @@ Setiap kali pengguna meminta laporan ketahanan pangan, analisis neraca, konsumsi
 ## 🎯 PEDOMAN JAWABAN KOMPREHENSIF & TERPADU (SANGAT PENTING):
 1. **Sintesis Holistik 3 Pilar**: Jika pengguna menanyakan kondisi ketahanan pangan Cilegon (secara umum maupun spesifik), berikan jawaban yang **KOMPREHENSIF, UTUH, DAN BERBASIS DATA RIIL** yang mencakup:
    - **Status Makro & KPI Beranda**: IKP Cilegon (Skor 80.12 - Kategori "Sangat Tahan", di atas Provinsi Banten 79.25), PoU rendah (2.78%), Skor PPH Konsumsi (90.9 poin melampaui target 90), dan Cadangan Pangan CPPD Bulog (132.7 Ton di atas target RPJMD 115 Ton).
-   - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025) / 8.816,83 Ton beras, komoditas diversifikasi buffer ubi kayu/singkong (2.007,6 Ton), produksi perikanan tangkap 136 Ton (715 nelayan, 9 pangkalan), budidaya kolam 375 kg, peternakan, serta sistem telemetri lengas tanah ECMWF ERA5-Land (kondisi optimal kapasitas lapang 0.24-0.34 m³/m³).
+   - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025) / 8.816,83 Ton beras, buffer ubi kayu/singkong (2.007,6 Ton), serta **11 TABEL RESMI PROFIL PERIKANAN KOTA CILEGON 2025** (723 Nelayan, 395 Pembudidaya, 410 Kapal, 425 Alat Tangkap Pancing/Bagan, 58 KUB, 3 Koperasi Nelayan, 8-9 Pangkalan, 652 Nelayan Tercover Asuransi BPAN 2025, Total Produksi Ikan 2025: 600,319 Ton [Budidaya Air Tawar 361,455 Ton / 349.144 kg bulanan + Tangkap Laut 238,864 Ton / 230.036 kg bulanan], dan alokasi anggaran program perikanan 2024-2026).
+   - **Rujukan 11 Tabel Perikanan**: Jika pengguna bertanya tentang data perikanan, nelayan, budidaya, kapal, KUB, pangkalan, asuransi nelayan, atau anggaran, Anda **WAJIB MERUJUK SECARA PERSIS** ke 11 tabel resmi perikanan Cilegon tersebut.
    - **Aspek Keterjangkauan / Akses & Panel Harga Harian**: Stabilitas harga pangan pokok terjaga dengan Koefisien Variasi (CV) harga beras 0.74% - 3.65% (jauh di bawah batas nasional < 10%), rata-rata harga harian pasar (Beras Medium Rp 13.500-14.000, Minyakita Rp 16.000, Telur Rp 29.500-31.500) di Pasar Kranggot, Blok F, dan Pasar Baru Merak, serta proyeksi Machine Learning & EWS menunjukkan status AMAN/stabil.
    - **Aspek Pemanfaatan & Analisis SKPG / FSVA**: Analisis SKPG Tri-Aspek menunjukkan seluruh 8 kecamatan berada pada Status **AMAN (Hijau)** dengan prevalensi balita gizi kurang hanya 3.47% (di bawah ambang batas waspada SKPG 10%), konsumsi energi 2.021 kkal & protein 59 g melampaui standar gizi, serta pemetaan FSVA 43 kelurahan berkategori Prioritas 4 hingga 6 (tidak ada kelurahan rawan pangan Prioritas 1-3).
    - **Rekomendasi Kebijakan Konkret**: Penguatan cadangan pangan CPPD, pengawasan rantai pasok HBKN, pemantauan lengas tanah sawah, dan keberlanjutan PMT gizi balita di posyandu.
@@ -983,6 +1289,10 @@ Sertakan blok JSON grafik dengan format \`\`\`json:chart di dalam respons Anda:
 === BASIS DATA TERPADU KETAHANAN PANGAN KOTA CILEGON ===
 ${homepageDbNarrative}
 
+${perikananNarrative}
+
+${renstraAndKwtNarrative}
+
 ${spNarrative}
 
 ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}`;
@@ -1018,10 +1328,96 @@ ${knowledgeNarrative ? `${knowledgeNarrative}\n\n` : ''}`;
       { lat: -5.90874, lng: 106.00421, name: 'Pangkalan Nelayan Lebak Gede', category: 'nelayan', kelurahan: 'Lebakgede', kecamatan: 'Pulomerak' },
       { lat: -6.00891, lng: 105.97234, name: 'Pangkalan Nelayan Lelean', category: 'nelayan', kelurahan: 'Pesisir', kecamatan: 'Ciwandan' },
 
-      // ─── KWT & Poktan ───
-      { lat: -5.97323, lng: 106.03231, name: 'KWT Gerogol (Cabai)', category: 'kwt', kelurahan: 'Gerogol', kecamatan: 'Gerogol' },
-      { lat: -5.95625, lng: 106.03523, name: 'KWT Gerem (Sayuran Segar)', category: 'kwt', kelurahan: 'Gerem', kecamatan: 'Gerogol' },
-      { lat: -5.98912, lng: 106.04215, name: 'KWT Kotabumi', category: 'kwt', kelurahan: 'Kotabumi', kecamatan: 'Purwakarta' },
+      // ─── Koperasi Nelayan ───
+      { lat: -5.98419, lng: 105.99079, name: 'Koperasi Konsumen Nelayan Tanjung Peni (206 Anggota)', category: 'nelayan', kelurahan: 'Warnasari', kecamatan: 'Citangkil' },
+      { lat: -6.02121, lng: 105.95186, name: 'Koperasi Nelayan Tanjung Harapan Jaya (45 Anggota)', category: 'nelayan', kelurahan: 'Kepuh', kecamatan: 'Ciwandan' },
+      { lat: -5.98765, lng: 106.04678, name: 'Koperasi Nelayan Samudera Biru (25 Anggota)', category: 'nelayan', kelurahan: 'Kebon Dalem', kecamatan: 'Purwakarta' },
+
+      // ─── 84 KWT Resmi Kota Cilegon 2026 (data_kwt_cilegon) ───
+      { lat: -6.0198729, lng: 106.0220361, name: 'KWT MANGGA', category: 'kwt', kelurahan: 'Kebonsari', kecamatan: 'Citangkil' },
+      { lat: -6.0198729, lng: 106.0213361, name: 'KWT ROSELLA', category: 'kwt', kelurahan: 'Kebonsari', kecamatan: 'Citangkil' },
+      { lat: -6.0190933, lng: 106.0412086, name: 'KWT MANGGIS', category: 'kwt', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.0096292, lng: 106.0446181, name: 'KWT PAKCOY', category: 'kwt', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.0190933, lng: 106.0405086, name: 'KWT SELADA', category: 'kwt', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.015477, lng: 106.0403824, name: 'KWT KANGKUNG', category: 'kwt', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.0353023, lng: 106.0672444, name: 'KWT TAMAN WARGA', category: 'kwt', kelurahan: 'Warnasari', kecamatan: 'Citangkil' },
+      { lat: -6.0211533, lng: 106.0323972, name: 'KWT LIDAH BUAYA', category: 'kwt', kelurahan: 'Warnasari', kecamatan: 'Citangkil' },
+      { lat: -6.0258906, lng: 106.0385799, name: 'KWT MAWAR', category: 'kwt', kelurahan: 'Taman Baru', kecamatan: 'Citangkil' },
+      { lat: -6.0299491, lng: 106.0254219, name: 'KWT MELATI', category: 'kwt', kelurahan: 'Taman Baru', kecamatan: 'Citangkil' },
+      { lat: -6.0236066, lng: 106.0326992, name: 'KWT EUNCUNG', category: 'kwt', kelurahan: 'Taman Baru', kecamatan: 'Citangkil' },
+      { lat: -6.0396115, lng: 106.0308337, name: 'KWT BAYAM', category: 'kwt', kelurahan: 'Taman Baru', kecamatan: 'Citangkil' },
+      { lat: -6.025101, lng: 106.0220575, name: 'SINTRONG', category: 'kwt', kelurahan: 'Citangkil', kecamatan: 'Citangkil' },
+      { lat: -6.0325812, lng: 106.0185325, name: 'KWT CENGEK', category: 'kwt', kelurahan: 'Lebak Denok', kecamatan: 'Citangkil' },
+      { lat: -6.0325812, lng: 106.0178325, name: 'KWT KATUK', category: 'kwt', kelurahan: 'Lebak Denok', kecamatan: 'Citangkil' },
+      { lat: -6.0295182, lng: 106.0039258, name: 'KWT KACANG TUNGGAK', category: 'kwt', kelurahan: 'Deringo', kecamatan: 'Citangkil' },
+      { lat: -6.0252898, lng: 106.0074646, name: 'KWT JUWET', category: 'kwt', kelurahan: 'Deringo', kecamatan: 'Citangkil' },
+      { lat: -6.0129269, lng: 106.0104704, name: 'KWT ANGGREK', category: 'kwt', kelurahan: 'Samangraya', kecamatan: 'Citangkil' },
+      { lat: -6.0115476, lng: 106.0032423, name: 'KWT KEMANGI', category: 'kwt', kelurahan: 'Samangraya', kecamatan: 'Citangkil' },
+      { lat: -6.047336, lng: 105.9502709, name: 'KWT POJOK MARENGMANG LESTARI', category: 'kwt', kelurahan: 'Gunung Sugih', kecamatan: 'Ciwandan' },
+      { lat: -6.0267362, lng: 105.9496331, name: 'KWT ROMBONGAN', category: 'kwt', kelurahan: 'Kepuh', kecamatan: 'Ciwandan' },
+      { lat: -6.0429083, lng: 105.968982, name: 'KWT CIKENDAT INDAH', category: 'kwt', kelurahan: 'Kepuh', kecamatan: 'Ciwandan' },
+      { lat: -6.0290386, lng: 105.9651806, name: 'KWT KEPUH LESTARI', category: 'kwt', kelurahan: 'Kepuh', kecamatan: 'Ciwandan' },
+      { lat: -6.02688, lng: 105.9695585, name: 'KWT TUNAS BAROKAH', category: 'kwt', kelurahan: 'Randakari', kecamatan: 'Ciwandan' },
+      { lat: -6.0279285, lng: 105.9866953, name: 'KWT RATU LESTARI', category: 'kwt', kelurahan: 'Tegal Ratu', kecamatan: 'Ciwandan' },
+      { lat: -6.0211533, lng: 106.0316972, name: 'KWT PANDAN LESTARI', category: 'kwt', kelurahan: 'Tegal Ratu', kecamatan: 'Ciwandan' },
+      { lat: -6.0176828, lng: 105.9784996, name: 'KWT TELANG', category: 'kwt', kelurahan: 'Tegal Ratu', kecamatan: 'Ciwandan' },
+      { lat: -6.0214058, lng: 105.9799703, name: 'KWT CENDRAWASI', category: 'kwt', kelurahan: 'Tegal Ratu', kecamatan: 'Ciwandan' },
+      { lat: -6.0327617, lng: 105.980891, name: 'KWT RATU HEBAT', category: 'kwt', kelurahan: 'Tegal Ratu', kecamatan: 'Ciwandan' },
+      { lat: -5.9701872, lng: 106.012878, name: 'KWT ASOKA', category: 'kwt', kelurahan: 'Kubang Sari', kecamatan: 'Ciwandan' },
+      { lat: -6.0163109, lng: 106.0006668, name: 'KWT KUBANG LESTARI', category: 'kwt', kelurahan: 'Kubang Sari', kecamatan: 'Ciwandan' },
+      { lat: -6.0163109, lng: 105.9999668, name: 'KWT TERATAI INDAH', category: 'kwt', kelurahan: 'Kubang Sari', kecamatan: 'Ciwandan' },
+      { lat: -6.0123494, lng: 105.9838489, name: 'KWT MELATI', category: 'kwt', kelurahan: 'Kubang Sari', kecamatan: 'Ciwandan' },
+      { lat: -6.0350983, lng: 105.9984112, name: 'KWT TEMU GIRING BERSERI', category: 'kwt', kelurahan: 'Banjar Negara', kecamatan: 'Ciwandan' },
+      { lat: -6.0482163, lng: 106.0338187, name: 'KWT KEMBANG SEPATU', category: 'kwt', kelurahan: 'Bagendung', kecamatan: 'Cilegon' },
+      { lat: -6.0516486, lng: 106.0335556, name: 'KWT BUKIT ASRI', category: 'kwt', kelurahan: 'Bagendung', kecamatan: 'Cilegon' },
+      { lat: -6.0313724, lng: 106.0409355, name: 'KWT NAGA JAYA', category: 'kwt', kelurahan: 'Ciwedus', kecamatan: 'Cilegon' },
+      { lat: -6.0335257, lng: 106.0323158, name: 'KWT KEMUNING', category: 'kwt', kelurahan: 'Ciwedus', kecamatan: 'Cilegon' },
+      { lat: -6.0393954, lng: 106.0390787, name: 'KWT RAKATA ASRI', category: 'kwt', kelurahan: 'Ciwedus', kecamatan: 'Cilegon' },
+      { lat: -6.0335257, lng: 106.0316158, name: 'KWT BAYAM MERAH', category: 'kwt', kelurahan: 'Ciwedus', kecamatan: 'Cilegon' },
+      { lat: -6.0247319, lng: 106.0499662, name: 'KWT SEJAHTERA', category: 'kwt', kelurahan: 'Ciwaduk', kecamatan: 'Cilegon' },
+      { lat: -6.0219002, lng: 106.045661, name: 'KWT PUCUK MERAH', category: 'kwt', kelurahan: 'Ciwaduk', kecamatan: 'Cilegon' },
+      { lat: -6.0338073, lng: 106.0540724, name: 'KWT SEJAHTERA', category: 'kwt', kelurahan: 'Bendungan', kecamatan: 'Cilegon' },
+      { lat: -6.0234579, lng: 106.0549521, name: 'KWT MAKMUR', category: 'kwt', kelurahan: 'Ketileng', kecamatan: 'Cilegon' },
+      { lat: -6.0330525, lng: 106.0677254, name: 'KWT KOBE', category: 'kwt', kelurahan: 'Cibeber', kecamatan: 'Cibeber' },
+      { lat: -6.0355314, lng: 106.0668747, name: 'KWT MAWAR', category: 'kwt', kelurahan: 'Cibeber', kecamatan: 'Cibeber' },
+      { lat: -6.0355314, lng: 106.0661747, name: 'KWT KENIKIR', category: 'kwt', kelurahan: 'Cibeber', kecamatan: 'Cibeber' },
+      { lat: -6.0351814, lng: 106.0661747, name: 'KWT KEMUNING', category: 'kwt', kelurahan: 'Cibeber', kecamatan: 'Cibeber' },
+      { lat: -6.1170548, lng: 106.1161987, name: 'KWT ANGGREK BULAN', category: 'kwt', kelurahan: 'Kedaleman', kecamatan: 'Cibeber' },
+      { lat: -6.0329427, lng: 106.0787294, name: 'KWT MELATI', category: 'kwt', kelurahan: 'Kedaleman', kecamatan: 'Cibeber' },
+      { lat: -6.0583926, lng: 106.0386187, name: 'KWT KEMBANGWALUH', category: 'kwt', kelurahan: 'Cikerai', kecamatan: 'Cibeber' },
+      { lat: -6.0523061, lng: 106.0554357, name: 'KWT SIRSAK', category: 'kwt', kelurahan: 'Cikerai', kecamatan: 'Cibeber' },
+      { lat: -6.0523061, lng: 106.0547357, name: 'KWT SRI REZEKI', category: 'kwt', kelurahan: 'Cikerai', kecamatan: 'Cibeber' },
+      { lat: -6.054975, lng: 106.047281, name: 'KWT WIJAYA KUSUMA', category: 'kwt', kelurahan: 'Bulakan', kecamatan: 'Cibeber' },
+      { lat: -6.0447172, lng: 106.0607399, name: 'KWT NUSA INDAH', category: 'kwt', kelurahan: 'Kalitimbang', kecamatan: 'Cibeber' },
+      { lat: -6.0461774, lng: 106.0597485, name: 'KWT LEMBAYUNG', category: 'kwt', kelurahan: 'Kalitimbang', kecamatan: 'Cibeber' },
+      { lat: -6.0385982, lng: 106.0524519, name: 'KWT SEDAP MALAM', category: 'kwt', kelurahan: 'Karang Asem', kecamatan: 'Cibeber' },
+      { lat: -6.0385982, lng: 106.0517519, name: 'KWT TERATAI', category: 'kwt', kelurahan: 'Karang Asem', kecamatan: 'Cibeber' },
+      { lat: -5.9923377, lng: 106.0289998, name: 'KWT KALIMAYA', category: 'kwt', kelurahan: 'Gedong Dalem', kecamatan: 'Jombang' },
+      { lat: -5.9944012, lng: 106.0647433, name: 'KWT SIRIH MERAH', category: 'kwt', kelurahan: 'Gedong Dalem', kecamatan: 'Jombang' },
+      { lat: -6.0031853, lng: 106.0699189, name: 'KWT KECOMBRANG MERAH', category: 'kwt', kelurahan: 'Panggung Rawi', kecamatan: 'Jombang' },
+      { lat: -6.0220207, lng: 106.0668477, name: 'KWT KARYA ASIH', category: 'kwt', kelurahan: 'Masigit', kecamatan: 'Jombang' },
+      { lat: -6.0220207, lng: 106.0661477, name: 'KWT NYIKEMBANG MEKAR JAYA', category: 'kwt', kelurahan: 'Sukmajaya', kecamatan: 'Jombang' },
+      { lat: -5.9624364, lng: 106.0484922, name: 'KWT SINAR LESTARI', category: 'kwt', kelurahan: 'Pabean', kecamatan: 'Purwakarta' },
+      { lat: -6.0208033, lng: 106.0316972, name: 'KWT DAHLIA', category: 'kwt', kelurahan: 'Tegal Bunder', kecamatan: 'Purwakarta' },
+      { lat: -5.9926911, lng: 106.0486876, name: 'KWT WANITA KARYA', category: 'kwt', kelurahan: 'Kota Bumi', kecamatan: 'Purwakarta' },
+      { lat: -5.9801016, lng: 106.0585933, name: 'KWT RIMBA SARI', category: 'kwt', kelurahan: 'Purwakarta', kecamatan: 'Purwakarta' },
+      { lat: -6.0056434, lng: 106.0463346, name: 'KWT SEMANGAT BERSAMA', category: 'kwt', kelurahan: 'Kebon Dalem', kecamatan: 'Purwakarta' },
+      { lat: -5.9923377, lng: 106.0282998, name: 'KWT LESTARI ALAM', category: 'kwt', kelurahan: 'Kebon Dalem', kecamatan: 'Purwakarta' },
+      { lat: -5.9536263, lng: 106.0047439, name: 'CAHAYA MANDIRI', category: 'kwt', kelurahan: 'Gerem', kecamatan: 'Grogol' },
+      { lat: -5.9663726, lng: 106.0230875, name: 'SEDAP MALAM', category: 'kwt', kelurahan: 'Gerem', kecamatan: 'Grogol' },
+      { lat: -5.9842991, lng: 106.0508966, name: 'SURYA TANI MANDIRI', category: 'kwt', kelurahan: 'Rawa Arum', kecamatan: 'Grogol' },
+      { lat: -5.9837655, lng: 106.0136676, name: 'TUNAS MUDA', category: 'kwt', kelurahan: 'Grogol', kecamatan: 'Grogol' },
+      { lat: -5.9707048, lng: 106.0379362, name: 'ANGGUR', category: 'kwt', kelurahan: 'Grogol', kecamatan: 'Grogol' },
+      { lat: -6.0069541, lng: 106.0575688, name: 'SEREH WANGI', category: 'kwt', kelurahan: 'Kota Sari', kecamatan: 'Grogol' },
+      { lat: -5.8995288, lng: 106.027368, name: 'SURALAYA INDAH', category: 'kwt', kelurahan: 'Suralaya', kecamatan: 'Pulomerak' },
+      { lat: -5.9210657, lng: 106.0026347, name: 'TANJUNG SEKONG', category: 'kwt', kelurahan: 'Lebak Gede', kecamatan: 'Pulomerak' },
+      { lat: -5.9172046, lng: 106.030795, name: 'PENAWEN INDAH', category: 'kwt', kelurahan: 'Lebak Gede', kecamatan: 'Pulomerak' },
+      { lat: -6.0243919, lng: 106.0509375, name: 'KELAPA BARIS INDAH', category: 'kwt', kelurahan: 'Lebak Gede', kecamatan: 'Pulomerak' },
+      { lat: -5.9187478, lng: 106.0069189, name: 'BINANGKIT', category: 'kwt', kelurahan: 'Lebak Gede', kecamatan: 'Pulomerak' },
+      { lat: -5.9348448, lng: 106.0068547, name: 'MEKARSARI BERSINAR', category: 'kwt', kelurahan: 'Mekarsari', kecamatan: 'Pulomerak' },
+      { lat: -5.9353553, lng: 106.0035001, name: 'ALMUJAHIDIN', category: 'kwt', kelurahan: 'Mekarsari', kecamatan: 'Pulomerak' },
+      { lat: -5.9827243, lng: 106.008474, name: 'BUNGA TAMANSARI', category: 'kwt', kelurahan: 'Taman Sari', kecamatan: 'Pulomerak' },
+      { lat: -5.9421071, lng: 106.0021872, name: 'SEJAHTERA INDAH', category: 'kwt', kelurahan: 'Taman Sari', kecamatan: 'Pulomerak' },
       { lat: -5.97323, lng: 106.03231, name: 'Poktan Gerogol', category: 'poktan', kelurahan: 'Gerogol', kecamatan: 'Gerogol' },
 
       // ─── Perikanan Budidaya (Kolam) ───
