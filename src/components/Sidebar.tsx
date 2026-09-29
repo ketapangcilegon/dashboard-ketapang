@@ -75,7 +75,8 @@ export default function Sidebar({
 
   const linkExternalSub = [
     { label: 'DKPP.info', url: 'https://dkpp.info/' },
-    { label: 'FSVA.my.id', url: 'https://fsva.my.id/' }
+    { label: 'FSVA.my.id', url: 'https://fsva.my.id/' },
+    { label: 'SerumpunPadi.web.id', url: 'https://serumpunpadi.web.id' }
   ];
 
   return (
