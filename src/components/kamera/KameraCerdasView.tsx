@@ -10,6 +10,7 @@ import KameraAgregasiDashboard from './KameraAgregasiDashboard';
 import { cariKelurahanTerdekat } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { supabase } from '@/lib/supabase';
+import { useFeatureAccess } from '@/lib/useFeatureAccess';
 
 export default function KameraCerdasView() {
   // Navigation Tabs
@@ -17,6 +18,8 @@ export default function KameraCerdasView() {
   
   // Governance & Admin State
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const { isKameraLocked } = useFeatureAccess();
+  const canOperateCamera = !isKameraLocked || isAdmin;
   const [adminEmail, setAdminEmail] = useState<string>('');
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [loginEmail, setLoginEmail] = useState<string>('');
@@ -242,7 +245,7 @@ export default function KameraCerdasView() {
   }, [isCameraActive]);
 
   useEffect(() => {
-    if (activeTab === 'camera' && isAdmin) {
+    if (activeTab === 'camera' && canOperateCamera) {
       startCamera();
     } else {
       if (streamRef.current) {
@@ -257,7 +260,7 @@ export default function KameraCerdasView() {
         streamRef.current.getTracks().forEach(t => t.stop());
       }
     };
-  }, [activeTab, isAdmin, startCamera]);
+  }, [activeTab, canOperateCamera, startCamera]);
 
   // Flip Camera
   const toggleCameraFacing = () => {
@@ -531,9 +534,13 @@ export default function KameraCerdasView() {
             <div className="flex items-center gap-1.5">
               <h2 className="text-sm font-black text-white tracking-wide uppercase">Kamera Cerdas</h2>
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
-                isAdmin ? 'bg-emerald-500 text-white' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                isAdmin 
+                  ? 'bg-emerald-500 text-white' 
+                  : canOperateCamera 
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               }`}>
-                {isAdmin ? 'PETUGAS' : 'KHUSUS ADMIN'}
+                {isAdmin ? 'PETUGAS' : canOperateCamera ? 'PUBLIK' : 'KHUSUS ADMIN'}
               </span>
             </div>
             <p className="text-[10px] text-slate-400">Field Data Collection & Geospatial Intelligence</p>
@@ -549,7 +556,7 @@ export default function KameraCerdasView() {
                 activeTab === 'camera' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
               }`}
             >
-              {isAdmin ? <Camera className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+              {canOperateCamera ? <Camera className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
               <span className="hidden sm:inline">Ambil Foto</span>
             </button>
 
@@ -615,7 +622,7 @@ export default function KameraCerdasView() {
 
       {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
       {activeTab === 'camera' && (
-        !isAdmin ? (
+        !canOperateCamera ? (
           <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-black text-center relative overflow-y-auto">
             <div className="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-5 my-auto">
               

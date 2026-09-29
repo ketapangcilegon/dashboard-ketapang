@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
+import { useFeatureAccess } from '@/lib/useFeatureAccess';
 
 interface TentangAplikasiProps {
   onBack?: () => void;
@@ -11,11 +12,14 @@ interface TentangAplikasiProps {
 export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const { isTentangLocked } = useFeatureAccess();
 
   useEffect(() => {
     const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
     setIsAdmin(sessionActive);
   }, []);
+
+  const canViewTechnical = !isTentangLocked || isAdmin;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -141,7 +145,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           </button>
           
           {expandedSections['metodologi'] && (
-            isAdmin ? (
+            canViewTechnical ? (
               <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
                 <p className="mt-4">
                   Modul peramalan harga pangan pada platform ini dirancang dengan pendekatan ilmiah yang ketat untuk memberikan estimasi harga jangka pendek yang andal bagi pengambil kebijakan:
@@ -204,7 +208,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           </button>
           
           {expandedSections['pipeline'] && (
-            isAdmin ? (
+            canViewTechnical ? (
               <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
                 <p className="mt-4">
                   Sistem pemantauan harga real-time terintegrasi secara langsung dengan portal SAGON (<a href="https://sagon.cilegon.go.id" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-semibold">sagon.cilegon.go.id</a>). Guna menjaga ketahanan sistem terhadap risiko perubahan eksternal, arsitektur data dirancang dengan skema mitigasi berlapis:
@@ -256,7 +260,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           {expandedSections['pengembang'] && (
             <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
               <p className="mt-4">
-                Platform ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan pada DKPP Kota Cilegon sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
+                Platform ini dikembangkan dan dikelola secara mandiri oleh Tim Inovasi yang dipimpin seorang Analis Ketahanan Pangan pada DKPP Kota Cilegon sebagai bentuk kontribusi profesional dalam mendorong transformasi digital, pemanfaatan data, serta pengembangan sistem informasi ketahanan pangan dan gizi daerah.
               </p>
               <p>
                 Pengembangan dilakukan secara bertahap dengan pendekatan inovatif yang mengintegrasikan dashboard analitik, visualisasi spasial, pengelolaan data, dan teknologi kecerdasan buatan guna mendukung tata kelola pangan yang lebih efektif dan adaptif.

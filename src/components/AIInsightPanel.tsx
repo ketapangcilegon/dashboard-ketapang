@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Copy, Check, Loader2, Download, Lightbulb } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Copy, Check, Loader2, Download, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
 
 interface AIInsightPanelProps {
   year: number;
@@ -86,50 +86,49 @@ export default function AIInsightPanel({
   const [isFallback, setIsFallback] = useState<boolean>(true);
   const [showInfo, setShowInfo] = useState<boolean>(false);
 
-  useEffect(() => {
-    // Update heuristic immediately when props change
-    setInsight(getHeuristicInsightText(pphScore, cvBeras, ketersediaanEnergi, konsumsiEnergi, ketersediaanProtein, konsumsiProtein));
+  // Serialized keys to prevent re-render cancellation race conditions
+  const balitaKey = useMemo(() => JSON.stringify(balitaStatus || {}), [balitaStatus]);
+  const hargaKey = useMemo(() => JSON.stringify(hargaStrategis || {}), [hargaStrategis]);
+
+  const fetchInsightData = useCallback(async () => {
+    // Pastikan selalu ada teks heuristik instan agar UI tidak pernah kosong
+    setInsight(prev => prev || getHeuristicInsightText(pphScore, cvBeras, ketersediaanEnergi, konsumsiEnergi, ketersediaanProtein, konsumsiProtein));
     
     if (loadingPrices) return;
-    let active = true;
+    setLoading(true);
 
-    async function getInsight() {
-      try {
-        const response = await fetch('/api/ai-insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            year,
-            month,
-            kecamatan,
-            kelurahan,
-            cvBeras,
-            pphScore,
-            konsumsiEnergi,
-            konsumsiProtein,
-            ketersediaanEnergi,
-            ketersediaanProtein,
-            produksiBeras,
-            balitaStatus,
-            hargaStrategis
-          }),
-        });
-        const data = await response.json();
-        if (!active) return;
-        if (response.ok && data?.insight) {
-          setInsight(data.insight);
-          setIsFallback(Boolean(data.isFallback));
-        }
-      } catch (err) {
-        // Keep instant heuristic text on error
+    try {
+      const response = await fetch('/api/ai-insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year,
+          month,
+          kecamatan,
+          kelurahan,
+          cvBeras,
+          pphScore,
+          konsumsiEnergi,
+          konsumsiProtein,
+          ketersediaanEnergi,
+          ketersediaanProtein,
+          produksiBeras,
+          balitaStatus,
+          hargaStrategis
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data?.insight) {
+        setInsight(data.insight);
+        setIsFallback(Boolean(data.isFallback));
       }
+    } catch (err) {
+      console.warn('[AIInsightPanel] Network error or timeout, retaining heuristic insight:', err);
+      setIsFallback(true);
+    } finally {
+      setLoading(false);
     }
-
-    getInsight();
-
-    return () => {
-      active = false;
-    };
   }, [
     year,
     month,
@@ -142,10 +141,14 @@ export default function AIInsightPanel({
     ketersediaanEnergi,
     ketersediaanProtein,
     produksiBeras,
-    balitaStatus,
-    hargaStrategis,
+    balitaKey,
+    hargaKey,
     loadingPrices
   ]);
+
+  useEffect(() => {
+    fetchInsightData();
+  }, [fetchInsightData]);
 
   const handleCopy = () => {
     if (!insight) return;
@@ -258,8 +261,19 @@ export default function AIInsightPanel({
                   <Lightbulb className="w-4 h-4 fill-amber-100 text-amber-500" />
                 </button>
               </div>
-              <div className="font-bold italic text-slate-700 text-xs sm:text-sm mt-0.5">
-                AI Assisted Heuristic Analisys
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="font-bold italic text-slate-700 text-xs sm:text-sm">
+                  {isFallback ? 'AI Assisted Heuristic Analysis' : 'Gemini AI Real-time Intelligence'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => fetchInsightData()}
+                  disabled={loading}
+                  className="p-1 text-slate-400 hover:text-emerald-600 rounded transition-colors disabled:opacity-50 print:hidden cursor-pointer"
+                  title="Perbarui Analisis AI"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
+                </button>
               </div>
             </div>
           </div>

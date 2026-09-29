@@ -117,13 +117,12 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. CALL GEMINI API WITH MULTI-MODEL FALLBACK
+    // 2. CALL GEMINI API WITH MULTI-MODEL FALLBACK & STRICT TIMEOUT
     const models = [
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3.1-flash-lite',
-      'gemini-flash-latest',
-      'gemini-3.7-flash'
+      'gemini-2.5-flash-lite',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-flash-latest'
     ];
     let generatedText = '';
 
@@ -134,6 +133,7 @@ export async function POST(request: Request) {
           headers: {
             'Content-Type': 'application/json'
           },
+          signal: AbortSignal.timeout(5000), // Mencegah request hang jika koneksi internet terputus/laten tinggi
           body: JSON.stringify({
             contents: [{
               parts: [{

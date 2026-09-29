@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Loader2, 
-  RefreshCw, 
-  Sparkles, 
-  Copy, 
-  Check, 
-  ChevronDown, 
-  Plus, 
-  Mic, 
+import {
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Copy,
+  Check,
+  ChevronDown,
+  Plus,
+  Mic,
   MicOff,
-  ArrowUp, 
-  ThumbsUp, 
-  ThumbsDown, 
-  Share2, 
-  ArrowDown, 
+  ArrowUp,
+  ThumbsUp,
+  ThumbsDown,
+  Share2,
+  ArrowDown,
   Edit3,
   Database,
   Camera,
@@ -556,7 +556,7 @@ export default function AIIntelligencePanel({
     }
 
     const history = messages.map(m => ({ role: m.role, text: m.text }));
-    const payloadMessage = isThinkingMode 
+    const payloadMessage = isThinkingMode
       ? `[MODE BERPIKIR MENDALAM: Uraikan data, metodologi perhitungan komprehensif, dan analisis bertahap]\n${trimmed || 'Tolong diagnosis foto/data ini dan berikan rekomendasi penanganan.'}`
       : trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.';
 
@@ -637,7 +637,7 @@ export default function AIIntelligencePanel({
 
   const handleCopy = (text: string, idx: number) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(() => {});
+      navigator.clipboard.writeText(text).catch(() => { });
     }
     setCopiedIndex(idx);
     setTimeout(() => setCopiedIndex(null), 2000);
@@ -695,7 +695,7 @@ export default function AIIntelligencePanel({
 
   return (
     <div className={`flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative ${isFullScreen ? 'h-full' : 'h-[580px]'}`}>
-      
+
       {/* Top Subtle Status Bar */}
       <div className="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
         <div className="flex items-center gap-1.5 font-bold">
@@ -731,13 +731,13 @@ export default function AIIntelligencePanel({
       </div>
 
       {/* Scrollable Chat Area (Mobile Margins Ramping: px-1.5 sm:px-4, py-2.5 sm:py-6 sesuai dkpp-info) */}
-      <div 
+      <div
         ref={chatContainerRef}
         onScroll={handleScroll}
         className={`flex-1 min-h-0 overflow-y-auto ${isFullChat ? 'px-2 sm:px-6 md:px-8' : 'px-1.5 sm:px-4'} py-2.5 sm:py-5 space-y-4 sm:space-y-5 custom-scrollbar bg-slate-50/30 relative`}
       >
         <div className={`mx-auto space-y-4 sm:space-y-5 w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} px-0`}>
-          
+
           {/* Initial / Empty State — Sesuai dkpp-info (Center Greeting + 6 Showcase Cards) */}
           {messages.length === 0 && !loading && (
             <div className="max-w-2xl mx-auto min-h-[50vh] flex flex-col items-center justify-center text-center animate-in fade-in duration-300 space-y-4 px-2 py-3">
@@ -828,7 +828,7 @@ export default function AIIntelligencePanel({
           {messages.map((msg, idx) => (
             <div key={idx} className="w-full">
               {msg.role === 'user' ? (
-                
+
                 /* USER MESSAGE (Sesuai dkpp-info: bg-[#A8DCAB] text-emerald-950) */
                 <div className="flex gap-0 sm:gap-3 justify-end mb-3 sm:mb-4 group">
                   <div className="max-w-[92%] sm:max-w-[80%] rounded-2xl sm:rounded-3xl px-3.5 sm:px-5 py-2 sm:py-3 shadow-xs bg-[#A8DCAB] text-emerald-950 font-medium rounded-tr-xs ml-auto">
@@ -840,7 +840,7 @@ export default function AIIntelligencePanel({
                     <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className="flex items-center justify-end gap-2 mt-1 text-[9.5px] text-emerald-900/60 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                       <span>{formatTime(msg.timestamp)}</span>
-                      <button 
+                      <button
                         onClick={() => handleEditPrompt(msg.text)}
                         className="hover:text-emerald-950 cursor-pointer flex items-center gap-1"
                         title="Edit prompt"
@@ -902,9 +902,8 @@ export default function AIIntelligencePanel({
 
                       <button
                         onClick={() => toggleFeedback(idx, 'like')}
-                        className={`p-1 rounded transition-colors cursor-pointer ${
-                          feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'hover:text-gray-700'
-                        }`}
+                        className={`p-1 rounded transition-colors cursor-pointer ${feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'hover:text-gray-700'
+                          }`}
                         title="Bagus / Akurat"
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
@@ -912,9 +911,8 @@ export default function AIIntelligencePanel({
 
                       <button
                         onClick={() => toggleFeedback(idx, 'dislike')}
-                        className={`p-1 rounded transition-colors cursor-pointer ${
-                          feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'hover:text-gray-700'
-                        }`}
+                        className={`p-1 rounded transition-colors cursor-pointer ${feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'hover:text-gray-700'
+                          }`}
                         title="Perlu perbaikan"
                       >
                         <ThumbsDown className="w-3.5 h-3.5" />
@@ -964,7 +962,7 @@ export default function AIIntelligencePanel({
 
       {/* Sticky ChatInput Container (Sesuai ChatInput dkpp-info) */}
       <div className="px-2 sm:px-6 pb-2.5 sm:pb-3 pt-1.5 bg-white border-t border-gray-100 shrink-0 relative z-20">
-        
+
         {/* Multimodal Image Preview Chip jika ada foto terlampir */}
         {selectedImage && (
           <div className={`${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto mb-2 p-1.5 bg-slate-900 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2`}>
@@ -1000,11 +998,10 @@ export default function AIIntelligencePanel({
         {/* Dynamic ChatInput Box (Pill / Multiline Rounded-2xl sesuai dkpp-info) */}
         <div className={`w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto`}>
           <div
-            className={`relative flex items-end bg-white border border-gray-200/90 shadow-xs focus-within:border-gray-300 focus-within:shadow-md transition-all duration-200 ${
-              isMultiline
+            className={`relative flex items-end bg-white border border-gray-200/90 shadow-xs focus-within:border-gray-300 focus-within:shadow-md transition-all duration-200 ${isMultiline
                 ? 'rounded-2xl p-2 sm:p-2.5'
                 : 'rounded-full px-2.5 py-1 sm:px-3.5 sm:py-1.5'
-            }`}
+              }`}
           >
             {/* Plus / Quick Prompts Button */}
             <div className="relative shrink-0 mb-0.5">
@@ -1068,11 +1065,10 @@ export default function AIIntelligencePanel({
                 type="button"
                 onClick={() => setIsThinkingMode(prev => !prev)}
                 title="Mode Berpikir Mendalam"
-                className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                  isThinkingMode
+                className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${isThinkingMode
                     ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <Brain className="w-3.5 h-3.5 text-gray-500" />
                 <span>Think</span>
@@ -1083,11 +1079,10 @@ export default function AIIntelligencePanel({
                 type="button"
                 onClick={toggleSpeechRecognition}
                 title={isListening ? 'Mendengarkan...' : 'Gunakan Suara'}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
-                  isListening
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isListening
                     ? 'text-red-500 bg-red-50 animate-pulse'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 {isListening ? <MicOff className="w-4 h-4 text-rose-600" /> : <Mic className="w-4 h-4 text-gray-600" />}
               </button>
@@ -1097,11 +1092,10 @@ export default function AIIntelligencePanel({
                 type="button"
                 onClick={() => sendMessage(inputValue)}
                 disabled={loading || (!inputValue.trim() && !selectedImage)}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all shrink-0 ${
-                  (inputValue.trim() || selectedImage) && !loading
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all shrink-0 ${(inputValue.trim() || selectedImage) && !loading
                     ? 'bg-[#1A73E8] hover:bg-blue-600 text-white shadow-xs cursor-pointer active:scale-95'
                     : 'bg-[#1A73E8]/85 text-white opacity-80 cursor-default'
-                }`}
+                  }`}
                 title="Kirim Pesan"
               >
                 {loading ? (

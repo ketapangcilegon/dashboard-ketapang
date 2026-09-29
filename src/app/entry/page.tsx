@@ -7,12 +7,13 @@ import Navbar from '@/components/Navbar';
 import UploadPanel from '@/components/UploadPanel';
 import AdminMediaPanel from '@/components/AdminMediaPanel';
 import AdminKnowledgePanel from '@/components/AdminKnowledgePanel';
-import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon, Sparkles, BookOpen } from 'lucide-react';
+import AdminFeatureAccessPanel from '@/components/AdminFeatureAccessPanel';
+import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon, Sparkles, BookOpen, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'media' | 'knowledge'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'media' | 'knowledge' | 'access'>('upload');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +29,8 @@ export default function EntryPage() {
         setActiveTab('media');
       } else if (params.get('tab') === 'knowledge') {
         setActiveTab('knowledge');
+      } else if (params.get('tab') === 'access') {
+        setActiveTab('access');
       }
     }
   }, []);
@@ -272,12 +275,25 @@ export default function EntryPage() {
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span>Knowledge Base AI (Dokumen & Perda)</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('access')}
+                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'access'
+                      ? 'bg-emerald-800 text-white shadow-md'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Kontrol Akses Fitur (Switch Blokir)</span>
+                </button>
               </div>
 
               {/* Tab Content */}
               {activeTab === 'upload' && <UploadPanel />}
               {activeTab === 'media' && <AdminMediaPanel />}
               {activeTab === 'knowledge' && <AdminKnowledgePanel />}
+              {activeTab === 'access' && <AdminFeatureAccessPanel />}
             </div>
           )}
         </main>

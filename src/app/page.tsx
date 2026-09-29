@@ -24,7 +24,31 @@ const ForecastPanel = dynamic(() => import('@/components/ForecastPanel'), { ssr:
 const PoUTrendChart = dynamic(() => import('@/components/PoUTrendChart'), { ssr: false });
 const IKPTrendChart = dynamic(() => import('@/components/IKPTrendChart'), { ssr: false });
 const BenchmarkPanel = dynamic(() => import('@/components/BenchmarkPanel'), { ssr: false });
-const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { ssr: false });
+const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm animate-pulse min-h-[320px]">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+          <div className="h-5 w-72 bg-slate-200 rounded-lg" />
+        </div>
+        <div className="h-4 w-28 bg-slate-100 rounded-md" />
+      </div>
+      <div className="space-y-3 py-6">
+        <div className="h-4 bg-slate-100 rounded w-full" />
+        <div className="h-4 bg-slate-100 rounded w-5/6" />
+        <div className="h-4 bg-slate-100 rounded w-4/6" />
+        <div className="h-4 bg-slate-100 rounded w-full" />
+        <div className="h-4 bg-slate-100 rounded w-3/4" />
+      </div>
+      <div className="flex items-center gap-2 pt-3 border-t border-slate-100 text-xs text-slate-400 font-bold">
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+        <span>Menyiapkan modul AI Insight Ketahanan Pangan...</span>
+      </div>
+    </div>
+  )
+});
 const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: false });
 const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKelurahan'), { ssr: false });
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
@@ -32,7 +56,20 @@ const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: f
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
 const RadarKelurahan = dynamic(() => import('@/components/RadarKelurahan'), { ssr: false });
 const VisitCounter = dynamic(() => import('@/components/VisitCounter'), { ssr: false });
-const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView'), { ssr: false });
+const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[calc(100vh-140px)] min-h-[500px] bg-white rounded-2xl border border-slate-200 p-8 flex flex-col items-center justify-center gap-4 animate-pulse shadow-sm">
+      <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+        <div className="w-6 h-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+      </div>
+      <div className="text-center space-y-1">
+        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide">Menyiapkan Food Security Intelligence & Peta Spasial</h3>
+        <p className="text-xs text-slate-400 font-medium">Mengunduh modul kecerdasan buatan dan telemetri agroklimat...</p>
+      </div>
+    </div>
+  )
+});
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
@@ -2143,7 +2180,7 @@ export default function DashboardPage() {
                     </h3>
                     <div className="text-[11px] text-slate-650 leading-relaxed font-semibold space-y-4 text-justify max-w-3xl">
                       <p>
-                        Web app ini dikembangkan dan dikelola secara mandiri oleh seorang Analis Ketahanan Pangan pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
+                        Web app ini dikembangkan dan dikelola secara mandiri oleh Tim Inovasi yang dipimpin seorang Analis Ketahanan Pangan pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
                       </p>
                       <p>
                         Saat ini, web app ini belum merupakan aplikasi resmi dan tidak mewakili kebijakan, sikap, maupun keputusan institusi atau organisasi mana pun. Seluruh konten dan pengembangannya dilakukan secara independen sebagai sarana pendukung analisis dan pengambilan keputusan.
