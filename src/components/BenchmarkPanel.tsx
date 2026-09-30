@@ -257,8 +257,8 @@ export default function BenchmarkPanel({
         </button>
       </div>
 
-      {/* Menu Grid Box (Vibes Mobile First - Dark Emerald Container) */}
-      <div className="bg-[#1E3A34] p-2.5 sm:p-3.5 rounded-2xl border border-emerald-700/50 shadow-md space-y-2">
+      {/* Menu Grid Box (Vibes Mobile First - Clean Light Emerald Container) */}
+      <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-green-50/70 p-2.5 sm:p-3.5 rounded-2xl border border-emerald-200 shadow-xs space-y-2">
         {/* Top Row: 4 Buttons */}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {[9, 1, 4, 3].map((no) => {
@@ -269,8 +269,8 @@ export default function BenchmarkPanel({
                 onClick={() => setActiveNo(prev => prev === no ? null : no)}
                 className={`py-2 px-1 rounded-xl text-[9px] min-[380px]:text-[10px] sm:text-xs font-black uppercase tracking-tight transition-all flex flex-col items-center justify-center text-center shadow-xs active:scale-95 cursor-pointer leading-tight min-h-[44px] ${
                   isSelected
-                    ? 'bg-emerald-500 text-white border-2 border-emerald-200 ring-2 ring-emerald-400/50 shadow-emerald-950/40 scale-[1.02]'
-                    : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-100/90 border border-emerald-800/40'
+                    ? 'bg-emerald-600 text-white border-2 border-emerald-500 ring-2 ring-emerald-400/40 shadow-md shadow-emerald-700/25 scale-[1.02]'
+                    : 'bg-white hover:bg-emerald-50/80 text-emerald-950 font-extrabold border border-emerald-200/90 shadow-2xs hover:border-emerald-300'
                 }`}
                 title={`Pilih ${SHORT_LABELS[no]}`}
               >
@@ -290,8 +290,8 @@ export default function BenchmarkPanel({
                 onClick={() => setActiveNo(prev => prev === no ? null : no)}
                 className={`py-2 px-1 rounded-xl text-[9px] min-[380px]:text-[10px] sm:text-xs font-black uppercase tracking-tight transition-all flex flex-col items-center justify-center text-center shadow-xs active:scale-95 cursor-pointer leading-tight min-h-[44px] ${
                   isSelected
-                    ? 'bg-emerald-500 text-white border-2 border-emerald-200 ring-2 ring-emerald-400/50 shadow-emerald-950/40 scale-[1.02]'
-                    : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-100/90 border border-emerald-800/40'
+                    ? 'bg-emerald-600 text-white border-2 border-emerald-500 ring-2 ring-emerald-400/40 shadow-md shadow-emerald-700/25 scale-[1.02]'
+                    : 'bg-white hover:bg-emerald-50/80 text-emerald-950 font-extrabold border border-emerald-200/90 shadow-2xs hover:border-emerald-300'
                 }`}
                 title={`Pilih ${SHORT_LABELS[no]}`}
               >
@@ -315,7 +315,7 @@ export default function BenchmarkPanel({
         </div>
       ) : (
         /* Main Chart Area (Muncul Dinamis Setelah Tombol Diklik) */
-        <div className="bg-slate-50/80 p-3.5 sm:p-5 rounded-2xl border border-slate-200 space-y-3.5 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="bg-white/95 p-3.5 sm:p-5 rounded-2xl border border-emerald-100 shadow-2xs space-y-3.5 animate-in fade-in slide-in-from-top-2 duration-300">
           
           {/* Chart Header + Lightbulb & Close Button */}
           <div className="flex items-start justify-between gap-2 pb-1 border-b border-slate-200/60">
