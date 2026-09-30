@@ -58,7 +58,7 @@ export default function MobileTopBar({
       case 'tentang':
         return { title: 'Tentang Aplikasi', subtitle: 'Sistem Intelijen Ketahanan Pangan' };
       case 'profil_menu':
-        return { title: 'Profil & Pengaturan', subtitle: 'DKPP Kota Cilegon' };
+        return { title: 'Portal Admin', subtitle: 'Autentikasi & Pengaturan Sistem' };
       default:
         return { title: 'Ketahanan Pangan', subtitle: 'Kota Cilegon' };
     }
@@ -105,15 +105,16 @@ export default function MobileTopBar({
               )}
             </button>
 
-            {/* Profile Avatar with Online Dot */}
+            {/* Portal Admin Avatar */}
             <button
               onClick={onOpenProfile}
               className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-emerald-500 shadow-xs cursor-pointer active:scale-95 transition-all"
-              aria-label="Buka Profil"
+              aria-label="Portal Admin"
+              title="Portal Admin"
             >
               <img 
                 src="/cowboy_admin.png" 
-                alt="Profil User" 
+                alt="Portal Admin" 
                 className="w-full h-full object-cover"
               />
               <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
