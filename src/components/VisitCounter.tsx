@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 
-export default function VisitCounter({ path = '/' }: { path?: string }) {
+export default function VisitCounter({ path = '/', className = '' }: { path?: string; className?: string }) {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -40,7 +40,9 @@ export default function VisitCounter({ path = '/' }: { path?: string }) {
   }, [path]);
 
   return (
-    <div className="text-[11px] font-bold text-slate-500 flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 transition-colors px-3 py-1.5 rounded-full border border-slate-200 shadow-sm shrink-0">
+    <div className={`text-[11px] font-bold flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors shrink-0 ${
+      className || 'text-slate-500 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 shadow-sm'
+    }`}>
       <Users className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
       <span>Total Pengunjung:</span>
       <span className="font-extrabold text-slate-800 tabular-nums">

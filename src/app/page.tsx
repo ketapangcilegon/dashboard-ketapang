@@ -71,6 +71,7 @@ const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView
   )
 });
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
+import MobileAppContainer from '@/components/mobile/MobileAppContainer';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
@@ -1162,10 +1163,406 @@ export default function DashboardPage() {
   const currentMonthKetersediaan = ketersediaanData.filter(x => x.tahun === selectedYear).find(x => x.bulan === selectedMonth) 
     || ketersediaanData.filter(x => x.tahun === selectedYear)[ketersediaanData.filter(x => x.tahun === selectedYear).length - 1];
   
-  const nbmValue = currentMonthKetersediaan ? currentMonthKetersediaan.skor_nbm : 94.2;
+  // Render sub-view content for mobile application wrapper
+  const renderMobileSubView = () => {
+    if (currentView === 'grafik_ikp' || currentView === 'ikp_grafik') {
+      return (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <IKPTrendChart ikpData={ikpData} selectedYear={selectedYear} />
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <PoUTrendChart pouData={pouData} selectedYear={selectedYear} />
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'harga_full') {
+      return (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="w-1.5 h-4 bg-emerald-600 rounded-full" />
+              <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wide">
+                PANEL HARGA PANGAN STRATEGIS
+              </h2>
+            </div>
+            <HargaPanel 
+              hargaData={hargaData} 
+              previousHargaData={previousHargaData} 
+              livePrices={livePrices}
+              liveDate={liveDate}
+              liveHistory={liveHistory}
+              loadingLive={loadingLive}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'peta_full') {
+      return (
+        <div className="space-y-3 flex flex-col h-[78vh] min-h-[500px]">
+          <div className="bg-white rounded-2xl border border-slate-200 flex-1 flex flex-col p-3 shadow-sm min-h-0">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="w-1.5 h-4 bg-emerald-600 rounded-full" />
+              <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wide">
+                PETA TEMATIK FSVA & SKPG
+              </h2>
+            </div>
+            <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 min-h-[420px]">
+              <MapUnified 
+                selectedKecamatan={selectedKecamatan}
+                selectedKelurahan={selectedKelurahan}
+                selectedYear={selectedYear}
+                selectedMonth={selectedMonth}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'insight') {
+      return (
+        <div className="flex flex-col min-h-[500px] space-y-4">
+          <AIInsightPanel 
+            year={selectedYear}
+            month={selectedMonth}
+            kecamatan={selectedKecamatan}
+            kelurahan={selectedKelurahan}
+            cvBeras={getCVBulananValue()}
+            pphScore={getPPHValue()}
+            konsumsiEnergi={getKonsumsiEnergiValue()}
+            konsumsiProtein={getKonsumsiProteinValue()}
+            ketersediaanEnergi={getKetersediaanEnergiValue()}
+            ketersediaanProtein={getKetersediaanProteinValue()}
+            produksiBeras={
+              produksiBerasList.find(x => x.tahun === selectedYear)
+                ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+            }
+            balitaStatus={getBalitaData()}
+            hargaStrategis={{
+              beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+              bawang_merah: livePrices ? (livePrices.bawang_merah ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_merah || 0), 0) / hargaData.length) : 40000),
+              bawang_putih: livePrices ? (livePrices.bawang_putih ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_putih || 0), 0) / hargaData.length) : 40000),
+              cabe_merah: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 37500),
+              cabe_rawit: livePrices ? (livePrices.cabe_rawit ?? 50000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_rawit || 0), 0) / hargaData.length) : 50000),
+              daging_sapi: livePrices ? (livePrices.daging_sapi ?? 150000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_sapi || 0), 0) / hargaData.length) : 150000),
+              daging_ayam: livePrices ? livePrices.daging_ayam : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_ayam || 0), 0) / hargaData.length) : 35000),
+              telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 24000),
+              gula_pasir: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+              minyak_goreng: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
+            }}
+            loadingPrices={loadingLive}
+            isFullScreen={true}
+          />
+        </div>
+      );
+    }
+
+    if (currentView === 'ketersediaan') {
+      const values = {
+        ketersediaanEnergi: getKetersediaanEnergiValue(),
+        ketersediaanProtein: getKetersediaanProteinValue(),
+        cppd: 174
+      };
+      const insights = getSubViewInsights('ketersediaan', values) as { energi: string[]; protein: string[]; cppd: string[] };
+      return (
+        <div className="space-y-4">
+          <div className="dashboard-card">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-emerald-600" />
+              Tingkat Ketersediaan Energi (kkal/kapita/hari)
+            </h3>
+            <MiniBenchmarkChart indicatorNo={6} currentValue={values.ketersediaanEnergi} unit="kkal" nationalStandard={2400} colorTheme="emerald" />
+          </div>
+          <div className="dashboard-card bg-emerald-50/20">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-emerald-600" />
+              AI Insight Ketersediaan Energi
+            </h3>
+            <ul className="space-y-2">
+              {insights?.energi.map((bullet, idx) => (
+                <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="dashboard-card">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+              Tingkat Ketersediaan Protein (gram/kapita/hari)
+            </h3>
+            <MiniBenchmarkChart indicatorNo={7} currentValue={values.ketersediaanProtein} unit="gram" nationalStandard={63} colorTheme="blue" />
+          </div>
+          <div className="dashboard-card bg-blue-50/20">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-blue-600" />
+              AI Insight Ketersediaan Protein
+            </h3>
+            <ul className="space-y-2">
+              {insights?.protein.map((bullet, idx) => (
+                <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                  <span className="text-blue-500 font-bold">•</span>
+                  <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="dashboard-card">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-purple-600" />
+              Cadangan Pangan Pemda (CPPD)
+            </h3>
+            <MiniBenchmarkChart indicatorNo={8} currentValue={values.cppd} unit="Ton" nationalStandard={115} colorTheme="purple" />
+          </div>
+          <div className="dashboard-card bg-purple-50/20">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-600" />
+              AI Insight Cadangan Pangan
+            </h3>
+            <ul className="space-y-2">
+              {insights?.cppd.map((bullet, idx) => (
+                <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                  <span className="text-purple-500 font-bold">•</span>
+                  <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'keterjangkauan') {
+      const cvVal = getCVValue();
+      const insights = getSubViewInsights('keterjangkauan', { cvBeras: cvVal }) as string[];
+      return (
+        <div className="space-y-4">
+          <div className="dashboard-card">
+            <HargaPanel 
+              hargaData={hargaData} 
+              previousHargaData={previousHargaData} 
+              livePrices={livePrices}
+              liveDate={liveDate}
+              liveHistory={liveHistory}
+              loadingLive={loadingLive}
+            />
+          </div>
+          <div className="dashboard-card flex items-center justify-center p-4">
+            <div className="w-full max-w-[280px]">
+              <CVGauge value={cvVal} isBulanan={false} />
+            </div>
+          </div>
+          <div className="dashboard-card bg-gradient-to-br from-white to-blue-50/15">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-blue-600" />
+              AI Insight Stabilitas Harga Beras
+            </h3>
+            <ul className="space-y-2">
+              {insights?.map((bullet, idx) => (
+                <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                  <span className="text-blue-500 font-bold">•</span>
+                  <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'pemanfaatan') {
+      const balitaInfo = getBalitaData();
+      const values = {
+        balitaKurang: balitaInfo.kurang,
+        balitaTotal: balitaInfo.total,
+        balitaStatus: balitaInfo.status,
+        konsumsiEnergi: getKonsumsiEnergiValue(),
+        konsumsiProtein: getKonsumsiProteinValue()
+      };
+      const insights = getSubViewInsights('pemanfaatan', values) as { balita: string[]; energi: string[]; protein: string[] };
+      return (
+        <div className="space-y-4">
+          <div className="dashboard-card flex items-center justify-center p-4">
+            <div className="w-full max-w-[320px]">
+              <BalitaDoughnut balitaData={balitaInfo} />
+            </div>
+          </div>
+          <div className="dashboard-card bg-purple-50/20">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-600" />
+              AI Insight Status Gizi Balita
+            </h3>
+            <ul className="space-y-2">
+              {insights?.balita.map((bullet, idx) => (
+                <li key={idx} className="text-[11px] text-slate-600 font-semibold leading-relaxed flex gap-2">
+                  <span className="text-purple-500 font-bold">•</span>
+                  <span>{bullet.split('**').map((part, i) => i % 2 === 1 ? <strong key={i} className="font-black text-[#0B1E41]">{part}</strong> : part)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="dashboard-card">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-emerald-600" />
+              Konsumsi Energi
+            </h3>
+            <MiniBenchmarkChart indicatorNo={3} currentValue={values.konsumsiEnergi} unit="kkal" nationalStandard={2100} colorTheme="emerald" />
+          </div>
+          <div className="dashboard-card">
+            <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+              Konsumsi Protein
+            </h3>
+            <MiniBenchmarkChart indicatorNo={4} currentValue={values.konsumsiProtein} unit="gram" nationalStandard={57} colorTheme="blue" />
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'analisis_skpg') {
+      return <AnalisisSKPG onSwitchView={(view: string) => setCurrentView(view)} />;
+    }
+
+    if (currentView === 'analisis_skpg_kelurahan') {
+      return <AnalisisSKPGKelurahan onSwitchView={(view: string) => setCurrentView(view)} />;
+    }
+
+    if (currentView === 'radar_kelurahan') {
+      return <RadarKelurahan />;
+    }
+
+    if (currentView === 'forecasting') {
+      return <ForecastView onBack={() => setCurrentView('beranda')} livePrices={livePrices} />;
+    }
+
+    if (currentView === 'validasi_forecast') {
+      return <ValidasiForecastView onBack={() => setCurrentView('beranda')} />;
+    }
+
+    if (currentView === 'ai_intelligence' || currentView === 'ai_insight' || currentView === 'insight') {
+      return (
+        <div className="w-full">
+          <ErrorBoundary fallbackTitle="Kendala Memuat Food Security Intelligence">
+            <AIIntelligenceView />
+          </ErrorBoundary>
+        </div>
+      );
+    }
+
+    if (currentView === 'kamera_cerdas') {
+      return (
+        <div className="w-full h-[calc(100vh-140px)] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+          <KameraCerdasView />
+        </div>
+      );
+    }
+
+    if (currentView === 'sumber_data') {
+      return (
+        <div className="dashboard-card p-4 bg-white shadow-sm border border-slate-200">
+          <h3 className="font-extrabold text-[#0B1E41] text-sm uppercase tracking-wider mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            Sumber Data dan Referensi
+          </h3>
+          <p className="text-xs text-slate-500 mb-3 leading-relaxed font-semibold">
+            Seluruh data dan informasi yang disajikan dalam web app ini berasal dari sumber resmi pemerintah serta hasil pengolahan data oleh pengelola aplikasi.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+            <table className="w-full text-left border-collapse table-fixed text-[10px]">
+              <thead>
+                <tr className="bg-slate-800 text-white text-[9px] uppercase tracking-wider">
+                  <th className="py-2 px-2.5 w-[32%]">Indikator</th>
+                  <th className="py-2 px-2.5 w-[68%]">Sumber & Keterangan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr className="bg-white">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">Harga SAGON</td>
+                  <td className="py-2 px-2.5 text-slate-600">DKPP Kota Cilegon (sagon.cilegon.go.id)</td>
+                </tr>
+                <tr className="bg-slate-50/50">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">PPH Konsumsi</td>
+                  <td className="py-2 px-2.5 text-slate-600">SUSENAS BPS & DKPP Cilegon</td>
+                </tr>
+                <tr className="bg-white">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">Ketersediaan NBM</td>
+                  <td className="py-2 px-2.5 text-slate-600">Neraca Bahan Makanan DKPP Kota Cilegon</td>
+                </tr>
+                <tr className="bg-slate-50/50">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">Gizi Balita</td>
+                  <td className="py-2 px-2.5 text-slate-600">Rekapitulasi Dinas Kesehatan Cilegon</td>
+                </tr>
+                <tr className="bg-white">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">FSVA & SKPG</td>
+                  <td className="py-2 px-2.5 text-slate-600">Food Security and Vulnerability Atlas DKPP</td>
+                </tr>
+                <tr className="bg-slate-50/50">
+                  <td className="py-2 px-2.5 font-bold text-slate-800">IKP & PoU</td>
+                  <td className="py-2 px-2.5 text-slate-600">Badan Pangan Nasional & BPS</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'credit') {
+      return (
+        <div className="dashboard-card p-5 bg-white shadow-sm border border-slate-200">
+          <h3 className="font-extrabold text-[#0B1E41] text-sm uppercase tracking-wider mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+            <Info className="w-4 h-4 text-emerald-600" />
+            Credit Title
+          </h3>
+          <div className="text-xs text-slate-600 leading-relaxed font-medium space-y-3">
+            <p>
+              Web app ini dikembangkan dan dikelola secara mandiri oleh Tim Inovasi yang dipimpin seorang Analis Ketahanan Pangan pada Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai bentuk inisiatif untuk mendukung pemanfaatan data spasial dan informasi ketahanan pangan.
+            </p>
+            <p>
+              Seluruh konten dan pengembangannya dilakukan secara independen sebagai sarana pendukung analisis dan pengambilan keputusan.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'tentang') {
+      return <TentangAplikasi onBack={() => setCurrentView('beranda')} />;
+    }
+
+    return null;
+  };
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans relative">
+    <>
+      {/* 📱 MOBILE VERSION ONLY (Vibes Android Mobile First - Active when viewport < lg) */}
+      <div className="block lg:hidden min-h-screen bg-[#F5F7F9] text-slate-800 font-sans">
+        <MobileAppContainer
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          livePrices={livePrices}
+          liveDate={liveDate}
+          liveHistory={liveHistory}
+          overallScore={82.4}
+          balitaStatus={getBalitaData().status}
+          ikpData={ikpData}
+          fsvaMatangData={fsvaMatangData}
+          benchmarkCurrentData={getBenchmarkData()}
+          benchmarkList={benchmarkList}
+        >
+          {renderMobileSubView()}
+        </MobileAppContainer>
+      </div>
+
+      {/* 🖥️ DESKTOP VERSION ONLY (Hidden on mobile, 100% Intact Existing Dashboard) */}
+      <div className="hidden lg:flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans relative">
       {/* Mobile Sidebar sliding drawer */}
       <div 
         className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
@@ -2314,6 +2711,7 @@ export default function DashboardPage() {
           }
         }
       `}} />
-    </div>
+      </div>
+    </>
   );
 }
