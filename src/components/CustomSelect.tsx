@@ -193,11 +193,22 @@ export default function CustomSelect({
                           : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-700 font-medium'
                       }`}
                     >
-                      <span className="text-xs truncate font-semibold pr-2">{opt.label}</span>
+                      <div className="flex items-center gap-2 truncate pr-2">
+                        {opt.disabled && (
+                          <span className="text-[9px] uppercase tracking-wider bg-rose-100/90 text-rose-700 border border-rose-200 font-bold px-1.5 py-0.5 rounded shrink-0">
+                            Disable
+                          </span>
+                        )}
+                        <span className={`text-xs truncate font-semibold ${opt.disabled ? 'text-slate-400' : ''}`}>{opt.label}</span>
+                      </div>
 
                       {/* Custom Professional Radio Button */}
                       <div className="shrink-0 flex items-center justify-center">
-                        {isSelected ? (
+                        {opt.disabled ? (
+                          <div className="w-5 h-5 rounded-full border border-slate-300 bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 font-bold">
+                            —
+                          </div>
+                        ) : isSelected ? (
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-xs ${theme.radioActive}`}>
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>

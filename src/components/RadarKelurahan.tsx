@@ -6,11 +6,12 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
 } from 'recharts';
-import { WILAYAH, ALL_KEC, ALL_KEL } from '@/lib/wilayah';
-import CustomSelect from '@/components/CustomSelect';
+import { WILAYAH, ALL_KEC, ALL_KEL, KEL_TO_KEC } from '@/lib/wilayah';
+import CustomSelect, { CustomSelectOption } from '@/components/CustomSelect';
 import { 
   ShieldCheck, AlertCircle, Layers, Sliders, ArrowRightLeft, 
-  Sparkles, CheckCircle2, TrendingUp, Calendar, FileSpreadsheet, Loader2
+  Sparkles, CheckCircle2, TrendingUp, Calendar, FileSpreadsheet, Loader2,
+  Lock, Building2, AlertTriangle, RefreshCw, BarChart3, HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import fsvaForm2Raw from '@/lib/fsva-form2-official-data.json';
@@ -189,13 +190,103 @@ function getCityAverageData(dataset: Record<string, KelurahanData>): KelurahanDa
   };
 }
 
+// Compute Average Kecamatan Benchmark from active dataset
+function getKecamatanAverageData(dataset: Record<string, KelurahanData>, kecName: string): KelurahanData {
+  const all = Object.values(dataset);
+  const kecKels = all.filter(
+    (k) => k.kecamatan.trim().toLowerCase() === kecName.trim().toLowerCase()
+  );
+  const count = kecKels.length || 1;
+
+  const sum = kecKels.reduce((acc, curr) => ({
+    raw_ncpr: acc.raw_ncpr + curr.raw_ncpr,
+    raw_energy: acc.raw_energy + curr.raw_energy,
+    raw_animal_protein: acc.raw_animal_protein + curr.raw_animal_protein,
+    raw_food_reserves: acc.raw_food_reserves + curr.raw_food_reserves,
+    raw_poverty: acc.raw_poverty + curr.raw_poverty,
+    raw_price_cv: acc.raw_price_cv + curr.raw_price_cv,
+    raw_pou: acc.raw_pou + curr.raw_pou,
+    raw_female_school: acc.raw_female_school + curr.raw_female_school,
+    raw_no_water: acc.raw_no_water + curr.raw_no_water,
+    raw_pph: acc.raw_pph + curr.raw_pph,
+    raw_stunting: acc.raw_stunting + curr.raw_stunting,
+
+    score_ncpr: acc.score_ncpr + curr.score_ncpr,
+    score_energy: acc.score_energy + curr.score_energy,
+    score_animal_protein: acc.score_animal_protein + curr.score_animal_protein,
+    score_food_reserves: acc.score_food_reserves + curr.score_food_reserves,
+    score_poverty: acc.score_poverty + curr.score_poverty,
+    score_price_cv: acc.score_price_cv + curr.score_price_cv,
+    score_pou: acc.score_pou + curr.score_pou,
+    score_female_school: acc.score_female_school + curr.score_female_school,
+    score_no_water: acc.score_no_water + curr.score_no_water,
+    score_pph: acc.score_pph + curr.score_pph,
+    score_stunting: acc.score_stunting + curr.score_stunting,
+
+    idx_ketersediaan: acc.idx_ketersediaan + curr.idx_ketersediaan,
+    idx_akses: acc.idx_akses + curr.idx_akses,
+    idx_pemanfaatan: acc.idx_pemanfaatan + curr.idx_pemanfaatan,
+    ikp: acc.ikp + curr.ikp,
+  }), {
+    raw_ncpr: 0, raw_energy: 0, raw_animal_protein: 0, raw_food_reserves: 0,
+    raw_poverty: 0, raw_price_cv: 0, raw_pou: 0, raw_female_school: 0,
+    raw_no_water: 0, raw_pph: 0, raw_stunting: 0,
+    score_ncpr: 0, score_energy: 0, score_animal_protein: 0, score_food_reserves: 0,
+    score_poverty: 0, score_price_cv: 0, score_pou: 0, score_female_school: 0,
+    score_no_water: 0, score_pph: 0, score_stunting: 0,
+    idx_ketersediaan: 0, idx_akses: 0, idx_pemanfaatan: 0, ikp: 0,
+  });
+
+  return {
+    nama: `Kecamatan ${kecName}`,
+    kecamatan: kecName,
+    raw_ncpr: +(sum.raw_ncpr / count).toFixed(2),
+    raw_energy: +(sum.raw_energy / count).toFixed(1),
+    raw_animal_protein: +(sum.raw_animal_protein / count).toFixed(1),
+    raw_food_reserves: +(sum.raw_food_reserves / count).toFixed(2),
+    raw_poverty: +(sum.raw_poverty / count).toFixed(1),
+    raw_price_cv: +(sum.raw_price_cv / count).toFixed(1),
+    raw_pou: +(sum.raw_pou / count).toFixed(1),
+    raw_female_school: +(sum.raw_female_school / count).toFixed(1),
+    raw_no_water: +(sum.raw_no_water / count).toFixed(1),
+    raw_pph: +(sum.raw_pph / count).toFixed(1),
+    raw_stunting: +(sum.raw_stunting / count).toFixed(1),
+
+    score_ncpr: Math.round(sum.score_ncpr / count),
+    score_energy: Math.round(sum.score_energy / count),
+    score_animal_protein: Math.round(sum.score_animal_protein / count),
+    score_food_reserves: Math.round(sum.score_food_reserves / count),
+    score_poverty: Math.round(sum.score_poverty / count),
+    score_price_cv: Math.round(sum.score_price_cv / count),
+    score_pou: Math.round(sum.score_pou / count),
+    score_female_school: Math.round(sum.score_female_school / count),
+    score_no_water: Math.round(sum.score_no_water / count),
+    score_pph: Math.round(sum.score_pph / count),
+    score_stunting: Math.round(sum.score_stunting / count),
+
+    idx_ketersediaan: Math.round(sum.idx_ketersediaan / count),
+    idx_akses: Math.round(sum.idx_akses / count),
+    idx_pemanfaatan: Math.round(sum.idx_pemanfaatan / count),
+    ikp: +(sum.ikp / count).toFixed(2),
+    rank: 0,
+  };
+}
+
 export default function RadarKelurahan() {
   const [selectedKec, setSelectedKec] = useState<string>('Citangkil');
   const [selectedKel, setSelectedKel] = useState<string>('Deringo');
   
-  const [mode, setMode] = useState<'benchmark' | 'dual'>('benchmark');
-  const [compareKel, setCompareKel] = useState<string>('Warnasari');
+  const [mode, setMode] = useState<'benchmark' | 'kecamatan'>('benchmark');
   
+  // Kecamatan wilayah asal kelurahan
+  const parentKec = useMemo(() => KEL_TO_KEC[selectedKel] || selectedKec, [selectedKel, selectedKec]);
+  const [compareKec, setCompareKec] = useState<string>('Citangkil');
+
+  // Strict enforcement: sinkronkan compareKec selalu ke wilayah asal kelurahan terpilih
+  useEffect(() => {
+    setCompareKec(parentKec);
+  }, [parentKec]);
+
   const [selectedYear, setSelectedYear] = useState<number>(2025);
   const [loading, setLoading] = useState<boolean>(true);
   const [dbRows, setDbRows] = useState<any[]>([]);
@@ -222,6 +313,10 @@ export default function RadarKelurahan() {
   // Load official FSVA dataset from Form 2.1 & 2.3
   const currentDataset = useMemo(() => getForm2FSVAData(dbRows), [dbRows]);
   const cityAvg = useMemo(() => getCityAverageData(currentDataset), [currentDataset]);
+  const kecAvg = useMemo(() => getKecamatanAverageData(currentDataset, parentKec), [currentDataset, parentKec]);
+
+  // Validasi ketat: apakah kecamatan pembanding berbeda dengan wilayah asal kelurahan
+  const isKecMismatch = mode === 'kecamatan' && compareKec.trim().toLowerCase() !== parentKec.trim().toLowerCase();
 
   // Update selectedKel when Kecamatan changes
   const handleKecChange = (kec: string) => {
@@ -230,13 +325,32 @@ export default function RadarKelurahan() {
     if (kels.length > 0) {
       setSelectedKel(kels[0]);
     }
+    setCompareKec(kec);
   };
 
-  // Get active kelurahan data
+  const handleKelChange = (kel: string) => {
+    setSelectedKel(kel);
+    const pKec = KEL_TO_KEC[kel] || selectedKec;
+    setCompareKec(pKec);
+  };
+
+  // Opsi kecamatan pembanding: ATUR KETAT hanya kecamatan wilayah asal yang aktif, selain itu DISABLE
+  const compareKecOptions: CustomSelectOption[] = useMemo(() => {
+    return ALL_KEC.map((kec) => {
+      const isMatch = kec.trim().toLowerCase() === parentKec.trim().toLowerCase();
+      return {
+        value: kec,
+        label: isMatch
+          ? `Kecamatan ${kec} (Wilayah Induk)`
+          : `Kecamatan ${kec} (Beda Wilayah)`,
+        disabled: !isMatch,
+      };
+    });
+  }, [parentKec]);
+
+  // Get active kelurahan data & benchmark data
   const dataA = currentDataset[selectedKel] || currentDataset['Deringo'];
-  const dataB = mode === 'dual' 
-    ? (currentDataset[compareKel] || currentDataset['Warnasari']) 
-    : cityAvg;
+  const dataB = mode === 'kecamatan' ? kecAvg : cityAvg;
 
   // Radar Data for Pilar 1: Ketersediaan (1.1 NCPR, 1.2 Energy, 1.3 Protein, 1.4 Food Reserves)
   const radarAvailability = useMemo(() => [
@@ -361,20 +475,23 @@ export default function RadarKelurahan() {
     return [...allIndicatorsA].sort((a, b) => a.scoreA - b.scoreA)[0];
   }, [allIndicatorsA]);
 
-  const getDynamicPolicyAction = (indicatorKey: string, kelName: string) => {
+  const ikpDelta = +(dataA.ikp - dataB.ikp).toFixed(2);
+
+  const getDynamicPolicyAction = (indicatorKey: string, kelName: string, kecName?: string) => {
+    const wilayahLabel = kecName ? `Kelurahan ${kelName} (Kecamatan ${kecName})` : `Kelurahan ${kelName}`;
     switch (indicatorKey) {
       case 'ncpr':
-        return `Akselerasi fasilitasi pasokan pangan pokok dan kerja sama antar daerah (KAD) untuk menjamin ketersediaan pangan di Kelurahan ${kelName}.`;
+        return `Akselerasi fasilitasi pasokan pangan pokok dan kerja sama antar daerah (KAD) untuk menjamin stabilitas ketersediaan pangan di ${wilayahLabel}.`;
       case 'no_water':
-        return `Percepatan pembangunan sarana air bersih dan sanitasi di Kelurahan ${kelName} bekerjasama dengan Dinas PUPR / Perkim.`;
+        return `Percepatan pembangunan sarana air bersih dan sanitasi di ${wilayahLabel} bekerjasama dengan Dinas PUPR / Perkim.`;
       case 'poverty':
-        return `Prioritas penyaluran bantuan pangan cadangan pemerintah dan bansos tepat sasaran bagi masyarakat desil 1 & 2 di Kelurahan ${kelName}.`;
+        return `Prioritas penyaluran bantuan pangan cadangan pemerintah dan bansos tepat sasaran bagi masyarakat desil 1 & 2 di ${wilayahLabel}.`;
       case 'stunting':
-        return `Penguatan intervensi gizi spesifik PMT lokal Posyandu di Kelurahan ${kelName} untuk balita di bawah standar stunting.`;
+        return `Penguatan intervensi gizi spesifik PMT lokal Posyandu di ${wilayahLabel} untuk balita di bawah standar stunting.`;
       case 'price_cv':
-        return `Penyelenggaraan Gerakan Pangan Murah (GPM) berkala untuk menjaga stabilitas harga pangan pokok di Kelurahan ${kelName}.`;
+        return `Penyelenggaraan Gerakan Pangan Murah (GPM) berkala untuk menjaga stabilitas harga pangan pokok di ${wilayahLabel}.`;
       default:
-        return `Peningkatan sinergitas lintas sektor di Kelurahan ${kelName} guna meningkatkan skor pemenuhan 11 indikator FSVA.`;
+        return `Peningkatan sinergitas lintas sektor di ${wilayahLabel} guna meningkatkan skor pemenuhan 11 indikator FSVA.`;
     }
   };
 
@@ -382,20 +499,26 @@ export default function RadarKelurahan() {
     if (active && payload && payload.length) {
       const dataItem = payload[0].payload;
       return (
-        <div className="bg-slate-900/95 text-white p-3 rounded-lg border border-slate-700 shadow-xl text-xs space-y-1.5 min-w-[210px]">
+        <div className="bg-slate-900/95 text-white p-3 rounded-lg border border-slate-700 shadow-xl text-xs space-y-1.5 min-w-[220px]">
           <p className="font-extrabold text-emerald-400 border-b border-slate-700 pb-1">{dataItem.subject}</p>
           <div className="flex justify-between items-center gap-4 text-slate-200">
-            <span>{dataA.nama}:</span>
+            <span>Kel. {dataA.nama}:</span>
             <span className="font-bold text-white tabular-nums">
               {dataItem.valA} {dataItem.unit} <span className="text-[10px] text-emerald-400 font-normal">({dataItem.scoreA}/100)</span>
             </span>
           </div>
-          <div className="flex justify-between items-center gap-4 text-slate-400">
-            <span>{dataB.nama}:</span>
-            <span className="font-bold text-amber-300 tabular-nums">
-              {dataItem.valB} {dataItem.unit} <span className="text-[10px] text-amber-400 font-normal">({dataItem.scoreB}/100)</span>
-            </span>
-          </div>
+          {!isKecMismatch ? (
+            <div className="flex justify-between items-center gap-4 text-slate-400">
+              <span>{mode === 'kecamatan' ? `Kec. ${parentKec}` : dataB.nama}:</span>
+              <span className="font-bold text-amber-300 tabular-nums">
+                {dataItem.valB} {dataItem.unit} <span className="text-[10px] text-amber-400 font-normal">({dataItem.scoreB}/100)</span>
+              </span>
+            </div>
+          ) : (
+            <div className="text-[10px] text-rose-400 italic border-t border-slate-700/80 pt-1">
+              Perbandingan dinonaktifkan (beda kecamatan)
+            </div>
+          )}
         </div>
       );
     }
@@ -416,12 +539,29 @@ export default function RadarKelurahan() {
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-white">
               Grafik Radar Ketahanan Pangan Kelurahan
             </h2>
+            <p className="text-emerald-100/90 text-xs mt-1">
+              {mode === 'kecamatan'
+                ? `Komparasi ketat Kelurahan ${dataA.nama} terhadap agregat Kecamatan ${parentKec}`
+                : `Profil mandiri Kelurahan ${dataA.nama} dibandingkan rata-rata Kota Cilegon`}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-black/25 p-3.5 rounded-xl border border-emerald-400/30 shrink-0 shadow-inner">
+          <div className="flex items-center gap-4 bg-black/25 p-3.5 rounded-xl border border-emerald-400/30 shrink-0 shadow-inner">
             <div className="text-right">
-              <p className="text-[10px] text-emerald-200 font-black tracking-wider">Skor IKP Kelurahan {dataA.nama}</p>
-              <p className="text-2xl font-black text-emerald-300 tabular-nums">{overallScoreA}<span className="text-xs font-normal text-emerald-200/80">/100</span></p>
+              <p className="text-[10px] text-emerald-200 font-black tracking-wider">Skor Kel. {dataA.nama}</p>
+              <p className="text-2xl font-black text-emerald-300 tabular-nums">
+                {overallScoreA}<span className="text-xs font-normal text-emerald-200/80">/100</span>
+              </p>
+            </div>
+            <div className="h-8 w-px bg-emerald-400/30" />
+            <div className="text-left">
+              <p className="text-[10px] text-amber-200 font-black tracking-wider">
+                {mode === 'kecamatan' ? `Kec. ${parentKec}` : 'Kota Cilegon'}
+              </p>
+              <p className="text-2xl font-black text-amber-300 tabular-nums">
+                {Math.round(dataB.ikp)}
+                <span className="text-xs font-normal text-amber-200/80">/100</span>
+              </p>
             </div>
             <div className="w-10 h-10 rounded-lg bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
               <ShieldCheck className="w-6 h-6" />
@@ -451,15 +591,15 @@ export default function RadarKelurahan() {
               Single vs Rata-rata Kota
             </button>
             <button
-              onClick={() => setMode('dual')}
+              onClick={() => setMode('kecamatan')}
               className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
-                mode === 'dual'
+                mode === 'kecamatan'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
               <ArrowRightLeft className="w-3.5 h-3.5" />
-              Bandingkan 2 Kelurahan
+              Kelurahan vs Kecamatan
             </button>
           </div>
         </div>
@@ -473,26 +613,34 @@ export default function RadarKelurahan() {
             onChange={(val) => handleKecChange(String(val))}
             options={ALL_KEC.map(kec => ({ value: kec, label: `Kecamatan ${kec}` }))}
             variant="emerald"
+            icon={<Building2 className="w-3.5 h-3.5 text-emerald-600" />}
           />
 
           {/* Kelurahan A Dropdown */}
           <CustomSelect
-            label={mode === 'dual' ? 'Kelurahan Utama (A)' : 'Pilih Kelurahan'}
+            label={mode === 'kecamatan' ? 'Kelurahan Utama (A)' : 'Pilih Kelurahan'}
             value={selectedKel}
-            onChange={(val) => setSelectedKel(String(val))}
+            onChange={(val) => handleKelChange(String(val))}
             options={(WILAYAH[selectedKec] || []).map(kel => ({ value: kel, label: `Kelurahan ${kel}` }))}
             variant="emerald"
           />
 
-          {/* Kelurahan B (if Dual Mode) */}
-          {mode === 'dual' ? (
-            <CustomSelect
-              label="Kelurahan Pembanding (B)"
-              value={compareKel}
-              onChange={(val) => setCompareKel(String(val))}
-              options={ALL_KEL.map(kel => ({ value: kel, label: `Kelurahan ${kel}` }))}
-              variant="amber"
-            />
+          {/* Kecamatan Pembanding (B) or Kota Benchmark */}
+          {mode === 'kecamatan' ? (
+            <div>
+              <CustomSelect
+                label="Kecamatan Pembanding (B)"
+                value={compareKec}
+                onChange={(val) => setCompareKec(String(val))}
+                options={compareKecOptions}
+                variant="amber"
+                icon={<Building2 className="w-3.5 h-3.5 text-amber-600" />}
+              />
+              <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-700 font-semibold">
+                <Lock className="w-3 h-3 text-amber-600 shrink-0" />
+                <span>Ketat: Hanya Wilayah Induk ({parentKec})</span>
+              </div>
+            </div>
           ) : (
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Acuan Pembanding</label>
@@ -502,6 +650,9 @@ export default function RadarKelurahan() {
                 value="Rata-rata Kota Cilegon" 
                 className="w-full text-xs font-bold bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed"
               />
+              <div className="mt-1 text-[10px] text-slate-400 font-medium">
+                Benchmark agregat seluruh 43 kelurahan
+              </div>
             </div>
           )}
 
@@ -521,6 +672,28 @@ export default function RadarKelurahan() {
           />
 
         </div>
+
+        {/* Warning Banner if cross-district mismatch occurs */}
+        {isKecMismatch && (
+          <div className="mt-3 bg-rose-50 border border-rose-200 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-900 text-xs">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+              <div>
+                <p className="font-extrabold text-rose-800">Perbandingan Lintas Kecamatan Dinonaktifkan</p>
+                <p className="text-slate-600 text-[11px] mt-0.5">
+                  Kelurahan <strong>{dataA.nama}</strong> berada di wilayah <strong>Kecamatan {parentKec}</strong>. Sesuai aturan ketat, kelurahan hanya dapat dibandingkan dengan profil kecamatannya sendiri.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setCompareKec(parentKec)}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer self-start sm:self-auto"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reset ke Kec. {parentKec}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Grid 3 Radar Cards per Pilar */}
@@ -545,8 +718,18 @@ export default function RadarKelurahan() {
                   <PolarGrid stroke="#E2E8F0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: '#94A3B8' }} />
-                  <Radar name={dataA.nama} dataKey="scoreA" stroke="#10B981" fill="#10B981" fillOpacity={0.4} strokeWidth={2} />
-                  <Radar name={dataB.nama} dataKey="scoreB" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.2} strokeDasharray="3 3" strokeWidth={2} />
+                  <Radar name={`Kel. ${dataA.nama}`} dataKey="scoreA" stroke="#10B981" fill="#10B981" fillOpacity={0.4} strokeWidth={2} />
+                  {!isKecMismatch && (
+                    <Radar 
+                      name={mode === 'kecamatan' ? `Kec. ${parentKec}` : 'Rata-rata Kota'} 
+                      dataKey="scoreB" 
+                      stroke="#F59E0B" 
+                      fill="#F59E0B" 
+                      fillOpacity={0.2} 
+                      strokeDasharray="3 3" 
+                      strokeWidth={2} 
+                    />
+                  )}
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                 </RadarChart>
@@ -555,12 +738,17 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Rincian Indikator Ketersediaan ({selectedYear}):</p>
+            <div className="flex items-center justify-between font-bold text-slate-700">
+              <span>Rincian Indikator Ketersediaan ({selectedYear}):</span>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                Kel vs {mode === 'kecamatan' ? 'Kec' : 'Kota'}
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• 1.1 NCPR Pangan: <span className="font-bold text-slate-800">{dataA.raw_ncpr}</span></div>
-              <div>• 1.2 Energi: <span className="font-bold text-slate-800">{dataA.raw_energy}%</span></div>
-              <div>• 1.3 Protein Hewani: <span className="font-bold text-slate-800">{dataA.raw_animal_protein}%</span></div>
-              <div>• 1.4 Cadangan: <span className="font-bold text-slate-800">{dataA.raw_food_reserves}</span></div>
+              <div>• 1.1 NCPR: <span className="font-bold text-slate-800">{dataA.raw_ncpr}</span> <span className="text-slate-400 font-medium">({dataB.raw_ncpr})</span></div>
+              <div>• 1.2 Energi: <span className="font-bold text-slate-800">{dataA.raw_energy}%</span> <span className="text-slate-400 font-medium">({dataB.raw_energy}%)</span></div>
+              <div>• 1.3 Protein Hewani: <span className="font-bold text-slate-800">{dataA.raw_animal_protein}%</span> <span className="text-slate-400 font-medium">({dataB.raw_animal_protein}%)</span></div>
+              <div>• 1.4 Cadangan: <span className="font-bold text-slate-800">{dataA.raw_food_reserves}</span> <span className="text-slate-400 font-medium">({dataB.raw_food_reserves})</span></div>
             </div>
           </div>
         </div>
@@ -584,8 +772,18 @@ export default function RadarKelurahan() {
                   <PolarGrid stroke="#E2E8F0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: '#94A3B8' }} />
-                  <Radar name={dataA.nama} dataKey="scoreA" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.4} strokeWidth={2} />
-                  <Radar name={dataB.nama} dataKey="scoreB" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.2} strokeDasharray="3 3" strokeWidth={2} />
+                  <Radar name={`Kel. ${dataA.nama}`} dataKey="scoreA" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.4} strokeWidth={2} />
+                  {!isKecMismatch && (
+                    <Radar 
+                      name={mode === 'kecamatan' ? `Kec. ${parentKec}` : 'Rata-rata Kota'} 
+                      dataKey="scoreB" 
+                      stroke="#F59E0B" 
+                      fill="#F59E0B" 
+                      fillOpacity={0.2} 
+                      strokeDasharray="3 3" 
+                      strokeWidth={2} 
+                    />
+                  )}
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                 </RadarChart>
@@ -594,11 +792,16 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Rincian Indikator Keterjangkauan ({selectedYear}):</p>
+            <div className="flex items-center justify-between font-bold text-slate-700">
+              <span>Rincian Indikator Keterjangkauan ({selectedYear}):</span>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                Kel vs {mode === 'kecamatan' ? 'Kec' : 'Kota'}
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• 2.1 Miskin (Desil 1+2): <span className="font-bold text-slate-800">{dataA.raw_poverty}%</span></div>
-              <div>• 2.2 Stabilitas CV Harga: <span className="font-bold text-slate-800">{dataA.raw_price_cv}%</span></div>
-              <div>• 2.3 PoU Energi: <span className="font-bold text-slate-800">{dataA.raw_pou}%</span></div>
+              <div>• 2.1 Miskin: <span className="font-bold text-slate-800">{dataA.raw_poverty}%</span> <span className="text-slate-400 font-medium">({dataB.raw_poverty}%)</span></div>
+              <div>• 2.2 CV Harga: <span className="font-bold text-slate-800">{dataA.raw_price_cv}%</span> <span className="text-slate-400 font-medium">({dataB.raw_price_cv}%)</span></div>
+              <div>• 2.3 PoU Energi: <span className="font-bold text-slate-800">{dataA.raw_pou}%</span> <span className="text-slate-400 font-medium">({dataB.raw_pou}%)</span></div>
             </div>
           </div>
         </div>
@@ -622,8 +825,18 @@ export default function RadarKelurahan() {
                   <PolarGrid stroke="#E2E8F0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: '#94A3B8' }} />
-                  <Radar name={dataA.nama} dataKey="scoreA" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.4} strokeWidth={2} />
-                  <Radar name={dataB.nama} dataKey="scoreB" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.2} strokeDasharray="3 3" strokeWidth={2} />
+                  <Radar name={`Kel. ${dataA.nama}`} dataKey="scoreA" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.4} strokeWidth={2} />
+                  {!isKecMismatch && (
+                    <Radar 
+                      name={mode === 'kecamatan' ? `Kec. ${parentKec}` : 'Rata-rata Kota'} 
+                      dataKey="scoreB" 
+                      stroke="#F59E0B" 
+                      fill="#F59E0B" 
+                      fillOpacity={0.2} 
+                      strokeDasharray="3 3" 
+                      strokeWidth={2} 
+                    />
+                  )}
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                 </RadarChart>
@@ -632,12 +845,17 @@ export default function RadarKelurahan() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Rincian Indikator Pemanfaatan ({selectedYear}):</p>
+            <div className="flex items-center justify-between font-bold text-slate-700">
+              <span>Rincian Indikator Pemanfaatan ({selectedYear}):</span>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                Kel vs {mode === 'kecamatan' ? 'Kec' : 'Kota'}
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-              <div>• 3.1 Sekolah Perempuan: <span className="font-bold text-slate-800">{dataA.raw_female_school} thn</span></div>
-              <div>• 3.2 Tanpa Air Bersih: <span className="font-bold text-slate-800">{dataA.raw_no_water}%</span></div>
-              <div>• 3.3 Skor PPH: <span className="font-bold text-slate-800">{dataA.raw_pph}</span></div>
-              <div>• 3.4 Stunting: <span className="font-bold text-slate-800">{dataA.raw_stunting}%</span></div>
+              <div>• 3.1 Sekolah Pr: <span className="font-bold text-slate-800">{dataA.raw_female_school} thn</span> <span className="text-slate-400 font-medium">({dataB.raw_female_school} thn)</span></div>
+              <div>• 3.2 Tanpa Air: <span className="font-bold text-slate-800">{dataA.raw_no_water}%</span> <span className="text-slate-400 font-medium">({dataB.raw_no_water}%)</span></div>
+              <div>• 3.3 Skor PPH: <span className="font-bold text-slate-800">{dataA.raw_pph}</span> <span className="text-slate-400 font-medium">({dataB.raw_pph})</span></div>
+              <div>• 3.4 Stunting: <span className="font-bold text-slate-800">{dataA.raw_stunting}%</span> <span className="text-slate-400 font-medium">({dataB.raw_stunting}%)</span></div>
             </div>
           </div>
         </div>
@@ -646,31 +864,50 @@ export default function RadarKelurahan() {
 
       {/* Pastel Gold Evaluasi Card */}
       <div className="bg-gradient-to-br from-[#FEF9C3] via-[#FEF3C7] to-[#FDE68A] p-6 rounded-2xl border border-amber-300/80 shadow-md text-amber-950">
-        <div className="flex items-center justify-between mb-4 border-b border-amber-300/60 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-amber-300/60 pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-700" />
             <h3 className="font-black text-sm uppercase tracking-wider text-amber-900">
-              ANALISIS DAN INTERPRETASI GRAFIK RADAR: KELURAHAN {dataA.nama} (FSVA {selectedYear})
+              {mode === 'kecamatan' 
+                ? `EVALUASI KOMPARASI: KELURAHAN ${dataA.nama.toUpperCase()} VS KECAMATAN ${parentKec.toUpperCase()} (${selectedYear})`
+                : `ANALISIS DAN INTERPRETASI GRAFIK RADAR: KELURAHAN ${dataA.nama.toUpperCase()} (FSVA ${selectedYear})`}
             </h3>
           </div>
-          <span className="text-xs font-black text-amber-800 bg-amber-200/60 px-3 py-1 rounded-full border border-amber-300">
-            Peringkat IKP: #{dataA.rank} / 43 Kelurahan
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-amber-800 bg-amber-200/60 px-3 py-1 rounded-full border border-amber-300">
+              Peringkat IKP: #{dataA.rank} / 43 Kelurahan
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-800 leading-relaxed">
           
-          {/* Card 1: Keunggulan Utama */}
+          {/* Card 1: Komparasi / Keunggulan */}
           <div className="space-y-2 bg-white/90 p-4 rounded-xl border border-amber-200/80 shadow-xs">
             <div className="flex items-center gap-2 text-emerald-700 font-extrabold">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span className="text-emerald-950 font-black">Keunggulan Utama (Strong Points)</span>
+              <span className="text-emerald-950 font-black">
+                {mode === 'kecamatan' ? 'Komparasi Wilayah Induk' : 'Keunggulan Utama (Strong Points)'}
+              </span>
             </div>
-            <p className="text-slate-700 font-medium">
-              Kelurahan {dataA.nama} memiliki skor pilar tertinggi pada <strong className="text-slate-900 font-black">
-                {scoreAvailA >= scoreAccessA && scoreAvailA >= scoreUtilA ? 'Ketersediaan Pangan' : (scoreAccessA >= scoreUtilA ? 'Keterjangkauan Pangan' : 'Pemanfaatan Pangan')}
-              </strong> (Skor: {Math.max(scoreAvailA, scoreAccessA, scoreUtilA)}/100).
-            </p>
+            {mode === 'kecamatan' ? (
+              <p className="text-slate-700 font-medium">
+                Skor IKP Kelurahan {dataA.nama} (<strong className="text-slate-900 font-bold">{dataA.ikp}</strong>) tercatat{' '}
+                <strong className={ikpDelta >= 0 ? 'text-emerald-700' : 'text-rose-700'}>
+                  {ikpDelta >= 0 ? `+${ikpDelta} poin di atas` : `${Math.abs(ikpDelta)} poin di bawah`}
+                </strong>{' '}
+                rata-rata Kecamatan {parentKec} ({dataB.ikp}). Skor pilar terkuat berada pada{' '}
+                <strong className="text-slate-900 font-black">
+                  {scoreAvailA >= scoreAccessA && scoreAvailA >= scoreUtilA ? 'Ketersediaan' : (scoreAccessA >= scoreUtilA ? 'Keterjangkauan' : 'Pemanfaatan')}
+                </strong> ({Math.max(scoreAvailA, scoreAccessA, scoreUtilA)}/100).
+              </p>
+            ) : (
+              <p className="text-slate-700 font-medium">
+                Kelurahan {dataA.nama} memiliki skor pilar tertinggi pada <strong className="text-slate-900 font-black">
+                  {scoreAvailA >= scoreAccessA && scoreAvailA >= scoreUtilA ? 'Ketersediaan Pangan' : (scoreAccessA >= scoreUtilA ? 'Keterjangkauan Pangan' : 'Pemanfaatan Pangan')}
+                </strong> (Skor: {Math.max(scoreAvailA, scoreAccessA, scoreUtilA)}/100).
+              </p>
+            )}
           </div>
 
           {/* Card 2: Titik Rentan */}
@@ -680,9 +917,14 @@ export default function RadarKelurahan() {
               <span className="text-rose-950 font-black">Titik Rentan (Vulnerability Points)</span>
             </div>
             <p className="text-slate-700 font-medium">
-              Indikator terlemah saat ini adalah <strong className="text-slate-900 font-black">
+              Indikator dengan skor terendah saat ini adalah <strong className="text-slate-900 font-black">
                 {lowestIndicatorA.subject}
               </strong> dengan skor <span className="font-bold text-rose-700">({lowestIndicatorA.scoreA}/100)</span>.
+              {mode === 'kecamatan' && (
+                <span className="block mt-1 text-[11px] text-slate-600">
+                  Rata-rata Kecamatan {parentKec}: <span className="font-bold text-slate-800">{lowestIndicatorA.scoreB}/100</span>
+                </span>
+              )}
             </p>
           </div>
 
@@ -693,7 +935,7 @@ export default function RadarKelurahan() {
               <span className="text-amber-950 font-black">Rekomendasi Kebijakan (Policy Action)</span>
             </div>
             <p className="text-slate-700 font-medium">
-              {getDynamicPolicyAction(lowestIndicatorA.key, dataA.nama)}
+              {getDynamicPolicyAction(lowestIndicatorA.key, dataA.nama, mode === 'kecamatan' ? parentKec : undefined)}
             </p>
           </div>
 
