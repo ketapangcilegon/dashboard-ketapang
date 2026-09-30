@@ -73,6 +73,7 @@ export default function MobileAppContainer({
             onOpenCatalog={() => setIsCatalogOpen(true)}
             livePrices={livePrices}
             liveDate={liveDate}
+            liveHistory={liveHistory}
             overallScore={overallScore}
             balitaStatus={balitaStatus}
             ikpData={ikpData}

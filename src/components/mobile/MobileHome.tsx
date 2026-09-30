@@ -6,7 +6,7 @@ import {
   ShieldCheck, MapPin, Store, Sparkles, Target, Activity, 
   Camera, Bot, Layers, ChevronRight, TrendingUp, TrendingDown,
   ArrowRight, Sparkle, AlertCircle, CheckCircle2, ChevronLeft,
-  LineChart
+  LineChart, ChevronUp, ChevronDown, Calendar
 } from 'lucide-react';
 import MediaCarousel from '@/components/MediaCarousel';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
@@ -33,6 +33,7 @@ interface MobileHomeProps {
   onOpenCatalog: () => void;
   livePrices?: Record<string, number> | null;
   liveDate?: string | null;
+  liveHistory?: Record<string, Record<string, number>> | null;
   overallScore?: number;
   balitaStatus?: string;
   ikpData?: any[];
@@ -46,6 +47,7 @@ export default function MobileHome({
   onOpenCatalog,
   livePrices,
   liveDate,
+  liveHistory,
   overallScore = 82.4,
   balitaStatus = 'AMAN',
   ikpData = [],
@@ -152,85 +154,268 @@ export default function MobileHome({
     return allFsvaKelurahans.filter(k => k.prioritas === selectedPriority.p);
   }, [selectedPriority, allFsvaKelurahans]);
 
-  // 4 Komoditas Harga Terkini (SAGON)
-  const commodities = [
-    { key: 'beras_medium', name: 'Beras Medium', price: livePrices?.['beras_medium'] || 14500, unit: 'kg', trend: 0 },
-    { key: 'cabai_rawit_merah', name: 'Cabai Rawit', price: livePrices?.['cabai_rawit_merah'] || livePrices?.['cabai_rawit'] || 48000, unit: 'kg', trend: 2.1 },
-    { key: 'bawang_merah', name: 'Bawang Merah', price: livePrices?.['bawang_merah'] || 32667, unit: 'kg', trend: -1.5 },
-    { key: 'telur_ayam', name: 'Telur Ayam', price: livePrices?.['telur_ayam'] || livePrices?.['telur'] || 28500, unit: 'kg', trend: 0.5 },
-  ];
-
-  // 2 Komoditas Peramalan Harga Pangan (+1 dan +3 Bulan) - Telur Ayam Ras & Cabai Merah Keriting (Capture 1)
-  const [forecastItems, setForecastItems] = useState<MobileForecastItem[]>([
-    {
-      key: 'harga_telur_ayam_ras',
-      name: 'Telur Ayam Ras',
-      icon: '🥚',
-      aktual: 25899,
-      month1: 26894,
-      month3: 27276,
-      trend: 'up',
-      changePct: 3.8,
-      status: 'Naik',
-    },
-    {
-      key: 'harga_cabai_merah_keriting',
-      name: 'Cabai Merah Keriting',
-      icon: '🌶️',
-      aktual: 39855,
-      month1: 42465,
-      month3: 42465,
-      trend: 'up',
-      changePct: 6.6,
-      status: 'Naik',
-    },
-  ]);
+  // Local state if livePrices or liveHistory not provided
+  const [localLivePrices, setLocalLivePrices] = useState<Record<string, number> | null>(null);
+  const [localLiveDate, setLocalLiveDate] = useState<string | null>(null);
+  const [localLiveHistory, setLocalLiveHistory] = useState<Record<string, Record<string, number>> | null>(null);
 
   useEffect(() => {
-    async function loadForecasts() {
+    if (livePrices && liveHistory) return;
+    async function fetchSagonLive() {
       try {
-        const { data, error } = await supabase
-          .from('forecast_result')
-          .select('*')
-          .in('komoditas', ['harga_telur_ayam_ras', 'harga_cabai_merah_keriting', 'harga_cabai_merah']);
-        
-        if (!error && data && data.length > 0) {
-          const nameMap: Record<string, { name: string; icon: string }> = {
-            harga_telur_ayam_ras: { name: 'Telur Ayam Ras', icon: '🥚' },
-            harga_cabai_merah_keriting: { name: 'Cabai Merah Keriting', icon: '🌶️' },
-            harga_cabai_merah: { name: 'Cabai Merah Keriting', icon: '🌶️' },
-          };
-          const mapped = data.map((d: any) => {
-            const meta = nameMap[d.komoditas] || { name: 'Komoditas', icon: '📦' };
-            const pct = Number(d.perubahan_pct) || 0;
-            return {
-              key: d.komoditas,
-              name: meta.name,
-              icon: meta.icon,
-              aktual: Number(d.harga_aktual) || 0,
-              month1: Number(d.forecast_1m) || 0,
-              month3: Number(d.forecast_3m) || 0,
-              trend: (pct > 3 ? 'up' : pct < -3 ? 'down' : 'stable') as 'up' | 'down' | 'stable',
-              changePct: pct,
-              status: d.status_forecast || (pct > 3 ? 'Naik' : pct < -3 ? 'Turun' : 'Stabil'),
-            };
-          });
-          const telur = mapped.find(x => x.key === 'harga_telur_ayam_ras');
-          const cabai = mapped.find(x => x.key === 'harga_cabai_merah_keriting') || mapped.find(x => x.key === 'harga_cabai_merah');
-          if (telur && cabai) {
-            setForecastItems([telur, cabai]);
-          } else if (telur) {
-            setForecastItems(prev => [telur, prev[1]]);
-          } else if (cabai) {
-            setForecastItems(prev => [prev[0], cabai]);
+        const res = await fetch('/api/harga-sagon');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success) {
+            if (d.prices) setLocalLivePrices(d.prices);
+            if (d.tanggal) setLocalLiveDate(d.tanggal);
+            if (d.history) setLocalLiveHistory(d.history);
           }
         }
       } catch (err) {
-        // use default state
+        console.warn('[MobileHome] Failed to load SAGON prices:', err);
       }
     }
-    loadForecasts();
+    fetchSagonLive();
+  }, [livePrices, liveHistory]);
+
+  const effectivePrices = livePrices || localLivePrices;
+  const effectiveDate = liveDate || localLiveDate;
+  const effectiveHistory = liveHistory || localLiveHistory;
+
+  // Date Navigation State for SAGON (5 Days)
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const liveDateString = effectiveDate || todayStr;
+
+  const subtractDays = (dateStr: string, days: number): string => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      d.setDate(d.getDate() - days);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const dates = useMemo(() => [
+    subtractDays(liveDateString, 4),
+    subtractDays(liveDateString, 3),
+    subtractDays(liveDateString, 2),
+    subtractDays(liveDateString, 1),
+    liveDateString
+  ], [liveDateString]);
+
+  const [dateIndex, setDateIndex] = useState(4); // Default to latest (index 4)
+
+  // Format YYYY-MM-DD to Indonesian format
+  const formatIndoDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '';
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const day = parseInt(parts[2], 10);
+    const month = months[parseInt(parts[1], 10) - 1];
+    const year = parts[0];
+    return `${day} ${month} ${year}`;
+  };
+
+  const activeDate = dates[dateIndex];
+
+  // Retrieve real historical price from Supabase archive without artificial formulas
+  const getRealHistoricalPrice = (key: string, fallbackCur: number): number => {
+    // 1. If currently on latest/live tab (index 4) and effectivePrices has value
+    if (dateIndex === 4 && effectivePrices && effectivePrices[key] !== undefined && effectivePrices[key] > 0) {
+      return effectivePrices[key];
+    }
+    // 2. If history is available from Supabase archive for this specific date
+    if (effectiveHistory) {
+      if (effectiveHistory[activeDate] && effectiveHistory[activeDate][key] !== undefined && effectiveHistory[activeDate][key] > 0) {
+        return effectiveHistory[activeDate][key];
+      }
+      const availableDates = Object.keys(effectiveHistory)
+        .filter(d => d <= activeDate)
+        .sort()
+        .reverse();
+      if (availableDates.length > 0) {
+        const closestDate = availableDates[0];
+        if (effectiveHistory[closestDate] && effectiveHistory[closestDate][key] !== undefined && effectiveHistory[closestDate][key] > 0) {
+          return effectiveHistory[closestDate][key];
+        }
+      }
+    }
+    // 3. Fallback to live prices or baseline
+    if (effectivePrices && effectivePrices[key] !== undefined && effectivePrices[key] > 0) {
+      return effectivePrices[key];
+    }
+    return fallbackCur;
+  };
+
+  const getPreviousDayPrice = (key: string, fallback: number): number => {
+    if (dateIndex === 0) return getRealHistoricalPrice(key, fallback);
+    const prevDate = dates[dateIndex - 1];
+    if (effectiveHistory && effectiveHistory[prevDate] && effectiveHistory[prevDate][key] !== undefined && effectiveHistory[prevDate][key] > 0) {
+      return effectiveHistory[prevDate][key];
+    }
+    return fallback;
+  };
+
+  // 13 Komoditas Lengkap SAGON
+  const SAGON_COMMODITY_CONFIG = [
+    { key: 'beras', name: 'Beras Medium', icon: '🍚', unit: 'kg', fallback: 13833 },
+    { key: 'bawang_merah', name: 'Bawang Merah', icon: '🧅', unit: 'kg', fallback: 30000 },
+    { key: 'bawang_putih', name: 'Bawang Putih', icon: '🧄', unit: 'kg', fallback: 35333 },
+    { key: 'cabe_merah', name: 'Cabe Merah', icon: '🌶️', unit: 'kg', fallback: 37500 },
+    { key: 'cabe_merah_keriting', name: 'Cabe M. Keriting', icon: '🌶️', unit: 'kg', fallback: 39000 },
+    { key: 'cabe_rawit_merah', name: 'Cabe Rawit Merah', icon: '🌶️', unit: 'kg', fallback: 51667 },
+    { key: 'cabe_rawit_hijau', name: 'Cabe Rawit Hijau', icon: '🌶️', unit: 'kg', fallback: 43333 },
+    { key: 'daging_sapi', name: 'Daging Sapi', icon: '🥩', unit: 'kg', fallback: 140000 },
+    { key: 'daging_ayam', name: 'Daging Ayam Ras', icon: '🍗', unit: 'kg', fallback: 40667 },
+    { key: 'telur', name: 'Telur Ayam Ras', icon: '🥚', unit: 'kg', fallback: 25667 },
+    { key: 'gula_pasir', name: 'Gula Pasir', icon: '🧂', unit: 'kg', fallback: 19000 },
+    { key: 'minyak_goreng_kemasan', name: 'Minyak Goreng', icon: '🧴', unit: 'ltr', fallback: 19800 },
+    { key: 'tepung_terigu', name: 'Tepung Terigu', icon: '🌾', unit: 'kg', fallback: 13500 },
+  ];
+
+  const sagonCommodities = useMemo(() => {
+    return SAGON_COMMODITY_CONFIG.map(cfg => {
+      const price = getRealHistoricalPrice(cfg.key, cfg.fallback);
+      const prevPrice = getPreviousDayPrice(cfg.key, cfg.fallback);
+      const diff = prevPrice > 0 ? ((price - prevPrice) / prevPrice) * 100 : 0;
+      const trend = Math.round(diff * 10) / 10;
+      return {
+        ...cfg,
+        price,
+        trend,
+      };
+    });
+  }, [dateIndex, activeDate, effectivePrices, effectiveHistory]);
+
+  // Dynamic Indonesian Month Names for Forecast (Aktual, +1 Bulan, +3 Bulan)
+  const getIndonesianMonthName = (monthIndex: number): string => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[(monthIndex + 12) % 12];
+  };
+
+  const baselineMonthStr = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return `${getIndonesianMonthName(d.getMonth())} ${d.getFullYear()}`;
   }, []);
+
+  const month1Str = useMemo(() => {
+    const d = new Date();
+    return `${getIndonesianMonthName(d.getMonth())} ${d.getFullYear()}`;
+  }, []);
+
+  const month3Str = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 2);
+    return `${getIndonesianMonthName(d.getMonth())} ${d.getFullYear()}`;
+  }, []);
+
+  // 13 Komoditas Lengkap Peramalan Harga Pangan
+  const FORECAST_COMMODITY_ORDER = [
+    { key: 'harga_beras', name: 'Beras Medium', icon: '🌾', fallbackAktual: 14500, fallback1m: 14850, fallback3m: 15100 },
+    { key: 'harga_bawang_merah', name: 'Bawang Merah', icon: '🧅', fallbackAktual: 30000, fallback1m: 32000, fallback3m: 33500 },
+    { key: 'harga_bawang_putih', name: 'Bawang Putih Bonggol', icon: '🧄', fallbackAktual: 35333, fallback1m: 36200, fallback3m: 37000 },
+    { key: 'harga_cabai_merah', name: 'Cabai Merah Besar', icon: '🌶️', fallbackAktual: 37500, fallback1m: 39000, fallback3m: 41000 },
+    { key: 'harga_cabai_merah_keriting', name: 'Cabai Merah Keriting', icon: '🌶️', fallbackAktual: 39855, fallback1m: 42465, fallback3m: 42465 },
+    { key: 'harga_cabai_rawit_merah', name: 'Cabai Rawit Merah', icon: '🌶️', fallbackAktual: 51667, fallback1m: 54000, fallback3m: 56000 },
+    { key: 'harga_cabai_rawit_hijau', name: 'Cabai Rawit Hijau', icon: '🌶️', fallbackAktual: 43333, fallback1m: 45000, fallback3m: 46500 },
+    { key: 'harga_daging_sapi', name: 'Daging Sapi Murni', icon: '🥩', fallbackAktual: 140000, fallback1m: 142000, fallback3m: 145000 },
+    { key: 'harga_daging_ayam_ras', name: 'Daging Ayam Ras', icon: '🍗', fallbackAktual: 40667, fallback1m: 41800, fallback3m: 42500 },
+    { key: 'harga_telur_ayam_ras', name: 'Telur Ayam Ras', icon: '🥚', fallbackAktual: 25899, fallback1m: 26894, fallback3m: 27276 },
+    { key: 'harga_gula_pasir', name: 'Gula Pasir', icon: '🧂', fallbackAktual: 19000, fallback1m: 19500, fallback3m: 19800 },
+    { key: 'harga_minyak_goreng', name: 'Minyak Goreng Kemasan', icon: '🧴', fallbackAktual: 19800, fallback1m: 20200, fallback3m: 20600 },
+    { key: 'harga_tepung_terigu', name: 'Tepung Terigu Kemasan', icon: '🌾', fallbackAktual: 13500, fallback1m: 13800, fallback3m: 14100 },
+  ];
+
+  const [allForecastItems, setAllForecastItems] = useState<MobileForecastItem[]>([]);
+  const [activeForecastIndex, setActiveForecastIndex] = useState(0);
+  const forecastScrollRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function loadAllForecasts() {
+      try {
+        const { data, error } = await supabase
+          .from('forecast_result')
+          .select('*');
+        
+        const dbMap = new Map<string, any>();
+        if (!error && data && data.length > 0) {
+          data.forEach((d: any) => {
+            dbMap.set(d.komoditas, d);
+          });
+        }
+
+        const items: MobileForecastItem[] = FORECAST_COMMODITY_ORDER.map(cfg => {
+          const row = dbMap.get(cfg.key);
+          const aktual = row ? (Number(row.harga_aktual) || cfg.fallbackAktual) : cfg.fallbackAktual;
+          const month1 = row ? (Number(row.forecast_1m) || cfg.fallback1m) : cfg.fallback1m;
+          const month3 = row ? (Number(row.forecast_3m) || cfg.fallback3m) : cfg.fallback3m;
+          const pct = aktual > 0 ? ((month1 - aktual) / aktual) * 100 : (Number(row?.perubahan_pct) || 0);
+          const trend = (pct > 2 ? 'up' : pct < -2 ? 'down' : 'stable') as 'up' | 'down' | 'stable';
+          const status = row?.status_forecast || (pct > 2 ? 'Naik' : pct < -2 ? 'Turun' : 'Stabil');
+
+          return {
+            key: cfg.key,
+            name: cfg.name,
+            icon: cfg.icon,
+            aktual,
+            month1,
+            month3,
+            trend,
+            changePct: Math.round(pct * 10) / 10,
+            status,
+          };
+        });
+
+        setAllForecastItems(items);
+      } catch (err) {
+        console.warn('[MobileHome] Using fallback forecasts:', err);
+        const fallbackItems: MobileForecastItem[] = FORECAST_COMMODITY_ORDER.map(cfg => ({
+          key: cfg.key,
+          name: cfg.name,
+          icon: cfg.icon,
+          aktual: cfg.fallbackAktual,
+          month1: cfg.fallback1m,
+          month3: cfg.fallback3m,
+          trend: 'up',
+          changePct: 2.5,
+          status: 'Naik',
+        }));
+        setAllForecastItems(fallbackItems);
+      }
+    }
+    loadAllForecasts();
+  }, []);
+
+  const handleForecastScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const itemHeight = 102; // exact height of each commodity card row
+    const index = Math.round(el.scrollTop / itemHeight);
+    if (index >= 0 && index < allForecastItems.length && index !== activeForecastIndex) {
+      setActiveForecastIndex(index);
+    }
+  };
+
+  const scrollToForecast = (targetIndex: number) => {
+    if (forecastScrollRef.current) {
+      const idx = Math.max(0, Math.min(allForecastItems.length - 1, targetIndex));
+      forecastScrollRef.current.scrollTo({
+        top: idx * 102,
+        behavior: 'smooth'
+      });
+      setActiveForecastIndex(idx);
+    }
+  };
 
   // 8 Fitur Unggulan Tiles (Android Launcher Style)
   const quickFeatures = [
@@ -300,7 +485,7 @@ export default function MobileHome({
         <MediaCarousel />
       </div>
 
-      {/* 2. Segmen Panel Harga Pasar Terkini (SAGON) - 4 Komoditas */}
+      {/* 2. Segmen Panel Harga Pasar Terkini (SAGON) - 13 Komoditas & Navigasi Tanggal Dinamis */}
       <div className="bg-gradient-to-br from-white via-emerald-50/40 to-teal-50/30 p-3.5 rounded-3xl border border-emerald-200/80 shadow-sm space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -312,11 +497,17 @@ export default function MobileHome({
                 <h3 className="font-black text-xs uppercase tracking-wider text-emerald-950">
                   HARGA PASAR TERKINI (SAGON)
                 </h3>
-                <span className="text-[8px] font-black px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-                  LIVE
+                <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full border ${
+                  dateIndex === 4 
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' 
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                }`}>
+                  {dateIndex === 4 ? 'LIVE' : 'ARSIP'}
                 </span>
               </div>
-              <p className="text-[9px] font-semibold text-emerald-700/80">Pantauan komoditas pasar harian Cilegon</p>
+              <p className="text-[9px] font-semibold text-emerald-700/80">
+                Pantauan 13 komoditas pasar harian Cilegon
+              </p>
             </div>
           </div>
           <button 
@@ -328,110 +519,241 @@ export default function MobileHome({
           </button>
         </div>
 
-        {/* Horizontal Snap Scroll 4 Commodity Prices */}
-        <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar snap-x">
-          {commodities.map((c, i) => (
-            <div 
-              key={i} 
-              onClick={() => onNavigate('harga_full')}
-              className="min-w-[130px] p-3 rounded-2xl bg-white/95 border border-emerald-100/90 shadow-2xs snap-start shrink-0 cursor-pointer active:scale-95 hover:border-emerald-400 hover:shadow-xs transition-all flex flex-col justify-between"
-            >
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-600 truncate">{c.name}</p>
-                <p className="text-sm font-black text-emerald-950 mt-1">
-                  Rp {c.price.toLocaleString('id-ID')}
-                  <span className="text-[9px] font-medium text-slate-400">/{c.unit}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-1 mt-2">
-                {c.trend > 0 ? (
-                  <span className="inline-flex items-center text-[9px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
-                    <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> +{c.trend}%
-                  </span>
-                ) : c.trend < 0 ? (
-                  <span className="inline-flex items-center text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                    <TrendingDown className="w-2.5 h-2.5 mr-0.5" /> {c.trend}%
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
-                    Stabil
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 2 Komoditas (Capture 1: Telur Ayam Ras & Cabai Merah Keriting, Pintasan Pertahankan) */}
-      <div className="bg-gradient-to-br from-[#064E3B] via-[#043E30] to-[#022C22] text-white p-3.5 rounded-3xl border border-emerald-500/40 shadow-lg shadow-emerald-950/20 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-xs">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-black text-xs text-white tracking-tight leading-tight">
-                Peramalan Harga Pangan +1 dan +3 Bulan
-              </h3>
-              <p className="text-[9px] font-bold text-emerald-200/80">Model Machine Learning Time-Series & EWS</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => onNavigate('forecasting')}
-            className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
-            title="Lihat Detail Peramalan"
+        {/* Date Navigation Bar with Chevron (Versi Desktop Match) */}
+        <div className="flex items-center justify-between bg-white border border-emerald-100 p-1.5 rounded-2xl w-full shadow-2xs">
+          <button
+            onClick={() => setDateIndex(prev => Math.max(0, prev - 1))}
+            disabled={dateIndex === 0}
+            className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+              dateIndex === 0 
+                ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs active:scale-95'
+            }`}
+            title="Tanggal Sebelumnya"
+            aria-label="Tanggal Sebelumnya"
           >
-            <span>Detail</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+          </button>
+
+          <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 uppercase tracking-wide truncate">
+            <span>📅</span>
+            <span className="truncate">{formatIndoDate(dates[dateIndex])}</span>
+            {dateIndex === 4 && (
+              <span className="text-[8px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-full border border-emerald-200 shrink-0">
+                Hari Ini
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => setDateIndex(prev => Math.min(dates.length - 1, prev + 1))}
+            disabled={dateIndex === dates.length - 1}
+            className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+              dateIndex === dates.length - 1
+                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs active:scale-95 cursor-pointer'
+            }`}
+            title="Tanggal Berikutnya"
+            aria-label="Tanggal Berikutnya"
+          >
+            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
-        {/* 2 Komoditas Forecast Cards in 2-Column Grid (Capture 1) */}
-        <div className="grid grid-cols-2 gap-2">
-          {forecastItems.map((item, idx) => (
-            <div 
-              key={idx}
+        {/* Horizontal Snap Scroll 13 Komoditas Lengkap */}
+        <div className="relative">
+          <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar snap-x scroll-smooth">
+            {sagonCommodities.map((c, i) => (
+              <div 
+                key={c.key} 
+                onClick={() => onNavigate('harga_full')}
+                className="min-w-[136px] p-2.5 rounded-2xl bg-white/95 border border-emerald-100/90 shadow-2xs snap-start shrink-0 cursor-pointer active:scale-95 hover:border-emerald-400 hover:shadow-xs transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm shrink-0">{c.icon}</span>
+                    <p className="text-[11px] font-black text-slate-700 truncate">{c.name}</p>
+                  </div>
+                  <p className="text-[13px] font-black text-emerald-950 mt-1">
+                    Rp {Math.round(c.price).toLocaleString('id-ID')}
+                    <span className="text-[8.5px] font-medium text-slate-400">/{c.unit}</span>
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100/80">
+                  <span className="text-[8.5px] font-bold text-slate-400">#{i + 1}</span>
+                  {c.trend > 0 ? (
+                    <span className="inline-flex items-center text-[8.5px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
+                      <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> +{c.trend}%
+                    </span>
+                  ) : c.trend < 0 ? (
+                    <span className="inline-flex items-center text-[8.5px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                      <TrendingDown className="w-2.5 h-2.5 mr-0.5" /> {c.trend}%
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-[8.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                      Stabil
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 px-1 pt-0.5">
+            <span>Geser horizontal untuk 13 komoditas ➔</span>
+            <span className="text-emerald-700 font-extrabold">{sagonCommodities.length} Komoditas</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 13 Komoditas (Tampil 1 Baris dengan Geser Atas/Bawah) */}
+      <div className="bg-gradient-to-br from-[#064E3B] via-[#043E30] to-[#022C22] text-white p-3.5 rounded-3xl border border-emerald-500/40 shadow-lg shadow-emerald-950/20 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-xs">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-black text-xs text-white tracking-tight leading-tight truncate">
+                Peramalan Harga Pangan
+              </h3>
+              <p className="text-[9px] font-bold text-emerald-200/80 truncate">
+                Model Machine Learning +1 & +3 Bulan
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Counter & Up/Down Switcher */}
+            <div className="flex items-center bg-emerald-900/80 border border-emerald-500/40 rounded-xl px-1.5 py-0.5 text-[9px] font-black text-emerald-200 gap-1">
+              <span className="text-emerald-300 font-mono">
+                {activeForecastIndex + 1}/{allForecastItems.length || 13}
+              </span>
+              <div className="flex flex-col gap-0.2">
+                <button
+                  type="button"
+                  onClick={() => scrollToForecast(activeForecastIndex - 1)}
+                  disabled={activeForecastIndex === 0}
+                  className="hover:text-white disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
+                  title="Komoditas Sebelumnya (Ke Atas)"
+                  aria-label="Komoditas Sebelumnya"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToForecast(activeForecastIndex + 1)}
+                  disabled={activeForecastIndex === (allForecastItems.length - 1)}
+                  className="hover:text-white disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
+                  title="Komoditas Berikutnya (Ke Bawah)"
+                  aria-label="Komoditas Berikutnya"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <button 
               onClick={() => onNavigate('forecasting')}
-              className="p-2.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-900/60 transition-all cursor-pointer flex flex-col justify-between"
+              className="px-2 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
+              title="Lihat Detail Peramalan"
+            >
+              <span>Detail</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Petunjuk Geser Atas/Bawah */}
+        <div className="flex items-center justify-between text-[8.5px] font-semibold text-emerald-300/80 px-1">
+          <span>Geser kartu ke atas/bawah (13 komoditas)</span>
+          <span className="text-emerald-200 font-bold">Swipe ↑↓</span>
+        </div>
+
+        {/* Single-Row Vertical Scrollable Reel (Tampil 1 Baris - Snap-Y) */}
+        <div 
+          ref={forecastScrollRef}
+          onScroll={handleForecastScroll}
+          className="h-[118px] overflow-y-auto snap-y snap-mandatory no-scrollbar scroll-smooth rounded-2xl border border-emerald-500/30 bg-emerald-950/70 p-2"
+        >
+          {allForecastItems.map((item, idx) => (
+            <div 
+              key={item.key}
+              onClick={() => onNavigate('forecasting')}
+              className="h-[102px] snap-start shrink-0 flex flex-col justify-between cursor-pointer"
               title={`Buka analisis forecast untuk ${item.name}`}
             >
-              <div>
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[11px] font-black text-white truncate flex items-center gap-1">
-                    <span>{item.icon}</span>
-                    <span className="truncate">{item.name}</span>
+              {/* Baris Nama Komoditas & Status */}
+              <div className="flex items-center justify-between gap-1 pb-1 border-b border-emerald-500/20">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-base shrink-0">{item.icon}</span>
+                  <span className="text-xs font-black text-white truncate">
+                    {item.name}
                   </span>
-                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${
-                    item.trend === 'up' 
-                      ? 'bg-rose-500/30 text-rose-200 border border-rose-400/40' 
-                      : item.trend === 'down' 
-                      ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' 
-                      : 'bg-slate-700/60 text-slate-200'
-                  }`}>
-                    {item.status}
+                  <span className="text-[8.5px] font-bold text-emerald-400/80 font-mono">
+                    #{idx + 1}
                   </span>
                 </div>
-                <div className="mt-2 space-y-0.5">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-emerald-200/70 font-medium">Aktual:</span>
-                    <span className="font-extrabold text-slate-100">Rp {item.aktual.toLocaleString('id-ID')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-cyan-300 font-bold">+1 Bulan:</span>
-                    <span className="font-black text-cyan-200">Rp {item.month1.toLocaleString('id-ID')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-teal-300 font-bold">+3 Bulan:</span>
-                    <span className="font-black text-teal-200">Rp {item.month3.toLocaleString('id-ID')}</span>
-                  </div>
+                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 border ${
+                  item.trend === 'up' 
+                    ? 'bg-rose-500/30 text-rose-200 border-rose-400/40' 
+                    : item.trend === 'down' 
+                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/40' 
+                    : 'bg-amber-500/30 text-amber-200 border-amber-400/40'
+                }`}>
+                  {item.trend === 'up' && <TrendingUp className="w-2.5 h-2.5 mr-0.5" />}
+                  {item.trend === 'down' && <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                  <span>{item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}</span>
+                  <span>•</span>
+                  <span>{item.status}</span>
+                </span>
+              </div>
+
+              {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan dengan Bulan Dinamis */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1 text-center">
+                {/* 1. Aktual */}
+                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-emerald-500/20 flex flex-col justify-center">
+                  <span className="text-[9.5px] font-bold text-emerald-200/80 leading-tight">
+                    Aktual
+                  </span>
+                  <span className="text-[7.5px] font-semibold text-slate-300 leading-tight">
+                    {baselineMonthStr}
+                  </span>
+                  <span className="text-[11px] font-black text-white mt-0.5">
+                    Rp {Math.round(item.aktual).toLocaleString('id-ID')}
+                  </span>
+                </div>
+
+                {/* 2. +1 Bulan */}
+                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-cyan-500/30 flex flex-col justify-center">
+                  <span className="text-[9.5px] font-bold text-cyan-200 leading-tight">
+                    +1 Bulan
+                  </span>
+                  <span className="text-[7.5px] font-semibold text-cyan-300/80 leading-tight">
+                    {month1Str}
+                  </span>
+                  <span className="text-[11px] font-black text-cyan-200 mt-0.5">
+                    Rp {Math.round(item.month1).toLocaleString('id-ID')}
+                  </span>
+                </div>
+
+                {/* 3. +3 Bulan */}
+                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-teal-500/30 flex flex-col justify-center">
+                  <span className="text-[9.5px] font-bold text-teal-200 leading-tight">
+                    +3 Bulan
+                  </span>
+                  <span className="text-[7.5px] font-semibold text-teal-300/80 leading-tight">
+                    {month3Str}
+                  </span>
+                  <span className="text-[11px] font-black text-teal-200 mt-0.5">
+                    Rp {Math.round(item.month3).toLocaleString('id-ID')}
+                  </span>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Pintasan untuk lihat lebih lengkap (Capture 1 - Pertahankan) */}
+        {/* Pintasan untuk lihat lebih lengkap */}
         <button
           onClick={() => onNavigate('forecasting')}
           className="w-full py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-100 text-[10px] font-black flex items-center justify-between transition-all cursor-pointer active:scale-98"
