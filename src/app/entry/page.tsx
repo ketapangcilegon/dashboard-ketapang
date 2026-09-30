@@ -239,10 +239,10 @@ export default function EntryPage() {
               </div>
 
               {/* Admin Tabs */}
-              <div className="flex items-center gap-3 border-b border-slate-200 pb-1">
+              <div className="flex items-center gap-2 sm:gap-3 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar scrollbar-none">
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                     activeTab === 'upload'
                       ? 'bg-emerald-800 text-white shadow-md'
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -254,7 +254,7 @@ export default function EntryPage() {
 
                 <button
                   onClick={() => setActiveTab('media')}
-                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                     activeTab === 'media'
                       ? 'bg-emerald-800 text-white shadow-md'
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -266,7 +266,7 @@ export default function EntryPage() {
 
                 <button
                   onClick={() => setActiveTab('knowledge')}
-                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                     activeTab === 'knowledge'
                       ? 'bg-emerald-800 text-white shadow-md'
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -278,7 +278,7 @@ export default function EntryPage() {
 
                 <button
                   onClick={() => setActiveTab('access')}
-                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                     activeTab === 'access'
                       ? 'bg-emerald-800 text-white shadow-md'
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'

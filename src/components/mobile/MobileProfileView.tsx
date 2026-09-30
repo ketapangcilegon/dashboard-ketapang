@@ -6,7 +6,7 @@ import {
   Database, Bell, Info, ChevronRight, 
   LogOut, ShieldCheck, Camera, FileText, Sparkles, ExternalLink,
   Lock, Mail, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2,
-  KeyRound, Shield
+  KeyRound, Shield, Image as ImageIcon, UploadCloud
 } from 'lucide-react';
 import VisitCounter from '@/components/VisitCounter';
 import { supabase } from '@/lib/supabase';
@@ -222,6 +222,31 @@ export default function MobileProfileView({
               )}
             </button>
           </form>
+
+          {/* Cakupan Menu Administrator */}
+          <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100/90 text-slate-600 space-y-1.5">
+            <span className="font-black text-emerald-950 block text-[10.5px]">
+              Menu Pengelolaan Administrator:
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-700 font-semibold">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">Input Data Pangan</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span className="truncate text-amber-900 font-black">Media Komunikasi</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                <span className="truncate">Knowledge Base AI</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                <span className="truncate">Kontrol Akses Fitur</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -238,38 +263,77 @@ export default function MobileProfileView({
             </span>
           </div>
 
-          {/* Portal Input Data & Media */}
+          {/* 1. Menu Media Komunikasi & Dokumentasi */}
           <a
-            href="/entry"
+            href="/entry?tab=media"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-amber-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <ImageIcon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-slate-800 block truncate">Media Komunikasi & Dokumentasi</span>
+                  <span className="text-[8px] font-black px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                    MEDIA
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-semibold block truncate">Kelola carousel media, foto, video & berita</span>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-amber-600 shrink-0" />
+          </a>
+
+          {/* 2. Menu Input & Upload Data Ketahanan Pangan */}
+          <a
+            href="/entry?tab=upload"
             className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-xs">
-                ADM
+                <UploadCloud className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-xs font-black text-slate-800 block">Portal Input Data (Entry)</span>
-                <span className="text-[10px] text-slate-400 font-semibold block">Update data pangan & kelola media</span>
+              <div className="min-w-0">
+                <span className="text-xs font-black text-slate-800 block truncate">Input Data Ketahanan Pangan</span>
+                <span className="text-[10px] text-slate-400 font-semibold block truncate">Input neraca, harga pasar & FSVA</span>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-emerald-600" />
+            <ExternalLink className="w-4 h-4 text-emerald-600 shrink-0" />
           </a>
 
-          {/* Pengaturan Hak Akses Fitur */}
+          {/* 3. Menu Knowledge Base AI */}
           <a
-            href="/entry?tab=access"
-            className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
+            href="/entry?tab=knowledge"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-purple-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
-                <Shield className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Sparkles className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-xs font-black text-slate-800 block">Pengaturan Akses Fitur</span>
-                <span className="text-[10px] text-slate-400 font-semibold block">Kunci / buka akses fitur publik</span>
+              <div className="min-w-0">
+                <span className="text-xs font-black text-slate-800 block truncate">Knowledge Base AI (Dokumen & Perda)</span>
+                <span className="text-[10px] text-slate-400 font-semibold block truncate">Basis pengetahuan & rujukan AI Ketapang</span>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-teal-600" />
+            <ExternalLink className="w-4 h-4 text-purple-600 shrink-0" />
+          </a>
+
+          {/* 4. Menu Pengaturan Hak Akses Fitur */}
+          <a
+            href="/entry?tab=access"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-teal-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-black text-slate-800 block truncate">Pengaturan Hak Akses Fitur</span>
+                <span className="text-[10px] text-slate-400 font-semibold block truncate">Kunci / buka akses fitur publik</span>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-teal-600 shrink-0" />
           </a>
         </div>
       )}
