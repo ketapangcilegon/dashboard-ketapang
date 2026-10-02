@@ -709,9 +709,20 @@ export default function AIIntelligenceMap({
     }
   }, [mapAction]);
 
-  // Fetch data observasi kamera cerdas dari Supabase (dengan fallback ke sp_cache_data)
+  // Fetch data observasi kamera cerdas dari API / Supabase (dengan realtime listener)
   useEffect(() => {
     async function fetchKameraObservasi() {
+      try {
+        const res = await fetch('/api/kamera-cerdas/observasi');
+        const json = await res.json();
+        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
+          setKameraObservasiList(json.data);
+          return;
+        }
+      } catch (err) {
+        // Fallback to direct Supabase
+      }
+
       try {
         const { data, error } = await supabase
           .from('kamera_cerdas_observasi')
@@ -738,6 +749,16 @@ export default function AIIntelligenceMap({
     }
 
     fetchKameraObservasi();
+
+    const handleObsUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt?.detail) {
+        setKameraObservasiList((prev) => [customEvt.detail, ...prev]);
+      }
+    };
+
+    window.addEventListener('kamera_observasi_updated', handleObsUpdate);
+    return () => window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
   }, []);
 
   // Database pin data fetched from sp_cache_data

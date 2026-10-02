@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,13 +11,15 @@ import LocateMe from '@/components/gis/LocateMe';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles } from 'lucide-react';
 
-interface KameraCerdasMapProps {
+export interface KameraCerdasMapProps {
   observasiList: ObservasiRecord[];
   onRefresh?: () => void;
+  focusPinId?: string | null;
+  focusCoords?: [number, number] | null;
 }
 
 // Builder Icon Teardrop Tematik Serumpun Padi
-const createKameraPinIcon = (record: ObservasiRecord) => {
+export const createKameraPinIcon = (record: ObservasiRecord) => {
   const isPasokan = record.mode === 'pasokan_beras';
   
   let emoji = '📍';
@@ -60,9 +62,12 @@ const createKameraPinIcon = (record: ObservasiRecord) => {
 
 export default function KameraCerdasMap({
   observasiList = [],
-  onRefresh
+  onRefresh,
+  focusPinId,
+  focusCoords
 }: KameraCerdasMapProps) {
   const mapRef = useRef<L.Map | null>(null);
+  const markerRefs = useRef<Record<string, L.Marker>>({});
 
   // Filters
   const [filterMode, setFilterMode] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
@@ -70,6 +75,31 @@ export default function KameraCerdasMap({
   const [filterKelurahan, setFilterKelurahan] = useState<string>('semua');
   const [showOsm, setShowOsm] = useState<boolean>(false);
   const [selectedRecord, setSelectedRecord] = useState<ObservasiRecord | null>(null);
+
+  // Auto-focus and open popup when focusCoords or focusPinId changes
+  useEffect(() => {
+    if (focusCoords && mapRef.current) {
+      mapRef.current.flyTo(focusCoords, 16.5, { duration: 1.5 });
+    }
+  }, [focusCoords]);
+
+  useEffect(() => {
+    if (focusPinId) {
+      const match = observasiList.find(o => o.id === focusPinId);
+      if (match) {
+        setSelectedRecord(match);
+        if (mapRef.current && match.latitude && match.longitude) {
+          mapRef.current.flyTo([Number(match.latitude), Number(match.longitude)], 16.5, { duration: 1.5 });
+        }
+      }
+      const t = setTimeout(() => {
+        if (markerRefs.current[focusPinId]) {
+          markerRefs.current[focusPinId].openPopup();
+        }
+      }, 700);
+      return () => clearTimeout(t);
+    }
+  }, [focusPinId, observasiList]);
 
   // Filtered List
   const filteredData = useMemo(() => {
@@ -203,6 +233,9 @@ export default function KameraCerdasMap({
                 key={item.id || `kamera-obs-${idx}`}
                 position={[Number(item.latitude), Number(item.longitude)]}
                 icon={createKameraPinIcon(item)}
+                ref={(m) => {
+                  if (m && item.id) markerRefs.current[item.id] = m;
+                }}
                 eventHandlers={{
                   click: () => setSelectedRecord(item)
                 }}

@@ -299,33 +299,56 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                 <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 border-l-4 border-indigo-500 pl-2">
                   Penghargaan kepada Sumber Data
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {/* Bapanas */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* 1. SAGON (Disperindag Kota Cilegon) */}
                   <a 
-                    href="https://badanpangan.go.id" 
+                    href="https://sagon.cilegon.go.id" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-200 transition-all duration-300 text-center group/item hover:shadow-sm"
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="/logo-bapanas.jpg" 
-                        alt="Bapanas Logo" 
-                        className="max-h-full max-w-[120px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        src="/logo-sagon.png" 
+                        alt="SAGON Disperindag Logo" 
+                        className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          if (target.src.includes('.jpg')) {
-                            target.src = '/logo-bapanas.png';
+                          target.src = '/logo-cilegon.png';
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-emerald-700 transition-colors">
+                      SAGON (Disperindag Kota Cilegon)
+                    </span>
+                  </a>
+
+                  {/* 2. DKPP Kota Cilegon */}
+                  <a 
+                    href="https://dkpp.info" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="/logo-cilegon.png" 
+                        alt="DKPP Kota Cilegon Logo" 
+                        className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.png')) {
+                            target.src = '/logo-cilegon.jpg';
                           }
                         }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
-                      Badan Pangan Nasional (Bapanas)
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-emerald-700 transition-colors">
+                      DKPP Kota Cilegon
                     </span>
                   </a>
 
-                  {/* Pemkot Cilegon */}
+                  {/* 3. Pemerintah Kota Cilegon */}
                   <a 
                     href="https://cilegon.go.id" 
                     target="_blank" 
@@ -334,13 +357,13 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="/logo-cilegon.jpg" 
+                        src="/logo-cilegon.png" 
                         alt="Pemkot Cilegon Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          if (target.src.includes('.jpg')) {
-                            target.src = '/logo-cilegon.png';
+                          if (target.src.includes('.png')) {
+                            target.src = '/logo-cilegon.jpg';
                           }
                         }}
                       />
@@ -350,7 +373,32 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                     </span>
                   </a>
 
-                  {/* BMKG */}
+                  {/* 4. Bapanas */}
+                  <a 
+                    href="https://badanpangan.go.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
+                  >
+                    <div className="h-16 flex items-center justify-center mb-3">
+                      <img 
+                        src="/logo-bapanas.png" 
+                        alt="Bapanas Logo" 
+                        className="max-h-full max-w-[120px] object-contain group-hover/item:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('.png')) {
+                            target.src = '/logo-bapanas.jpg';
+                          }
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
+                      Badan Pangan Nasional (Bapanas)
+                    </span>
+                  </a>
+
+                  {/* 5. BMKG */}
                   <a 
                     href="https://www.bmkg.go.id" 
                     target="_blank" 
@@ -359,13 +407,13 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="/logo-bmkg.jpg" 
+                        src="/logo-bmkg.png" 
                         alt="BMKG Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          if (target.src.includes('.jpg')) {
-                            target.src = '/logo-bmkg.png';
+                          if (target.src.includes('.png')) {
+                            target.src = '/logo-bmkg.jpg';
                           }
                         }}
                       />
@@ -375,7 +423,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                     </span>
                   </a>
 
-                  {/* BPS */}
+                  {/* 6. BPS */}
                   <a 
                     href="https://www.bps.go.id" 
                     target="_blank" 
@@ -384,13 +432,13 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   >
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
-                        src="/logo-bps.jpg" 
+                        src="/logo-bps.png" 
                         alt="BPS Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          if (target.src.includes('.jpg')) {
-                            target.src = '/logo-bps.png';
+                          if (target.src.includes('.png')) {
+                            target.src = '/logo-bps.jpg';
                           }
                         }}
                       />

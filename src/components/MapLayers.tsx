@@ -1,7 +1,9 @@
 "use client";
 
 import React from 'react';
-import { GeoJSON } from 'react-leaflet';
+import { GeoJSON, Marker, Popup } from 'react-leaflet';
+import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { createKameraPinIcon } from '@/components/kamera/KameraCerdasMap';
 import {
   FSVA_COLORS, SKPG_COLORS, BORDA_DESIL_COLORS,
   NO_DATA_COLOR, getFSVACategory
@@ -275,3 +277,82 @@ export function KelurahanLayer({
     </>
   );
 }
+
+export function KameraObservasiLayer({ data }: { data: ObservasiRecord[] }) {
+  if (!data || data.length === 0) return null;
+  return (
+    <>
+      {data.map((item, idx) => {
+        const lat = Number(item.latitude);
+        const lng = Number(item.longitude);
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+
+        const isBeras = item.mode === 'pasokan_beras';
+
+        return (
+          <Marker
+            key={item.id || `kamera-obs-unified-${idx}`}
+            position={[lat, lng]}
+            icon={createKameraPinIcon(item)}
+          >
+            <Popup className="kamera-cerdas-popup">
+              <div className="p-1 max-w-[240px] text-slate-900 font-sans text-xs">
+                {item.foto_url && (
+                  <div className="rounded-lg overflow-hidden border border-slate-200 mb-2 aspect-[16/10]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.foto_url} alt="Foto Lapangan" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <h4 className="font-extrabold text-sm text-slate-900 leading-tight">
+                  {item.nama_lokasi || item.kategori_label || (isBeras ? 'Pemasok Beras' : 'Tanaman Pangan')}
+                </h4>
+                <p className="text-[10px] text-slate-500 font-medium">
+                  📍 {item.kelurahan}, {item.kecamatan}
+                </p>
+
+                {isBeras ? (
+                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Estimasi Pasokan:</span>
+                      <b className="text-blue-700">{(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
+                    </div>
+                    {item.asal_pasokan && (
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-600">Asal:</span>
+                        <b className="text-slate-800">{item.asal_pasokan}</b>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2 space-y-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Estimasi Produksi:</span>
+                      <b className="text-emerald-700">{(item.estimasi_produksi_kg || 0).toLocaleString('id-ID')} Kg</b>
+                    </div>
+                    {item.jumlah_pohon_rumpun ? (
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-600">Jumlah Pohon:</span>
+                        <b className="text-slate-800">{item.jumlah_pohon_rumpun} Pohon</b>
+                      </div>
+                    ) : item.luas_lahan_m2 ? (
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-600">Luas:</span>
+                        <b className="text-slate-800">{item.luas_lahan_m2} m²</b>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-400">
+                  <span>{item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : 'Realtime'}</span>
+                  <span className="text-emerald-600 font-bold">✅ Kamera Cerdas</span>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+

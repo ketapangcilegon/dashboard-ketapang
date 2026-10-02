@@ -119,6 +119,8 @@ export default function KameraCerdasView() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [newlyCreatedPinId, setNewlyCreatedPinId] = useState<string | null>(null);
+  const [newlyCreatedCoords, setNewlyCreatedCoords] = useState<[number, number] | null>(null);
 
   // Field Observations List
   const [observasiList, setObservasiList] = useState<ObservasiRecord[]>([]);
@@ -512,12 +514,30 @@ export default function KameraCerdasView() {
       });
 
       if (res.ok) {
+        const json = await res.json();
+        const savedRecord: ObservasiRecord = json.data || finalData;
+        const newLat = Number(savedRecord.latitude || finalData.latitude);
+        const newLng = Number(savedRecord.longitude || finalData.longitude);
+        const newId = savedRecord.id || finalData.id;
+
         setShowConfirmModal(false);
         setCapturedPhoto(null);
         setAiDraftResult(null);
-        setSaveSuccessMsg(`Data ${mode === 'pasokan_beras' ? 'Pasokan Beras' : 'Tanaman Pangan'} berhasil disimpan ke Peta Spasial!`);
+        setSaveSuccessMsg(`Data ${mode === 'pasokan_beras' ? 'Pasokan Beras' : 'Tanaman Pangan'} berhasil disimpan ke Supabase & Pin GIS di-generate!`);
         await loadObservasi();
-        setTimeout(() => setSaveSuccessMsg(null), 4000);
+
+        // Otomatis beralih ke Tab Peta Lapangan & buat pin di lokasi GPS yang kamera submit
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('kamera_observasi_updated', { detail: savedRecord }));
+        }
+
+        if (newLat && newLng) {
+          setNewlyCreatedCoords([newLat, newLng]);
+          if (newId) setNewlyCreatedPinId(newId);
+          setActiveTab('map');
+        }
+
+        setTimeout(() => setSaveSuccessMsg(null), 5000);
       } else {
         alert('Gagal menyimpan data observasi. Silakan coba lagi.');
       }
@@ -876,6 +896,8 @@ export default function KameraCerdasView() {
           <KameraCerdasMap
             observasiList={observasiList}
             onRefresh={loadObservasi}
+            focusPinId={newlyCreatedPinId}
+            focusCoords={newlyCreatedCoords}
           />
         </div>
       )}

@@ -15,6 +15,7 @@ const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapCo
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const KecamatanLayer = dynamic(() => import('@/components/MapLayers').then(mod => mod.KecamatanLayer), { ssr: false });
 const KelurahanLayer = dynamic(() => import('@/components/MapLayers').then(mod => mod.KelurahanLayer), { ssr: false });
+const KameraObservasiLayer = dynamic(() => import('@/components/MapLayers').then(mod => mod.KameraObservasiLayer), { ssr: false });
 
 interface MapUnifiedProps {
   selectedKecamatan: string;
@@ -1009,9 +1010,23 @@ export default function MapUnified({
   const [validBordaYears, setValidBordaYears] = useState<number[]>([2025, 2026, 2027]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
+  const [observasiData, setObservasiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [validPeriods, setValidPeriods] = useState<{ tahun: number; bulan: number }[]>([]);
   const [activeSkpgPeriod, setActiveSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
+
+  // Listen to new camera observations submitted in real time
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleObsUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt?.detail) {
+        setObservasiData(prev => [customEvt.detail, ...prev]);
+      }
+    };
+    window.addEventListener('kamera_observasi_updated', handleObsUpdate);
+    return () => window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
+  }, []);
 
   // Fetch all valid FSVA years available in database
   useEffect(() => {
@@ -1283,6 +1298,17 @@ export default function MapUnified({
           }
         }
 
+        // Ambil data observasi Kamera Cerdas lapangan
+        try {
+          const obsRes = await fetch('/api/kamera-cerdas/observasi');
+          const obsJson = await obsRes.json();
+          if (obsJson?.data && Array.isArray(obsJson.data)) {
+            setObservasiData(obsJson.data);
+          }
+        } catch (e) {
+          // ignore error jika offline
+        }
+
       } catch (err) {
         console.error('Gagal mengambil data peta Supabase:', err);
       } finally {
@@ -1415,6 +1441,7 @@ export default function MapUnified({
             selectedYear={selectedYear}
             selectedMonth={selectedMonth}
           />
+          <KameraObservasiLayer data={observasiData} />
 
           {/* Inject controller inside the Leaflet context */}
           {(() => {
