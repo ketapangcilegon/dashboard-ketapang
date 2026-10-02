@@ -1446,7 +1446,7 @@ export default function DashboardPage() {
       return <ValidasiForecastView onBack={() => setCurrentView('beranda')} />;
     }
 
-    if (currentView === 'ai_intelligence' || currentView === 'ai_insight' || currentView === 'insight') {
+    if (currentView === 'ai_intelligence' || currentView === 'ai_insight') {
       return (
         <div className="w-full">
           <ErrorBoundary fallbackTitle="Kendala Memuat Food Security Intelligence">

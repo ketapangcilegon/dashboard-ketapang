@@ -1,12 +1,12 @@
 "use client";
 
 import React from 'react';
-import { Home, MapPin, Grid, BarChart3, User } from 'lucide-react';
+import { Home, Info, Camera, BarChart3, User } from 'lucide-react';
 
 interface MobileBottomNavProps {
   currentView: string;
   onSelectView: (view: string) => void;
-  onOpenCatalog: () => void;
+  onOpenCatalog?: () => void;
 }
 
 export default function MobileBottomNav({
@@ -15,8 +15,9 @@ export default function MobileBottomNav({
   onOpenCatalog,
 }: MobileBottomNavProps) {
   const isHome = currentView === 'beranda';
-  const isMap = currentView === 'peta_full';
-  const isAI = currentView === 'ai_intelligence' || currentView === 'ai_insight' || currentView === 'insight';
+  const isAbout = currentView === 'tentang';
+  const isCamera = currentView === 'kamera_cerdas';
+  const isAI = currentView === 'insight' || currentView === 'ai_insight';
   const isProfile = currentView === 'profil_menu';
 
   return (
@@ -40,34 +41,37 @@ export default function MobileBottomNav({
           {isHome && <span className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5" />}
         </button>
 
-        {/* 2. Peta GIS */}
+        {/* 2. Tentang Aplikasi */}
         <button
-          onClick={() => onSelectView('peta_full')}
+          onClick={() => onSelectView('tentang')}
           className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
-            isMap ? 'text-emerald-700 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-semibold'
+            isAbout ? 'text-emerald-700 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-semibold'
           }`}
         >
-          <div className={`p-1 rounded-full transition-all ${isMap ? 'bg-emerald-50 text-emerald-600 scale-110 shadow-xs' : ''}`}>
-            <MapPin className="w-5 h-5" strokeWidth={isMap ? 2.5 : 2} />
+          <div className={`p-1 rounded-full transition-all ${isAbout ? 'bg-emerald-50 text-emerald-600 scale-110 shadow-xs' : ''}`}>
+            <Info className="w-5 h-5" strokeWidth={isAbout ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight leading-none">Peta</span>
-          {isMap && <span className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5" />}
+          <span className="text-[10px] mt-0.5 tracking-tight leading-none">Tentang</span>
+          {isAbout && <span className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5" />}
         </button>
 
-        {/* 3. Data / Fitur (Katalog) */}
+        {/* 3. Kamera Cerdas */}
         <button
-          onClick={onOpenCatalog}
-          className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-slate-600 font-semibold transition-all cursor-pointer active:scale-95"
+          onClick={() => onSelectView('kamera_cerdas')}
+          className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
+            isCamera ? 'text-emerald-700 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-semibold'
+          }`}
         >
-          <div className="p-1 rounded-full hover:bg-slate-50 transition-all">
-            <Grid className="w-5 h-5" strokeWidth={2} />
+          <div className={`p-1 rounded-full transition-all ${isCamera ? 'bg-emerald-50 text-emerald-600 scale-110 shadow-xs' : ''}`}>
+            <Camera className="w-5 h-5" strokeWidth={isCamera ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight leading-none">Fitur</span>
+          <span className="text-[10px] mt-0.5 tracking-tight leading-none">Kamera</span>
+          {isCamera && <span className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5" />}
         </button>
 
         {/* 4. AI Insight */}
         <button
-          onClick={() => onSelectView('ai_intelligence')}
+          onClick={() => onSelectView('insight')}
           className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
             isAI ? 'text-emerald-700 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-semibold'
           }`}

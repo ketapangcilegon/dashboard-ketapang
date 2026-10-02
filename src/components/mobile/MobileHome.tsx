@@ -6,7 +6,7 @@ import {
   ShieldCheck, MapPin, Store, Sparkles, Target, Activity, 
   Camera, Bot, Layers, ChevronRight, TrendingUp, TrendingDown,
   ArrowRight, Sparkle, AlertCircle, CheckCircle2, ChevronLeft,
-  LineChart, ChevronUp, ChevronDown, Calendar
+  LineChart, ChevronUp, ChevronDown, Calendar, BarChart3
 } from 'lucide-react';
 import MediaCarousel from '@/components/MediaCarousel';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
@@ -399,7 +399,7 @@ export default function MobileHome({
 
   const handleForecastScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const itemHeight = 102; // exact height of each commodity card row
+    const itemHeight = 120; // exact height of each commodity card row with spacing
     const index = Math.round(el.scrollTop / itemHeight);
     if (index >= 0 && index < allForecastItems.length && index !== activeForecastIndex) {
       setActiveForecastIndex(index);
@@ -409,8 +409,9 @@ export default function MobileHome({
   const scrollToForecast = (targetIndex: number) => {
     if (forecastScrollRef.current) {
       const idx = Math.max(0, Math.min(allForecastItems.length - 1, targetIndex));
+      const itemHeight = 120;
       forecastScrollRef.current.scrollTo({
-        top: idx * 102,
+        top: idx * itemHeight,
         behavior: 'smooth'
       });
       setActiveForecastIndex(idx);
@@ -462,10 +463,10 @@ export default function MobileHome({
       gradient: 'from-[#334155] via-[#475569] to-[#64748B]',
     },
     {
-      id: 'ai_intelligence',
+      id: 'insight',
       name: 'AI Insight',
-      tag: 'Chat Intelijen',
-      icon: <Bot className="w-5 h-5 text-white" />,
+      tag: 'Analitik Pangan',
+      icon: <BarChart3 className="w-5 h-5 text-white" />,
       gradient: 'from-[#047857] via-[#10B981] to-[#34D399]',
     },
     {
@@ -669,21 +670,21 @@ export default function MobileHome({
           <span className="text-emerald-200 font-bold">Swipe ↑↓</span>
         </div>
 
-        {/* Single-Row Vertical Scrollable Reel (Tampil 1 Baris - Snap-Y) */}
+        {/* Multi-Row Vertical Scrollable Reel (Ketinggian 2x Lipat dengan Jarak Antar Kartu Komoditas) */}
         <div 
           ref={forecastScrollRef}
           onScroll={handleForecastScroll}
-          className="h-[118px] overflow-y-auto snap-y snap-mandatory no-scrollbar scroll-smooth rounded-2xl border border-emerald-500/30 bg-emerald-950/70 p-2"
+          className="h-[240px] overflow-y-auto space-y-3 no-scrollbar scroll-smooth rounded-2xl border border-emerald-500/30 bg-emerald-950/70 p-2.5"
         >
           {allForecastItems.map((item, idx) => (
             <div 
               key={item.key}
               onClick={() => onNavigate('forecasting')}
-              className="h-[102px] snap-start shrink-0 flex flex-col justify-between cursor-pointer"
+              className="p-2.5 rounded-2xl bg-emerald-900/60 hover:bg-emerald-900/80 border border-emerald-500/30 shadow-xs shrink-0 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99]"
               title={`Buka analisis forecast untuk ${item.name}`}
             >
               {/* Baris Nama Komoditas & Status */}
-              <div className="flex items-center justify-between gap-1 pb-1 border-b border-emerald-500/20">
+              <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-emerald-500/20">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="text-base shrink-0">{item.icon}</span>
                   <span className="text-xs font-black text-white truncate">
@@ -709,9 +710,9 @@ export default function MobileHome({
               </div>
 
               {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan dengan Bulan Dinamis */}
-              <div className="grid grid-cols-3 gap-1.5 pt-1 text-center">
+              <div className="grid grid-cols-3 gap-1.5 pt-1.5 text-center">
                 {/* 1. Aktual */}
-                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-emerald-500/20 flex flex-col justify-center">
+                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/20 flex flex-col justify-center">
                   <span className="text-[9.5px] font-bold text-emerald-200/80 leading-tight">
                     Aktual
                   </span>
@@ -724,7 +725,7 @@ export default function MobileHome({
                 </div>
 
                 {/* 2. +1 Bulan */}
-                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-cyan-500/30 flex flex-col justify-center">
+                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-cyan-500/30 flex flex-col justify-center">
                   <span className="text-[9.5px] font-bold text-cyan-200 leading-tight">
                     +1 Bulan
                   </span>
@@ -737,7 +738,7 @@ export default function MobileHome({
                 </div>
 
                 {/* 3. +3 Bulan */}
-                <div className="p-1.5 rounded-xl bg-emerald-900/60 border border-teal-500/30 flex flex-col justify-center">
+                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-teal-500/30 flex flex-col justify-center">
                   <span className="text-[9.5px] font-bold text-teal-200 leading-tight">
                     +3 Bulan
                   </span>

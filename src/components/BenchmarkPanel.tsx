@@ -270,7 +270,7 @@ export default function BenchmarkPanel({
                 className={`py-2 px-1 rounded-xl text-[9px] min-[380px]:text-[10px] sm:text-xs font-black uppercase tracking-tight transition-all flex flex-col items-center justify-center text-center shadow-xs active:scale-95 cursor-pointer leading-tight min-h-[44px] ${
                   isSelected
                     ? 'bg-emerald-600 text-white border-2 border-emerald-500 ring-2 ring-emerald-400/40 shadow-md shadow-emerald-700/25 scale-[1.02]'
-                    : 'bg-white hover:bg-emerald-50/80 text-emerald-950 font-extrabold border border-emerald-200/90 shadow-2xs hover:border-emerald-300'
+                    : 'bg-emerald-100/90 text-emerald-950 font-extrabold border border-emerald-300/90 shadow-2xs hover:bg-emerald-600 hover:text-white hover:border-emerald-500 hover:scale-[1.02]'
                 }`}
                 title={`Pilih ${SHORT_LABELS[no]}`}
               >
@@ -291,7 +291,7 @@ export default function BenchmarkPanel({
                 className={`py-2 px-1 rounded-xl text-[9px] min-[380px]:text-[10px] sm:text-xs font-black uppercase tracking-tight transition-all flex flex-col items-center justify-center text-center shadow-xs active:scale-95 cursor-pointer leading-tight min-h-[44px] ${
                   isSelected
                     ? 'bg-emerald-600 text-white border-2 border-emerald-500 ring-2 ring-emerald-400/40 shadow-md shadow-emerald-700/25 scale-[1.02]'
-                    : 'bg-white hover:bg-emerald-50/80 text-emerald-950 font-extrabold border border-emerald-200/90 shadow-2xs hover:border-emerald-300'
+                    : 'bg-emerald-100/90 text-emerald-950 font-extrabold border border-emerald-300/90 shadow-2xs hover:bg-emerald-600 hover:text-white hover:border-emerald-500 hover:scale-[1.02]'
                 }`}
                 title={`Pilih ${SHORT_LABELS[no]}`}
               >
