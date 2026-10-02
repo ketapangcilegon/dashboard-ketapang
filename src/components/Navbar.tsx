@@ -37,8 +37,12 @@ export default function Navbar({
       setIsAdminLoggedIn(sessionActive);
     };
     checkAuth();
-    const interval = setInterval(checkAuth, 1000);
-    return () => clearInterval(interval);
+    // Ganti polling 1s dengan event listener storage — zero CPU overhead
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'adminSession' || e.key === null) checkAuth();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
   
   const handleKecamatanChange = (kec: string) => {

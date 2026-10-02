@@ -8,8 +8,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
-// Disable TLS verification to bypass self-signed SSL issues on government websites
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// TLS bypass dipindah ke dalam fungsi scraping — tidak lagi di root module scope
 
 // Standard commodity mapping to extract values from SAGON HTML table
 const COMMODITY_MAPPING: Record<string, string> = {
@@ -92,15 +91,24 @@ async function scrapeLaporanSemuaPasar(dateObj: Date): Promise<Record<string, nu
 
   for (const body of payloads) {
     try {
-      const response = await fetch('https://sagon.cilegon.go.id/laporan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        body,
-        signal: AbortSignal.timeout(4000)
-      });
+      // TLS bypass scoped: aktif hanya saat request ke sagon.cilegon.go.id
+      const _prevTLS = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      let response: Response;
+      try {
+        response = await fetch('https://sagon.cilegon.go.id/laporan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          },
+          body,
+          signal: AbortSignal.timeout(4000)
+        });
+      } finally {
+        if (_prevTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+        else process.env.NODE_TLS_REJECT_UNAUTHORIZED = _prevTLS;
+      }
 
       if (!response.ok) continue;
       const html = await response.text();

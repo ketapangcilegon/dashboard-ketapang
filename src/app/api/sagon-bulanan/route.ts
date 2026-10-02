@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { supabase } from '@/lib/supabase';
 
-// Disable TLS verification to bypass self-signed SSL issues on government websites
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// TLS bypass dipindah ke dalam fungsi scraping — tidak lagi di root module scope
 
 interface CommodityData {
   beras: Record<string, number[]>;
@@ -40,16 +39,25 @@ async function scrapeMarketInfografis(marketId: string): Promise<{ data: Commodi
       daterange: '01/01/2025 - 12/31/2026'
     });
 
-    const response = await fetch('https://sagon.cilegon.go.id/infografis/filter', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      body,
-      signal: AbortSignal.timeout(8000),
-      next: { revalidate: 86400 }
-    });
+    // TLS bypass scoped: aktif hanya saat request ke sagon.cilegon.go.id
+    const _prevTLS = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    let response: Response;
+    try {
+      response = await fetch('https://sagon.cilegon.go.id/infografis/filter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        body,
+        signal: AbortSignal.timeout(8000),
+        next: { revalidate: 86400 }
+      });
+    } finally {
+      if (_prevTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      else process.env.NODE_TLS_REJECT_UNAUTHORIZED = _prevTLS;
+    }
 
     if (!response.ok) return { data: defaultData, isFallback: true };
 

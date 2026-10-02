@@ -150,14 +150,18 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
 
   useEffect(() => {
     loadData();
+    // Auth: cek sekali di awal, lalu dengarkan perubahan via onAuthStateChange
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
       setIsAdmin(!!session?.user && sessionActive);
     };
     checkAuth();
-    const interval = setInterval(checkAuth, 1000);
-    return () => clearInterval(interval);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      setIsAdmin(!!session?.user && sessionActive);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleTrainModel = async () => {

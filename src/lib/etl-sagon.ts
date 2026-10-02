@@ -89,6 +89,8 @@ async function scrapeMonthDaily(year: number, month: number): Promise<Record<str
 
 export async function runETLPipeline() {
   console.log('[ETL] Memulai ekstraksi data dari SAGON...');
+  // TLS bypass scoped: aktif hanya saat request ke sagon.cilegon.go.id
+  const _prevTLS = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   // 1. Ambil data 2025-2026 dari endpoint infografis/filter
@@ -99,17 +101,23 @@ export async function runETLPipeline() {
     daterange: '01/01/2025 - 12/31/2026'
   });
 
-  const res = await fetch('https://sagon.cilegon.go.id/infografis/filter', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    },
-    body
-  });
+  let res: Response;
+  try {
+    res = await fetch('https://sagon.cilegon.go.id/infografis/filter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body
+    });
+  } finally {
+    if (_prevTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = _prevTLS;
+  }
 
-  if (!res.ok) {
-    throw new Error(`Gagal menghubungi SAGON infografis: HTTP ${res.status}`);
+  if (!res!.ok) {
+    throw new Error(`Gagal menghubungi SAGON infografis: HTTP ${res!.status}`);
   }
 
   const html = await res.text();

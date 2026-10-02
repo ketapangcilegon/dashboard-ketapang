@@ -10,16 +10,23 @@ interface BMKGWeatherItem {
 
 export async function runWeatherETL() {
   console.log('[Weather ETL] Memulai ekstraksi data cuaca dari BMKG...');
+  // TLS bypass khusus untuk API BMKG (pemerintah, cert self-signed pada beberapa env)
+  // Hanya berlaku di dalam scope eksekusi fungsi ini, tidak di root modul
+  const prevTLS = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   const url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=36.72.05.1002";
-  const res = await fetch(url);
-  
-  if (!res.ok) {
-    throw new Error(`Gagal menghubungi API BMKG: HTTP ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } finally {
+    // Pulihkan pengaturan TLS setelah fetch selesai
+    if (prevTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTLS;
   }
 
-  const data = await res.json();
+  if (!res!.ok) throw new Error(`Gagal menghubungi API BMKG: HTTP ${res!.status}`);
+  const data = await res!.json();
   
   if (!data.data || !data.data[0] || !data.data[0].cuaca) {
     throw new Error('Struktur data cuaca BMKG tidak valid.');

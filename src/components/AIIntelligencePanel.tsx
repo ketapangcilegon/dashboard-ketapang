@@ -354,6 +354,13 @@ export default function AIIntelligencePanel({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null); // SpeechRecognition instance untuk cleanup
+
+  // Hentikan recognition saat komponen unmount agar tidak memory leak
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop(); };
+  }, []);
 
   // Auto-resize textarea seamlessly (seperti ChatInput dkpp-info)
   useEffect(() => {
@@ -665,29 +672,35 @@ export default function AIIntelligencePanel({
       return;
     }
 
+    // Jika sedang aktif, stop
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'id-ID';
       recognition.interimResults = false;
+      recognitionRef.current = recognition;
 
-      if (!isListening) {
-        setIsListening(true);
-        recognition.start();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setInputValue(prev => (prev ? `${prev} ${transcript}` : transcript));
-          setIsListening(false);
-        };
-        recognition.onerror = () => setIsListening(false);
-        recognition.onend = () => setIsListening(false);
-      } else {
+      setIsListening(true);
+      recognition.start();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(prev => (prev ? `${prev} ${transcript}` : transcript));
         setIsListening(false);
-      }
+        recognitionRef.current = null;
+      };
+      recognition.onerror = () => { setIsListening(false); recognitionRef.current = null; };
+      recognition.onend = () => { setIsListening(false); recognitionRef.current = null; };
     } catch {
       setIsListening(false);
+      recognitionRef.current = null;
     }
   };
 

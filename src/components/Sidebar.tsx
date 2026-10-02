@@ -30,8 +30,12 @@ export default function Sidebar({
       setIsAdmin(sessionActive);
     };
     checkAuth();
-    const interval = setInterval(checkAuth, 1500);
-    return () => clearInterval(interval);
+    // Ganti polling 1.5s dengan event listener storage — tidak ada network call, zero CPU overhead
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'adminSession' || e.key === null) checkAuth();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({

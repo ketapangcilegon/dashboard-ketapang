@@ -45,8 +45,16 @@ export default function KameraCerdasView() {
       }
     };
     checkAuth();
-    const interval = setInterval(checkAuth, 1500);
-    return () => clearInterval(interval);
+    // Ganti polling 1.5s dengan onAuthStateChange — event-driven, zero polling overhead
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
+      const hasAdmin = sessionActive || !!session?.user;
+      setIsAdmin(hasAdmin);
+      if (session?.user?.email) setAdminEmail(session.user.email);
+      else if (sessionActive) setAdminEmail('admin@cilegon.go.id');
+      else setAdminEmail('');
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLoginAdmin = async (e: React.FormEvent) => {
