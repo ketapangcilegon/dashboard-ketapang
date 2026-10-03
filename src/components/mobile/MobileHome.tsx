@@ -6,8 +6,9 @@ import {
   ShieldCheck, MapPin, Store, Sparkles, Target, Activity, 
   Camera, Bot, Layers, ChevronRight, TrendingUp, TrendingDown,
   ArrowRight, Sparkle, AlertCircle, CheckCircle2, ChevronLeft,
-  LineChart, ChevronUp, ChevronDown, Calendar, BarChart3
+  LineChart, ChevronUp, ChevronDown, Calendar, BarChart3, Truck
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import MediaCarousel from '@/components/MediaCarousel';
 import BenchmarkPanel from '@/components/BenchmarkPanel';
 import VisitCounter from '@/components/VisitCounter';
@@ -15,6 +16,19 @@ import { supabase } from '@/lib/supabase';
 import MobileFsvaKelurahanModal, { FsvaPriorityDef, FsvaKelurahanItem } from './MobileFsvaKelurahanModal';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 import { KEL_TO_KEC } from '@/lib/wilayah';
+
+const AIIntelligenceMap = dynamic(
+  () => import('@/components/AIIntelligenceMap'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 gap-3 min-h-[300px]">
+        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold">Memuat Peta Food Security Intelligence...</span>
+      </div>
+    ),
+  }
+);
 
 interface MobileForecastItem {
   key: string;
@@ -421,11 +435,25 @@ export default function MobileHome({
   // 8 Fitur Unggulan Tiles (Android Launcher Style)
   const quickFeatures = [
     {
+      id: 'agregasi_kamera',
+      name: 'Agregasi Data',
+      tag: 'Kamera Cerdas',
+      icon: <BarChart3 className="w-5 h-5 text-white" />,
+      gradient: 'from-[#007A48] via-[#059669] to-[#10B981]',
+    },
+    {
+      id: 'rantai_pasok',
+      name: 'Rantai Pasok',
+      tag: 'Logistik Beras',
+      icon: <Truck className="w-5 h-5 text-white" />,
+      gradient: 'from-[#1D4ED8] via-[#2563EB] to-[#0284C7]',
+    },
+    {
       id: 'peta_full',
       name: 'Peta Tematik',
       tag: 'Spasial GIS',
       icon: <MapPin className="w-5 h-5 text-white" />,
-      gradient: 'from-[#007A48] via-[#059669] to-[#10B981]',
+      gradient: 'from-[#0F766E] via-[#0D9488] to-[#14B8A6]',
     },
     {
       id: 'harga_full',
@@ -439,21 +467,21 @@ export default function MobileHome({
       name: 'Forecast EWS',
       tag: 'Prediksi ML',
       icon: <Sparkles className="w-5 h-5 text-white" />,
-      gradient: 'from-[#1D4ED8] via-[#2563EB] to-[#06B6D4]',
+      gradient: 'from-[#7C3AED] via-[#8B5CF6] to-[#A855F7]',
     },
     {
       id: 'radar_kelurahan',
       name: 'Radar Pangan',
       tag: 'Kel vs Kec',
       icon: <Target className="w-5 h-5 text-white" />,
-      gradient: 'from-[#0F766E] via-[#0D9488] to-[#14B8A6]',
+      gradient: 'from-[#4338CA] via-[#6366F1] to-[#8B5CF6]',
     },
     {
       id: 'analisis_skpg',
       name: 'SKPG Bulanan',
       tag: 'Kewaspadaan',
       icon: <Activity className="w-5 h-5 text-white" />,
-      gradient: 'from-[#4338CA] via-[#6366F1] to-[#8B5CF6]',
+      gradient: 'from-[#B91C1C] via-[#DC2626] to-[#F87171]',
     },
     {
       id: 'kamera_cerdas',
@@ -461,20 +489,6 @@ export default function MobileHome({
       tag: 'IoT Telemetri',
       icon: <Camera className="w-5 h-5 text-white" />,
       gradient: 'from-[#334155] via-[#475569] to-[#64748B]',
-    },
-    {
-      id: 'insight',
-      name: 'AI Insight',
-      tag: 'Analitik Pangan',
-      icon: <BarChart3 className="w-5 h-5 text-white" />,
-      gradient: 'from-[#047857] via-[#10B981] to-[#34D399]',
-    },
-    {
-      id: 'ketersediaan',
-      name: 'Aspek FSVA',
-      tag: '3 Pilar Gizi',
-      icon: <Layers className="w-5 h-5 text-white" />,
-      gradient: 'from-[#044D2E] via-[#006038] to-[#059669]',
     },
   ];
 
@@ -911,6 +925,30 @@ export default function MobileHome({
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 6.5. Panel Peta Food Security Intelligence (Capture 3) */}
+      <div className="bg-gradient-to-br from-white via-emerald-50/30 to-[#ECFDF5]/50 p-3.5 rounded-3xl border border-emerald-200/80 shadow-sm space-y-2.5">
+        <div className="flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-4 bg-emerald-600 rounded-full shrink-0"></div>
+            <h3 className="font-black text-xs uppercase tracking-wider text-emerald-950">
+              FOOD SECURITY INTELLIGENCE
+            </h3>
+          </div>
+          <button 
+            onClick={() => onNavigate('ai_intelligence')}
+            className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+          >
+            <span>Buka Penuh</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* GIS Interactive Leaflet Map Container */}
+        <div className="w-full h-[380px] rounded-2xl overflow-hidden border border-emerald-200/90 shadow-xs relative bg-slate-900">
+          <AIIntelligenceMap activeTab="map" />
         </div>
       </div>
 

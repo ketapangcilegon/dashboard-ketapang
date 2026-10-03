@@ -14,6 +14,7 @@ interface BenchmarkPanelProps {
   dbBenchmarkList?: any[]; // Array of database benchmark rows
   defaultOpen?: boolean;
   mobileFirst?: boolean;
+  className?: string;
 }
 
 const SHORT_LABELS: Record<number, string> = {
@@ -152,7 +153,8 @@ export default function BenchmarkPanel({
   currentData = {}, 
   dbBenchmarkList = [],
   defaultOpen = true,
-  mobileFirst = false
+  mobileFirst = false,
+  className = ''
 }: BenchmarkPanelProps) {
   const [activeNo, setActiveNo] = useState<number | null>(defaultOpen ? 9 : null);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -237,7 +239,7 @@ export default function BenchmarkPanel({
       mobileFirst 
         ? 'bg-gradient-to-br from-[#F0FDF4] via-white to-emerald-50/50 border-emerald-200/90 shadow-sm' 
         : 'dashboard-card border-[#E9E4D5] shadow-md bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8]'
-    }`}>
+    } ${className}`}>
       
       {/* Header Segmen Capaian */}
       <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5 gap-2">

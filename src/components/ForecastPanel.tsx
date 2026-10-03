@@ -330,9 +330,9 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
             <div className="flex items-stretch gap-2.5">
               <div className="w-[3px] bg-emerald-600 rounded-full shrink-0"></div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
-                    PERAMALAN HARGA PANGAN
+                    PERAMALAN HARGA PANGAN (ML FORECASTING)
                   </h3>
                   <button
                     onClick={() => setShowForecastInfo(!showForecastInfo)}
@@ -341,9 +341,6 @@ export default function ForecastPanel({ livePrices, onSwitchView }: ForecastPane
                   >
                     <Lightbulb className="w-4 h-4 fill-amber-100 text-amber-500" />
                   </button>
-                </div>
-                <div className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
-                  (ML FORECASTING)
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-500 italic mt-0.5">
                   Proyeksi 1 & 3 bulan ke depan

@@ -625,7 +625,7 @@ export default function AIIntelligenceMap({
   // Sector layer toggles
   const [showSawah, setShowSawah] = useState(true);
   const [showSentinelNdvi, setShowSentinelNdvi] = useState(true);
-  const [showSentinelLegend, setShowSentinelLegend] = useState(true);
+  const [showSentinelLegend, setShowSentinelLegend] = useState(false);
   const [showPoktan, setShowPoktan] = useState(true);
   const [showKWT, setShowKWT] = useState(true);
   const [showGapoktan, setShowGapoktan] = useState(true);
@@ -1744,6 +1744,19 @@ export default function AIIntelligenceMap({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tombol Mini Pembuka Legenda saat sedang tertutup agar peta tetap leluasa terlihat */}
+      {showSawah && showSentinelNdvi && !showSentinelLegend && (
+        <button
+          type="button"
+          onClick={() => setShowSentinelLegend(true)}
+          className="absolute bottom-3 left-3 z-[450] flex items-center gap-1.5 bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md border border-emerald-500/40 rounded-xl px-2.5 py-1.5 shadow-lg text-[10px] font-bold cursor-pointer transition-all hover:scale-105 active:scale-95 animate-in fade-in"
+          title="Buka Legenda Lengas Tanah"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>🌱 Lengas Tanah</span>
+        </button>
       )}
 
       {/* Telemetri Status Agroklimat di Margin Bawah (Wraptext tanpa latar belakang) */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
@@ -8,12 +8,25 @@ import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCirc
 
 interface KameraAgregasiDashboardProps {
   observasiList: ObservasiRecord[];
+  focusSection?: 'rantai_pasok' | 'agregasi' | null;
 }
 
 export default function KameraAgregasiDashboard({
-  observasiList = []
+  observasiList = [],
+  focusSection = null
 }: KameraAgregasiDashboardProps) {
   const [selectedKec, setSelectedKec] = useState<string>('semua');
+
+  useEffect(() => {
+    if (focusSection === 'rantai_pasok') {
+      const el = document.getElementById('rantai-pasok-section');
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+      }
+    }
+  }, [focusSection]);
 
   // Filtered dataset
   const filteredData = useMemo(() => {
@@ -170,8 +183,15 @@ export default function KameraAgregasiDashboard({
         </div>
       </div>
 
-      {/* Rantai Pasok Analysis Banner */}
-      <div className="bg-gradient-to-r from-blue-950/60 via-slate-900 to-emerald-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5">
+      {/* Rantai Pasok Analysis Banner (Capture 2 Match) */}
+      <div 
+        id="rantai-pasok-section"
+        className={`bg-gradient-to-r from-blue-950/70 via-slate-900 to-emerald-950/70 border rounded-2xl p-4 sm:p-5 transition-all duration-300 ${
+          focusSection === 'rantai_pasok'
+            ? 'border-blue-400 ring-2 ring-blue-500/50 shadow-xl shadow-blue-500/20'
+            : 'border-slate-800'
+        }`}
+      >
         <h3 className="text-sm font-extrabold text-white flex items-center gap-2 mb-2">
           <Truck className="w-4 h-4 text-blue-400" />
           <span>Analisis Rantai Pasok & Ketergantungan Pangan Kota Cilegon</span>
@@ -186,6 +206,13 @@ export default function KameraAgregasiDashboard({
           </div>
           <div style={{ width: `${stats.persenLuar}%` }} className="bg-rose-500 h-full flex items-center justify-center text-[8px] font-black text-white" title="Luar Daerah">
             {stats.persenLuar > 15 ? `${stats.persenLuar}% Luar Cilegon` : ''}
+          </div>
+        </div>
+
+        {/* 100% Luar Cilegon Pill (Capture 2 Match) */}
+        <div className="mt-3.5 flex justify-center">
+          <div className="w-full text-center py-2 px-4 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-pink-600 text-white font-black text-xs tracking-wider shadow-md uppercase">
+            {stats.persenLuar}% Luar Cilegon
           </div>
         </div>
       </div>

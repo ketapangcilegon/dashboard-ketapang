@@ -71,9 +71,10 @@ const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView
   )
 });
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
+const AIIntelligenceMap = dynamic(() => import('@/components/AIIntelligenceMap'), { ssr: false });
 import MobileAppContainer from '@/components/mobile/MobileAppContainer';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
 interface MiniBenchmarkChartProps {
@@ -277,7 +278,9 @@ export default function DashboardPage() {
     if (mainRef.current) {
       mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
-    if (typeof window !== 'undefined') {
+    // Hanya scroll window ke atas jika berpindah ke subview (currentView !== 'beranda').
+    // Saat kembali ke beranda, biarkan MobileAppContainer memulihkan posisi scroll terakhir user!
+    if (typeof window !== 'undefined' && currentView !== 'beranda') {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentView]);
@@ -1464,6 +1467,22 @@ export default function DashboardPage() {
       );
     }
 
+    if (currentView === 'agregasi_kamera') {
+      return (
+        <div className="w-full h-[calc(100vh-140px)] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+          <KameraCerdasView initialTab="analytics" />
+        </div>
+      );
+    }
+
+    if (currentView === 'rantai_pasok') {
+      return (
+        <div className="w-full h-[calc(100vh-140px)] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+          <KameraCerdasView initialTab="analytics" focusSection="rantai_pasok" />
+        </div>
+      );
+    }
+
     if (currentView === 'sumber_data') {
       return (
         <div className="dashboard-card p-4 bg-white shadow-sm border border-slate-200">
@@ -1936,19 +1955,47 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                   {/* Section: Benchmark */}
+                   {/* Section: Food Security Intelligence & Benchmark (Desktop: 2 Kolom dalam 1 Baris) */}
                    <div className="space-y-3 mt-6 print:hidden">
-                     {/* Mobile Header Outside Box */}
-                     <div className="sm:hidden mb-2.5 flex items-center justify-between">
-                       <div className="flex items-center gap-2">
-                         <div className="w-1.5 h-5 bg-emerald-600 rounded-full shrink-0"></div>
-                         <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wide leading-snug">
-                           CAPAIAN INDIKATOR KETAHANAN PANGAN CILEGON & NASIONAL DALAM 5 TAHUN TERAKHIR
-                         </h3>
+                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 items-stretch">
+                       
+                       {/* Kolom 1: Peta Food Security Intelligence (Desktop: 50% / Span 6) */}
+                       <div id="panel-food-security-map" className="lg:col-span-6 flex flex-col scroll-mt-20">
+                         <div className="dashboard-card border border-[#E9E4D5] bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] p-3.5 sm:p-6 rounded-3xl shadow-md flex-1 flex flex-col space-y-3.5 h-full">
+                           {/* Header Segmen */}
+                           <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5 gap-2">
+                             <div className="flex items-center gap-2 min-w-0">
+                               <div className="w-1.5 h-4 bg-emerald-600 rounded-full shrink-0"></div>
+                               <h2 className="text-xs sm:text-base font-black text-emerald-950 uppercase tracking-tight leading-snug">
+                                 FOOD SECURITY INTELLIGENCE
+                               </h2>
+                             </div>
+                             <button
+                               onClick={() => setCurrentView('ai_intelligence')}
+                               className="p-1 px-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-black text-[10px] sm:text-xs flex items-center gap-1 transition-all shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                               title="Buka Tampilan Penuh DSS"
+                             >
+                               <span>Buka DSS</span>
+                               <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
+                             </button>
+                           </div>
+
+                           {/* Interactive GIS Leaflet Map Container */}
+                           <div className="w-full flex-1 min-h-[460px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs relative bg-slate-900">
+                             <AIIntelligenceMap activeTab="map" />
+                           </div>
+                         </div>
                        </div>
-                     </div>
-                     <div className="w-full">
-                       <BenchmarkPanel currentData={getBenchmarkData()} dbBenchmarkList={benchmarkList} />
+
+                       {/* Kolom 2: Panel Benchmark (Desktop: 50% / Span 6) */}
+                       <div id="panel-benchmark" className="lg:col-span-6 flex flex-col scroll-mt-20">
+                         <BenchmarkPanel 
+                           currentData={getBenchmarkData()} 
+                           dbBenchmarkList={benchmarkList}
+                           className="h-full flex-1 flex flex-col"
+                         />
+                       </div>
+
                      </div>
                    </div>
 
@@ -2602,16 +2649,19 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {currentView === 'kamera_cerdas' && (
+              {(currentView === 'kamera_cerdas' || currentView === 'agregasi_kamera' || currentView === 'rantai_pasok') && (
                 <div className="w-full h-[calc(100vh-80px)] min-h-[520px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
-                  <KameraCerdasView />
+                  <KameraCerdasView 
+                    initialTab={currentView === 'kamera_cerdas' ? 'camera' : 'analytics'} 
+                    focusSection={currentView === 'rantai_pasok' ? 'rantai_pasok' : null} 
+                  />
                 </div>
               )}
             </div>
           )}
 
           {/* Footer with Visit Counter */}
-          {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && (
+          {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && currentView !== 'agregasi_kamera' && currentView !== 'rantai_pasok' && (
             <footer className="mt-12 pt-6 pb-12 sm:pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
               <VisitCounter />
             </footer>

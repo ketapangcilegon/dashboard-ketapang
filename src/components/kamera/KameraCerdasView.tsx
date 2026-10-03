@@ -12,9 +12,25 @@ import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { supabase } from '@/lib/supabase';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
 
-export default function KameraCerdasView() {
+export interface KameraCerdasViewProps {
+  initialTab?: 'camera' | 'map' | 'analytics';
+  focusSection?: 'rantai_pasok' | 'agregasi' | null;
+  onBack?: () => void;
+}
+
+export default function KameraCerdasView({
+  initialTab = 'camera',
+  focusSection = null,
+  onBack
+}: KameraCerdasViewProps = {}) {
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'camera' | 'map' | 'analytics'>('camera');
+  const [activeTab, setActiveTab] = useState<'camera' | 'map' | 'analytics'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   
   // Governance & Admin State
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -905,7 +921,7 @@ export default function KameraCerdasView() {
       {/* ── Tab 3: Agregasi & Analisis ── */}
       {activeTab === 'analytics' && (
         <div className="flex-1 w-full h-full relative">
-          <KameraAgregasiDashboard observasiList={observasiList} />
+          <KameraAgregasiDashboard observasiList={observasiList} focusSection={focusSection} />
         </div>
       )}
 

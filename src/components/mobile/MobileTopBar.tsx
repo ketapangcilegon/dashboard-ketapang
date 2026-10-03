@@ -41,6 +41,10 @@ export default function MobileTopBar({
         return { title: 'Analisis SKPG', subtitle: 'Sistem Kewaspadaan Pangan & Gizi' };
       case 'analisis_skpg_kelurahan':
         return { title: 'SKPG 43 Kelurahan', subtitle: 'Pemetaan Gizi Balita Posyandu' };
+      case 'agregasi_kamera':
+        return { title: 'Agregasi Data Lapangan', subtitle: 'Kamera Cerdas & Rekapitulasi Spasial' };
+      case 'rantai_pasok':
+        return { title: 'Analisis Rantai Pasok', subtitle: 'Ketergantungan Pangan Kota Cilegon' };
       case 'kamera_cerdas':
         return { title: 'Kamera Cerdas', subtitle: 'Pantau Telemetri Ketapang' };
       case 'ai_intelligence':

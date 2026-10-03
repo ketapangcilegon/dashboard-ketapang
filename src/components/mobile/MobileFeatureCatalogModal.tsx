@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { 
   X, MapPin, Store, Sparkles, Target, Activity, Camera, 
   Bot, Layers, BarChart3, ShieldCheck, Database, Info, 
-  ExternalLink, ChevronRight, CheckCircle2 
+  ExternalLink, ChevronRight, CheckCircle2, Truck 
 } from 'lucide-react';
 
 interface FeatureItem {
@@ -117,6 +117,22 @@ export default function MobileFeatureCatalogModal({
     {
       category: 'Kecerdasan Buatan & Telemetri',
       items: [
+        {
+          id: 'agregasi_kamera',
+          title: 'Agregasi Data Lapangan',
+          subtitle: 'Rekapitulasi spasial sarana distribusi & potensi pangan',
+          icon: <BarChart3 className="w-5 h-5 text-white" />,
+          gradient: 'from-[#007A48] to-[#10B981]',
+          badge: 'IoT Data',
+        },
+        {
+          id: 'rantai_pasok',
+          title: 'Analisis Rantai Pasok Pangan',
+          subtitle: 'Observasi ketergantungan pasokan beras & logistik luar daerah',
+          icon: <Truck className="w-5 h-5 text-white" />,
+          gradient: 'from-blue-600 to-cyan-600',
+          badge: 'Logistik',
+        },
         {
           id: 'ai_intelligence',
           title: 'Chatbot PanganCilegon',

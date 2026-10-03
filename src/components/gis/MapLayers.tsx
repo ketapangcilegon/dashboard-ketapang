@@ -183,7 +183,7 @@ export function SawahLayer({
     <>
       {data.map((f, i) => (
         <GeoJSONComp
-          key={`sawah-${f._id || i}-${showSentinelNdvi ? 'ndvi' : 'std'}-${JSON.stringify(sawahStatus?.[f._id] || {})}-${fillOpacity}`}
+          key={`sawah-${f._id || 'poly'}-${i}-${showSentinelNdvi ? 'ndvi' : 'std'}-${JSON.stringify(sawahStatus?.[f._id] || {})}-${fillOpacity}`}
           pane={pane}
           data={f}
           style={(getStyle ? getStyle(f) : defaultSawahStyle(f)) as any}
