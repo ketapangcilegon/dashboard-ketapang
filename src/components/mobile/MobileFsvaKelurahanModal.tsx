@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Search, ArrowUpDown, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export interface FsvaKelurahanItem {
@@ -39,18 +39,32 @@ export default function MobileFsvaKelurahanModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
 
-  // Reset search when modal opens or priority changes
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number>(0);
+
+  // Reset search when modal opens or priority changes & lock background scroll
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('');
       setSortDirection('desc');
+
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalBodyOverscroll = document.body.style.overscrollBehavior;
+      const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overscrollBehavior = 'none';
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.body.style.overscrollBehavior = originalBodyOverscroll;
+        document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [isOpen, priorityDef?.p]);
 
   // Handle ESC key
@@ -65,6 +79,58 @@ export default function MobileFsvaKelurahanModal({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Cegah scroll bocor ke background saat scroll mentok
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || !isOpen) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY.current = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY.current;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+
+      if (scrollTop <= 0 && deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      if (scrollTop + clientHeight >= scrollHeight - 1 && deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      e.stopPropagation();
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      if (scrollTop <= 0 && e.deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      if (scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      e.stopPropagation();
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [isOpen]);
 
   // Filter & Sort list
   const filteredAndSortedItems = useMemo(() => {
@@ -92,12 +158,19 @@ export default function MobileFsvaKelurahanModal({
   if (!isOpen || !priorityDef) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-none">
       {/* Backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <div 
+        className="absolute inset-0 touch-none select-none overscroll-none" 
+        onClick={onClose} 
+        onTouchMove={(e) => { if (e.cancelable) e.preventDefault(); }}
+      />
 
       {/* Modal Card */}
-      <div className="relative z-10 w-[92%] sm:max-w-md max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-emerald-200/90">
+      <div 
+        className="relative z-10 w-[92%] sm:max-w-md max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-emerald-200/90"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         
         {/* Top Accent Handle */}
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mt-2.5 mb-1" />
@@ -167,7 +240,11 @@ export default function MobileFsvaKelurahanModal({
         </div>
 
         {/* Kelurahan Table Container */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-3 overscroll-contain"
+          style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
           {filteredAndSortedItems.length === 0 ? (
             <div className="text-center py-8 px-4 text-slate-400 space-y-1">
               <ShieldCheck className="w-8 h-8 mx-auto text-slate-300" />

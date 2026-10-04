@@ -25,32 +25,104 @@ export default function MobileNotificationModal({
   onRequestPermission,
 }: MobileNotificationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number>(0);
 
+  // Kunci scroll background (body & html)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
+
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
+
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalBodyOverscroll = document.body.style.overscrollBehavior;
+      const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overscrollBehavior = 'none';
+
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.body.style.overscrollBehavior = originalBodyOverscroll;
+        document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
+      };
     }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
   }, [isOpen, onClose]);
+
+  // Cegah scroll bocor ke background saat scroll mentok
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || !isOpen) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY.current = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY.current;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+
+      if (scrollTop <= 0 && deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      if (scrollTop + clientHeight >= scrollHeight - 1 && deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      e.stopPropagation();
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      if (scrollTop <= 0 && e.deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      if (scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      e.stopPropagation();
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="absolute inset-0" onClick={onClose} />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-none">
+      <div 
+        className="absolute inset-0 touch-none select-none overscroll-none" 
+        onClick={onClose} 
+        onTouchMove={(e) => { if (e.cancelable) e.preventDefault(); }}
+      />
 
       <div 
         ref={modalRef}
         className="relative z-10 w-[94%] sm:w-full max-w-lg max-h-[86vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200"
+        style={{ overscrollBehavior: 'contain' }}
       >
         {/* Drag handle / Top accent */}
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mt-2.5 mb-1" />
@@ -115,7 +187,11 @@ export default function MobileNotificationModal({
         </div>
 
         {/* Real Notification List */}
-        <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 pb-5">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-3.5 space-y-2.5 pb-5 overscroll-contain"
+          style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
           {notifications.length === 0 ? (
             <div className="text-center py-6 px-2 space-y-1.5">
               <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200">

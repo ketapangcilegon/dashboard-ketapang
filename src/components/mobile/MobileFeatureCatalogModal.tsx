@@ -32,22 +32,99 @@ export default function MobileFeatureCatalogModal({
   currentView,
 }: MobileFeatureCatalogModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number>(0);
 
+  // Kunci scroll halaman belakang (body & html) saat modal terbuka
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
+
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
+
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalBodyOverscroll = document.body.style.overscrollBehavior;
+      const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overscrollBehavior = 'none';
+
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.body.style.overscrollBehavior = originalBodyOverscroll;
+        document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
+      };
     }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
   }, [isOpen, onClose]);
+
+  // Cegah scroll bocor / scroll chaining ke halaman latar saat scroll di dalam modal mencapai batas mentok
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || !isOpen) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY.current = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY.current;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+
+      // 1. Mentok di paling atas dan user menarik ke bawah (pull down)
+      if (scrollTop <= 0 && deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      // 2. Mentok di paling bawah dan user menggeser ke atas (scroll up hingga mentok bawah)
+      // Gunakan toleransi 1px untuk subpixel layar mobile
+      if (scrollTop + clientHeight >= scrollHeight - 1 && deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      e.stopPropagation();
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+
+      // Mentok atas dan scroll ke atas
+      if (scrollTop <= 0 && e.deltaY < 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      // Mentok bawah dan scroll ke bawah
+      if (scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      e.stopPropagation();
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -215,34 +292,49 @@ export default function MobileFeatureCatalogModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      {/* Backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-end bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-none">
+      {/* Backdrop (mencegah sentuhan tembus ke background) */}
+      <div 
+        className="absolute inset-0 touch-none select-none overscroll-none" 
+        onClick={onClose} 
+        onTouchMove={(e) => { if (e.cancelable) e.preventDefault(); }}
+      />
 
       {/* Android Bottom Sheet Container */}
       <div 
         ref={modalRef}
         className="relative z-10 w-full max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250 border-t border-slate-200"
+        style={{ overscrollBehavior: 'contain' }}
       >
-        {/* Drag handle */}
-        <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mt-3 mb-1" />
+        {/* Header & Grab Handle (Touch none agar drag di header tidak menggulung background) */}
+        <div 
+          className="w-full shrink-0 touch-none select-none"
+          onTouchMove={(e) => { if (e.cancelable) e.preventDefault(); }}
+        >
+          {/* Drag handle */}
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mt-3 mb-1" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-          <div>
-            <h3 className="font-black text-slate-800 text-base tracking-tight">Katalog Fitur Lengkap</h3>
-            <p className="text-[11px] text-slate-500">Pilih modul dashboard ketahanan pangan Cilegon</p>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+            <div>
+              <h3 className="font-black text-slate-800 text-base tracking-tight">Katalog Fitur Lengkap</h3>
+              <p className="text-[11px] text-slate-500">Pilih modul dashboard ketahanan pangan Cilegon</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Body (Categorized List) */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar pb-10">
+        {/* Body (Categorized List dengan isolasi scroll ketat) */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar pb-10 overscroll-contain"
+          style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
           {featureGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-2">
               <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 px-1">

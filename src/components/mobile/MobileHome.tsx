@@ -947,7 +947,7 @@ export default function MobileHome({
         </div>
 
         {/* GIS Interactive Leaflet Map Container */}
-        <div className="w-full h-[380px] rounded-2xl overflow-hidden border border-emerald-200/90 shadow-xs relative bg-slate-900">
+        <div className="w-full h-[380px] rounded-2xl overflow-hidden border border-emerald-200/90 shadow-xs relative z-0 isolate bg-slate-900">
           <AIIntelligenceMap activeTab="map" />
         </div>
       </div>
