@@ -39,6 +39,7 @@ import {
 import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures, calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
 import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X, Store, Trees, Camera } from 'lucide-react';
 
 // ============================================================
@@ -742,10 +743,14 @@ export default function AIIntelligenceMap({
 
         if (cacheData?.data && Array.isArray(cacheData.data)) {
           setKameraObservasiList(cacheData.data);
+          return;
         }
       } catch (err) {
         console.warn('Gagal memuat observasi kamera cerdas:', err);
       }
+
+      // Fallback final ke seed data jika list masih kosong
+      setKameraObservasiList((prev) => (prev && prev.length > 0 ? prev : SEED_OBSERVASI_DATA));
     }
 
     fetchKameraObservasi();

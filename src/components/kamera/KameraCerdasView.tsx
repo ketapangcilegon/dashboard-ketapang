@@ -19,6 +19,7 @@ import {
   signOutEnumerator,
   type EnumeratorProfile
 } from '@/lib/enumeratorAuth';
+import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
 
 // Peta 3D (MapLibre + deck.gl) hanya dimuat di browser & hanya saat tab dibuka
 const ArusPasokanMap = dynamic(() => import('./ArusPasokanMap'), {
@@ -64,6 +65,7 @@ export default function KameraCerdasView({
   const canOperateCamera = isAdmin || (!isKameraLocked && !!enumerator);
   const [adminEmail, setAdminEmail] = useState<string>('');
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showEnumeratorModal, setShowEnumeratorModal] = useState<boolean>(false);
   const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [loginError, setLoginError] = useState<string>('');
@@ -213,9 +215,9 @@ export default function KameraCerdasView({
   const [newlyCreatedPinId, setNewlyCreatedPinId] = useState<string | null>(null);
   const [newlyCreatedCoords, setNewlyCreatedCoords] = useState<[number, number] | null>(null);
 
-  // Field Observations List
-  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>([]);
-  const [observasiLoaded, setObservasiLoaded] = useState<boolean>(false);
+  // Field Observations List - Diinisialisasi langsung dengan SEED_OBSERVASI_DATA agar 7 toko beras tidak pernah kosong
+  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>(SEED_OBSERVASI_DATA);
+  const [observasiLoaded, setObservasiLoaded] = useState<boolean>(true);
   const [observasiError, setObservasiError] = useState<string | null>(null);
 
   // DOM Refs
@@ -228,15 +230,14 @@ export default function KameraCerdasView({
     try {
       const res = await fetch('/api/kamera-cerdas/observasi');
       const json = await res.json();
-      if (res.ok && json.data) {
+      if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
         setObservasiList(json.data);
         setObservasiError(null);
-      } else {
+      } else if (!res.ok) {
         setObservasiError(json?.error || 'Data observasi tidak dapat dimuat.');
       }
     } catch (err) {
-      console.warn('Gagal memuat observasi:', err);
-      setObservasiError('Koneksi ke server data gagal.');
+      console.warn('Gagal memuat observasi dari server, menggunakan data tersimpan:', err);
     } finally {
       setObservasiLoaded(true);
     }
@@ -453,6 +454,14 @@ export default function KameraCerdasView({
 
   // 5. Trigger Photo Capture from Video Stream
   const handleCapturePhoto = async () => {
+    if (!canOperateCamera) {
+      if (isKameraLocked) {
+        setShowLoginModal(true);
+      } else {
+        setShowEnumeratorModal(true);
+      }
+      return;
+    }
     try {
       const stream = streamRef.current;
       const track = stream?.getVideoTracks()[0];
@@ -544,6 +553,14 @@ export default function KameraCerdasView({
 
   // Trigger from File Upload Fallback
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canOperateCamera) {
+      if (isKameraLocked) {
+        setShowLoginModal(true);
+      } else {
+        setShowEnumeratorModal(true);
+      }
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -806,162 +823,6 @@ export default function KameraCerdasView({
 
       {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
       {activeTab === 'camera' && (
-        !canOperateCamera && !isKameraLocked ? (
-          /* ── Gerbang Autentikasi Gmail untuk Enumerator ── */
-          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#FFFBEA] via-[#F3FAE8] to-[#E3F5EA] text-center relative overflow-y-auto">
-            <div aria-hidden="true" className="pointer-events-none absolute -top-10 -right-8 text-[120px] opacity-[0.07] rotate-12 select-none">🌾</div>
-            <div aria-hidden="true" className="pointer-events-none absolute -bottom-8 -left-6 text-[110px] opacity-[0.07] -rotate-12 select-none">🌿</div>
-
-            <div className="relative max-w-md w-full bg-white/95 border border-emerald-100 rounded-3xl p-6 sm:p-7 shadow-[0_18px_50px_rgba(16,120,70,0.14)] backdrop-blur-xl space-y-5 my-auto">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white mx-auto shadow-lg shadow-emerald-500/30">
-                <Camera className="w-8 h-8" />
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-300">
-                  <ShieldCheck className="w-2.5 h-2.5" /> Autentikasi Enumerator
-                </span>
-                <h3 className="text-lg font-black text-slate-900 tracking-wide">
-                  Masuk untuk Memakai Kamera Cerdas
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Gunakan akun <strong className="text-slate-700">Google (Gmail)</strong> Anda. <strong className="text-slate-700">Nama dan Gmail</strong> Anda akan tercatat sebagai enumerator pada setiap foto yang dikirim dan ditampilkan pada daftar data crowdsourcing.
-                </p>
-              </div>
-
-              {isEnumeratorLoading ? (
-                <div className="flex items-center justify-center gap-2 py-3 text-xs font-bold text-slate-500">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> Memeriksa sesi masuk...
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isGoogleRedirecting}
-                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 font-black text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98] disabled:opacity-60"
-                >
-                  {isGoogleRedirecting ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                  ) : (
-                    <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
-                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                    </svg>
-                  )}
-                  <span>{isGoogleRedirecting ? 'Mengalihkan ke Google...' : 'Masuk dengan Google'}</span>
-                </button>
-              )}
-
-              {googleError && (
-                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-[11px] font-semibold text-left">
-                  {googleError}
-                </div>
-              )}
-
-              <ul className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100 text-left space-y-2 text-[11px] text-slate-600">
-                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>Foto otomatis diberi <b>watermark GPS</b> &amp; dikompresi &lt; 1 MB</span></li>
-                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>AI Vision mengestimasi pasokan beras &amp; tanaman pangan</span></li>
-                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>Data tampil di <b>Peta Lapangan</b>, <b>Agregasi</b>, dan <b>Peta Arus Pasokan</b></span></li>
-              </ul>
-
-              <div className="space-y-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('map')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-slate-600 hover:text-emerald-800 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Lihat Peta Lapangan ({observasiList.length} Observasi)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowLoginModal(true)}
-                  className="text-[11px] text-slate-500 hover:text-emerald-700 font-bold underline underline-offset-2 cursor-pointer"
-                >
-                  Saya Petugas / Admin DKPP
-                </button>
-              </div>
-
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                Dengan masuk, Anda menyetujui nama &amp; Gmail Anda ditampilkan sebagai pengirim data lapangan. Kata sandi Google tidak pernah disimpan oleh aplikasi ini.
-              </p>
-            </div>
-          </div>
-        ) : !canOperateCamera ? (
-          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#FFFBEA] via-[#F3FAE8] to-[#E3F5EA] text-center relative overflow-y-auto">
-            <div className="max-w-md w-full bg-white/90 border border-emerald-100 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-5 my-auto">
-              
-              {/* Security Shield Icon */}
-              <div className="w-16 h-16 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 mx-auto shadow-inner">
-                <ShieldAlert className="w-8 h-8" />
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-300">
-                  <Lock className="w-2.5 h-2.5" /> Tata Kelola Data • Akses Terbatas
-                </span>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-                  Khusus Petugas & Admin DKPP
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Modul Kamera Cerdas merupakan instrumen pengumpulan data primer lapangan untuk verifikasi pasokan beras dan tanaman pangan. Untuk menjaga integritas data statistik daerah, fitur perekaman foto dan AI Vision saat ini <strong>hanya dapat dioperasikan oleh Surveyor / Petugas Resmi DKPP Kota Cilegon</strong>.
-                </p>
-              </div>
-
-              {/* Scope Matrix */}
-              <div className="bg-[#F5FAF2]/70 rounded-2xl p-4 border border-emerald-100 text-left space-y-2.5 text-xs">
-                <div className="flex items-center justify-between text-slate-600">
-                  <span className="flex items-center gap-2">
-                    <Camera className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Ambil Foto & AI Vision Lapangan</span>
-                  </span>
-                  <span className="text-[9.5px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">KHUSUS ADMIN</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600 border-t border-emerald-100 pt-2.5">
-                  <span className="flex items-center gap-2">
-                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Peta Sebaran Spasial Lapangan</span>
-                  </span>
-                  <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">PUBLIK (TERBUKA)</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600 border-t border-emerald-100 pt-2.5">
-                  <span className="flex items-center gap-2">
-                    <BarChart3 className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Dashboard Agregasi Data Pangan</span>
-                  </span>
-                  <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">PUBLIK (TERBUKA)</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowLoginModal(true)}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  <span>Masuk sebagai Petugas / Admin</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('map')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-slate-600 hover:text-emerald-800 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Lihat Peta Lapangan ({observasiList.length} Observasi)</span>
-                </button>
-              </div>
-
-              <div className="text-[10px] text-slate-500 pt-1">
-                Atau login melalui <a href="/entry" className="text-emerald-700 hover:underline font-bold">Portal Admin Utama</a>
-              </div>
-            </div>
-          </div>
-        ) : (
         <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-[#EAF5E4] overflow-hidden">
           
           {/* Live Video Stream Viewport */}
@@ -998,37 +859,65 @@ export default function KameraCerdasView({
           {/* Viewfinder Guidance Overlay */}
           <GuidanceOverlay mode={mode} />
 
-          {/* Floating Top GPS Status Bar */}
-          <div className="relative z-20 w-full px-4 pt-3 flex items-center justify-between pointer-events-auto">
-            {/* GPS Indicator Badge */}
-            <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold shadow-lg flex items-center gap-2 transition-all ${
-              gpsStatus === 'active'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                : gpsStatus === 'searching'
-                ? 'bg-amber-50 border-amber-300 text-amber-700 animate-pulse'
-                : 'bg-rose-50 border-rose-300 text-rose-700'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${
-                gpsStatus === 'active' ? 'bg-emerald-400 animate-ping' : gpsStatus === 'searching' ? 'bg-amber-400' : 'bg-rose-500'
-              }`} />
-              
-              {gpsStatus === 'active' && gpsCoords ? (
-                <span>GPS Aktif (±{gpsCoords.accuracy}m) • {gpsCoords.kelurahan}</span>
-              ) : gpsStatus === 'searching' ? (
-                <span>Mencari Sinyal GPS...</span>
-              ) : (
-                <span>GPS Tidak Tersedia (Mode Manual)</span>
-              )}
+          {/* Floating Top GPS Status Bar & Auth Status */}
+          <div className="relative z-20 w-full px-4 pt-3 flex flex-col gap-2 pointer-events-auto">
+            <div className="flex items-center justify-between">
+              {/* GPS Indicator Badge */}
+              <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold shadow-lg flex items-center gap-2 transition-all ${
+                gpsStatus === 'active'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                  : gpsStatus === 'searching'
+                  ? 'bg-amber-50 border-amber-300 text-amber-700 animate-pulse'
+                  : 'bg-rose-50 border-rose-300 text-rose-700'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  gpsStatus === 'active' ? 'bg-emerald-400 animate-ping' : gpsStatus === 'searching' ? 'bg-amber-400' : 'bg-rose-500'
+                }`} />
+                
+                {gpsStatus === 'active' && gpsCoords ? (
+                  <span>GPS Aktif (±{gpsCoords.accuracy}m) • {gpsCoords.kelurahan}</span>
+                ) : gpsStatus === 'searching' ? (
+                  <span>Mencari Sinyal GPS...</span>
+                ) : (
+                  <span>GPS Tidak Tersedia (Mode Manual)</span>
+                )}
+              </div>
+
+              {/* Flip Camera Button */}
+              <button
+                onClick={toggleCameraFacing}
+                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-95 cursor-pointer"
+                title="Putar Kamera (Depan / Belakang)"
+              >
+                <SwitchCamera className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Flip Camera Button */}
-            <button
-              onClick={toggleCameraFacing}
-              className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-95 cursor-pointer"
-              title="Putar Kamera (Depan / Belakang)"
-            >
-              <SwitchCamera className="w-4 h-4" />
-            </button>
+            {/* Banner Ajakan Autentikasi Gmail Enumerator jika belum login */}
+            {!canOperateCamera && !isKameraLocked && (
+              <div className="px-3.5 py-2 rounded-2xl bg-white/95 border border-emerald-300 shadow-md backdrop-blur-md flex items-center justify-between gap-2.5 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-extrabold text-slate-900 leading-tight">
+                      Autentikasi Enumerator Lapangan
+                    </p>
+                    <p className="text-[10px] text-slate-500 leading-tight truncate">
+                      Masuk dengan Gmail agar nama Anda tercantum pada data pasokan beras.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEnumeratorModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black shrink-0 transition-all shadow-sm cursor-pointer active:scale-95"
+                >
+                  Masuk Gmail
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Floating Analyzing Loader */}
@@ -1126,7 +1015,6 @@ export default function KameraCerdasView({
           </div>
 
         </div>
-        )
       )}
 
       {/* ── Tab 2: Peta Spasial Hasil Observasi ── */}
@@ -1275,6 +1163,84 @@ export default function KameraCerdasView({
                 )}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Kotak Autentikasi Gmail (Enumerator Crowdsourcing) ── */}
+      {showEnumeratorModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm uppercase tracking-wide text-slate-900">Autentikasi Enumerator</h3>
+                  <p className="text-[10px] text-slate-500">Pencatatan Pangan Crowdsourcing</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEnumeratorModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Untuk menjaga validitas data lapangan, pengguna yang mengambil dan mensubmit foto pasokan beras/tanaman pangan wajib masuk dengan akun <strong>Google (Gmail)</strong>. Nama dan alamat Gmail Anda akan ditampilkan pada daftar kontributor data.
+            </p>
+
+            {googleError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-[11px] font-semibold">
+                {googleError}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isGoogleRedirecting}
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 font-black text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98] disabled:opacity-60 mb-3"
+            >
+              {isGoogleRedirecting ? (
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+              ) : (
+                <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                </svg>
+              )}
+              <span>{isGoogleRedirecting ? 'Mengalihkan ke Google...' : 'Masuk dengan Google (Gmail)'}</span>
+            </button>
+
+            <div className="flex items-center justify-between pt-2 border-t border-emerald-100 text-[11px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEnumeratorModal(false);
+                  setActiveTab('map');
+                }}
+                className="text-emerald-700 hover:underline font-bold cursor-pointer"
+              >
+                Lihat Peta Lapangan ({observasiList.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEnumeratorModal(false);
+                  setShowLoginModal(true);
+                }}
+                className="text-slate-500 hover:text-emerald-700 font-bold cursor-pointer"
+              >
+                Login Petugas DKPP
+              </button>
+            </div>
           </div>
         </div>
       )}

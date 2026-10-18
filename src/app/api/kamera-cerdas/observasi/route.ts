@@ -72,6 +72,8 @@ async function verifikasiPengirim(request: Request): Promise<{ nama: string; ema
   return { nama, email: user.email, peran: user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas' };
 }
 
+import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -79,40 +81,69 @@ export async function GET(request: Request) {
     const kecamatan = searchParams.get('kecamatan');
     const kelurahan = searchParams.get('kelurahan');
 
+    let rawList: ObservasiRecord[] = [];
+
     // 1. Coba ambil dari tabel kamera_cerdas_observasi
-    let query = supabase
-      .from('kamera_cerdas_observasi')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      let query = supabase
+        .from('kamera_cerdas_observasi')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (mode) query = query.eq('mode', mode);
-    if (kecamatan) query = query.eq('kecamatan', kecamatan);
-    if (kelurahan) query = query.eq('kelurahan', kelurahan);
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      return NextResponse.json({ success: true, count: data.length, data });
+      const { data, error } = await query;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        rawList = data;
+      }
+    } catch {
+      // lanjut ke fallback
     }
 
-    // 2. Fallback: Coba ambil dari sp_cache_data jika tabel utama belum dimigrasi
-    const { data: cacheData } = await supabase
-      .from('sp_cache_data')
-      .select('data')
-      .eq('tabel_sumber', 'kamera_cerdas_observasi')
-      .single();
+    // 2. Fallback: Coba ambil dari sp_cache_data jika tabel utama belum dimigrasi / kosong
+    if (rawList.length === 0) {
+      try {
+        const { data: cacheData } = await supabase
+          .from('sp_cache_data')
+          .select('data')
+          .eq('tabel_sumber', 'kamera_cerdas_observasi')
+          .single();
 
-    const fallbackList = Array.isArray(cacheData?.data) ? cacheData.data : [];
-    let filtered = fallbackList;
-    if (mode) filtered = filtered.filter((r: ObservasiRecord) => r.mode === mode);
-    if (kecamatan) filtered = filtered.filter((r: ObservasiRecord) => r.kecamatan === kecamatan);
-    if (kelurahan) filtered = filtered.filter((r: ObservasiRecord) => r.kelurahan === kelurahan);
+        if (Array.isArray(cacheData?.data) && cacheData.data.length > 0) {
+          rawList = cacheData.data;
+        }
+      } catch {
+        // lanjut ke seed fallback
+      }
+    }
 
-    return NextResponse.json({ success: true, count: filtered.length, data: filtered, is_fallback: true });
+    // 3. Gabungkan dengan data seed (7 toko beras terverifikasi beserta foto & koordinat GPS)
+    // agar data penting yang sulit didapat TIDAK PERNAH hilang
+    const combinedMap = new Map<string, ObservasiRecord>();
+    SEED_OBSERVASI_DATA.forEach((r) => {
+      const key = r.id || `${r.nama_lokasi}-${r.latitude}-${r.longitude}`;
+      combinedMap.set(key, r);
+    });
+
+    rawList.forEach((r) => {
+      const key = r.id || `${r.nama_lokasi}-${r.latitude}-${r.longitude}`;
+      combinedMap.set(key, r);
+    });
+
+    let result = Array.from(combinedMap.values()).sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tb - ta;
+    });
+
+    if (mode) result = result.filter((r) => r.mode === mode);
+    if (kecamatan) result = result.filter((r) => r.kecamatan === kecamatan);
+    if (kelurahan) result = result.filter((r) => r.kelurahan === kelurahan);
+
+    return NextResponse.json({ success: true, count: result.length, data: result });
 
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.warn('Fallback error pada GET observasi, menyajikan data seed:', error);
+    let fallbackResult = SEED_OBSERVASI_DATA;
+    return NextResponse.json({ success: true, count: fallbackResult.length, data: fallbackResult, is_fallback: true });
   }
 }
 
@@ -175,8 +206,11 @@ export async function POST(request: Request) {
       .eq('tabel_sumber', 'kamera_cerdas_observasi')
       .single();
 
-    const currentList = Array.isArray(existingCache?.data) ? existingCache.data : [];
-    const updatedList = [payload, ...currentList];
+    const currentList = Array.isArray(existingCache?.data) && existingCache.data.length > 0
+      ? existingCache.data
+      : SEED_OBSERVASI_DATA;
+    const filteredExisting = currentList.filter((r: ObservasiRecord) => r.id !== payload.id);
+    const updatedList = [payload, ...filteredExisting];
 
     await supabase
       .from('sp_cache_data')
