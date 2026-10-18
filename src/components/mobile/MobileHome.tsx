@@ -48,6 +48,7 @@ interface MobileHomeProps {
   livePrices?: Record<string, number> | null;
   liveDate?: string | null;
   liveHistory?: Record<string, Record<string, number>> | null;
+  previousHargaData?: any[];
   overallScore?: number;
   balitaStatus?: string;
   ikpData?: any[];
@@ -62,6 +63,7 @@ export default function MobileHome({
   livePrices,
   liveDate,
   liveHistory,
+  previousHargaData = [],
   overallScore = 82.4,
   balitaStatus = 'AMAN',
   ikpData = [],
@@ -268,45 +270,71 @@ export default function MobileHome({
     return fallbackCur;
   };
 
-  const getPreviousDayPrice = (key: string, fallback: number): number => {
-    if (dateIndex === 0) return getRealHistoricalPrice(key, fallback);
-    const prevDate = dates[dateIndex - 1];
-    if (effectiveHistory && effectiveHistory[prevDate] && effectiveHistory[prevDate][key] !== undefined && effectiveHistory[prevDate][key] > 0) {
-      return effectiveHistory[prevDate][key];
+  // Helper to retrieve previous period / YoY price matching desktop HargaPanel.tsx
+  const getPrevPrice = (key: string, fallback: number): number => {
+    if (previousHargaData && previousHargaData.length > 0) {
+      const values = previousHargaData.map(d => Number(d[key])).filter(v => !isNaN(v) && v > 0);
+      if (values.length > 0) {
+        return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      }
     }
     return fallback;
   };
 
-  // 13 Komoditas Lengkap SAGON
+  // Helper to calculate YoY change and metadata matching desktop HargaPanel.tsx
+  const getYoYStats = (curr: number, prev: number) => {
+    const change = prev > 0 ? ((curr - prev) / prev) * 100 : 0;
+    const isUp = change > 0.05;
+    const isZero = Math.abs(change) < 0.05;
+    const isWaspada = isUp && change > 5;
+    const status = isWaspada ? 'WASPADA' : isUp ? 'NAIK' : isZero ? 'STABIL' : 'AMAN';
+    
+    return {
+      change,
+      changeText: `${isUp ? '↑' : isZero ? '' : '↓'} ${Math.abs(change).toFixed(1)}%`,
+      isUp,
+      isZero,
+      isWaspada,
+      status,
+    };
+  };
+
+  // 13 Komoditas Lengkap SAGON (baseline & YoY fallback matching desktop)
   const SAGON_COMMODITY_CONFIG = [
-    { key: 'beras', name: 'Beras Medium', icon: '🍚', unit: 'kg', fallback: 13833 },
-    { key: 'bawang_merah', name: 'Bawang Merah', icon: '🧅', unit: 'kg', fallback: 30000 },
-    { key: 'bawang_putih', name: 'Bawang Putih', icon: '🧄', unit: 'kg', fallback: 35333 },
-    { key: 'cabe_merah', name: 'Cabe Merah', icon: '🌶️', unit: 'kg', fallback: 37500 },
-    { key: 'cabe_merah_keriting', name: 'Cabe M. Keriting', icon: '🌶️', unit: 'kg', fallback: 39000 },
-    { key: 'cabe_rawit_merah', name: 'Cabe Rawit Merah', icon: '🌶️', unit: 'kg', fallback: 51667 },
-    { key: 'cabe_rawit_hijau', name: 'Cabe Rawit Hijau', icon: '🌶️', unit: 'kg', fallback: 43333 },
-    { key: 'daging_sapi', name: 'Daging Sapi', icon: '🥩', unit: 'kg', fallback: 140000 },
-    { key: 'daging_ayam', name: 'Daging Ayam Ras', icon: '🍗', unit: 'kg', fallback: 40667 },
-    { key: 'telur', name: 'Telur Ayam Ras', icon: '🥚', unit: 'kg', fallback: 25667 },
-    { key: 'gula_pasir', name: 'Gula Pasir', icon: '🧂', unit: 'kg', fallback: 19000 },
-    { key: 'minyak_goreng_kemasan', name: 'Minyak Goreng', icon: '🧴', unit: 'ltr', fallback: 19800 },
-    { key: 'tepung_terigu', name: 'Tepung Terigu', icon: '🌾', unit: 'kg', fallback: 13500 },
+    { key: 'beras', name: 'Beras Medium', icon: '🍚', unit: 'kg', fallback: 14000, prevFallback: 14000 },
+    { key: 'bawang_merah', name: 'Bawang Merah', icon: '🧅', unit: 'kg', fallback: 30000, prevFallback: 34000 },
+    { key: 'bawang_putih', name: 'Bawang Putih', icon: '🧄', unit: 'kg', fallback: 35333, prevFallback: 38000 },
+    { key: 'cabe_merah', name: 'Cabe Merah', icon: '🌶️', unit: 'kg', fallback: 55000, prevFallback: 55000 },
+    { key: 'cabe_merah_keriting', name: 'Cabe M. Keriting', icon: '🌶️', unit: 'kg', fallback: 39000, prevFallback: 48000 },
+    { key: 'cabe_rawit_merah', name: 'Cabe Rawit Merah', icon: '🌶️', unit: 'kg', fallback: 51667, prevFallback: 50000 },
+    { key: 'cabe_rawit_hijau', name: 'Cabe Rawit Hijau', icon: '🌶️', unit: 'kg', fallback: 43333, prevFallback: 42000 },
+    { key: 'daging_sapi', name: 'Daging Sapi', icon: '🥩', unit: 'kg', fallback: 140000, prevFallback: 130000 },
+    { key: 'daging_ayam', name: 'Daging Ayam Ras', icon: '🍗', unit: 'kg', fallback: 36000, prevFallback: 36000 },
+    { key: 'telur', name: 'Telur Ayam Ras', icon: '🥚', unit: 'kg', fallback: 30500, prevFallback: 26500 },
+    { key: 'gula_pasir', name: 'Gula Pasir', icon: '🧂', unit: 'kg', fallback: 17000, prevFallback: 17000 },
+    { key: 'minyak_goreng_kemasan', name: 'Minyak Goreng', icon: '🧴', unit: 'ltr', fallback: 19800, prevFallback: 18500 },
+    { key: 'tepung_terigu', name: 'Tepung Terigu', icon: '🌾', unit: 'kg', fallback: 13500, prevFallback: 12500 },
   ];
 
   const sagonCommodities = useMemo(() => {
     return SAGON_COMMODITY_CONFIG.map(cfg => {
       const price = getRealHistoricalPrice(cfg.key, cfg.fallback);
-      const prevPrice = getPreviousDayPrice(cfg.key, cfg.fallback);
-      const diff = prevPrice > 0 ? ((price - prevPrice) / prevPrice) * 100 : 0;
-      const trend = Math.round(diff * 10) / 10;
+      const prevPrice = getPrevPrice(cfg.key, cfg.prevFallback);
+      const stats = getYoYStats(price, prevPrice);
+
       return {
         ...cfg,
         price,
-        trend,
+        prevPrice,
+        trend: stats.change,
+        changeText: stats.changeText,
+        status: stats.status,
+        isUp: stats.isUp,
+        isZero: stats.isZero,
+        isWaspada: stats.isWaspada,
       };
     });
-  }, [dateIndex, activeDate, effectivePrices, effectiveHistory]);
+  }, [dateIndex, activeDate, effectivePrices, effectiveHistory, previousHargaData]);
 
   // Dynamic Indonesian Month Names for Forecast (Aktual, +1 Bulan, +3 Bulan)
   const getIndonesianMonthName = (monthIndex: number): string => {
@@ -413,7 +441,7 @@ export default function MobileHome({
 
   const handleForecastScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const itemHeight = 120; // exact height of each commodity card row with spacing
+    const itemHeight = 110; // exact height of each commodity card row with spacing for 3-row view
     const index = Math.round(el.scrollTop / itemHeight);
     if (index >= 0 && index < allForecastItems.length && index !== activeForecastIndex) {
       setActiveForecastIndex(index);
@@ -423,7 +451,7 @@ export default function MobileHome({
   const scrollToForecast = (targetIndex: number) => {
     if (forecastScrollRef.current) {
       const idx = Math.max(0, Math.min(allForecastItems.length - 1, targetIndex));
-      const itemHeight = 120;
+      const itemHeight = 110;
       forecastScrollRef.current.scrollTo({
         top: idx * itemHeight,
         behavior: 'smooth'
@@ -432,63 +460,71 @@ export default function MobileHome({
     }
   };
 
-  // 8 Fitur Unggulan Tiles (Android Launcher Style)
+  // 8 Fitur Unggulan Tiles (Android Launcher Style) - Capture 1 Reference Palette
   const quickFeatures = [
     {
       id: 'agregasi_kamera',
       name: 'Agregasi Data',
       tag: 'Kamera Cerdas',
       icon: <BarChart3 className="w-5 h-5 text-white" />,
-      gradient: 'from-[#007A48] via-[#059669] to-[#10B981]',
+      gradient: 'from-[#00A878] to-[#008F67]',
+      accentColor: '#008F67',
     },
     {
       id: 'rantai_pasok',
       name: 'Rantai Pasok',
       tag: 'Logistik Beras',
       icon: <Truck className="w-5 h-5 text-white" />,
-      gradient: 'from-[#1D4ED8] via-[#2563EB] to-[#0284C7]',
+      gradient: 'from-[#2968FF] to-[#145BFF]',
+      accentColor: '#145BFF',
     },
     {
       id: 'peta_full',
       name: 'Peta Tematik',
       tag: 'Spasial GIS',
       icon: <MapPin className="w-5 h-5 text-white" />,
-      gradient: 'from-[#0F766E] via-[#0D9488] to-[#14B8A6]',
+      gradient: 'from-[#0FA4B4] to-[#087F8C]',
+      accentColor: '#087F8C',
     },
     {
       id: 'harga_full',
       name: 'Harga Pasar',
       tag: 'SAGON Live',
       icon: <Store className="w-5 h-5 text-white" />,
-      gradient: 'from-[#D97706] via-[#F59E0B] to-[#F97316]',
+      gradient: 'from-[#FFA826] to-[#FF9800]',
+      accentColor: '#FF9800',
     },
     {
       id: 'forecasting',
       name: 'Forecast EWS',
       tag: 'Prediksi ML',
       icon: <Sparkles className="w-5 h-5 text-white" />,
-      gradient: 'from-[#7C3AED] via-[#8B5CF6] to-[#A855F7]',
+      gradient: 'from-[#FF5E74] to-[#FF405B]',
+      accentColor: '#FF405B',
     },
     {
       id: 'radar_kelurahan',
       name: 'Radar Pangan',
       tag: 'Kel vs Kec',
       icon: <Target className="w-5 h-5 text-white" />,
-      gradient: 'from-[#4338CA] via-[#6366F1] to-[#8B5CF6]',
+      gradient: 'from-[#2968FF] to-[#145BFF]',
+      accentColor: '#145BFF',
     },
     {
       id: 'analisis_skpg',
       name: 'SKPG Bulanan',
       tag: 'Kewaspadaan',
       icon: <Activity className="w-5 h-5 text-white" />,
-      gradient: 'from-[#B91C1C] via-[#DC2626] to-[#F87171]',
+      gradient: 'from-[#EF4444] to-[#DC2626]',
+      accentColor: '#DC2626',
     },
     {
       id: 'kamera_cerdas',
       name: 'Kamera Cerdas',
       tag: 'IoT Telemetri',
       icon: <Camera className="w-5 h-5 text-white" />,
-      gradient: 'from-[#334155] via-[#475569] to-[#64748B]',
+      gradient: 'from-[#64748B] to-[#475569]',
+      accentColor: '#475569',
     },
   ];
 
@@ -500,49 +536,49 @@ export default function MobileHome({
         <MediaCarousel />
       </div>
 
-      {/* 2. Segmen Panel Harga Pasar Terkini (SAGON) - 13 Komoditas & Navigasi Tanggal Dinamis */}
-      <div className="bg-gradient-to-br from-white via-emerald-50/40 to-teal-50/30 p-3.5 rounded-3xl border border-emerald-200/80 shadow-sm space-y-2.5">
+      {/* 2. Segmen Panel Harga Pasar Terkini (SAGON) - 13 Komoditas & Navigasi Tanggal Dinamis (Capture 3) */}
+      <div className="bg-gradient-to-br from-[#FFF8E5] to-[#FFF0C7] p-3.5 rounded-3xl border border-[#FFE5A3] shadow-[0_4px_20px_rgba(255,229,163,0.25)] space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <Store className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-full bg-[#FF9200] text-white flex items-center justify-center shadow-xs shrink-0">
+              <Store className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-black text-xs uppercase tracking-wider text-emerald-950">
+                <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D]">
                   HARGA PASAR TERKINI (SAGON)
                 </h3>
-                <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full border ${
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border ${
                   dateIndex === 4 
-                    ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' 
-                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    ? 'bg-[#FFF0F2] text-[#FF405B] border-[#FFCCD5] animate-pulse' 
+                    : 'bg-[#EAF6FF] text-[#145BFF] border-[#CCE4FF]'
                 }`}>
                   {dateIndex === 4 ? 'LIVE' : 'ARSIP'}
                 </span>
               </div>
-              <p className="text-[9px] font-semibold text-emerald-700/80">
+              <p className="text-[9px] font-semibold text-[#8192AE]">
                 Pantauan 13 komoditas pasar harian Cilegon
               </p>
             </div>
           </div>
           <button 
             onClick={() => onNavigate('harga_full')}
-            className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+            className="text-[11px] font-black text-[#FF9200] hover:text-[#E08200] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
           >
             <span>Detail</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#FF9200]" />
           </button>
         </div>
 
         {/* Date Navigation Bar with Chevron (Versi Desktop Match) */}
-        <div className="flex items-center justify-between bg-white border border-emerald-100 p-1.5 rounded-2xl w-full shadow-2xs">
+        <div className="flex items-center justify-between bg-white border border-[#FFE5A3]/80 p-1.5 rounded-2xl w-full shadow-2xs">
           <button
             onClick={() => setDateIndex(prev => Math.max(0, prev - 1))}
             disabled={dateIndex === 0}
             className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
               dateIndex === 0 
                 ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs active:scale-95'
+                : 'bg-[#EAF6FF] hover:bg-[#D8EEFF] text-[#145BFF] shadow-2xs active:scale-95'
             }`}
             title="Tanggal Sebelumnya"
             aria-label="Tanggal Sebelumnya"
@@ -550,11 +586,11 @@ export default function MobileHome({
             <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
 
-          <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 uppercase tracking-wide truncate">
+          <div className="flex items-center gap-1.5 text-[11px] font-black text-[#172B4D] uppercase tracking-wide truncate">
             <span>📅</span>
             <span className="truncate">{formatIndoDate(dates[dateIndex])}</span>
             {dateIndex === 4 && (
-              <span className="text-[8px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-full border border-emerald-200 shrink-0">
+              <span className="text-[8px] bg-[#D2F5EC] text-[#008F67] font-black px-2 py-0.5 rounded-full border border-[#A7EAD7] shrink-0 uppercase">
                 Hari Ini
               </span>
             )}
@@ -566,7 +602,7 @@ export default function MobileHome({
             className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 ${
               dateIndex === dates.length - 1
                 ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs active:scale-95 cursor-pointer'
+                : 'bg-[#EAF6FF] hover:bg-[#D8EEFF] text-[#145BFF] shadow-2xs active:scale-95 cursor-pointer'
             }`}
             title="Tanggal Berikutnya"
             aria-label="Tanggal Berikutnya"
@@ -578,60 +614,75 @@ export default function MobileHome({
         {/* Horizontal Snap Scroll 13 Komoditas Lengkap */}
         <div className="relative">
           <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar snap-x scroll-smooth">
-            {sagonCommodities.map((c, i) => (
-              <div 
-                key={c.key} 
-                onClick={() => onNavigate('harga_full')}
-                className="min-w-[136px] p-2.5 rounded-2xl bg-white/95 border border-emerald-100/90 shadow-2xs snap-start shrink-0 cursor-pointer active:scale-95 hover:border-emerald-400 hover:shadow-xs transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm shrink-0">{c.icon}</span>
-                    <p className="text-[11px] font-black text-slate-700 truncate">{c.name}</p>
+            {sagonCommodities.map((c, i) => {
+              // 3 Kombinasi Pastel: Biru Muda #EAF6FF, Pink Lembut #FFF0F2, Lavender #F7EEFF
+              const pastelThemes = [
+                { bg: 'bg-[#EAF6FF]', border: 'border-[#D4E8FC]' },
+                { bg: 'bg-[#FFF0F2]', border: 'border-[#FFE0E5]' },
+                { bg: 'bg-[#F7EEFF]', border: 'border-[#EEDEFA]' },
+              ];
+              const theme = pastelThemes[i % pastelThemes.length];
+
+              return (
+                <div 
+                  key={c.key} 
+                  onClick={() => onNavigate('harga_full')}
+                  className={`min-w-[136px] p-2.5 rounded-2xl ${theme.bg} ${theme.border} border shadow-2xs snap-start shrink-0 cursor-pointer active:scale-95 hover:shadow-xs transition-all flex flex-col justify-between`}
+                >
+                  <div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm shrink-0">{c.icon}</span>
+                      <p className="text-[11px] font-black text-[#172B4D] truncate">{c.name}</p>
+                    </div>
+                    <p className="text-[13px] font-black text-[#172B4D] mt-1">
+                      Rp {Math.round(c.price).toLocaleString('id-ID')}
+                      <span className="text-[8.5px] font-medium text-[#8192AE]">/{c.unit}</span>
+                    </p>
                   </div>
-                  <p className="text-[13px] font-black text-emerald-950 mt-1">
-                    Rp {Math.round(c.price).toLocaleString('id-ID')}
-                    <span className="text-[8.5px] font-medium text-slate-400">/{c.unit}</span>
-                  </p>
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-black/5">
+                    <span className="text-[8.5px] font-bold text-[#8192AE]">#{i + 1}</span>
+                    {c.status === 'WASPADA' ? (
+                      <span className="inline-flex items-center text-[8.5px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-200">
+                        <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> {c.changeText} WASPADA
+                      </span>
+                    ) : c.status === 'NAIK' ? (
+                      <span className="inline-flex items-center text-[8.5px] font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                        <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> {c.changeText} NAIK
+                      </span>
+                    ) : c.status === 'AMAN' ? (
+                      <span className="inline-flex items-center text-[8.5px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                        <TrendingDown className="w-2.5 h-2.5 mr-0.5" /> {c.changeText} AMAN
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[8.5px] font-black text-[#008F67] bg-[#D2F5EC] px-2 py-0.5 rounded-md border border-[#A7EAD7]">
+                        <Activity className="w-2.5 h-2.5 mr-0.5 text-[#008F67]" /> STABIL
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100/80">
-                  <span className="text-[8.5px] font-bold text-slate-400">#{i + 1}</span>
-                  {c.trend > 0 ? (
-                    <span className="inline-flex items-center text-[8.5px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
-                      <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> +{c.trend}%
-                    </span>
-                  ) : c.trend < 0 ? (
-                    <span className="inline-flex items-center text-[8.5px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                      <TrendingDown className="w-2.5 h-2.5 mr-0.5" /> {c.trend}%
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center text-[8.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
-                      Stabil
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-          <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 px-1 pt-0.5">
+          <div className="flex items-center justify-between text-[9px] font-bold text-[#8192AE] px-1 pt-0.5">
             <span>Geser horizontal untuk 13 komoditas ➔</span>
-            <span className="text-emerald-700 font-extrabold">{sagonCommodities.length} Komoditas</span>
+            <span className="text-[#FF9200] font-black">{sagonCommodities.length} Komoditas</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 13 Komoditas (Tampil 1 Baris dengan Geser Atas/Bawah) */}
-      <div className="bg-gradient-to-br from-[#064E3B] via-[#043E30] to-[#022C22] text-white p-3.5 rounded-3xl border border-emerald-500/40 shadow-lg shadow-emerald-950/20 space-y-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-xs">
-              <Sparkles className="w-4 h-4" />
+      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 13 Komoditas (Capture 4) */}
+      <div className="rounded-3xl border border-[#B8F1E6] bg-gradient-to-b from-[#EAFBF7] to-[#F7FFFD] overflow-hidden shadow-[0_4px_20px_rgba(8,127,140,0.08)]">
+        {/* Gradient Header Teal #087F8C -> Turquoise #10C9B0 */}
+        <div className="bg-gradient-to-r from-[#087F8C] to-[#10C9B0] text-white p-3.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs">
+              <Sparkles className="w-4.5 h-4.5" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-black text-xs text-white tracking-tight leading-tight truncate">
+              <h3 className="font-black text-xs sm:text-sm text-white tracking-tight leading-tight truncate">
                 Peramalan Harga Pangan
               </h3>
-              <p className="text-[9px] font-bold text-emerald-200/80 truncate">
+              <p className="text-[9px] font-bold text-white/90 truncate">
                 Model Machine Learning +1 & +3 Bulan
               </p>
             </div>
@@ -639,8 +690,8 @@ export default function MobileHome({
 
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Counter & Up/Down Switcher */}
-            <div className="flex items-center bg-emerald-900/80 border border-emerald-500/40 rounded-xl px-1.5 py-0.5 text-[9px] font-black text-emerald-200 gap-1">
-              <span className="text-emerald-300 font-mono">
+            <div className="flex items-center bg-white/20 border border-white/30 rounded-xl px-2 py-1 text-[10px] font-black text-white gap-1.5">
+              <span>
                 {activeForecastIndex + 1}/{allForecastItems.length || 13}
               </span>
               <div className="flex flex-col gap-0.2">
@@ -648,28 +699,28 @@ export default function MobileHome({
                   type="button"
                   onClick={() => scrollToForecast(activeForecastIndex - 1)}
                   disabled={activeForecastIndex === 0}
-                  className="hover:text-white disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
+                  className="hover:text-emerald-100 disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
                   title="Komoditas Sebelumnya (Ke Atas)"
                   aria-label="Komoditas Sebelumnya"
                 >
-                  <ChevronUp className="w-3 h-3" />
+                  <ChevronUp className="w-2.5 h-2.5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollToForecast(activeForecastIndex + 1)}
                   disabled={activeForecastIndex === (allForecastItems.length - 1)}
-                  className="hover:text-white disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
+                  className="hover:text-emerald-100 disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
                   title="Komoditas Berikutnya (Ke Bawah)"
                   aria-label="Komoditas Berikutnya"
                 >
-                  <ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="w-2.5 h-2.5" />
                 </button>
               </div>
             </div>
 
             <button 
               onClick={() => onNavigate('forecasting')}
-              className="px-2 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
+              className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
               title="Lihat Detail Peramalan"
             >
               <span>Detail</span>
@@ -679,113 +730,137 @@ export default function MobileHome({
         </div>
 
         {/* Petunjuk Geser Atas/Bawah */}
-        <div className="flex items-center justify-between text-[8.5px] font-semibold text-emerald-300/80 px-1">
+        <div className="px-3.5 pt-2.5 pb-1 flex items-center justify-between text-[9px] font-semibold text-[#7189A8]">
           <span>Geser kartu ke atas/bawah (13 komoditas)</span>
-          <span className="text-emerald-200 font-bold">Swipe ↑↓</span>
+          <span className="text-[#00A98F] font-bold">Swipe ⇅</span>
         </div>
 
-        {/* Multi-Row Vertical Scrollable Reel (Ketinggian 2x Lipat dengan Jarak Antar Kartu Komoditas) */}
+        {/* Multi-Row Vertical Scrollable Reel (3 Baris Komoditas Muncul Sekaligus) */}
         <div 
           ref={forecastScrollRef}
           onScroll={handleForecastScroll}
-          className="h-[240px] overflow-y-auto space-y-3 no-scrollbar scroll-smooth rounded-2xl border border-emerald-500/30 bg-emerald-950/70 p-2.5"
+          className="h-[340px] overflow-y-auto space-y-2 px-3 py-1.5 no-scrollbar scroll-smooth"
         >
-          {allForecastItems.map((item, idx) => (
-            <div 
-              key={item.key}
-              onClick={() => onNavigate('forecasting')}
-              className="p-2.5 rounded-2xl bg-emerald-900/60 hover:bg-emerald-900/80 border border-emerald-500/30 shadow-xs shrink-0 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99]"
-              title={`Buka analisis forecast untuk ${item.name}`}
-            >
-              {/* Baris Nama Komoditas & Status */}
-              <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-emerald-500/20">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-base shrink-0">{item.icon}</span>
-                  <span className="text-xs font-black text-white truncate">
-                    {item.name}
-                  </span>
-                  <span className="text-[8.5px] font-bold text-emerald-400/80 font-mono">
-                    #{idx + 1}
+          {allForecastItems.map((item, idx) => {
+            const pct1 = item.aktual > 0 ? ((item.month1 - item.aktual) / item.aktual) * 100 : 0;
+            const pct3 = item.aktual > 0 ? ((item.month3 - item.aktual) / item.aktual) * 100 : 0;
+
+            return (
+              <div 
+                key={item.key}
+                onClick={() => onNavigate('forecasting')}
+                className="p-3 rounded-2xl bg-[#FFFFFF] border border-[#B8F1E6] shadow-xs hover:border-[#00A98F]/50 shrink-0 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99]"
+                title={`Buka analisis forecast untuk ${item.name}`}
+              >
+                {/* Baris Nama Komoditas & Status */}
+                <div className="flex items-center justify-between gap-1 pb-2 border-b border-[#B8F1E6]/50">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-base shrink-0">{item.icon}</span>
+                    <span className="text-xs font-black text-[#123B4A] truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-[10px] font-bold text-[#00A98F] font-mono">
+                      #{idx + 1}
+                    </span>
+                  </div>
+                  <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 border ${
+                    item.changePct < 0
+                      ? 'bg-[#D9FBE7] text-[#087F55] border-[#B8F1E6]'
+                      : item.changePct > 0
+                      ? 'bg-rose-50 text-[#FF4545] border-rose-200'
+                      : 'bg-[#D9FBE7] text-[#087F55] border-[#B8F1E6]'
+                  }`}>
+                    {item.changePct < 0 && <span className="text-[#087F55]">{item.changePct.toFixed(1)}% • Stabil</span>}
+                    {item.changePct > 0 && <span className="text-[#FF4545]">+{item.changePct.toFixed(1)}% • {item.status}</span>}
+                    {item.changePct === 0 && <span className="text-[#087F55]">0.0% • Stabil</span>}
                   </span>
                 </div>
-                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 border ${
-                  item.trend === 'up' 
-                    ? 'bg-rose-500/30 text-rose-200 border-rose-400/40' 
-                    : item.trend === 'down' 
-                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/40' 
-                    : 'bg-amber-500/30 text-amber-200 border-amber-400/40'
-                }`}>
-                  {item.trend === 'up' && <TrendingUp className="w-2.5 h-2.5 mr-0.5" />}
-                  {item.trend === 'down' && <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
-                  <span>{item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}</span>
-                  <span>•</span>
-                  <span>{item.status}</span>
-                </span>
+
+                {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan */}
+                <div className="grid grid-cols-3 gap-1 pt-2 text-left">
+                  {/* 1. Aktual / Harga Hari Ini */}
+                  <div className="flex flex-col justify-center pr-1">
+                    <span className="text-sm font-black text-[#123B4A]">
+                      {Math.round(item.aktual).toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
+                      Harga Hari Ini
+                    </span>
+                    <span className="text-[8px] text-[#7189A8]">
+                      (Rp/kg)
+                    </span>
+                  </div>
+
+                  {/* 2. +1 Bulan */}
+                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 pr-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-black text-[#123B4A]">
+                        {Math.round(item.month1).toLocaleString('id-ID')}
+                      </span>
+                      {pct1 < 0 ? (
+                        <span className="text-[9px] font-black text-[#FF4545] flex items-center">
+                          ↓ {pct1.toFixed(1)}%
+                        </span>
+                      ) : pct1 > 0 ? (
+                        <span className="text-[9px] font-black text-[#00A98F] flex items-center">
+                          ↑ +{pct1.toFixed(1)}%
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
+                      Prediksi 1 Bulan
+                    </span>
+                    <span className="text-[8px] text-[#7189A8]">
+                      (Rp/kg)
+                    </span>
+                  </div>
+
+                  {/* 3. +3 Bulan */}
+                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-black text-[#123B4A]">
+                        {Math.round(item.month3).toLocaleString('id-ID')}
+                      </span>
+                      {pct3 < 0 ? (
+                        <span className="text-[9px] font-black text-[#FF4545] flex items-center">
+                          ↓ {pct3.toFixed(1)}%
+                        </span>
+                      ) : pct3 > 0 ? (
+                        <span className="text-[9px] font-black text-[#00A98F] flex items-center">
+                          ↑ +{pct3.toFixed(1)}%
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
+                      Prediksi 3 Bulan
+                    </span>
+                    <span className="text-[8px] text-[#7189A8]">
+                      (Rp/kg)
+                    </span>
+                  </div>
+                </div>
               </div>
-
-              {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan dengan Bulan Dinamis */}
-              <div className="grid grid-cols-3 gap-1.5 pt-1.5 text-center">
-                {/* 1. Aktual */}
-                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/20 flex flex-col justify-center">
-                  <span className="text-[9.5px] font-bold text-emerald-200/80 leading-tight">
-                    Aktual
-                  </span>
-                  <span className="text-[7.5px] font-semibold text-slate-300 leading-tight">
-                    {baselineMonthStr}
-                  </span>
-                  <span className="text-[11px] font-black text-white mt-0.5">
-                    Rp {Math.round(item.aktual).toLocaleString('id-ID')}
-                  </span>
-                </div>
-
-                {/* 2. +1 Bulan */}
-                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-cyan-500/30 flex flex-col justify-center">
-                  <span className="text-[9.5px] font-bold text-cyan-200 leading-tight">
-                    +1 Bulan
-                  </span>
-                  <span className="text-[7.5px] font-semibold text-cyan-300/80 leading-tight">
-                    {month1Str}
-                  </span>
-                  <span className="text-[11px] font-black text-cyan-200 mt-0.5">
-                    Rp {Math.round(item.month1).toLocaleString('id-ID')}
-                  </span>
-                </div>
-
-                {/* 3. +3 Bulan */}
-                <div className="p-1.5 rounded-xl bg-emerald-950/60 border border-teal-500/30 flex flex-col justify-center">
-                  <span className="text-[9.5px] font-bold text-teal-200 leading-tight">
-                    +3 Bulan
-                  </span>
-                  <span className="text-[7.5px] font-semibold text-teal-300/80 leading-tight">
-                    {month3Str}
-                  </span>
-                  <span className="text-[11px] font-black text-teal-200 mt-0.5">
-                    Rp {Math.round(item.month3).toLocaleString('id-ID')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Pintasan untuk lihat lebih lengkap */}
-        <button
-          onClick={() => onNavigate('forecasting')}
-          className="w-full py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-100 text-[10px] font-black flex items-center justify-between transition-all cursor-pointer active:scale-98"
-        >
-          <span>Lihat Peramalan & Early Warning System Selengkapnya</span>
-          <ArrowRight className="w-3.5 h-3.5 text-emerald-300" />
-        </button>
+        {/* Dots Pagination Indicator (Capture 4 Reference) */}
+        <div className="flex items-center justify-end gap-1.5 px-3.5 py-2">
+          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex === 0 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
+          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex > 0 && activeForecastIndex < allForecastItems.length - 1 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
+          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex === allForecastItems.length - 1 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
+        </div>
       </div>
 
       {/* 4. Indeks Ketahanan Pangan Cilegon 2025 Card */}
       <div 
         className="bg-gradient-to-br from-[#ECFDF5] via-[#F0FDF4] to-[#E6F4EA] p-4 rounded-3xl border border-emerald-300/80 shadow-sm shadow-emerald-900/5 transition-all hover:border-emerald-400"
       >
-        {/* Header IKP (Indeks Ketahanan Pangan Cilegon 2025, klik masuk grafik IKP) */}
+        {/* Header IKP (Klik Masuk ke Panel Peta FSVA) */}
         <div 
-          onClick={() => onNavigate('grafik_ikp')}
+          onClick={() => onNavigate('peta_full')}
           className="flex items-center justify-between pb-3 border-b border-emerald-200/70 cursor-pointer group"
+          title="Buka Peta Tematik Spasial FSVA & SKPG 43 Kelurahan"
         >
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-700/25 group-hover:scale-105 transition-transform">
@@ -842,21 +917,21 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* 5. Sektor / Fitur Unggulan (Launcher 8 Tiles) */}
-      <div className="bg-gradient-to-br from-white via-emerald-50/40 to-[#ECFDF5]/60 p-3.5 rounded-3xl border border-emerald-200/80 shadow-sm space-y-2.5">
+      {/* 5. Sektor / Fitur Unggulan (Capture 1 Reference) */}
+      <div className="bg-gradient-to-br from-[#FFF8E8] to-[#FFF2D2] p-3.5 rounded-3xl border border-[#FFE8B5] shadow-[0_4px_20px_rgba(255,232,181,0.25)] space-y-2.5">
         <div className="flex items-center justify-between px-0.5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
-            <h3 className="font-black text-xs uppercase tracking-wider text-emerald-950">
-              Sektor & Fitur Unggulan
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-4.5 bg-[#F28C00] rounded-full shrink-0" />
+            <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D]">
+              SEKTOR & FITUR UNGGULAN
             </h3>
           </div>
           <button 
             onClick={onOpenCatalog}
-            className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+            className="text-[11px] font-black text-[#F28C00] hover:text-[#D97C00] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
           >
             <span>Lihat semua</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#F28C00]" />
           </button>
         </div>
 
@@ -866,15 +941,22 @@ export default function MobileHome({
             <button
               key={feat.id}
               onClick={() => onNavigate(feat.id)}
-              className="flex flex-col items-center p-2 rounded-2xl bg-white/95 border border-emerald-100 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer active:scale-92 group text-center"
+              className="relative overflow-hidden flex flex-col items-center p-2 rounded-2xl bg-[#FFFFFF] border border-[#F4EBDD] shadow-[0_2px_8px_rgba(244,235,221,0.6)] hover:border-[#FFE8B5] hover:shadow-xs transition-all cursor-pointer active:scale-92 group text-center"
             >
-              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform`}>
+              {/* Aksen pastel transparan pada tiap kartu */}
+              <div 
+                className="absolute inset-0 pointer-events-none rounded-2xl opacity-40 transition-opacity group-hover:opacity-70"
+                style={{
+                  background: `radial-gradient(circle at 50% 30%, ${feat.accentColor}26 0%, transparent 75%)`
+                }}
+              />
+              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform relative z-10`}>
                 {feat.icon}
               </div>
-              <span className="text-[10px] font-extrabold text-slate-800 mt-1.5 leading-tight truncate w-full">
+              <span className="text-[10px] font-black text-[#172B4D] mt-1.5 leading-tight truncate w-full relative z-10">
                 {feat.name}
               </span>
-              <span className="text-[8px] font-bold text-emerald-700 leading-none mt-0.5 truncate w-full">
+              <span className="text-[8px] font-bold text-[#008F67] leading-none mt-0.5 truncate w-full relative z-10">
                 {feat.tag}
               </span>
             </button>
@@ -882,45 +964,82 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* 6. Banner Pintasan Peta GIS */}
+      {/* 6. Banner Pintasan Peta GIS (Capture 2 Reference) */}
       <div 
         onClick={() => onNavigate('peta_full')}
-        className="rounded-3xl overflow-hidden bg-gradient-to-br from-[#022C22] via-[#064E3B] to-[#043E30] text-white border border-emerald-600/40 shadow-md shadow-emerald-950/20 cursor-pointer hover:border-emerald-400 transition-all active:scale-98"
+        className="rounded-[24px] overflow-hidden bg-gradient-to-br from-[#004D49] to-[#006B73] text-white border border-[#39DCCB] shadow-[0_4px_24px_rgba(0,77,73,0.3)] cursor-pointer hover:border-[#39DCCB] transition-all active:scale-98"
       >
         <div className="p-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
-              <MapPin className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-[#003835]/60 border border-[#39DCCB]/60 flex items-center justify-center text-[#65F5DE] shrink-0">
+              <MapPin className="w-5 h-5 text-[#65F5DE]" />
             </div>
             <div>
-              <h4 className="font-black text-xs text-white">Peta Spasial Ketahanan Pangan</h4>
-              <p className="text-[10px] text-emerald-200/90 font-medium">
+              <h4 className="font-black text-xs sm:text-sm text-[#FFFFFF]">Peta Spasial Ketahanan Pangan</h4>
+              <p className="text-[10px] text-[#8DE8D5] font-medium">
                 Sebaran wilayah, kerentanan FSVA & SKPG 43 Kelurahan
               </p>
             </div>
           </div>
-          <div className="w-7 h-7 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-200 flex items-center justify-center shrink-0">
-            <ArrowRight className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-full bg-transparent border border-[#39DCCB] text-[#39DCCB] flex items-center justify-center shrink-0 hover:bg-[#39DCCB]/10 transition-colors">
+            <ArrowRight className="w-4 h-4 text-[#39DCCB]" />
           </div>
         </div>
 
         {/* Thematic Map Preview Thumbnail Banner */}
-        <div className="mx-3.5 mb-3.5 relative h-24 rounded-2xl overflow-hidden bg-slate-900 border border-emerald-500/30">
+        <div className="mx-3.5 mb-3.5 relative h-28 sm:h-32 rounded-2xl overflow-hidden bg-[#002624] border border-[#39DCCB]/40">
           <div 
             className="absolute inset-0 bg-cover bg-center opacity-85"
             style={{ 
-              backgroundImage: `url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80')` 
+              backgroundImage: `url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80')` 
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/90 via-emerald-900/70 to-transparent flex items-center p-4">
+          {/* Poligon Wilayah Berwarna (GIS Visual Thematic Overlay) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 140" preserveAspectRatio="none">
+            <defs>
+              <filter id="glow-peta-mobile" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.4" />
+              </filter>
+            </defs>
+            {/* Green Polygon Cluster */}
+            <polygon 
+              points="205,75 230,65 255,70 260,88 262,112 248,126 218,122 208,102 210,82" 
+              fill="#00A878" 
+              fillOpacity="0.75" 
+              stroke="#ffffff" 
+              strokeWidth="0.9" 
+              filter="url(#glow-peta-mobile)"
+            />
+            {/* Yellow/Amber Polygon Cluster */}
+            <polygon 
+              points="252,48 268,36 290,40 306,52 316,68 330,82 324,118 308,132 292,126 278,102 268,92 258,85 252,70" 
+              fill="#F59E0B" 
+              fillOpacity="0.75" 
+              stroke="#ffffff" 
+              strokeWidth="0.9" 
+              filter="url(#glow-peta-mobile)"
+            />
+            {/* Red Polygon Cluster (Pusat Kota / Kerentanan) */}
+            <polygon 
+              points="252,70 268,66 284,72 294,82 288,100 276,108 262,105 258,85" 
+              fill="#DC2626" 
+              fillOpacity="0.8" 
+              stroke="#ffffff" 
+              strokeWidth="0.9" 
+              filter="url(#glow-peta-mobile)"
+            />
+          </svg>
+
+          {/* Overlay Gelap Transparan pada bagian bawah agar teks putih terbaca jelas */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#001D1A]/95 via-[#001D1A]/50 to-transparent flex items-end p-3.5">
             <div className="space-y-1 text-white">
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white uppercase tracking-wider shadow-xs">
-                GIS Interaktif
+              <span className="inline-block text-[9px] font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#00A878] to-[#00D6A0] text-white uppercase tracking-wider shadow-xs">
+                GIS INTERAKTIF
               </span>
-              <p className="text-xs font-black drop-shadow-sm">
+              <p className="text-xs font-black text-white drop-shadow-md">
                 8 Kecamatan • 43 Kelurahan
               </p>
-              <p className="text-[10px] text-emerald-200 font-medium">
+              <p className="text-[10px] text-white/90 font-medium drop-shadow-sm">
                 Sentuh untuk membuka peta interaktif penuh
               </p>
             </div>

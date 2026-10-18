@@ -79,7 +79,7 @@ export default function MobileBottomNav({
           <div className={`p-1 rounded-full transition-all ${isAI ? 'bg-emerald-50 text-emerald-600 scale-110 shadow-xs' : ''}`}>
             <BarChart3 className="w-5 h-5" strokeWidth={isAI ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight leading-none">AI Insight</span>
+          <span className="text-[10px] mt-0.5 tracking-tight leading-none">RAG Chatbot</span>
           {isAI && <span className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5" />}
         </button>
 

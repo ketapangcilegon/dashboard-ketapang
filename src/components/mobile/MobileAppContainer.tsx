@@ -15,6 +15,7 @@ interface MobileAppContainerProps {
   livePrices?: Record<string, number> | null;
   liveDate?: string | null;
   liveHistory?: Record<string, Record<string, number>> | null;
+  previousHargaData?: any[];
   overallScore?: number;
   balitaStatus?: string;
   ikpData?: any[];
@@ -30,6 +31,7 @@ export default function MobileAppContainer({
   livePrices,
   liveDate,
   liveHistory,
+  previousHargaData = [],
   overallScore = 82.4,
   balitaStatus = 'AMAN',
   ikpData = [],
@@ -126,6 +128,7 @@ export default function MobileAppContainer({
             livePrices={livePrices}
             liveDate={liveDate}
             liveHistory={liveHistory}
+            previousHargaData={previousHargaData}
             overallScore={overallScore}
             balitaStatus={balitaStatus}
             ikpData={ikpData}

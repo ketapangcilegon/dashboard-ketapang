@@ -50,7 +50,7 @@ export default function MobileTopBar({
       case 'ai_intelligence':
       case 'ai_insight':
       case 'insight':
-        return { title: 'AI Insight', subtitle: 'Food Security Intelligence & Asisten Pangan' };
+        return { title: 'RAG Chatbot', subtitle: 'Food Security Intelligence & Asisten Pangan' };
       case 'ketersediaan':
         return { title: 'Pilar Ketersediaan', subtitle: 'Produksi, Cadangan & NBM' };
       case 'keterjangkauan':

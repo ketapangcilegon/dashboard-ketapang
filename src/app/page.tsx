@@ -1569,6 +1569,7 @@ export default function DashboardPage() {
           livePrices={livePrices}
           liveDate={liveDate}
           liveHistory={liveHistory}
+          previousHargaData={previousHargaData}
           overallScore={82.4}
           balitaStatus={getBalitaData().status}
           ikpData={ikpData}
