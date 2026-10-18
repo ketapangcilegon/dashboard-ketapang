@@ -4,7 +4,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
-import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight, Users, Mail } from 'lucide-react';
+import { getEnumerator, jenisSumber } from '@/lib/arusPasokan';
 
 interface KameraAgregasiDashboardProps {
   observasiList: ObservasiRecord[];
@@ -76,6 +77,28 @@ export default function KameraAgregasiDashboard({
     };
   }, [filteredData]);
 
+  // Daftar kontribusi terbaru (nama + Gmail enumerator) mengikuti filter wilayah
+  const kontribusiTerbaru = useMemo(() => {
+    return [...filteredData]
+      .sort((a, b) => (Date.parse(b.created_at || '') || 0) - (Date.parse(a.created_at || '') || 0))
+      .slice(0, 50);
+  }, [filteredData]);
+
+  // Papan kontributor: jumlah submit & total estimasi pasokan per enumerator
+  const kontributor = useMemo(() => {
+    const map = new Map<string, { nama: string; email: string; jumlah: number; pasokanKg: number; terakhir: number }>();
+    filteredData.forEach((r) => {
+      const en = getEnumerator(r);
+      const key = (en.email || en.nama).toLowerCase();
+      const cur = map.get(key) || { ...en, jumlah: 0, pasokanKg: 0, terakhir: 0 };
+      cur.jumlah += 1;
+      if (r.mode === 'pasokan_beras') cur.pasokanKg += Number(r.estimasi_pasokan_kg) || 0;
+      cur.terakhir = Math.max(cur.terakhir, Date.parse(r.created_at || '') || 0);
+      map.set(key, cur);
+    });
+    return [...map.values()].sort((a, b) => b.jumlah - a.jumlah).slice(0, 8);
+  }, [filteredData]);
+
   // Agregasi per Kecamatan
   const rekapKecamatan = useMemo(() => {
     return Object.keys(WILAYAH).map(kec => {
@@ -97,27 +120,27 @@ export default function KameraAgregasiDashboard({
   }, [observasiList]);
 
   return (
-    <div className="w-full h-full bg-slate-950 text-slate-100 p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+    <div className="w-full h-full bg-[#F5FAF2] text-slate-800 p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
       
       {/* Header Dashboard */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-emerald-100">
         <div>
-          <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-emerald-700" />
             <span>Agregasi Data Lapangan Kamera Cerdas</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Rekapitulasi spasial sarana distribusi beras dan potensi produksi tanaman pangan
           </p>
         </div>
 
         {/* Filter Kecamatan */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-bold">Filter Wilayah:</span>
+          <span className="text-xs text-slate-500 font-bold">Filter Wilayah:</span>
           <select
             value={selectedKec}
             onChange={(e) => setSelectedKec(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-emerald-500"
+            className="bg-white border border-emerald-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
           >
             <option value="semua">Seluruh Kota Cilegon</option>
             {Object.keys(WILAYAH).map(kec => (
@@ -131,76 +154,76 @@ export default function KameraAgregasiDashboard({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Card 1: Total Sarana Distribusi */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 relative overflow-hidden shadow-lg">
+        <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sarana Distribusi Beras</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sarana Distribusi Beras</span>
+            <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
               <Store className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{stats.totalSarana} <span className="text-xs font-normal text-slate-400">Titik Toko/Agen</span></div>
-          <p className="text-[10px] text-blue-400 mt-1 font-medium">Toko beras, warung, minimarket, pasar</p>
+          <div className="text-2xl font-black text-slate-900">{stats.totalSarana} <span className="text-xs font-normal text-slate-500">Titik Toko/Agen</span></div>
+          <p className="text-[10px] text-sky-700 mt-1 font-medium">Toko beras, warung, minimarket, pasar</p>
         </div>
 
         {/* Card 2: Estimasi Pasokan Beras */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 relative overflow-hidden shadow-lg">
+        <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estimasi Pasokan</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estimasi Pasokan</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
               <Truck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-amber-400">{stats.totalPasokanTon} <span className="text-xs font-normal text-slate-400">Ton</span></div>
+          <div className="text-2xl font-black text-amber-700">{stats.totalPasokanTon} <span className="text-xs font-normal text-slate-500">Ton</span></div>
           <div className="flex items-center gap-2 mt-1 text-[10px]">
-            <span className="text-emerald-400 font-bold">Lokal: {stats.persenLokal}%</span>
+            <span className="text-emerald-700 font-bold">Lokal: {stats.persenLokal}%</span>
             <span className="text-slate-600">•</span>
-            <span className="text-rose-400 font-bold">Luar Cilegon: {stats.persenLuar}%</span>
+            <span className="text-rose-700 font-bold">Luar Cilegon: {stats.persenLuar}%</span>
           </div>
         </div>
 
         {/* Card 3: Titik Tanaman Pangan */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 relative overflow-hidden shadow-lg">
+        <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanaman Pangan Terdata</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tanaman Pangan Terdata</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
               <Trees className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{stats.totalTanamanSpot} <span className="text-xs font-normal text-slate-400">Titik / {stats.totalPohon} Pohon</span></div>
-          <p className="text-[10px] text-emerald-400 mt-1 font-medium">Total Luas Lahan: ~{stats.totalLuasHa} Ha</p>
+          <div className="text-2xl font-black text-slate-900">{stats.totalTanamanSpot} <span className="text-xs font-normal text-slate-500">Titik / {stats.totalPohon} Pohon</span></div>
+          <p className="text-[10px] text-emerald-700 mt-1 font-medium">Total Luas Lahan: ~{stats.totalLuasHa} Ha</p>
         </div>
 
         {/* Card 4: Estimasi Produksi Normatif */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 relative overflow-hidden shadow-lg">
+        <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Potensi Produksi Normatif</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Potensi Produksi Normatif</span>
+            <div className="w-8 h-8 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-purple-400">{stats.totalProduksiTon} <span className="text-xs font-normal text-slate-400">Ton Karbohidrat</span></div>
-          <p className="text-[10px] text-purple-300 mt-1 font-medium">Sukun, singkong, ubi, padi, jagung</p>
+          <div className="text-2xl font-black text-violet-700">{stats.totalProduksiTon} <span className="text-xs font-normal text-slate-500">Ton Karbohidrat</span></div>
+          <p className="text-[10px] text-violet-700 mt-1 font-medium">Sukun, singkong, ubi, padi, jagung</p>
         </div>
       </div>
 
       {/* Rantai Pasok Analysis Banner (Capture 2 Match) */}
       <div 
         id="rantai-pasok-section"
-        className={`bg-gradient-to-r from-blue-950/70 via-slate-900 to-emerald-950/70 border rounded-2xl p-4 sm:p-5 transition-all duration-300 ${
+        className={`bg-gradient-to-r from-sky-50 via-white to-emerald-50 border rounded-2xl p-4 sm:p-5 transition-all duration-300 ${
           focusSection === 'rantai_pasok'
             ? 'border-blue-400 ring-2 ring-blue-500/50 shadow-xl shadow-blue-500/20'
-            : 'border-slate-800'
+            : 'border-emerald-100'
         }`}
       >
-        <h3 className="text-sm font-extrabold text-white flex items-center gap-2 mb-2">
-          <Truck className="w-4 h-4 text-blue-400" />
+        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 mb-2">
+          <Truck className="w-4 h-4 text-sky-700" />
           <span>Analisis Rantai Pasok & Ketergantungan Pangan Kota Cilegon</span>
         </h3>
-        <p className="text-xs text-slate-300 leading-relaxed mb-3">
-          Berdasarkan observasi lapangan kamera cerdas di <b className="text-white">{selectedKec === 'semua' ? 'seluruh Kota Cilegon' : `Kecamatan ${selectedKec}`}</b>, estimasi pasokan beras tercatat sebesar <b className="text-amber-400">{stats.totalPasokanTon} Ton</b>, dengan komposisi pasokan <b className="text-emerald-400">{stats.persenLokal}% berasal dari lokal Cilegon</b> dan <b className="text-rose-400">{stats.persenLuar}% disuplai dari luar daerah</b> (Kab. Serang, Pandeglang, Lebak, Karawang & Jawa Tengah).
+        <p className="text-xs text-slate-600 leading-relaxed mb-3">
+          Berdasarkan observasi lapangan kamera cerdas di <b className="text-slate-900">{selectedKec === 'semua' ? 'seluruh Kota Cilegon' : `Kecamatan ${selectedKec}`}</b>, estimasi pasokan beras tercatat sebesar <b className="text-amber-700">{stats.totalPasokanTon} Ton</b>, dengan komposisi pasokan <b className="text-emerald-700">{stats.persenLokal}% berasal dari lokal Cilegon</b> dan <b className="text-rose-700">{stats.persenLuar}% disuplai dari luar daerah</b> (Kab. Serang, Pandeglang, Lebak, Karawang & Jawa Tengah).
         </p>
 
-        <div className="w-full bg-slate-800 h-3.5 rounded-full overflow-hidden flex border border-slate-700">
+        <div className="w-full bg-emerald-50 h-3.5 rounded-full overflow-hidden flex border border-emerald-200">
           <div style={{ width: `${stats.persenLokal}%` }} className="bg-emerald-500 h-full flex items-center justify-center text-[8px] font-black text-white" title="Lokal Cilegon">
             {stats.persenLokal > 15 ? `${stats.persenLokal}% Lokal` : ''}
           </div>
@@ -218,16 +241,16 @@ export default function KameraAgregasiDashboard({
       </div>
 
       {/* Tabel Agregasi per Kecamatan */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-        <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-emerald-400" />
+      <div className="bg-white/80 border border-emerald-100 rounded-2xl p-5 space-y-3">
+        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-emerald-700" />
           <span>Tabel Rekapitulasi per Kecamatan (Kota Cilegon)</span>
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 text-[11px]">
+              <tr className="border-b border-emerald-100 text-slate-500 text-[11px]">
                 <th className="py-2.5 px-3 font-bold">Kecamatan</th>
                 <th className="py-2.5 px-3 font-bold text-center">Sarana Beras</th>
                 <th className="py-2.5 px-3 font-bold text-right">Estimasi Pasokan</th>
@@ -235,17 +258,17 @@ export default function KameraAgregasiDashboard({
                 <th className="py-2.5 px-3 font-bold text-right">Estimasi Produksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-emerald-100 font-medium">
               {rekapKecamatan.map((row) => (
-                <tr key={row.kecamatan} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-2.5 px-3 font-bold text-white flex items-center gap-1.5">
+                <tr key={row.kecamatan} className="hover:bg-emerald-50/40 transition-colors">
+                  <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>{row.kecamatan}</span>
                   </td>
-                  <td className="py-2.5 px-3 text-center text-blue-400 font-bold">{row.jumlahSarana} Toko</td>
-                  <td className="py-2.5 px-3 text-right text-amber-300 font-bold">{row.estimasiPasokanTon} Ton</td>
-                  <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">{row.jumlahTanamanTitik} Titik</td>
-                  <td className="py-2.5 px-3 text-right text-purple-400 font-bold">{row.estimasiProduksiTon} Ton</td>
+                  <td className="py-2.5 px-3 text-center text-sky-700 font-bold">{row.jumlahSarana} Toko</td>
+                  <td className="py-2.5 px-3 text-right text-amber-700 font-bold">{row.estimasiPasokanTon} Ton</td>
+                  <td className="py-2.5 px-3 text-center text-emerald-700 font-bold">{row.jumlahTanamanTitik} Titik</td>
+                  <td className="py-2.5 px-3 text-right text-violet-700 font-bold">{row.estimasiProduksiTon} Ton</td>
                 </tr>
               ))}
             </tbody>
@@ -253,9 +276,104 @@ export default function KameraAgregasiDashboard({
         </div>
       </div>
 
+      {/* Daftar Kontribusi Enumerator (Crowdsourcing) */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="xl:col-span-2 bg-white border border-emerald-100 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <Mail className="w-4 h-4 text-emerald-700" />
+            <span>Daftar Data Crowdsourcing &amp; Enumerator</span>
+            <span className="ml-auto text-[10px] font-bold text-slate-500">{kontribusiTerbaru.length} terbaru</span>
+          </h3>
+
+          {kontribusiTerbaru.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-500 font-medium">Belum ada data kiriman enumerator untuk wilayah ini.</div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-emerald-100">
+              <table className="w-full min-w-[640px] text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-emerald-50 text-slate-500 text-[10px] uppercase tracking-wider">
+                    <th className="py-2 px-3 font-bold">Waktu</th>
+                    <th className="py-2 px-3 font-bold">Enumerator (Nama &amp; Gmail)</th>
+                    <th className="py-2 px-3 font-bold">Data</th>
+                    <th className="py-2 px-3 font-bold">Lokasi</th>
+                    <th className="py-2 px-3 font-bold text-right">Estimasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-emerald-100">
+                  {kontribusiTerbaru.map((r, i) => {
+                    const en = getEnumerator(r);
+                    const sumber = jenisSumber(r);
+                    const estimasiKg = r.mode === 'pasokan_beras' ? Number(r.estimasi_pasokan_kg) || 0 : Number(r.estimasi_produksi_kg) || 0;
+                    return (
+                      <tr key={r.id || `kontribusi-${i}`} className="hover:bg-emerald-50/60 transition-colors align-top">
+                        <td className="py-2 px-3 whitespace-nowrap text-slate-600">
+                          {r.created_at ? new Date(r.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          <div className="font-bold text-slate-900 leading-tight">{en.nama}</div>
+                          <div className="text-[10px] text-slate-500 break-all">{en.email || 'Gmail tidak tercatat'}</div>
+                          <span className={`inline-block mt-1 text-[9px] font-black px-1.5 py-0.5 rounded-full border ${
+                            sumber === 'petugas'
+                              ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                              : sumber === 'enumerator'
+                              ? 'bg-sky-100 text-sky-700 border-sky-300'
+                              : 'bg-slate-100 text-slate-600 border-slate-300'
+                          }`}>
+                            {sumber === 'petugas' ? 'PETUGAS DKPP' : sumber === 'enumerator' ? 'ENUMERATOR' : 'LAINNYA'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <span className={`font-bold ${r.mode === 'pasokan_beras' ? 'text-sky-700' : 'text-emerald-700'}`}>
+                            {r.mode === 'pasokan_beras' ? 'Pasokan Beras' : 'Tanaman Pangan'}
+                          </span>
+                          <div className="text-[10px] text-slate-500">{r.kategori_label || r.kategori}</div>
+                        </td>
+                        <td className="py-2 px-3 text-slate-700">
+                          <div className="font-semibold leading-tight">{r.nama_lokasi || r.kategori_label || 'Titik Observasi'}</div>
+                          <div className="text-[10px] text-slate-500">{r.kelurahan}, {r.kecamatan}</div>
+                        </td>
+                        <td className="py-2 px-3 text-right font-black text-amber-700 whitespace-nowrap">
+                          {estimasiKg > 0 ? `${(estimasiKg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white border border-emerald-100 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <Users className="w-4 h-4 text-emerald-700" />
+            <span>Kontributor Teratas</span>
+          </h3>
+          {kontributor.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-500 font-medium">Belum ada kontributor.</div>
+          ) : (
+            <ol className="space-y-2">
+              {kontributor.map((k, idx) => (
+                <li key={k.email || k.nama} className="flex items-center gap-3 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-emerald-600 text-white text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-900 truncate">{k.nama}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{k.email || 'Gmail tidak tercatat'}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-black text-emerald-700">{k.jumlah} foto</div>
+                    <div className="text-[10px] text-amber-700 font-bold">{(k.pasokanKg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+
       {/* Info Footnote */}
       <div className="flex items-center gap-2 text-[11px] text-slate-500">
-        <AlertCircle className="w-4 h-4 shrink-0 text-slate-400" />
+        <AlertCircle className="w-4 h-4 shrink-0 text-slate-500" />
         <span>Seluruh data bersumber dari observasi lapangan terverifikasi. Nilai produksi dan pasokan merupakan estimasi normatif berbasis model visual AI & standar DKPP Kota Cilegon.</span>
       </div>
 

@@ -117,18 +117,18 @@ export default function KameraCerdasMap({
   };
 
   return (
-    <div className="w-full h-full relative overflow-hidden flex flex-col bg-slate-950">
+    <div className="w-full h-full relative overflow-hidden flex flex-col bg-[#F5FAF2]">
       
       {/* Floating Filter Bar */}
       <div className="absolute top-4 left-14 sm:left-16 right-4 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
-        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-2 rounded-xl shadow-xl flex flex-wrap items-center gap-2 text-xs">
+        <div className="bg-white/90 backdrop-blur-md border border-emerald-200 px-3 py-2 rounded-xl shadow-xl flex flex-wrap items-center gap-2 text-xs">
           
           {/* Mode Switcher Tabs */}
-          <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 font-bold">
+          <div className="flex bg-emerald-50 p-0.5 rounded-lg border border-emerald-200 font-bold">
             <button
               onClick={() => setFilterMode('semua')}
               className={`px-2.5 py-1 rounded-md transition-all ${
-                filterMode === 'semua' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                filterMode === 'semua' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
               Semua ({observasiList.length})
@@ -136,7 +136,7 @@ export default function KameraCerdasMap({
             <button
               onClick={() => setFilterMode('pasokan_beras')}
               className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                filterMode === 'pasokan_beras' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                filterMode === 'pasokan_beras' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
               <Store className="w-3.5 h-3.5" />
@@ -145,7 +145,7 @@ export default function KameraCerdasMap({
             <button
               onClick={() => setFilterMode('tanaman_pangan')}
               className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                filterMode === 'tanaman_pangan' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                filterMode === 'tanaman_pangan' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
               <Trees className="w-3.5 h-3.5" />
@@ -157,7 +157,7 @@ export default function KameraCerdasMap({
           <select
             value={filterKecamatan}
             onChange={(e) => handleKecamatanChange(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
+            className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
           >
             <option value="semua">Semua Kecamatan</option>
             {Object.keys(WILAYAH).map(kec => (
@@ -170,7 +170,7 @@ export default function KameraCerdasMap({
             <select
               value={filterKelurahan}
               onChange={(e) => setFilterKelurahan(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
+              className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
             >
               <option value="semua">Semua Kelurahan</option>
               {(WILAYAH[filterKecamatan] || []).map(kel => (
@@ -186,7 +186,7 @@ export default function KameraCerdasMap({
           className={`px-3 py-2 rounded-xl backdrop-blur-md border text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 ${
             showOsm
               ? 'bg-emerald-600 text-white border-emerald-400'
-              : 'bg-slate-900/90 text-slate-300 border-slate-700 hover:text-white'
+              : 'bg-white/90 text-slate-600 border-emerald-200 hover:text-emerald-800'
           }`}
           title="Tampilkan / Sembunyikan Overlay Jalan & Sungai"
         >
@@ -290,7 +290,7 @@ export default function KameraCerdasMap({
                       </div>
                     )}
 
-                    <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-400">
+                    <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500">
                       <span>{item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : 'Terkonfirmasi'}</span>
                       <span className="text-emerald-600 font-bold flex items-center gap-0.5">
                         <CheckCircle2 className="w-2.5 h-2.5" /> Terverifikasi
@@ -305,7 +305,7 @@ export default function KameraCerdasMap({
       </div>
 
       {/* Floating Bottom Count Badge */}
-      <div className="absolute bottom-4 left-4 z-[400] bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-1.5 rounded-xl text-white text-xs font-bold shadow-xl flex items-center gap-2">
+      <div className="absolute bottom-4 left-4 z-[400] bg-white/90 backdrop-blur-md border border-emerald-200 px-3 py-1.5 rounded-xl text-slate-900 text-xs font-bold shadow-xl flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
         <span>{filteredData.length} Titik Lapangan Terpetakan</span>
       </div>

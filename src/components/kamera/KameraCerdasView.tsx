@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut, Globe2, Mail } from 'lucide-react';
 import GuidanceOverlay from './GuidanceOverlay';
 import KonfirmasiPasokanModal from './KonfirmasiPasokanModal';
 import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
@@ -11,9 +12,28 @@ import { cariKelurahanTerdekat } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { supabase } from '@/lib/supabase';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
+import {
+  enumeratorSupabase,
+  toEnumeratorProfile,
+  signInWithGoogle,
+  signOutEnumerator,
+  type EnumeratorProfile
+} from '@/lib/enumeratorAuth';
+
+// Peta 3D (MapLibre + deck.gl) hanya dimuat di browser & hanya saat tab dibuka
+const ArusPasokanMap = dynamic(() => import('./ArusPasokanMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-[#04101f] text-cyan-200 text-xs font-bold gap-2">
+      <Loader2 className="w-4 h-4 animate-spin" /> Menyiapkan peta 3D arus pasokan...
+    </div>
+  )
+});
+
+type KameraTab = 'camera' | 'map' | 'analytics' | 'arus';
 
 export interface KameraCerdasViewProps {
-  initialTab?: 'camera' | 'map' | 'analytics';
+  initialTab?: KameraTab;
   focusSection?: 'rantai_pasok' | 'agregasi' | null;
   onBack?: () => void;
 }
@@ -24,7 +44,7 @@ export default function KameraCerdasView({
   onBack
 }: KameraCerdasViewProps = {}) {
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'camera' | 'map' | 'analytics'>(initialTab);
+  const [activeTab, setActiveTab] = useState<KameraTab>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -35,7 +55,13 @@ export default function KameraCerdasView({
   // Governance & Admin State
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { isKameraLocked } = useFeatureAccess();
-  const canOperateCamera = !isKameraLocked || isAdmin;
+  // Enumerator = pengguna publik yang masuk memakai Google (Gmail)
+  const [enumerator, setEnumerator] = useState<EnumeratorProfile | null>(null);
+  const [isEnumeratorLoading, setIsEnumeratorLoading] = useState<boolean>(true);
+  const [isGoogleRedirecting, setIsGoogleRedirecting] = useState<boolean>(false);
+  const [googleError, setGoogleError] = useState<string>('');
+  // Kamera hanya dapat dipakai Admin/Petugas, atau Enumerator yang sudah login Google (bila fitur tidak dikunci admin)
+  const canOperateCamera = isAdmin || (!isKameraLocked && !!enumerator);
   const [adminEmail, setAdminEmail] = useState<string>('');
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [loginEmail, setLoginEmail] = useState<string>('');
@@ -111,6 +137,55 @@ export default function KameraCerdasView({
     }
     setIsCameraActive(false);
   };
+
+  // Sesi Enumerator (Google). Klien terpisah dari sesi Admin agar tidak pernah dianggap Admin.
+  useEffect(() => {
+    let aktif = true;
+    enumeratorSupabase.auth.getSession()
+      .then(({ data }) => {
+        if (aktif) setEnumerator(toEnumeratorProfile(data.session?.user));
+      })
+      .catch(() => { /* abaikan: dianggap belum login */ })
+      .finally(() => { if (aktif) setIsEnumeratorLoading(false); });
+    const { data: { subscription } } = enumeratorSupabase.auth.onAuthStateChange((_event, session) => {
+      setEnumerator(toEnumeratorProfile(session?.user));
+      setIsEnumeratorLoading(false);
+    });
+    return () => {
+      aktif = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    setGoogleError('');
+    setIsGoogleRedirecting(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setGoogleError(error);
+      setIsGoogleRedirecting(false);
+    }
+  };
+
+  const handleEnumeratorLogout = async () => {
+    await signOutEnumerator();
+    setEnumerator(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  /** Token autentikasi pengirim: sesi Admin (jika admin) atau sesi Google (enumerator). */
+  const getAuthToken = async (): Promise<string | null> => {
+    if (isAdmin) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) return data.session.access_token;
+    }
+    const { data } = await enumeratorSupabase.auth.getSession();
+    return data.session?.access_token || null;
+  };
   
   // Camera & Mode State
   const [mode, setMode] = useState<'pasokan_beras' | 'tanaman_pangan'>('pasokan_beras');
@@ -140,6 +215,8 @@ export default function KameraCerdasView({
 
   // Field Observations List
   const [observasiList, setObservasiList] = useState<ObservasiRecord[]>([]);
+  const [observasiLoaded, setObservasiLoaded] = useState<boolean>(false);
+  const [observasiError, setObservasiError] = useState<string | null>(null);
 
   // DOM Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -153,9 +230,15 @@ export default function KameraCerdasView({
       const json = await res.json();
       if (res.ok && json.data) {
         setObservasiList(json.data);
+        setObservasiError(null);
+      } else {
+        setObservasiError(json?.error || 'Data observasi tidak dapat dimuat.');
       }
     } catch (err) {
       console.warn('Gagal memuat observasi:', err);
+      setObservasiError('Koneksi ke server data gagal.');
+    } finally {
+      setObservasiLoaded(true);
     }
   }, []);
 
@@ -519,14 +602,20 @@ export default function KameraCerdasView({
   const handleSaveObservation = async (finalData: any) => {
     setIsSaving(true);
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        alert('Sesi masuk tidak ditemukan atau sudah berakhir. Silakan masuk kembali dengan akun Google (Gmail) Anda.');
+        return;
+      }
+
+      // Nama, Gmail, peran & status verifikasi ditetapkan server dari token — bukan dari klien
       const res = await fetch('/api/kamera-cerdas/observasi', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...finalData,
-          petugas_nama: adminEmail || 'Admin DKPP Cilegon',
-          status_verifikasi: 'TERVERIFIKASI_ADMIN'
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(finalData)
       });
 
       if (res.ok) {
@@ -554,6 +643,8 @@ export default function KameraCerdasView({
         }
 
         setTimeout(() => setSaveSuccessMsg(null), 5000);
+      } else if (res.status === 401) {
+        alert('Autentikasi ditolak. Silakan masuk kembali dengan akun Google (Gmail) Anda.');
       } else {
         alert('Gagal menyimpan data observasi. Silakan coba lagi.');
       }
@@ -566,48 +657,48 @@ export default function KameraCerdasView({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 relative overflow-hidden select-none">
+    <div className="w-full h-full flex flex-col bg-[#F5FAF2] text-slate-800 relative overflow-hidden select-none">
       
       {/* ── Top App Bar Navigation ── */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-md">
+      <div className="bg-gradient-to-r from-white via-[#F7FCEB] to-[#EAF8EE] border-b border-emerald-100 px-3 sm:px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-[0_4px_18px_rgba(16,120,70,0.08)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-900/50">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/30">
             <Camera className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-white tracking-wide uppercase">Kamera Cerdas</h2>
+              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Kamera Cerdas</h2>
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
                 isAdmin 
                   ? 'bg-emerald-500 text-white' 
                   : canOperateCamera 
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
-                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+                  : 'bg-amber-100 text-amber-700 border border-amber-300'
               }`}>
-                {isAdmin ? 'PETUGAS' : canOperateCamera ? 'PUBLIK' : 'KHUSUS ADMIN'}
+                {isAdmin ? 'PETUGAS' : enumerator ? 'ENUMERATOR' : isKameraLocked ? 'KHUSUS ADMIN' : 'MASUK DIPERLUKAN'}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">Field Data Collection & Geospatial Intelligence</p>
+            <p className="text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
           </div>
         </div>
 
         {/* Top View Switcher Tabs & Admin Status */}
         <div className="flex items-center gap-2">
-          <div className="flex bg-slate-800 p-0.5 rounded-xl border border-slate-700/80 text-xs font-bold">
+          <div className="flex bg-emerald-50 p-0.5 rounded-xl border border-emerald-200 text-xs font-bold">
             <button
               onClick={() => setActiveTab('camera')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'camera' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                activeTab === 'camera' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
-              {canOperateCamera ? <Camera className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+              {canOperateCamera ? <Camera className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-700" />}
               <span className="hidden sm:inline">Ambil Foto</span>
             </button>
 
             <button
               onClick={() => setActiveTab('map')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'map' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                activeTab === 'map' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -617,41 +708,90 @@ export default function KameraCerdasView({
             <button
               onClick={() => setActiveTab('analytics')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'analytics' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                activeTab === 'analytics' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
             >
               <BarChart3 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Agregasi</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('arus')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'arus' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
+              }`}
+              title="Peta 3D Arus Pasokan & Distribusi Beras"
+            >
+              <Globe2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Arus Pasokan</span>
             </button>
           </div>
 
           {/* Admin Indicator / Login Trigger */}
           {isAdmin ? (
             <div className="flex items-center gap-1.5">
-              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-[10px] font-bold text-emerald-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                 <span className="truncate max-w-[130px]">{adminEmail || 'Petugas DKPP'}</span>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg border border-slate-700 hover:border-rose-700/50 transition-all flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg border border-emerald-200 hover:border-rose-700/50 transition-all flex items-center gap-1 cursor-pointer"
                 title="Keluar Sesi Admin"
               >
                 <LogOut className="w-3 h-3" />
                 <span className="hidden sm:inline">Keluar</span>
               </button>
             </div>
+          ) : enumerator ? (
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} • ${enumerator.email}`}>
+                {enumerator.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={enumerator.avatarUrl} alt={enumerator.nama} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover border border-emerald-200" />
+                ) : (
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px] font-black">
+                    {enumerator.nama.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="hidden sm:flex flex-col leading-tight min-w-0">
+                  <b className="text-[10px] text-slate-800 truncate max-w-[130px]">{enumerator.nama}</b>
+                  <span className="text-[9px] text-slate-500 truncate max-w-[130px]">{enumerator.email}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleEnumeratorLogout}
+                className="px-2 py-1.5 text-[10px] font-bold text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg border border-emerald-200 transition-all flex items-center gap-1 cursor-pointer"
+                title="Keluar dari akun Google"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowLoginModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-black transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Login Petugas DKPP"
-            >
-              <KeyRound className="w-3 h-3" />
-              <span>Login Admin</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleRedirecting}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 border border-emerald-200 text-slate-700 text-[11px] font-black transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-60"
+                title="Masuk dengan Google (Gmail)"
+              >
+                {isGoogleRedirecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3 text-emerald-700" />}
+                <span>Masuk Gmail</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-100 border border-amber-300 text-amber-700 text-[11px] font-black transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Login Petugas DKPP"
+              >
+                <KeyRound className="w-3 h-3" />
+                <span>Login Admin</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -666,49 +806,132 @@ export default function KameraCerdasView({
 
       {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
       {activeTab === 'camera' && (
-        !canOperateCamera ? (
-          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-black text-center relative overflow-y-auto">
-            <div className="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-5 my-auto">
+        !canOperateCamera && !isKameraLocked ? (
+          /* ── Gerbang Autentikasi Gmail untuk Enumerator ── */
+          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#FFFBEA] via-[#F3FAE8] to-[#E3F5EA] text-center relative overflow-y-auto">
+            <div aria-hidden="true" className="pointer-events-none absolute -top-10 -right-8 text-[120px] opacity-[0.07] rotate-12 select-none">🌾</div>
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-8 -left-6 text-[110px] opacity-[0.07] -rotate-12 select-none">🌿</div>
+
+            <div className="relative max-w-md w-full bg-white/95 border border-emerald-100 rounded-3xl p-6 sm:p-7 shadow-[0_18px_50px_rgba(16,120,70,0.14)] backdrop-blur-xl space-y-5 my-auto">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white mx-auto shadow-lg shadow-emerald-500/30">
+                <Camera className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-300">
+                  <ShieldCheck className="w-2.5 h-2.5" /> Autentikasi Enumerator
+                </span>
+                <h3 className="text-lg font-black text-slate-900 tracking-wide">
+                  Masuk untuk Memakai Kamera Cerdas
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Gunakan akun <strong className="text-slate-700">Google (Gmail)</strong> Anda. <strong className="text-slate-700">Nama dan Gmail</strong> Anda akan tercatat sebagai enumerator pada setiap foto yang dikirim dan ditampilkan pada daftar data crowdsourcing.
+                </p>
+              </div>
+
+              {isEnumeratorLoading ? (
+                <div className="flex items-center justify-center gap-2 py-3 text-xs font-bold text-slate-500">
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> Memeriksa sesi masuk...
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleRedirecting}
+                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 font-black text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98] disabled:opacity-60"
+                >
+                  {isGoogleRedirecting ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                  ) : (
+                    <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                    </svg>
+                  )}
+                  <span>{isGoogleRedirecting ? 'Mengalihkan ke Google...' : 'Masuk dengan Google'}</span>
+                </button>
+              )}
+
+              {googleError && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-[11px] font-semibold text-left">
+                  {googleError}
+                </div>
+              )}
+
+              <ul className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100 text-left space-y-2 text-[11px] text-slate-600">
+                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>Foto otomatis diberi <b>watermark GPS</b> &amp; dikompresi &lt; 1 MB</span></li>
+                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>AI Vision mengestimasi pasokan beras &amp; tanaman pangan</span></li>
+                <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" /><span>Data tampil di <b>Peta Lapangan</b>, <b>Agregasi</b>, dan <b>Peta Arus Pasokan</b></span></li>
+              </ul>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-slate-600 hover:text-emerald-800 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Lihat Peta Lapangan ({observasiList.length} Observasi)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(true)}
+                  className="text-[11px] text-slate-500 hover:text-emerald-700 font-bold underline underline-offset-2 cursor-pointer"
+                >
+                  Saya Petugas / Admin DKPP
+                </button>
+              </div>
+
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Dengan masuk, Anda menyetujui nama &amp; Gmail Anda ditampilkan sebagai pengirim data lapangan. Kata sandi Google tidak pernah disimpan oleh aplikasi ini.
+              </p>
+            </div>
+          </div>
+        ) : !canOperateCamera ? (
+          <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#FFFBEA] via-[#F3FAE8] to-[#E3F5EA] text-center relative overflow-y-auto">
+            <div className="max-w-md w-full bg-white/90 border border-emerald-100 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-5 my-auto">
               
               {/* Security Shield Icon */}
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/35 flex items-center justify-center text-amber-400 mx-auto shadow-inner">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 mx-auto shadow-inner">
                 <ShieldAlert className="w-8 h-8" />
               </div>
 
               <div className="space-y-1.5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-300">
                   <Lock className="w-2.5 h-2.5" /> Tata Kelola Data • Akses Terbatas
                 </span>
-                <h3 className="text-lg font-black text-white uppercase tracking-wide">
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
                   Khusus Petugas & Admin DKPP
                 </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Modul Kamera Cerdas merupakan instrumen pengumpulan data primer lapangan untuk verifikasi pasokan beras dan tanaman pangan. Untuk menjaga integritas data statistik daerah, fitur perekaman foto dan AI Vision saat ini <strong>hanya dapat dioperasikan oleh Surveyor / Petugas Resmi DKPP Kota Cilegon</strong>.
                 </p>
               </div>
 
               {/* Scope Matrix */}
-              <div className="bg-slate-950/70 rounded-2xl p-4 border border-slate-800/80 text-left space-y-2.5 text-xs">
-                <div className="flex items-center justify-between text-slate-300">
+              <div className="bg-[#F5FAF2]/70 rounded-2xl p-4 border border-emerald-100 text-left space-y-2.5 text-xs">
+                <div className="flex items-center justify-between text-slate-600">
                   <span className="flex items-center gap-2">
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <Camera className="w-3.5 h-3.5 text-amber-700" />
                     <span>Ambil Foto & AI Vision Lapangan</span>
                   </span>
-                  <span className="text-[9.5px] font-black text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">KHUSUS ADMIN</span>
+                  <span className="text-[9.5px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">KHUSUS ADMIN</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-300 border-t border-slate-800/60 pt-2.5">
+                <div className="flex items-center justify-between text-slate-600 border-t border-emerald-100 pt-2.5">
                   <span className="flex items-center gap-2">
-                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Peta Sebaran Spasial Lapangan</span>
                   </span>
-                  <span className="text-[9.5px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">PUBLIK (TERBUKA)</span>
+                  <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">PUBLIK (TERBUKA)</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-300 border-t border-slate-800/60 pt-2.5">
+                <div className="flex items-center justify-between text-slate-600 border-t border-emerald-100 pt-2.5">
                   <span className="flex items-center gap-2">
-                    <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Dashboard Agregasi Data Pangan</span>
                   </span>
-                  <span className="text-[9.5px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">PUBLIK (TERBUKA)</span>
+                  <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">PUBLIK (TERBUKA)</span>
                 </div>
               </div>
 
@@ -726,23 +949,23 @@ export default function KameraCerdasView({
                 <button
                   type="button"
                   onClick={() => setActiveTab('map')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-slate-600 hover:text-emerald-800 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Lihat Peta Lapangan ({observasiList.length} Observasi)</span>
                 </button>
               </div>
 
               <div className="text-[10px] text-slate-500 pt-1">
-                Atau login melalui <a href="/entry" className="text-emerald-400 hover:underline font-bold">Portal Admin Utama</a>
+                Atau login melalui <a href="/entry" className="text-emerald-700 hover:underline font-bold">Portal Admin Utama</a>
               </div>
             </div>
           </div>
         ) : (
-        <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-black overflow-hidden">
+        <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-[#EAF5E4] overflow-hidden">
           
           {/* Live Video Stream Viewport */}
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black">
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#EAF5E4]">
             <video
               ref={videoRef}
               playsInline
@@ -752,9 +975,9 @@ export default function KameraCerdasView({
             />
 
             {!isCameraActive && (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 max-w-sm z-10">
+              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500 max-w-sm z-10">
                 <Camera className="w-12 h-12 text-slate-600 mb-3 animate-pulse" />
-                <p className="text-sm font-bold text-slate-300 mb-1">
+                <p className="text-sm font-bold text-slate-600 mb-1">
                   {cameraError || 'Menghubungkan ke kamera smartphone...'}
                 </p>
                 <p className="text-xs text-slate-500 mb-4">
@@ -780,10 +1003,10 @@ export default function KameraCerdasView({
             {/* GPS Indicator Badge */}
             <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold shadow-lg flex items-center gap-2 transition-all ${
               gpsStatus === 'active'
-                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                 : gpsStatus === 'searching'
-                ? 'bg-amber-950/80 border-amber-500/50 text-amber-300 animate-pulse'
-                : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
+                ? 'bg-amber-50 border-amber-300 text-amber-700 animate-pulse'
+                : 'bg-rose-50 border-rose-300 text-rose-700'
             }`}>
               <span className={`w-2 h-2 rounded-full ${
                 gpsStatus === 'active' ? 'bg-emerald-400 animate-ping' : gpsStatus === 'searching' ? 'bg-amber-400' : 'bg-rose-500'
@@ -801,7 +1024,7 @@ export default function KameraCerdasView({
             {/* Flip Camera Button */}
             <button
               onClick={toggleCameraFacing}
-              className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg hover:bg-black/80 transition-all active:scale-95 cursor-pointer"
+              className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-95 cursor-pointer"
               title="Putar Kamera (Depan / Belakang)"
             >
               <SwitchCamera className="w-4 h-4" />
@@ -810,29 +1033,29 @@ export default function KameraCerdasView({
 
           {/* Floating Analyzing Loader */}
           {isAnalyzing && (
-            <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mb-4 shadow-xl">
+            <div className="absolute inset-0 z-40 bg-white/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 mb-4 shadow-xl">
                 <Sparkles className="w-8 h-8 animate-spin" />
               </div>
-              <h3 className="text-base font-black text-white mb-1">Menganalisis dengan AI Vision...</h3>
-              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+              <h3 className="text-base font-black text-slate-900 mb-1">Menganalisis dengan AI Vision...</h3>
+              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
                 Mengidentifikasi {mode === 'pasokan_beras' ? 'sarana distribusi beras & estimasi karung' : 'tanaman pangan & estimasi produksi normatif'}
               </p>
             </div>
           )}
 
           {/* ── Bottom Controls Bar ── */}
-          <div className="relative z-20 w-full p-5 bg-gradient-to-t from-black via-black/85 to-transparent flex flex-col items-center gap-4">
+          <div className="relative z-20 w-full p-5 bg-gradient-to-t from-[#F5FAF2] via-[#F5FAF2]/90 to-transparent flex flex-col items-center gap-4">
             
             {/* Mode Switcher Pill */}
-            <div className="flex bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl border border-slate-700/80 shadow-2xl text-xs font-black">
+            <div className="flex bg-white/90 backdrop-blur-md p-1 rounded-2xl border border-emerald-200 shadow-2xl text-xs font-black">
               <button
                 type="button"
                 onClick={() => setMode('pasokan_beras')}
                 className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                   mode === 'pasokan_beras'
                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-900/40'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-500 hover:text-emerald-800'
                 }`}
               >
                 <Store className="w-4 h-4" />
@@ -845,7 +1068,7 @@ export default function KameraCerdasView({
                 className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                   mode === 'tanaman_pangan'
                     ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-900/40'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-500 hover:text-emerald-800'
                 }`}
               >
                 <Trees className="w-4 h-4" />
@@ -860,7 +1083,7 @@ export default function KameraCerdasView({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                className="w-12 h-12 rounded-full bg-emerald-50/90 border border-emerald-200 text-slate-600 hover:text-emerald-800 flex items-center justify-center shadow-lg hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
                 title="Pilih Foto dari Galeri"
               >
                 <ImageIcon className="w-5 h-5" />
@@ -878,11 +1101,11 @@ export default function KameraCerdasView({
                 type="button"
                 onClick={handleCapturePhoto}
                 disabled={!isCameraActive || isAnalyzing}
-                className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-transparent p-1 active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.4)] disabled:opacity-40 cursor-pointer"
+                className="w-20 h-20 rounded-full border-4 border-emerald-600 flex items-center justify-center bg-white/70 p-1 active:scale-90 transition-transform shadow-[0_6px_22px_rgba(5,150,105,0.45)] disabled:opacity-40 cursor-pointer"
                 title="Ambil Foto"
               >
-                <div className="w-full h-full rounded-full bg-white hover:bg-emerald-400 transition-colors shadow-inner flex items-center justify-center text-slate-900">
-                  <Camera className="w-6 h-6 text-slate-900" />
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-lime-500 hover:from-emerald-400 hover:to-lime-400 transition-colors shadow-inner flex items-center justify-center text-white">
+                  <Camera className="w-6 h-6 text-white" />
                 </div>
               </button>
 
@@ -890,14 +1113,14 @@ export default function KameraCerdasView({
               <button
                 type="button"
                 onClick={() => setActiveTab('map')}
-                className="w-12 h-12 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center shadow-lg hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                className="w-12 h-12 rounded-full bg-emerald-50/90 border border-emerald-200 text-slate-600 hover:text-emerald-800 flex items-center justify-center shadow-lg hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
                 title="Lihat Peta Hasil Observasi"
               >
-                <Layers className="w-5 h-5 text-emerald-400" />
+                <Layers className="w-5 h-5 text-emerald-700" />
               </button>
             </div>
 
-            <p className="text-[10px] text-slate-400 font-medium drop-shadow-md">
+            <p className="text-[10px] text-slate-500 font-medium drop-shadow-md">
               Foto otomatis diberi watermark GPS & dikompresi &lt; 1 MB
             </p>
           </div>
@@ -922,6 +1145,18 @@ export default function KameraCerdasView({
       {activeTab === 'analytics' && (
         <div className="flex-1 w-full h-full relative">
           <KameraAgregasiDashboard observasiList={observasiList} focusSection={focusSection} />
+        </div>
+      )}
+
+      {/* ── Tab 4: Peta 3D Arus Pasokan & Distribusi Beras ── */}
+      {activeTab === 'arus' && (
+        <div className="flex-1 w-full h-full relative min-h-[420px]">
+          <ArusPasokanMap
+            observasiList={observasiList}
+            loaded={observasiLoaded}
+            error={observasiError}
+            onRefresh={loadObservasi}
+          />
         </div>
       )}
 
@@ -971,54 +1206,54 @@ export default function KameraCerdasView({
 
       {/* ── Modal Login Petugas / Admin (DKPP Governance) ── */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-100 relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-emerald-400">
+              <div className="flex items-center gap-2 text-emerald-700">
                 <ShieldCheck className="w-5 h-5" />
-                <h3 className="font-extrabold text-sm uppercase tracking-wide text-white">Login Petugas DKPP</h3>
+                <h3 className="font-extrabold text-sm uppercase tracking-wide text-slate-900">Login Petugas DKPP</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowLoginModal(false)}
-                className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
+                className="text-slate-500 hover:text-emerald-800 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
               Gunakan akun resmi administrator / petugas DKPP Kota Cilegon untuk membuka modul perekaman Kamera Cerdas.
             </p>
 
             {loginError && (
-              <div className="mb-4 p-3 bg-rose-950/60 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-semibold">
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-xs font-semibold">
                 {loginError}
               </div>
             )}
 
             <form onSubmit={handleLoginAdmin} className="space-y-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Email Petugas</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Email Petugas</label>
                 <input
                   type="email"
                   required
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   placeholder="admin@cilegon.go.id"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+                  className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Kata Sandi</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Kata Sandi</label>
                 <input
                   type="password"
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+                  className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
 

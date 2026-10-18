@@ -49,7 +49,27 @@ export interface ObservasiRecord {
   // Meta
   catatan_lapangan?: string;
   petugas_nama?: string;
+  /** Gmail enumerator / email petugas pengirim (diisi server dari token autentikasi). */
+  petugas_email?: string;
   status_verifikasi?: string;
+}
+
+/**
+ * Verifikasi identitas pengirim dari header `Authorization: Bearer <access_token>`.
+ * Mengembalikan null bila token tidak ada / tidak valid.
+ * - provider `google`  → Enumerator publik (login Gmail)
+ * - provider lain      → Petugas / Admin DKPP (login email & kata sandi)
+ */
+async function verifikasiPengirim(request: Request): Promise<{ nama: string; email: string; peran: 'enumerator' | 'petugas' } | null> {
+  const auth = request.headers.get('authorization') || '';
+  const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  if (!token) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  const user = data?.user;
+  if (error || !user?.email) return null;
+  const meta = (user.user_metadata || {}) as Record<string, unknown>;
+  const nama = String(meta.full_name || meta.name || user.email.split('@')[0]);
+  return { nama, email: user.email, peran: user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas' };
 }
 
 export async function GET(request: Request) {
@@ -104,20 +124,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Field mode, koordinat GPS (lat, lng), dan foto wajib diisi' }, { status: 400 });
     }
 
+    // Identitas pengirim wajib terautentikasi (Google untuk enumerator / email-sandi untuk petugas)
+    const pengirim = await verifikasiPengirim(request);
+    if (!pengirim) {
+      return NextResponse.json({ error: 'Autentikasi diperlukan. Silakan masuk dengan akun Google (Gmail) untuk mengirim data Kamera Cerdas.' }, { status: 401 });
+    }
+
     const payload: ObservasiRecord = {
       ...body,
       id: body.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : undefined),
       created_at: body.created_at || new Date().toISOString(),
       kota: body.kota || 'Kota Cilegon',
-      status_verifikasi: body.status_verifikasi || 'TERVERIFIKASI_ADMIN',
-      petugas_nama: body.petugas_nama || 'Admin DKPP Cilegon'
+      // Status & identitas ditetapkan server — klien tidak dapat memalsukan peran/email
+      status_verifikasi: pengirim.peran === 'petugas' ? 'TERVERIFIKASI_ADMIN' : 'terverifikasi_pengguna',
+      petugas_nama: pengirim.nama,
+      petugas_email: pengirim.email,
+      foto_watermark_meta: {
+        ...(body.foto_watermark_meta || {}),
+        enumerator_nama: pengirim.nama,
+        enumerator_email: pengirim.email,
+        enumerator_peran: pengirim.peran
+      }
     };
 
     // 1. Simpan ke tabel kamera_cerdas_observasi
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('kamera_cerdas_observasi')
       .insert([payload])
       .select();
+
+    // Kolom petugas_email belum dimigrasi? Ulangi tanpa kolom tsb (email tetap ada di foto_watermark_meta)
+    if (error && /petugas_email/i.test(error.message || '')) {
+      const { petugas_email: _omit, ...tanpaEmail } = payload;
+      void _omit;
+      ({ data, error } = await supabase
+        .from('kamera_cerdas_observasi')
+        .insert([tanpaEmail])
+        .select());
+    }
 
     if (!error && data) {
       return NextResponse.json({ success: true, data: data[0] });

@@ -8,7 +8,7 @@ interface GuidanceOverlayProps {
 
 export default function GuidanceOverlay({ mode }: GuidanceOverlayProps) {
   return (
-    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-between p-6">
+    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-between px-6 pb-44 pt-16">
       {/* Top Guidance Header */}
       <div className="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white text-[11px] font-bold shadow-lg text-center animate-in fade-in duration-300">
         {mode === 'pasokan_beras' ? (
@@ -19,7 +19,7 @@ export default function GuidanceOverlay({ mode }: GuidanceOverlayProps) {
       </div>
 
       {/* Center Framing Viewfinder */}
-      <div className="relative w-[82%] max-w-[340px] aspect-[4/5] rounded-2xl border-2 border-dashed border-white/60 flex flex-col items-center justify-between p-4 shadow-[0_0_0_9999px_rgba(0,0,0,0.25)]">
+      <div className="relative w-[78%] max-w-[320px] flex-1 my-3 max-h-[420px] rounded-2xl border-2 border-dashed border-white/70 flex flex-col items-center justify-between p-4 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)]">
         {/* Corner Reticles */}
         <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
         <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
