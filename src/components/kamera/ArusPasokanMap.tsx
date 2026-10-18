@@ -31,45 +31,47 @@ const C_NETRAL: RGB = [150, 172, 192]; // abu kebiruan — belum tervalidasi
 const C_SARANA: RGB = [255, 196, 64];
 const C_HUB: RGB = [190, 255, 246];
 
-/** Blending aditif agar tumpukan lapisan garis terlihat seperti cahaya neon. */
-const ADITIF = {
-  blend: true,
-  blendColorOperation: 'add',
-  blendColorSrcFactor: 'src-alpha',
-  blendColorDstFactor: 'one',
-  blendAlphaOperation: 'add',
-  blendAlphaSrcFactor: 'one',
-  blendAlphaDstFactor: 'one-minus-src-alpha',
-  depthWriteEnabled: false,
-} as const;
-
-const STYLE: maplibregl.StyleSpecification = {
+const STYLE_DARK: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
-    citra: {
+    carto: {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap, © CARTO',
+    },
+  },
+  layers: [
+    { id: 'latar', type: 'background', paint: { 'background-color': '#061325' } },
+    { id: 'carto', type: 'raster', source: 'carto' },
+  ],
+};
+
+const STYLE_SATELLITE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    esri: {
       type: 'raster',
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
       tileSize: 256,
-      maxzoom: 17,
-      attribution: 'Citra: Esri, Maxar, Earthstar Geographics',
+      attribution: '© Esri, Maxar',
     },
     label: {
       type: 'raster',
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
       tileSize: 256,
-      maxzoom: 12,
-      attribution: 'Label: Esri',
+      attribution: '© Esri',
     },
   },
   layers: [
     { id: 'latar', type: 'background', paint: { 'background-color': '#04101f' } },
-    {
-      id: 'citra',
-      type: 'raster',
-      source: 'citra',
-      paint: { 'raster-brightness-max': 0.62, 'raster-brightness-min': 0.02, 'raster-saturation': -0.15, 'raster-contrast': 0.18 },
-    },
-    { id: 'label', type: 'raster', source: 'label', paint: { 'raster-opacity': 0.75 } },
+    { id: 'esri', type: 'raster', source: 'esri' },
+    { id: 'label', type: 'raster', source: 'label' },
   ],
 };
 
@@ -152,8 +154,7 @@ function buatLayers(c: Ctx, t: number): Layer[] {
       getPosition: (d) => pos3(d.pos),
       getRadius: 15,
       radiusUnits: 'pixels',
-      getFillColor: [...C_SARANA, 70] as RGBA,
-      parameters: ADITIF,
+      getFillColor: [...C_SARANA, 160] as RGBA,
     }));
     L.push(new ScatterplotLayer<SaranaPoint>({
       id: 'sarana-core',
@@ -189,18 +190,16 @@ function buatLayers(c: Ctx, t: number): Layer[] {
       getWidth: (d) => lebarBusur(d.volumeKg, c.maxKg) * 5.5 * sel(d),
       getSourceColor: (d) => [...warna(d), 6] as RGBA,
       getTargetColor: (d) => [...warna(d), 40] as RGBA,
-      opacity: 0.55 + 0.35 * napas,
-      parameters: ADITIF,
+      opacity: 0.75 + 0.25 * napas,
       updateTriggers: { getWidth: [c.maxKg, c.flowTerpilih] },
     }));
     L.push(new ArcLayer<ArusFlow>({
       ...arcBase,
       id: 'arc-halo-tengah',
       getWidth: (d) => lebarBusur(d.volumeKg, c.maxKg) * 2.6 * sel(d),
-      getSourceColor: (d) => [...warna(d), 22] as RGBA,
-      getTargetColor: (d) => [...warna(d), 120] as RGBA,
-      opacity: 0.65 + 0.3 * napas,
-      parameters: ADITIF,
+      getSourceColor: (d) => [...warna(d), 70] as RGBA,
+      getTargetColor: (d) => [...warna(d), 180] as RGBA,
+      opacity: 0.8 + 0.2 * napas,
       updateTriggers: { getWidth: [c.maxKg, c.flowTerpilih] },
     }));
     L.push(new ArcLayer<ArusFlow>({
@@ -237,7 +236,6 @@ function buatLayers(c: Ctx, t: number): Layer[] {
         getRadius: (d) => d.r,
         radiusUnits: 'pixels',
         getFillColor: (d) => [225, 255, 255, d.a] as RGBA,
-        parameters: ADITIF,
       }));
     }
 
@@ -248,8 +246,7 @@ function buatLayers(c: Ctx, t: number): Layer[] {
       getPosition: (d) => pos3(d.sumber),
       getRadius: (d) => 11 + 9 * Math.sqrt(d.volumeKg / (c.maxKg || 1)),
       radiusUnits: 'pixels',
-      getFillColor: (d) => [...warna(d), 80] as RGBA,
-      parameters: ADITIF,
+      getFillColor: (d) => [...warna(d), 140] as RGBA,
     }));
     L.push(new ScatterplotLayer<ArusFlow>({
       id: 'asal-inti',
@@ -279,7 +276,6 @@ function buatLayers(c: Ctx, t: number): Layer[] {
     getLineColor: (d) => [...C_HUB, Math.round(210 * (1 - d.phase))] as RGBA,
     getLineWidth: 2,
     lineWidthUnits: 'pixels',
-    parameters: ADITIF,
     updateTriggers: { getRadius: [t], getLineColor: [t] },
   }));
   L.push(new ScatterplotLayer<{ k: number }>({
@@ -288,8 +284,7 @@ function buatLayers(c: Ctx, t: number): Layer[] {
     getPosition: () => pos3(c.hub),
     getRadius: 22,
     radiusUnits: 'pixels',
-    getFillColor: [...C_HUB, 85] as RGBA,
-    parameters: ADITIF,
+    getFillColor: [...C_HUB, 130] as RGBA,
   }));
   L.push(new ScatterplotLayer<{ k: number }>({
     id: 'hub-inti',
@@ -370,6 +365,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
   // Filter & tampilan
   const [filter, setFilter] = useState<ArusFilter>(FILTER_AWAL);
+  const [basemapMode, setBasemapMode] = useState<'dark' | 'satellite'>('dark');
   const [tampilSarana, setTampilSarana] = useState(true);
   const [tampilLabel, setTampilLabel] = useState(true);
   const [tampilAnim, setTampilAnim] = useState(true);
@@ -379,6 +375,11 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
   const [legendaTerbuka, setLegendaTerbuka] = useState(true);
   const [terpilih, setTerpilih] = useState<Terpilih>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; teks: string } | null>(null);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(basemapMode === 'dark' ? STYLE_DARK : STYLE_SATELLITE);
+  }, [basemapMode]);
 
   // Default responsif: panel dilipat di layar kecil; animasi mati bila perangkat lemah / reduce-motion
   useEffect(() => {
@@ -507,7 +508,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: STYLE,
+        style: STYLE_DARK,
         center: CILEGON_HUB,
         zoom: 9.6,
         pitch: 55,
@@ -524,20 +525,38 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
-    const overlay = new MapboxOverlay({
-      interleaved: false,
-      layers: [],
-      pickingRadius: 8,
-      getCursor: ({ isHovering, isDragging }: { isHovering: boolean; isDragging: boolean }) => (isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab'),
-      onClick: (info: PickingInfo) => handlerRef.current.klik(info),
-      onHover: (info: PickingInfo) => handlerRef.current.hover(info),
-    });
-    overlayRef.current = overlay;
-    map.addControl(overlay as unknown as maplibregl.IControl);
+    try {
+      const overlay = new MapboxOverlay({
+        interleaved: false,
+        layers: [],
+        pickingRadius: 8,
+        getCursor: ({ isHovering, isDragging }: { isHovering: boolean; isDragging: boolean }) => (isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab'),
+        onClick: (info: PickingInfo) => handlerRef.current.klik(info),
+        onHover: (info: PickingInfo) => handlerRef.current.hover(info),
+      });
+      overlayRef.current = overlay;
+      map.addControl(overlay as unknown as maplibregl.IControl);
+    } catch (overlayErr) {
+      console.warn('[ArusPasokan] Overlay warning:', overlayErr);
+    }
 
-    map.on('load', () => setMapReady(true));
+    const onReady = () => {
+      setMapReady(true);
+      setTimeout(() => map.resize(), 60);
+      setTimeout(() => map.resize(), 300);
+      setTimeout(() => map.resize(), 800);
+    };
+
+    if (map.isStyleLoaded()) {
+      onReady();
+    } else {
+      map.once('load', onReady);
+      map.once('styledata', () => {
+        onReady();
+      });
+    }
+
     map.on('error', (e) => {
-      // Kegagalan tile tidak fatal; hanya catat
       console.warn('[ArusPasokan] map warning:', e?.error?.message || e);
     });
 
@@ -546,11 +565,13 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
     return () => {
       ro.disconnect();
-      overlayRef.current = null;
-      try {
-        map.removeControl(overlay as unknown as maplibregl.IControl);
-        overlay.finalize();
-      } catch { /* sudah dibersihkan */ }
+      if (overlayRef.current) {
+        try {
+          map.removeControl(overlayRef.current as unknown as maplibregl.IControl);
+          overlayRef.current.finalize();
+        } catch { /* sudah dibersihkan */ }
+        overlayRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -660,6 +681,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
 
         <div className={`${glass} rounded-xl p-1.5 pointer-events-auto flex items-center gap-1`}>
+          <Toggle aktif={basemapMode === 'satellite'} onClick={() => setBasemapMode((m) => (m === 'dark' ? 'satellite' : 'dark'))} label={basemapMode === 'satellite' ? 'Satelit' : 'Dark'} ikon={<span className="text-[10px] font-black leading-none">{basemapMode === 'satellite' ? '🛰️' : '🌙'}</span>} />
           <Toggle aktif={tampilSarana} onClick={() => setTampilSarana((v) => !v)} label="Titik sarana" ikon={<Store className="w-3.5 h-3.5" />} />
           <Toggle aktif={tampilLabel} onClick={() => setTampilLabel((v) => !v)} label="Label" ikon={tampilLabel ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />} />
           <Toggle aktif={tampilAnim} onClick={() => setTampilAnim((v) => !v)} label="Animasi" ikon={<Activity className="w-3.5 h-3.5" />} />

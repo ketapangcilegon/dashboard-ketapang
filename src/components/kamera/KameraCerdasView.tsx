@@ -159,18 +159,45 @@ export default function KameraCerdasView({
     };
   }, []);
 
+  const [manualName, setManualName] = useState<string>('');
+  const [manualEmail, setManualEmail] = useState<string>('');
+
   const handleGoogleLogin = async () => {
     setGoogleError('');
     setIsGoogleRedirecting(true);
     const { error } = await signInWithGoogle();
     if (error) {
-      setGoogleError(error);
+      const errLower = error.toLowerCase();
+      if (errLower.includes('provider is not enabled') || errLower.includes('validation_failed')) {
+        setGoogleError('Login Google belum diaktifkan di Supabase Dashboard (Auth > Providers > Google). Silakan gunakan formulir manual di bawah ini untuk mengisi Nama & Gmail Anda.');
+      } else {
+        setGoogleError(error);
+      }
       setIsGoogleRedirecting(false);
     }
   };
 
+  const handleSaveManualEnumerator = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualEmail.trim() || !manualName.trim()) return;
+    const profile: EnumeratorProfile = {
+      id: 'enum-' + Date.now(),
+      email: manualEmail.trim().toLowerCase(),
+      nama: manualName.trim(),
+      avatarUrl: undefined
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ketapang-enumerator-auth', JSON.stringify({ profile, user: null }));
+    }
+    setEnumerator(profile);
+    setShowEnumeratorModal(false);
+  };
+
   const handleEnumeratorLogout = async () => {
     await signOutEnumerator();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ketapang-enumerator-auth');
+    }
     setEnumerator(null);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
@@ -620,18 +647,27 @@ export default function KameraCerdasView({
     setIsSaving(true);
     try {
       const token = await getAuthToken();
-      if (!token) {
-        alert('Sesi masuk tidak ditemukan atau sudah berakhir. Silakan masuk kembali dengan akun Google (Gmail) Anda.');
+      if (!token && !enumerator?.email && !isAdmin) {
+        setShowEnumeratorModal(true);
+        setIsSaving(false);
         return;
       }
 
-      // Nama, Gmail, peran & status verifikasi ditetapkan server dari token — bukan dari klien
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (enumerator?.email) {
+        headers['x-enumerator-email'] = enumerator.email;
+        headers['x-enumerator-name'] = enumerator.nama || '';
+      }
+
+      // Nama, Gmail, peran & status verifikasi ditetapkan server dari token / header enumerator
       const res = await fetch('/api/kamera-cerdas/observasi', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify(finalData)
       });
 
@@ -1190,12 +1226,13 @@ export default function KameraCerdasView({
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-              Untuk menjaga validitas data lapangan, pengguna yang mengambil dan mensubmit foto pasokan beras/tanaman pangan wajib masuk dengan akun <strong>Google (Gmail)</strong>. Nama dan alamat Gmail Anda akan ditampilkan pada daftar kontributor data.
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              Untuk validitas data pangan Kota Cilegon, silakan hubungkan akun Google (Gmail) atau isi nama & email enumerator Anda secara langsung.
             </p>
 
             {googleError && (
-              <div className="mb-4 p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-[11px] font-semibold">
+              <div className="mb-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-800 text-[11px] leading-relaxed">
+                <span className="font-bold block mb-1">Catatan Supabase Auth:</span>
                 {googleError}
               </div>
             )}
@@ -1204,22 +1241,55 @@ export default function KameraCerdasView({
               type="button"
               onClick={handleGoogleLogin}
               disabled={isGoogleRedirecting}
-              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 font-black text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98] disabled:opacity-60 mb-3"
+              className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 font-black text-xs shadow-sm transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.98] disabled:opacity-60 mb-3"
             >
               {isGoogleRedirecting ? (
-                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
               ) : (
-                <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
+                <svg viewBox="0 0 48 48" className="w-4 h-4" aria-hidden="true">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
                   <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
                   <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
                   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                 </svg>
               )}
-              <span>{isGoogleRedirecting ? 'Mengalihkan ke Google...' : 'Masuk dengan Google (Gmail)'}</span>
+              <span>{isGoogleRedirecting ? 'Menghubungkan...' : 'Masuk dengan Akun Google'}</span>
             </button>
 
-            <div className="flex items-center justify-between pt-2 border-t border-emerald-100 text-[11px]">
+            {/* Alternatif: Masukkan Nama & Gmail Langsung */}
+            <div className="pt-3 border-t border-emerald-100">
+              <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                <span>Atau Masukkan Identitas Langsung:</span>
+                <span className="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-black">CROWDSOURCING</span>
+              </div>
+              <form onSubmit={handleSaveManualEnumerator} className="space-y-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Lengkap Enumerator"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="w-full bg-emerald-50/70 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
+                />
+                <input
+                  type="email"
+                  required
+                  placeholder="alamat.gmail@gmail.com"
+                  value={manualEmail}
+                  onChange={(e) => setManualEmail(e.target.value)}
+                  className="w-full bg-emerald-50/70 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Gunakan Identitas & Lanjutkan</span>
+                </button>
+              </form>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 mt-3 border-t border-emerald-100 text-[11px]">
               <button
                 type="button"
                 onClick={() => {

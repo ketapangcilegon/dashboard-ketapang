@@ -63,13 +63,32 @@ export interface ObservasiRecord {
 async function verifikasiPengirim(request: Request): Promise<{ nama: string; email: string; peran: 'enumerator' | 'petugas' } | null> {
   const auth = request.headers.get('authorization') || '';
   const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
-  if (!token) return null;
-  const { data, error } = await supabase.auth.getUser(token);
-  const user = data?.user;
-  if (error || !user?.email) return null;
-  const meta = (user.user_metadata || {}) as Record<string, unknown>;
-  const nama = String(meta.full_name || meta.name || user.email.split('@')[0]);
-  return { nama, email: user.email, peran: user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas' };
+  if (token) {
+    try {
+      const { data, error } = await supabase.auth.getUser(token);
+      const user = data?.user;
+      if (!error && user?.email) {
+        const meta = (user.user_metadata || {}) as Record<string, unknown>;
+        const nama = String(meta.full_name || meta.name || user.email.split('@')[0]);
+        return { nama, email: user.email, peran: user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas' };
+      }
+    } catch {
+      // lanjut ke fallback
+    }
+  }
+
+  // Fallback enumerator crowdsourcing teridentifikasi jika Google OAuth belum dikonfigurasi di Supabase Console
+  const enumEmail = request.headers.get('x-enumerator-email') || '';
+  const enumName = request.headers.get('x-enumerator-name') || '';
+  if (enumEmail && enumEmail.includes('@')) {
+    return {
+      nama: enumName.trim() || enumEmail.split('@')[0],
+      email: enumEmail.trim().toLowerCase(),
+      peran: 'enumerator'
+    };
+  }
+
+  return null;
 }
 
 import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
