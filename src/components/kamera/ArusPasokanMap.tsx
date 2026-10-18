@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Activity, ChevronDown, ChevronUp, Compass, Eye, EyeOff, Filter, Info, Loader2, Mail,
-  RefreshCw, RotateCcw, Store, Truck, X, AlertTriangle, ArrowDownToLine, ArrowUpFromLine
+  RefreshCw, RotateCcw, Store, Truck, X, AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Plus, Minus
 } from 'lucide-react';
 import type { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
@@ -169,7 +169,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
   // Filter & tampilan
   const [filter, setFilter] = useState<ArusFilter>(FILTER_AWAL);
-  const [basemapMode, setBasemapMode] = useState<'dark' | 'satellite'>('dark');
+  const [basemapMode, setBasemapMode] = useState<'dark' | 'satellite'>('satellite');
   const [tampilSarana, setTampilSarana] = useState(true);
   const [tampilLabel, setTampilLabel] = useState(true);
   const [tampilAnim, setTampilAnim] = useState(true);
@@ -470,11 +470,29 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <Filter className="w-3.5 h-3.5" />
             <span>Filter{filterAktif ? ' •' : ''}</span>
           </button>
-          <button type="button" onClick={fitKamera} title="Reset tampilan kamera" aria-label="Reset tampilan kamera" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 cursor-pointer`}>
+          <button type="button" onClick={fitKamera} title="Reset tampilan kamera" aria-label="Reset tampilan kamera" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 cursor-pointer transition-all`}>
             <Compass className="w-4 h-4" />
           </button>
+          <button
+            type="button"
+            onClick={() => mapInstanceRef.current?.zoomIn()}
+            title="Perbesar Peta (Zoom In)"
+            aria-label="Perbesar peta"
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 cursor-pointer transition-all`}
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapInstanceRef.current?.zoomOut()}
+            title="Perkecil Peta (Zoom Out)"
+            aria-label="Perkecil peta"
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 cursor-pointer transition-all`}
+          >
+            <Minus className="w-4 h-4 stroke-[2.5]" />
+          </button>
           {onRefresh && (
-            <button type="button" onClick={onRefresh} title="Muat ulang data" aria-label="Muat ulang data" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 cursor-pointer`}>
+            <button type="button" onClick={onRefresh} title="Muat ulang data" aria-label="Muat ulang data" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white cursor-pointer`}>
               <RefreshCw className="w-4 h-4" />
             </button>
           )}
@@ -598,6 +616,28 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
           <button type="button" onClick={() => setFilter(FILTER_AWAL)} className="px-3 py-1 rounded-lg text-[11px] font-black bg-cyan-400 text-[#04101f] cursor-pointer">Atur Ulang Filter</button>
         </div>
       )}
+
+      {/* ── Floating Zoom Controls (Kanan Bawah) ── */}
+      <div className="absolute right-3.5 bottom-6 z-10 hidden sm:flex flex-col gap-1.5 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => mapInstanceRef.current?.zoomIn()}
+          title="Perbesar Peta (Zoom In)"
+          aria-label="Perbesar peta"
+          className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-xl cursor-pointer transition-all`}
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => mapInstanceRef.current?.zoomOut()}
+          title="Perkecil Peta (Zoom Out)"
+          aria-label="Perkecil peta"
+          className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-xl cursor-pointer transition-all`}
+        >
+          <Minus className="w-4 h-4 stroke-[2.5]" />
+        </button>
+      </div>
     </div>
   );
 }
