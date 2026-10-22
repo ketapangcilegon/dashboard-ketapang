@@ -5,6 +5,12 @@ import { useState, useEffect } from 'react';
 import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
 import { FULL_VERSION } from '@/lib/version';
+import { supabase } from '@/lib/supabase';
+
+const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
 
 interface NavbarProps {
   selectedKecamatan?: string;
@@ -15,6 +21,8 @@ interface NavbarProps {
   setSelectedYear?: (year: number) => void;
   selectedMonth?: number;
   setSelectedMonth?: (month: number) => void;
+  skpgLatestMonth?: number;
+  skpgLatestYear?: number;
   onMenuClick?: () => void;
 }
 
@@ -27,9 +35,58 @@ export default function Navbar({
   setSelectedYear = () => {},
   selectedMonth = 5,
   setSelectedMonth = () => {},
+  skpgLatestMonth,
+  skpgLatestYear,
   onMenuClick = () => {},
 }: NavbarProps) {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [skpgPeriod, setSkpgPeriod] = useState<{ tahun: number; bulan: number }>({
+    tahun: skpgLatestYear || 2026,
+    bulan: skpgLatestMonth || 8,
+  });
+
+  useEffect(() => {
+    if (skpgLatestYear && skpgLatestMonth) {
+      setSkpgPeriod({ tahun: skpgLatestYear, bulan: skpgLatestMonth });
+    }
+
+    // Ambil data periode SKPG terbaru yang lengkap dari database
+    const fetchLatestSkpg = async () => {
+      try {
+        const { data } = await supabase
+          .from('gizi_balita_skpg_kelurahan')
+          .select('tahun, bulan')
+          .gt('total_balita', 0)
+          .order('tahun', { ascending: false })
+          .order('bulan', { ascending: false })
+          .limit(1);
+
+        if (data && data.length > 0) {
+          setSkpgPeriod({ tahun: data[0].tahun, bulan: data[0].bulan });
+        }
+      } catch (err) {
+        console.warn('Gagal memuat periode SKPG di Navbar:', err);
+      }
+    };
+
+    fetchLatestSkpg();
+
+    // Event listener sinkronisasi ketika filter di panel Analisis SKPG diubah
+    const handleSkpgPeriodChange = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt?.detail?.tahun && customEvt?.detail?.bulan) {
+        setSkpgPeriod({
+          tahun: customEvt.detail.tahun,
+          bulan: customEvt.detail.bulan,
+        });
+      }
+    };
+
+    window.addEventListener('skpg_period_updated', handleSkpgPeriodChange);
+    return () => window.removeEventListener('skpg_period_updated', handleSkpgPeriodChange);
+  }, [skpgLatestYear, skpgLatestMonth]);
+
+  const skpgText = `${MONTH_NAMES[skpgPeriod.bulan - 1] || `Bulan ${skpgPeriod.bulan}`} ${skpgPeriod.tahun}`;
 
   useEffect(() => {
     const checkAuth = () => {
@@ -86,7 +143,7 @@ export default function Navbar({
           <div>Harga Pangan: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
           <div>KPI: <span className="text-white">Tahun 2025</span></div>
           <div>Baseline FSVA: <span className="text-white">Tahun 2025</span></div>
-          <div>Baseline SKPG: <span className="text-white">Februari 2026</span></div>
+          <div>Baseline SKPG: <span className="text-white">{skpgText}</span></div>
         </div>
 
         <div className="h-8 w-px bg-white/20 mx-2 hidden md:block"></div>

@@ -302,6 +302,17 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
 
   const isPeriodAvailable = availablePeriods.some(p => p.tahun === selectedYear && p.bulan === selectedMonth);
 
+  // Sinkronisasi dinamis periode SKPG aktif ke Navbar dan komponen global
+  useEffect(() => {
+    if (selectedYear > 0 && selectedMonth > 0 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('skpg_period_updated', {
+          detail: { tahun: selectedYear, bulan: selectedMonth },
+        })
+      );
+    }
+  }, [selectedYear, selectedMonth]);
+
   // Fetch prices and stunting dynamically if user changes date
   useEffect(() => {
     const now = new Date();

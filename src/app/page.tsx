@@ -1645,6 +1645,8 @@ export default function DashboardPage() {
             setSelectedYear={setSelectedYear}
             selectedMonth={selectedMonth}
             setSelectedMonth={setSelectedMonth}
+            skpgLatestMonth={balitaLatestMonth}
+            skpgLatestYear={balitaLatestYear}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
           />
         </div>
