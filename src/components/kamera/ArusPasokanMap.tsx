@@ -583,7 +583,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
       </div>
 
       {/* ── Kiri atas: Judul + KPI Card ── */}
-      <div className="absolute top-3 left-3 right-3 sm:right-auto sm:w-[340px] z-10 pointer-events-none">
+      <div className="absolute top-3 left-3 right-20 sm:right-auto sm:w-[340px] z-10 pointer-events-none">
         <div className={`${glass} rounded-2xl pointer-events-auto overflow-hidden`}>
           <button
             type="button"
@@ -624,49 +624,97 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
       </div>
 
-      {/* ── Kanan atas: Tombol Kontrol & Basemap Switcher ── */}
-      <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-2 pointer-events-none">
-        <div className="flex items-center gap-1.5 pointer-events-auto">
+      {/* ── Kanan: Toolbar Kontrol Vertikal (Filter, Kompas, Zoom In, Zoom Out, Refresh, Sarana, Animasi) ── */}
+      <div className="absolute top-16 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div className="flex flex-col items-end gap-1.5 pointer-events-auto">
+          {/* 1. Filter */}
           <button
             type="button"
             onClick={() => setFilterTerbuka((v) => !v)}
-            className={`${glass} h-9 px-3 rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer ${filterAktif ? 'text-amber-200 border-amber-300/50' : 'text-cyan-100'}`}
+            className={`${glass} h-9 px-2.5 rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-lg transition-all ${
+              filterAktif ? 'text-amber-200 border-amber-300/50 bg-amber-500/10' : 'text-cyan-100 hover:text-white hover:border-cyan-300/50'
+            }`}
             aria-expanded={filterTerbuka}
           >
             <Filter className="w-3.5 h-3.5" />
             <span>Filter{filterAktif ? ' •' : ''}</span>
           </button>
-          <button type="button" onClick={fitKamera} title="Reset tampilan kamera" aria-label="Reset tampilan kamera" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 cursor-pointer transition-all`}>
+
+          {/* 2. Kompas / Reset Kamera */}
+          <button
+            type="button"
+            onClick={fitKamera}
+            title="Reset tampilan kamera"
+            aria-label="Reset tampilan kamera"
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-lg cursor-pointer transition-all`}
+          >
             <Compass className="w-4 h-4" />
           </button>
+
+          {/* 3. Zoom In */}
           <button
             type="button"
             onClick={() => mapInstanceRef.current?.zoomIn()}
             title="Perbesar Peta (Zoom In)"
             aria-label="Perbesar peta"
-            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 cursor-pointer transition-all`}
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-lg cursor-pointer transition-all`}
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
           </button>
+
+          {/* 4. Zoom Out */}
           <button
             type="button"
             onClick={() => mapInstanceRef.current?.zoomOut()}
             title="Perkecil Peta (Zoom Out)"
             aria-label="Perkecil peta"
-            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 cursor-pointer transition-all`}
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-lg cursor-pointer transition-all`}
           >
             <Minus className="w-4 h-4 stroke-[2.5]" />
           </button>
+
+          {/* 5. Refresh */}
           {onRefresh && (
-            <button type="button" onClick={onRefresh} title="Muat ulang data" aria-label="Muat ulang data" className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white cursor-pointer`}>
+            <button
+              type="button"
+              onClick={onRefresh}
+              title="Muat ulang data"
+              aria-label="Muat ulang data"
+              className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-lg cursor-pointer transition-all`}
+            >
               <RefreshCw className="w-4 h-4" />
             </button>
           )}
-        </div>
 
-        <div className={`${glass} rounded-xl p-1.5 pointer-events-auto flex items-center gap-1`}>
-          <Toggle aktif={tampilSarana} onClick={() => setTampilSarana((v) => !v)} label="Titik sarana" ikon={<Store className="w-3.5 h-3.5" />} />
-          <Toggle aktif={tampilAnim} onClick={() => setTampilAnim((v) => !v)} label="Animasi" ikon={<Activity className="w-3.5 h-3.5" />} />
+          {/* 6. Titik Sarana Toggle */}
+          <button
+            type="button"
+            onClick={() => setTampilSarana((v) => !v)}
+            title="Toggle Titik Sarana Toko Beras"
+            aria-label="Toggle Titik Sarana"
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
+              tampilSarana
+                ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-300/60 shadow-[0_0_12px_rgba(34,227,255,0.35)]'
+                : 'text-slate-400 hover:text-slate-200 hover:border-cyan-300/30'
+            }`}
+          >
+            <Store className="w-4 h-4" />
+          </button>
+
+          {/* 7. Animasi Flow Toggle */}
+          <button
+            type="button"
+            onClick={() => setTampilAnim((v) => !v)}
+            title="Toggle Animasi Arus Pasokan"
+            aria-label="Toggle Animasi Arus"
+            className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
+              tampilAnim
+                ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-300/60 shadow-[0_0_12px_rgba(34,227,255,0.35)]'
+                : 'text-slate-400 hover:text-slate-200 hover:border-cyan-300/30'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -782,27 +830,6 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
       )}
 
-      {/* ── Floating Zoom Controls (Kanan Bawah) ── */}
-      <div className="absolute right-3.5 bottom-6 z-10 hidden sm:flex flex-col gap-1.5 pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => mapInstanceRef.current?.zoomIn()}
-          title="Perbesar Peta (Zoom In)"
-          aria-label="Perbesar peta"
-          className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-xl cursor-pointer transition-all`}
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-        </button>
-        <button
-          type="button"
-          onClick={() => mapInstanceRef.current?.zoomOut()}
-          title="Perkecil Peta (Zoom Out)"
-          aria-label="Perkecil peta"
-          className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center text-cyan-100 hover:text-white hover:border-cyan-300/50 active:scale-95 shadow-xl cursor-pointer transition-all`}
-        >
-          <Minus className="w-4 h-4 stroke-[2.5]" />
-        </button>
-      </div>
     </div>
   );
 }
@@ -826,20 +853,6 @@ function Kpi({ label, nilai, satuan, aksen, kecil, catatan }: { label: string; n
   );
 }
 
-function Toggle({ aktif, onClick, label, ikon }: { aktif: boolean; onClick: () => void; label: string; ikon: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`h-8 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-        aktif ? 'bg-cyan-400/20 text-cyan-200 border border-cyan-300/40 shadow-[0_0_12px_rgba(34,227,255,0.25)]' : 'text-slate-400 hover:text-slate-200'
-      }`}
-    >
-      {ikon}
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

@@ -720,7 +720,7 @@ export default function KameraCerdasView({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Kamera Cerdas</h2>
+              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Kamera AI Vision</h2>
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
                 isAdmin 
                   ? 'bg-emerald-500 text-white' 
@@ -728,7 +728,7 @@ export default function KameraCerdasView({
                   ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
                   : 'bg-amber-100 text-amber-700 border border-amber-300'
               }`}>
-                {isAdmin ? 'PETUGAS' : enumerator ? 'ENUMERATOR' : isKameraLocked ? 'KHUSUS ADMIN' : 'MASUK DIPERLUKAN'}
+                {isAdmin ? 'PETUGAS' : enumerator ? 'ENUMERATOR' : isKameraLocked ? 'KHUSUS ADMIN' : 'LOGIN DIPERLUKAN'}
               </span>
             </div>
             <p className="text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
@@ -755,7 +755,7 @@ export default function KameraCerdasView({
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Peta Lapangan ({observasiList.length})</span>
+              <span>Pin ({observasiList.length})</span>
             </button>
 
             <button
@@ -833,7 +833,7 @@ export default function KameraCerdasView({
                 title="Masuk dengan Google (Gmail)"
               >
                 {isGoogleRedirecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3 text-emerald-700" />}
-                <span>Masuk Gmail</span>
+                <span>Login Gmail</span>
               </button>
               <button
                 type="button"
