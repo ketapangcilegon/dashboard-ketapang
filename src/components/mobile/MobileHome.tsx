@@ -439,9 +439,45 @@ export default function MobileHome({
     loadAllForecasts();
   }, []);
 
+  // Dynamic forecast months derived from liveDateString or current time
+  const forecastMonths = useMemo(() => {
+    let d: Date;
+    if (liveDateString) {
+      d = new Date(liveDateString);
+      if (isNaN(d.getTime())) d = new Date();
+    } else {
+      d = new Date();
+    }
+
+    const indonesianMonths = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    // Baseline (Harga Aktual): 1 bulan sebelum acuan
+    const dAktual = new Date(d);
+    dAktual.setMonth(dAktual.getMonth() - 1);
+    const aktualMonthStr = `${indonesianMonths[dAktual.getMonth()]} ${dAktual.getFullYear()}`;
+
+    // Peramalan +1 Bulan: bulan target proyeksi 1 bulan
+    const d1 = new Date(d);
+    const t1MonthStr = `${indonesianMonths[d1.getMonth()]} ${d1.getFullYear()}`;
+
+    // Peramalan +3 Bulan: bulan target proyeksi 3 bulan (+2 bulan dari d1)
+    const d3 = new Date(d);
+    d3.setMonth(d3.getMonth() + 2);
+    const t3MonthStr = `${indonesianMonths[d3.getMonth()]} ${d3.getFullYear()}`;
+
+    return {
+      aktualMonthStr,
+      t1MonthStr,
+      t3MonthStr,
+    };
+  }, [liveDateString]);
+
   const handleForecastScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const itemHeight = 110; // exact height of each commodity card row with spacing for 3-row view
+    const itemHeight = 142; // exact height of each commodity card row with spacing for 3-row view
     const index = Math.round(el.scrollTop / itemHeight);
     if (index >= 0 && index < allForecastItems.length && index !== activeForecastIndex) {
       setActiveForecastIndex(index);
@@ -451,7 +487,7 @@ export default function MobileHome({
   const scrollToForecast = (targetIndex: number) => {
     if (forecastScrollRef.current) {
       const idx = Math.max(0, Math.min(allForecastItems.length - 1, targetIndex));
-      const itemHeight = 110;
+      const itemHeight = 142;
       forecastScrollRef.current.scrollTo({
         top: idx * itemHeight,
         behavior: 'smooth'
@@ -460,35 +496,11 @@ export default function MobileHome({
     }
   };
 
-  // 8 Fitur Unggulan Tiles (Android Launcher Style) - Capture 1 Reference Palette
+  // 8 Fitur Unggulan Tiles (Android Launcher Style) - Tampil di Beranda
   const quickFeatures = [
     {
-      id: 'agregasi_kamera',
-      name: 'Agregasi Data',
-      tag: 'Kamera Cerdas',
-      icon: <BarChart3 className="w-5 h-5 text-white" />,
-      gradient: 'from-[#00A878] to-[#008F67]',
-      accentColor: '#008F67',
-    },
-    {
-      id: 'rantai_pasok',
-      name: 'Rantai Pasok',
-      tag: 'Logistik Beras',
-      icon: <Truck className="w-5 h-5 text-white" />,
-      gradient: 'from-[#2968FF] to-[#145BFF]',
-      accentColor: '#145BFF',
-    },
-    {
-      id: 'peta_full',
-      name: 'Peta Tematik',
-      tag: 'Spasial GIS',
-      icon: <MapPin className="w-5 h-5 text-white" />,
-      gradient: 'from-[#0FA4B4] to-[#087F8C]',
-      accentColor: '#087F8C',
-    },
-    {
       id: 'harga_full',
-      name: 'Harga Pasar',
+      name: 'Harga Pangan',
       tag: 'SAGON Live',
       icon: <Store className="w-5 h-5 text-white" />,
       gradient: 'from-[#FFA826] to-[#FF9800]',
@@ -503,28 +515,52 @@ export default function MobileHome({
       accentColor: '#FF405B',
     },
     {
-      id: 'radar_kelurahan',
-      name: 'Radar Pangan',
-      tag: 'Kel vs Kec',
-      icon: <Target className="w-5 h-5 text-white" />,
+      id: 'peta_full',
+      name: 'Peta FSVA/SKPG',
+      tag: 'Spasial GIS',
+      icon: <MapPin className="w-5 h-5 text-white" />,
+      gradient: 'from-[#0FA4B4] to-[#087F8C]',
+      accentColor: '#087F8C',
+    },
+    {
+      id: 'grafik_ikp',
+      name: 'IKP & POU',
+      tag: 'Tren Indeks',
+      icon: <BarChart3 className="w-5 h-5 text-white" />,
+      gradient: 'from-[#00A878] to-[#008F67]',
+      accentColor: '#008F67',
+    },
+    {
+      id: 'ai_intelligence',
+      name: 'RAG Chatbot',
+      tag: 'Asisten AI',
+      icon: <Bot className="w-5 h-5 text-white" />,
+      gradient: 'from-[#6366F1] to-[#4F46E5]',
+      accentColor: '#4F46E5',
+    },
+    {
+      id: 'peta_pasokan',
+      name: 'Pasokan Beras',
+      tag: 'Arus Logistik',
+      icon: <Truck className="w-5 h-5 text-white" />,
       gradient: 'from-[#2968FF] to-[#145BFF]',
       accentColor: '#145BFF',
     },
     {
       id: 'analisis_skpg',
-      name: 'SKPG Bulanan',
+      name: 'Analisis SKPG',
       tag: 'Kewaspadaan',
       icon: <Activity className="w-5 h-5 text-white" />,
       gradient: 'from-[#EF4444] to-[#DC2626]',
       accentColor: '#DC2626',
     },
     {
-      id: 'kamera_cerdas',
-      name: 'Kamera Cerdas',
-      tag: 'IoT Telemetri',
-      icon: <Camera className="w-5 h-5 text-white" />,
-      gradient: 'from-[#64748B] to-[#475569]',
-      accentColor: '#475569',
+      id: 'radar_kelurahan',
+      name: 'Radar Pangan',
+      tag: 'Kel vs Kec',
+      icon: <Target className="w-5 h-5 text-white" />,
+      gradient: 'from-[#0FA4B4] to-[#087F8C]',
+      accentColor: '#087F8C',
     },
   ];
 
@@ -735,11 +771,11 @@ export default function MobileHome({
           <span className="text-[#00A98F] font-bold">Swipe ⇅</span>
         </div>
 
-        {/* Multi-Row Vertical Scrollable Reel (3 Baris Komoditas Muncul Sekaligus) */}
+        {/* Multi-Row Vertical Scrollable Reel (Baris Komoditas Muncul Sekaligus) */}
         <div 
           ref={forecastScrollRef}
           onScroll={handleForecastScroll}
-          className="h-[340px] overflow-y-auto space-y-2 px-3 py-1.5 no-scrollbar scroll-smooth"
+          className="h-[430px] overflow-y-auto space-y-2.5 px-3 py-1.5 no-scrollbar scroll-smooth"
         >
           {allForecastItems.map((item, idx) => {
             const pct1 = item.aktual > 0 ? ((item.month1 - item.aktual) / item.aktual) * 100 : 0;
@@ -763,81 +799,118 @@ export default function MobileHome({
                       #{idx + 1}
                     </span>
                   </div>
-                  <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 border ${
-                    item.changePct < 0
+
+                  {/* Badge Status & Arah Tren +1 Bulan */}
+                  <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 border shrink-0 ${
+                    item.changePct < -3
                       ? 'bg-[#D9FBE7] text-[#087F55] border-[#B8F1E6]'
-                      : item.changePct > 0
-                      ? 'bg-rose-50 text-[#FF4545] border-rose-200'
-                      : 'bg-[#D9FBE7] text-[#087F55] border-[#B8F1E6]'
+                      : item.changePct > 3
+                      ? 'bg-rose-50 text-rose-600 border-rose-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
-                    {item.changePct < 0 && <span className="text-[#087F55]">{item.changePct.toFixed(1)}% • Stabil</span>}
-                    {item.changePct > 0 && <span className="text-[#FF4545]">+{item.changePct.toFixed(1)}% • {item.status}</span>}
-                    {item.changePct === 0 && <span className="text-[#087F55]">0.0% • Stabil</span>}
+                    {item.changePct > 3 && <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                    {item.changePct < -3 && <TrendingDown className="w-2.5 h-2.5 shrink-0" />}
+                    {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px]">—</span>}
+                    <span>
+                      {item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}
+                    </span>
+                    <span>•</span>
+                    <span>{item.changePct > 3 ? 'Naik' : item.changePct < -3 ? 'Turun' : 'Stabil'}</span>
                   </span>
                 </div>
 
-                {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan */}
+                {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan (Dinamis Sesuai Tanggal Acuan) */}
                 <div className="grid grid-cols-3 gap-1 pt-2 text-left">
-                  {/* 1. Aktual / Harga Hari Ini */}
-                  <div className="flex flex-col justify-center pr-1">
-                    <span className="text-sm font-black text-[#123B4A]">
-                      {Math.round(item.aktual).toLocaleString('id-ID')}
-                    </span>
-                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
-                      Harga Hari Ini
-                    </span>
-                    <span className="text-[8px] text-[#7189A8]">
+                  {/* 1. HARGA AKTUAL */}
+                  <div className="flex flex-col justify-center pr-1 min-w-0">
+                    <div className="leading-tight">
+                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                        HARGA AKTUAL
+                      </div>
+                      <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
+                        {forecastMonths.aktualMonthStr}
+                      </div>
+                    </div>
+                    <div className="text-xs sm:text-sm font-black text-[#123B4A] mt-1.5 truncate">
+                      Rp{Math.round(item.aktual).toLocaleString('id-ID')}
+                    </div>
+                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
 
-                  {/* 2. +1 Bulan */}
-                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 pr-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-black text-[#123B4A]">
-                        {Math.round(item.month1).toLocaleString('id-ID')}
-                      </span>
-                      {pct1 < 0 ? (
-                        <span className="text-[9px] font-black text-[#FF4545] flex items-center">
-                          ↓ {pct1.toFixed(1)}%
-                        </span>
-                      ) : pct1 > 0 ? (
-                        <span className="text-[9px] font-black text-[#00A98F] flex items-center">
-                          ↑ +{pct1.toFixed(1)}%
-                        </span>
-                      ) : null}
+                  {/* 2. PERAMALAN +1 BULAN */}
+                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 pr-1 min-w-0">
+                    <div className="leading-tight">
+                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                        PERAMALAN +1 BULAN
+                      </div>
+                      <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
+                        {forecastMonths.t1MonthStr}
+                      </div>
                     </div>
-                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
-                      Prediksi 1 Bulan
-                    </span>
-                    <span className="text-[8px] text-[#7189A8]">
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className={`text-xs sm:text-sm font-black truncate ${
+                        item.month1 > item.aktual ? 'text-rose-600' : 'text-emerald-700'
+                      }`}>
+                        Rp{Math.round(item.month1).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
 
-                  {/* 3. +3 Bulan */}
-                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-black text-[#123B4A]">
-                        {Math.round(item.month3).toLocaleString('id-ID')}
-                      </span>
-                      {pct3 < 0 ? (
-                        <span className="text-[9px] font-black text-[#FF4545] flex items-center">
-                          ↓ {pct3.toFixed(1)}%
-                        </span>
-                      ) : pct3 > 0 ? (
-                        <span className="text-[9px] font-black text-[#00A98F] flex items-center">
-                          ↑ +{pct3.toFixed(1)}%
-                        </span>
-                      ) : null}
+                  {/* 3. PERAMALAN +3 BULAN */}
+                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 min-w-0">
+                    <div className="leading-tight">
+                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                        PERAMALAN +3 BULAN
+                      </div>
+                      <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
+                        {forecastMonths.t3MonthStr}
+                      </div>
                     </div>
-                    <span className="text-[9px] font-semibold text-[#7189A8] leading-tight mt-0.5">
-                      Prediksi 3 Bulan
-                    </span>
-                    <span className="text-[8px] text-[#7189A8]">
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className={`text-xs sm:text-sm font-black truncate ${
+                        item.month3 > item.aktual ? 'text-rose-600' : 'text-emerald-700'
+                      }`}>
+                        Rp{Math.round(item.month3).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
+                </div>
+
+                {/* Bar Penjelasan Arah Tren +1 Bulan (L1) */}
+                <div className="mt-2.5 pt-2 border-t border-[#B8F1E6]/60 flex items-center justify-between gap-1 text-[8.5px]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-black text-[#0B4D3C] uppercase text-[7.5px] tracking-wide shrink-0">
+                      Arah Tren +1 Bulan (L1):
+                    </span>
+                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-mono font-black shrink-0 ${
+                      item.changePct > 3
+                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        : item.changePct < -3
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {item.changePct > 3 && <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                      {item.changePct < -3 && <TrendingDown className="w-2.5 h-2.5 shrink-0" />}
+                      {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px]">—</span>}
+                      {item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}
+                    </span>
+                  </div>
+
+                  <span className="font-semibold text-slate-500 truncate text-[8px] text-right">
+                    {item.changePct > 3
+                      ? 'Tren Naik (Waspada Inflasi)'
+                      : item.changePct < -3
+                      ? 'Tren Turun (Kondusif Pasar)'
+                      : 'Stabil (Fluktuasi < 3%)'}
+                  </span>
                 </div>
               </div>
             );
@@ -923,14 +996,14 @@ export default function MobileHome({
           <div className="flex items-center gap-2">
             <div className="w-2 h-4.5 bg-[#F28C00] rounded-full shrink-0" />
             <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D]">
-              SEKTOR & FITUR UNGGULAN
+              FITUR UNGGULAN
             </h3>
           </div>
           <button 
             onClick={onOpenCatalog}
             className="text-[11px] font-black text-[#F28C00] hover:text-[#D97C00] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
           >
-            <span>Lihat semua</span>
+            <span>Detail</span>
             <ChevronRight className="w-3.5 h-3.5 text-[#F28C00]" />
           </button>
         </div>

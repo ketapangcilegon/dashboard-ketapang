@@ -62,11 +62,11 @@ export default function Sidebar({
   };
 
   const fiturUtamaSub = [
-    { label: 'Chatbot PanganCilegon', view: 'ai_intelligence' },
+    { label: 'RAG Chatbot', view: 'ai_intelligence' },
     { label: 'Panel Harga Pangan Strategis', view: 'harga_full' },
     { label: 'Peta Tematik FSVA dan SKPG', view: 'peta_full' },
     { label: 'Forecast Harga Pangan & EWS', view: 'forecasting' },
-    { label: 'Insight Ketahanan Pangan', view: 'insight' },
+    { label: 'AI Insight', view: 'insight' },
     { label: 'Analisis SKPG', view: 'analisis_skpg' },
     { label: 'Peta Pasokan Beras', view: 'peta_pasokan' },
     { label: 'Grafik Radar Ketahanan Pangan Kelurahan', view: 'radar_kelurahan' }

@@ -140,16 +140,8 @@ export default function MobileFeatureCatalogModal({
 
   const featureGroups: { category: string; items: FeatureItem[] }[] = [
     {
-      category: 'Fitur Utama Spasial & Analitik',
+      category: 'Fitur Unggulan (11 Modul)',
       items: [
-        {
-          id: 'peta_full',
-          title: 'Peta Tematik Spasial',
-          subtitle: 'Peta digital FSVA & SKPG 43 Kelurahan se-Cilegon',
-          icon: <MapPin className="w-5 h-5 text-white" />,
-          gradient: 'from-[#007A48] to-[#10B981]',
-          badge: 'GIS',
-        },
         {
           id: 'harga_full',
           title: 'Panel Harga Pangan',
@@ -163,31 +155,32 @@ export default function MobileFeatureCatalogModal({
           title: 'Forecast Harga & EWS',
           subtitle: 'Prediksi Machine Learning Holt-Winters & SARIMA',
           icon: <Sparkles className="w-5 h-5 text-white" />,
-          gradient: 'from-blue-600 to-cyan-600',
+          gradient: 'from-[#FF5E74] to-[#FF405B]',
           badge: 'AI ML',
         },
         {
-          id: 'radar_kelurahan',
-          title: 'Radar Ketahanan Pangan',
-          subtitle: 'Komparasi 11 indikator kelurahan vs wilayah induk',
-          icon: <Target className="w-5 h-5 text-white" />,
-          gradient: 'from-teal-600 to-emerald-700',
-          badge: 'Komparasi',
+          id: 'peta_full',
+          title: 'Peta FSVA & SKPG',
+          subtitle: 'Peta digital FSVA & SKPG 43 Kelurahan se-Cilegon',
+          icon: <MapPin className="w-5 h-5 text-white" />,
+          gradient: 'from-[#0FA4B4] to-[#087F8C]',
+          badge: 'GIS',
         },
         {
-          id: 'analisis_skpg',
-          title: 'Analisis SKPG Kota',
-          subtitle: 'Sistem Kewaspadaan Pangan & Gizi tingkat Kota',
-          icon: <Activity className="w-5 h-5 text-white" />,
-          gradient: 'from-purple-600 to-indigo-600',
-          badge: 'EWS',
-        },
-        {
-          id: 'analisis_skpg_kelurahan',
-          title: 'SKPG 43 Kelurahan',
-          subtitle: 'Sebaran dan riwayat prevalensi balita posyandu',
+          id: 'grafik_ikp',
+          title: 'Panel IKP & POU',
+          subtitle: 'Tren Indeks Ketahanan Pangan & Prevalensi PoU Cilegon',
           icon: <BarChart3 className="w-5 h-5 text-white" />,
-          gradient: 'from-violet-600 to-purple-700',
+          gradient: 'from-[#00A878] to-[#008F67]',
+          badge: 'Indeks',
+        },
+        {
+          id: 'ai_intelligence',
+          title: 'RAG Chatbot',
+          subtitle: 'Chatbot Pangan Cilegon & Asisten Pangan cerdas',
+          icon: <Bot className="w-5 h-5 text-white" />,
+          gradient: 'from-indigo-600 to-blue-600',
+          badge: 'GenAI',
         },
         {
           id: 'peta_pasokan',
@@ -197,11 +190,22 @@ export default function MobileFeatureCatalogModal({
           gradient: 'from-cyan-600 to-blue-700',
           badge: 'Geospasial',
         },
-      ],
-    },
-    {
-      category: 'Kecerdasan Buatan & Telemetri',
-      items: [
+        {
+          id: 'analisis_skpg',
+          title: 'Analisis SKPG',
+          subtitle: 'Sistem Kewaspadaan Pangan & Gizi tingkat Kota',
+          icon: <Activity className="w-5 h-5 text-white" />,
+          gradient: 'from-purple-600 to-indigo-600',
+          badge: 'EWS',
+        },
+        {
+          id: 'radar_kelurahan',
+          title: 'Radar Ketahanan Pangan',
+          subtitle: 'Komparasi 11 indikator kelurahan vs wilayah induk',
+          icon: <Target className="w-5 h-5 text-white" />,
+          gradient: 'from-teal-600 to-emerald-700',
+          badge: 'Komparasi',
+        },
         {
           id: 'agregasi_kamera',
           title: 'Agregasi Data Lapangan',
@@ -219,81 +223,12 @@ export default function MobileFeatureCatalogModal({
           badge: 'Logistik',
         },
         {
-          id: 'ai_intelligence',
-          title: 'Chatbot PanganCilegon',
-          subtitle: 'Asisten cerdas tanya jawab & telemetri iklim',
-          icon: <Bot className="w-5 h-5 text-white" />,
-          gradient: 'from-indigo-600 to-blue-600',
-          badge: 'GenAI',
-        },
-        {
-          id: 'kamera_cerdas',
-          title: 'Kamera Cerdas Ketapang',
-          subtitle: 'Deteksi komoditas berbasis visual AI',
-          icon: <Camera className="w-5 h-5 text-white" />,
-          gradient: 'from-rose-500 to-red-600',
-          badge: 'Live',
-        },
-        {
           id: 'validasi_forecast',
           title: 'Validasi Model ML',
           subtitle: 'Audit akurasi model regresi terhadap pasar riil',
           icon: <ShieldCheck className="w-5 h-5 text-white" />,
           gradient: 'from-slate-700 to-slate-900',
-        },
-      ],
-    },
-    {
-      category: '3 Pilar Ketahanan Pangan (FSVA)',
-      items: [
-        {
-          id: 'ketersediaan',
-          title: 'Aspek Ketersediaan',
-          subtitle: 'Produksi beras, cadangan pangan & Neraca Bahan Makanan',
-          icon: <Layers className="w-5 h-5 text-white" />,
-          gradient: 'from-emerald-600 to-green-700',
-        },
-        {
-          id: 'keterjangkauan',
-          title: 'Aspek Keterjangkauan',
-          subtitle: 'Akses ekonomi, stabilitas harga pangan & daya beli',
-          icon: <Layers className="w-5 h-5 text-white" />,
-          gradient: 'from-amber-600 to-yellow-600',
-        },
-        {
-          id: 'pemanfaatan',
-          title: 'Aspek Pemanfaatan',
-          subtitle: 'Konsumsi kalori, protein, skor PPH & gizi balita',
-          icon: <Layers className="w-5 h-5 text-white" />,
-          gradient: 'from-purple-600 to-pink-600',
-        },
-      ],
-    },
-    {
-      category: 'Informasi & Layanan Terkait',
-      items: [
-        {
-          id: 'tentang',
-          title: 'Tentang Aplikasi',
-          subtitle: 'Dokumentasi arsitektur, data flow & metodologi',
-          icon: <Info className="w-5 h-5 text-white" />,
-          gradient: 'from-slate-600 to-slate-800',
-        },
-        {
-          id: 'sumber_data',
-          title: 'Sumber Data & Regulasi',
-          subtitle: 'Daftar rujukan resmi BPS, SAGON, NBM & Bapanas',
-          icon: <Database className="w-5 h-5 text-white" />,
-          gradient: 'from-slate-500 to-slate-700',
-        },
-        {
-          id: 'dkpp_portal',
-          title: 'Portal DKPP Cilegon',
-          subtitle: 'Website resmi dkpp.info',
-          icon: <ExternalLink className="w-5 h-5 text-white" />,
-          gradient: 'from-emerald-700 to-teal-800',
-          isExternal: true,
-          url: 'https://dkpp.info/',
+          badge: 'Audit ML',
         },
       ],
     },
@@ -325,8 +260,8 @@ export default function MobileFeatureCatalogModal({
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
             <div>
-              <h3 className="font-black text-slate-800 text-base tracking-tight">Katalog Fitur Lengkap</h3>
-              <p className="text-[11px] text-slate-500">Pilih modul dashboard ketahanan pangan Cilegon</p>
+              <h3 className="font-black text-slate-800 text-base tracking-tight">Fitur Unggulan</h3>
+              <p className="text-[11px] text-slate-500 font-medium">11 fitur dan modul analisis ketahanan pangan Cilegon</p>
             </div>
             <button
               onClick={onClose}

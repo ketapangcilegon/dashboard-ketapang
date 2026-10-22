@@ -26,9 +26,9 @@ export default function MobileTopBar({
     switch (view) {
       case 'grafik_ikp':
       case 'ikp_grafik':
-        return { title: 'Indeks Ketahanan Pangan', subtitle: 'Tren IKP & PoU Kota Cilegon' };
+        return { title: 'Panel IKP & POU', subtitle: 'Tren IKP & PoU Kota Cilegon' };
       case 'peta_full':
-        return { title: 'Peta Ketahanan Pangan', subtitle: 'Peta Tematik Spasial FSVA & SKPG' };
+        return { title: 'Peta FSVA & SKPG', subtitle: 'Peta Tematik Spasial FSVA & SKPG' };
       case 'harga_full':
         return { title: 'Panel Harga Pangan', subtitle: 'Sistem Informasi SAGON Real-Time' };
       case 'forecasting':
@@ -46,13 +46,14 @@ export default function MobileTopBar({
       case 'agregasi_kamera':
         return { title: 'Agregasi Data Lapangan', subtitle: 'Kamera Cerdas & Rekapitulasi Spasial' };
       case 'rantai_pasok':
-        return { title: 'Analisis Rantai Pasok', subtitle: 'Ketergantungan Pangan Kota Cilegon' };
+        return { title: 'Analisis Rantai Pasok Pangan', subtitle: 'Ketergantungan Pangan Kota Cilegon' };
       case 'kamera_cerdas':
         return { title: 'Kamera Cerdas', subtitle: 'Pantau Telemetri Ketapang' };
+      case 'insight':
+        return { title: 'AI Insight', subtitle: 'Food Security Intelligence & Analisis AI' };
       case 'ai_intelligence':
       case 'ai_insight':
-      case 'insight':
-        return { title: 'RAG Chatbot', subtitle: 'Food Security Intelligence & Asisten Pangan' };
+        return { title: 'RAG Chatbot', subtitle: 'Chatbot Pangan Cilegon & Asisten Pangan' };
       case 'ketersediaan':
         return { title: 'Pilar Ketersediaan', subtitle: 'Produksi, Cadangan & NBM' };
       case 'keterjangkauan':
