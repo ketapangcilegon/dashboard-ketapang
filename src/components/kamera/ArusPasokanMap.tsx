@@ -41,34 +41,50 @@ function MapController({
 }) {
   const { useMap } = require('react-leaflet');
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
-    if (map) {
-      onMapReady?.(map);
-      const applyFit = () => {
-        map.invalidateSize();
-        if (flows.length > 0) {
-          const bounds = L.latLngBounds([hub[1], hub[0]], [hub[1], hub[0]]);
-          flows.forEach((f) => bounds.extend([f.sumber[1], f.sumber[0]]));
-          saranaList.forEach((s) => {
-            const lat = Number(s.latitude);
-            const lng = Number(s.longitude);
-            if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
-              bounds.extend([lat, lng]);
-            }
-          });
-          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 12 });
+    if (!map) return;
+    onMapReady?.(map);
+
+    // Cegah reset kamera jika pengguna sudah mulai melakukan zoom atau pan manual
+    const handleUserInteraction = () => {
+      hasFittedRef.current = true;
+    };
+    map.on('zoomstart', handleUserInteraction);
+    map.on('movestart', handleUserInteraction);
+
+    // Lakukan fitBounds HANYA SEKALI saat tampilan awal pertama kali dimuat (peta full 1 pulau Jawa)
+    if (!hasFittedRef.current && flows.length > 0) {
+      hasFittedRef.current = true;
+      map.invalidateSize();
+      const bounds = L.latLngBounds([hub[1], hub[0]], [hub[1], hub[0]]);
+      flows.forEach((f) => bounds.extend([f.sumber[1], f.sumber[0]]));
+      saranaList.forEach((s) => {
+        const lat = Number(s.latitude);
+        const lng = Number(s.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
+          bounds.extend([lat, lng]);
         }
-      };
-      applyFit();
-      const t1 = setTimeout(applyFit, 200);
-      const t2 = setTimeout(applyFit, 600);
+      });
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 12 });
+
+      const timer = setTimeout(() => {
+        map.invalidateSize();
+      }, 300);
+
       return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
+        clearTimeout(timer);
+        map.off('zoomstart', handleUserInteraction);
+        map.off('movestart', handleUserInteraction);
       };
     }
-  }, [map, flows, hub, saranaList, onMapReady]);
+
+    return () => {
+      map.off('zoomstart', handleUserInteraction);
+      map.off('movestart', handleUserInteraction);
+    };
+  }, [map, flows.length, hub, onMapReady]);
 
   return null;
 }
