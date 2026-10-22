@@ -283,7 +283,48 @@ body {
      0px    1px  2px rgba(0, 0, 0, 0.8) !important;
 }
 
+/* ─────────── Leaflet Popups for Arus Pasokan Map ─────────── */
+.arus-sarana-popup .leaflet-popup-content-wrapper,
+.arus-asal-popup .leaflet-popup-content-wrapper {
+  background: rgba(7, 26, 46, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(34, 227, 255, 0.3) !important;
+  border-radius: 16px !important;
+  color: #fff !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65) !important;
+  padding: 2px !important;
+}
 
+.arus-sarana-popup .leaflet-popup-tip,
+.arus-asal-popup .leaflet-popup-tip {
+  background: rgba(7, 26, 46, 0.94) !important;
+  border: 1px solid rgba(34, 227, 255, 0.3) !important;
+}
 
+.arus-sarana-popup .leaflet-popup-content,
+.arus-asal-popup .leaflet-popup-content {
+  margin: 8px 10px !important;
+  line-height: 1.4 !important;
+}
 
+.arus-sarana-popup .leaflet-popup-close-button,
+.arus-asal-popup .leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  top: 8px !important;
+  right: 10px !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease-in-out !important;
+}
 
+.arus-sarana-popup .leaflet-popup-close-button:hover,
+.arus-asal-popup .leaflet-popup-close-button:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}

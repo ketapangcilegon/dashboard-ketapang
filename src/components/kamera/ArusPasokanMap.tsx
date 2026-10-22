@@ -469,7 +469,43 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                   setSelectedSarana(null);
                 },
               }}
-            />
+            >
+              <Popup
+                offset={[0, 32]}
+                autoPan={true}
+                autoPanPadding={[20, 90]}
+                className="arus-asal-popup"
+              >
+                <div className="p-2.5 min-w-[200px] text-white font-sans">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 block mb-0.5">
+                    Wilayah Asal Pasokan
+                  </span>
+                  <h4 className="font-extrabold text-xs text-white leading-tight mb-2">
+                    {f.asal.label} → Kota Cilegon
+                  </h4>
+                  <div className="bg-[#0c2640]/90 border border-cyan-300/25 rounded-xl p-2 space-y-1 text-[11px] mb-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyan-200/80 font-medium text-[10px]">Volume Aliran:</span>
+                      <b className="text-cyan-200 font-black">{formatTon(f.volumeKg)}</b>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">Sarana Terlibat:</span>
+                      <span className="text-cyan-50 font-bold">{f.jumlahSarana} titik</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFlow(f);
+                      setSelectedSarana(null);
+                    }}
+                    className="w-full py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-[#04101f] text-[10.5px] font-black text-center cursor-pointer transition-all shadow-md active:scale-95"
+                  >
+                    Buka Rincian Aliran ➔
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
           ))}
 
           {/* 3) Simpul Hub Sentral Kota Cilegon */}
@@ -493,14 +529,53 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                     },
                   }}
                 >
-                  <Tooltip direction="top" offset={[0, -28]} opacity={0.95}>
-                    <div className="text-xs font-bold text-slate-900">
-                      <div>{nama}</div>
-                      <div className="text-[10px] text-amber-700 font-black">
-                        {kg > 0 ? formatTon(kg) : 'Stok tercatat'} • {rec.kelurahan}
+                  <Popup
+                    offset={[0, 32]}
+                    autoPan={true}
+                    autoPanPadding={[20, 90]}
+                    className="arus-sarana-popup"
+                  >
+                    <div className="p-2.5 min-w-[210px] max-w-[260px] text-white font-sans">
+                      <div className="flex items-start justify-between gap-2 border-b border-cyan-300/20 pb-1.5 mb-2">
+                        <div className="min-w-0 pr-3">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-amber-300 block">
+                            Sarana Distribusi Beras
+                          </span>
+                          <h4 className="font-extrabold text-xs text-white leading-tight">
+                            {nama}
+                          </h4>
+                        </div>
                       </div>
+
+                      <div className="bg-[#0c2640]/90 border border-cyan-300/25 rounded-xl p-2 space-y-1 text-[11px] mb-2.5 shadow-inner">
+                        <div className="flex justify-between items-center">
+                          <span className="text-cyan-200/80 font-medium text-[10px]">Estimasi Stok:</span>
+                          <b className="text-amber-300 font-black">{kg > 0 ? formatTon(kg) : 'Stok tercatat'}</b>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-400">Kelurahan:</span>
+                          <span className="text-cyan-50 font-bold">{rec.kelurahan}</span>
+                        </div>
+                        {rec.asal_pasokan && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">Asal Pasokan:</span>
+                            <span className="text-cyan-200 font-bold truncate max-w-[125px]">{rec.asal_pasokan}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSarana(rec);
+                          setSelectedFlow(null);
+                        }}
+                        className="w-full py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-[#04101f] text-[10.5px] font-black text-center cursor-pointer transition-all shadow-md active:scale-95"
+                      >
+                        Buka Detail Lengkap ➔
+                      </button>
                     </div>
-                  </Tooltip>
+                  </Popup>
                 </Marker>
               );
             })}
@@ -664,7 +739,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
       {/* ── Panel Detail (Ketika Sarana Toko Beras / Aliran Diklik) ── */}
       {(selectedSarana || selectedFlow) && (
-        <div className={`${glass} absolute z-20 bottom-0 inset-x-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:inset-x-auto sm:top-[120px] sm:right-3 sm:w-[320px] max-h-[60%] sm:max-h-[calc(100%-150px)] overflow-y-auto p-4 space-y-3`}>
+        <div className={`${glass} absolute z-20 bottom-0 inset-x-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:inset-x-auto sm:top-[180px] sm:right-3 sm:w-[320px] max-h-[60%] sm:max-h-[calc(100%-200px)] overflow-y-auto p-4 space-y-3`}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               {selectedFlow && (
@@ -687,9 +762,10 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                 setSelectedFlow(null);
               }}
               aria-label="Tutup detail"
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-300 shrink-0 cursor-pointer"
+              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white shrink-0 cursor-pointer transition-colors shadow-sm active:scale-95"
+              title="Tutup panel info"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
 

@@ -393,7 +393,6 @@ export default function MobileHome({
   ];
 
   const [allForecastItems, setAllForecastItems] = useState<MobileForecastItem[]>([]);
-  const [activeForecastIndex, setActiveForecastIndex] = useState(0);
   const forecastScrollRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -487,27 +486,6 @@ export default function MobileHome({
       t3MonthStr,
     };
   }, [liveDateString]);
-
-  const handleForecastScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const itemHeight = 142; // exact height of each commodity card row with spacing for 3-row view
-    const index = Math.round(el.scrollTop / itemHeight);
-    if (index >= 0 && index < allForecastItems.length && index !== activeForecastIndex) {
-      setActiveForecastIndex(index);
-    }
-  };
-
-  const scrollToForecast = (targetIndex: number) => {
-    if (forecastScrollRef.current) {
-      const idx = Math.max(0, Math.min(allForecastItems.length - 1, targetIndex));
-      const itemHeight = 142;
-      forecastScrollRef.current.scrollTo({
-        top: idx * itemHeight,
-        behavior: 'smooth'
-      });
-      setActiveForecastIndex(idx);
-    }
-  };
 
   // 8 Fitur Unggulan Tiles (Android Launcher Style) - Tampil di Beranda
   const quickFeatures = [
@@ -738,35 +716,6 @@ export default function MobileHome({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Counter & Up/Down Switcher */}
-            <div className="flex items-center bg-white/20 border border-white/30 rounded-xl px-2 py-1 text-[10px] font-black text-white gap-1.5">
-              <span>
-                {activeForecastIndex + 1}/{allForecastItems.length || 13}
-              </span>
-              <div className="flex flex-col gap-0.2">
-                <button
-                  type="button"
-                  onClick={() => scrollToForecast(activeForecastIndex - 1)}
-                  disabled={activeForecastIndex === 0}
-                  className="hover:text-emerald-100 disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
-                  title="Komoditas Sebelumnya (Ke Atas)"
-                  aria-label="Komoditas Sebelumnya"
-                >
-                  <ChevronUp className="w-2.5 h-2.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollToForecast(activeForecastIndex + 1)}
-                  disabled={activeForecastIndex === (allForecastItems.length - 1)}
-                  className="hover:text-emerald-100 disabled:opacity-30 cursor-pointer p-0.2 active:scale-90"
-                  title="Komoditas Berikutnya (Ke Bawah)"
-                  aria-label="Komoditas Berikutnya"
-                >
-                  <ChevronDown className="w-2.5 h-2.5" />
-                </button>
-              </div>
-            </div>
-
             <button 
               onClick={() => onNavigate('forecasting')}
               className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
@@ -787,8 +736,8 @@ export default function MobileHome({
         {/* Multi-Row Vertical Scrollable Reel (Baris Komoditas Muncul Sekaligus) */}
         <div 
           ref={forecastScrollRef}
-          onScroll={handleForecastScroll}
-          className="h-[430px] overflow-y-auto space-y-2.5 px-3 py-1.5 no-scrollbar scroll-smooth"
+          className="h-[430px] overflow-y-auto space-y-2.5 px-3 py-1.5 no-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}
         >
           {allForecastItems.map((item, idx) => {
             const pct1 = item.aktual > 0 ? ((item.month1 - item.aktual) / item.aktual) * 100 : 0;
@@ -930,11 +879,10 @@ export default function MobileHome({
           })}
         </div>
 
-        {/* Dots Pagination Indicator (Capture 4 Reference) */}
-        <div className="flex items-center justify-end gap-1.5 px-3.5 py-2">
-          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex === 0 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
-          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex > 0 && activeForecastIndex < allForecastItems.length - 1 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
-          <span className={`h-1.5 rounded-full transition-all ${activeForecastIndex === allForecastItems.length - 1 ? 'w-5 bg-[#00A98F]' : 'w-1.5 bg-[#B8F1E6]'}`} />
+        {/* Status Indikator Bawah */}
+        <div className="flex items-center justify-between px-3.5 py-2 text-[9px] font-bold text-[#087F8C] border-t border-[#B8F1E6]/40">
+          <span>13 Komoditas Strategis Cilegon</span>
+          <span className="text-slate-400 font-medium">Model Machine Learning</span>
         </div>
       </div>
 
