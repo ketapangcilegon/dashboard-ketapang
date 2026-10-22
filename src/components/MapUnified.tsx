@@ -9,7 +9,6 @@ import { FSVA_LEGEND, SKPG_LEGEND } from '@/lib/ikpg';
 import { useMap } from 'react-leaflet';
 import * as XLSX from 'xlsx';
 import { isKelurahanMatch, normalizeKelurahanName } from '@/lib/wilayah';
-import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
 
 // Dynamically import Leaflet components to avoid SSR errors in Next.js
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -1011,7 +1010,7 @@ export default function MapUnified({
   const [validBordaYears, setValidBordaYears] = useState<number[]>([2025, 2026, 2027]);
   const [skpgMatangData, setSkpgMatangData] = useState<any[]>([]);
   const [intervensiData, setIntervensiData] = useState<any[]>([]);
-  const [observasiData, setObservasiData] = useState<any[]>(SEED_OBSERVASI_DATA);
+  const [observasiData, setObservasiData] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [validPeriods, setValidPeriods] = useState<{ tahun: number; bulan: number }[]>([]);
   const [activeSkpgPeriod, setActiveSkpgPeriod] = useState<{ tahun: number; bulan: number }>({ tahun: 2026, bulan: 6 });
@@ -1442,7 +1441,8 @@ export default function MapUnified({
             selectedYear={selectedYear}
             selectedMonth={selectedMonth}
           />
-          <KameraObservasiLayer data={observasiData} />
+          {/* Pin pasokan beras khusus hanya muncul di peta Food Security Intelligence, bukan di peta FSVA & SKPG */}
+          <KameraObservasiLayer data={observasiData} includeBeras={false} />
 
           {/* Inject controller inside the Leaflet context */}
           {(() => {

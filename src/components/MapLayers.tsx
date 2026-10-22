@@ -278,11 +278,22 @@ export function KelurahanLayer({
   );
 }
 
-export function KameraObservasiLayer({ data }: { data: ObservasiRecord[] }) {
+export function KameraObservasiLayer({
+  data,
+  includeBeras = false,
+}: {
+  data: ObservasiRecord[];
+  includeBeras?: boolean;
+}) {
   if (!data || data.length === 0) return null;
+  // Pin pasokan beras khusus hanya dimunculkan di peta panel Food Security Intelligence,
+  // tidak dimunculkan pada peta panel FSVA & SKPG.
+  const displayData = includeBeras ? data : data.filter((item) => item.mode !== 'pasokan_beras');
+  if (displayData.length === 0) return null;
+
   return (
     <>
-      {data.map((item, idx) => {
+      {displayData.map((item, idx) => {
         const lat = Number(item.latitude);
         const lng = Number(item.longitude);
         if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;

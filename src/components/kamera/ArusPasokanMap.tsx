@@ -14,7 +14,7 @@ import { SARANA_DISTRIBUSI_LIST } from '@/lib/kamera-normatif';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import {
   ASAL_NODES, CILEGON_HUB, FILTER_AWAL, bangunArus, formatTon, getEnumerator, jenisSumber,
-  klasifikasiAsal, lebarBusur,
+  klasifikasiAsal,
   type ArusFilter, type ArusFlow, type FilterArah, type FilterPeriode, type FilterSumber
 } from '@/lib/arusPasokan';
 
@@ -25,7 +25,6 @@ const Marker = dynamic(() => import('react-leaflet').then((m) => m.Marker), { ss
 const Popup = dynamic(() => import('react-leaflet').then((m) => m.Popup), { ssr: false });
 const GeoJSON = dynamic(() => import('react-leaflet').then((m) => m.GeoJSON), { ssr: false });
 const Polyline = dynamic(() => import('react-leaflet').then((m) => m.Polyline), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then((m) => m.CircleMarker), { ssr: false });
 const Tooltip = dynamic(() => import('react-leaflet').then((m) => m.Tooltip), { ssr: false });
 
 // Helper to access Leaflet map instance
@@ -84,6 +83,46 @@ function hitungBusurLeaflet(
     points.push([lat, lng]); // Leaflet format: [lat, lng]
   }
   return points;
+}
+
+// Custom Leaflet Arrow Icon untuk Arah Arus Pasokan Menuju Kota Cilegon
+function createFlowArrowIcon(angleDeg: number, color = '#22e3ff') {
+  return L.divIcon({
+    className: 'arus-arrow-pin',
+    html: `
+      <div style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;transform:translate(-50%, -50%) rotate(${angleDeg}deg);pointer-events:none;">
+        <svg width="14" height="14" viewBox="0 0 16 16" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.85));">
+          <path d="M3 2.5 L13 8 L3 13.5 L6 8 Z" fill="${color}" stroke="#031b2e" stroke-width="1.2" stroke-linejoin="round" />
+        </svg>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+// Utilitas interpolasi titik dan sudut rotasi sepanjang polyline rute
+function getPointAndAngleOnCoords(
+  coords: [number, number][],
+  t: number
+): { lat: number; lng: number; angleDeg: number } {
+  const maxIdx = coords.length - 1;
+  const floatIdx = Math.max(0, Math.min(maxIdx, t * maxIdx));
+  const idx = Math.floor(floatIdx);
+  const nextIdx = Math.min(maxIdx, idx + 1);
+  const frac = floatIdx - idx;
+
+  const lat = coords[idx][0] + (coords[nextIdx][0] - coords[idx][0]) * frac;
+  const lng = coords[idx][1] + (coords[nextIdx][1] - coords[idx][1]) * frac;
+
+  // Tangen segmen lokal (P1 -> P2)
+  const p1 = coords[Math.max(0, Math.min(maxIdx - 1, idx))];
+  const p2 = coords[Math.max(1, Math.min(maxIdx, idx + 1))];
+  const dLat = p2[0] - p1[0];
+  const dLng = p2[1] - p1[1];
+  const angleDeg = (Math.atan2(-dLat, dLng) * 180) / Math.PI;
+
+  return { lat, lng, angleDeg };
 }
 
 const normKec = (s: string) => s.toLowerCase().replace(/^kecamatan\s+/, '').replace(/\s+/g, ' ').trim();
@@ -213,20 +252,45 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
   const semuaPasokan = useMemo(() => observasiList.filter((r) => r.mode === 'pasokan_beras').length, [observasiList]);
   const maxKg = useMemo(() => hasil.flows.reduce((m, f) => Math.max(m, f.volumeKg), 0), [hasil.flows]);
 
-  // Pra-kalkulasi geometri garis lengkung busur
+  // Pra-kalkulasi geometri garis rute hairline presisi dan tanda panah arah aliran
   const busurList = useMemo(() => {
     return hasil.flows.map((flow) => {
       const coords = hitungBusurLeaflet(flow.sumber, flow.target, flow.heightFactor, 60);
-      const pulseIndex = Math.min(coords.length - 1, Math.floor((animStep / 60) * coords.length));
-      const pulsePoint = coords[pulseIndex];
+
+      // Jumlah tanda panah proporsional terhadap jarak rute (2 - 5 panah)
+      const arrowCount = flow.jarakKm < 60 ? 2 : flow.jarakKm < 180 ? 3 : flow.jarakKm < 350 ? 4 : 5;
+      const arrows: { lat: number; lng: number; angleDeg: number; opacity: number }[] = [];
+
+      for (let k = 0; k < arrowCount; k++) {
+        let t: number;
+        if (tampilAnim) {
+          // Meluncur mengarah ke tujuan (Kota Cilegon Hub) saat animasi aktif
+          const baseOffset = k / arrowCount;
+          t = (baseOffset + animStep / 60) % 1.0;
+        } else {
+          // Posisi statis terdistribusi merata sepanjang rute saat animasi nonaktif
+          t = (k + 1) / (arrowCount + 1);
+        }
+
+        // Tampilkan panah pada rentang rute yang presisi tanpa bertumpuk dengan marker simpul
+        if (t >= 0.05 && t <= 0.95) {
+          const { lat, lng, angleDeg } = getPointAndAngleOnCoords(coords, t);
+          let opacity = 1;
+          if (tampilAnim) {
+            if (t < 0.12) opacity = (t - 0.05) / 0.07;
+            else if (t > 0.88) opacity = (0.95 - t) / 0.07;
+          }
+          arrows.push({ lat, lng, angleDeg, opacity });
+        }
+      }
+
       return {
         flow,
         coords,
-        pulsePoint,
-        width: Math.max(2.5, lebarBusur(flow.volumeKg, maxKg) * 1.8),
+        arrows,
       };
     });
-  }, [hasil.flows, maxKg, animStep]);
+  }, [hasil.flows, animStep, tampilAnim]);
 
   // Daftar sarana toko beras dengan koordinat valid
   const validSaranaList = useMemo(() => {
@@ -304,20 +368,21 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             />
           )}
 
-          {/* 1) Garis Busur 3D Glowing Neon untuk Setiap Aliran Pasokan */}
-          {busurList.map(({ flow, coords, pulsePoint, width }) => {
+          {/* 1) Garis Busur Hairline Presisi dan Tanda Panah Arah Aliran Pasokan */}
+          {busurList.map(({ flow, coords, arrows }) => {
             const isSelected = selectedFlow?.id === flow.id;
             const lineColor = flow.tervalidasi ? '#22e3ff' : '#94a3b8';
+            const arrowColor = flow.tervalidasi ? '#22e3ff' : '#cbd5e1';
+
             return (
               <React.Fragment key={flow.id}>
-                {/* Outer Glow Halo */}
+                {/* Invisible Wider Hit-Area Polyline for Easy Clicking */}
                 <Polyline
                   positions={coords}
                   pathOptions={{
-                    color: lineColor,
-                    weight: width * 3.2,
-                    opacity: isSelected ? 0.45 : 0.25,
-                    lineCap: 'round',
+                    color: 'transparent',
+                    weight: 16,
+                    opacity: 0.001,
                   }}
                   eventHandlers={{
                     click: () => {
@@ -327,41 +392,43 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                   }}
                 />
 
-                {/* Mid Glow Layer */}
+                {/* Subtle, Minimal Glow Layer (Tidak menutupi data/geografis saat zoom out) */}
                 <Polyline
                   positions={coords}
                   pathOptions={{
                     color: lineColor,
-                    weight: width * 1.6,
-                    opacity: isSelected ? 0.85 : 0.65,
+                    weight: isSelected ? 3.5 : 2.5,
+                    opacity: isSelected ? 0.35 : 0.18,
                     lineCap: 'round',
                   }}
                 />
 
-                {/* Core White Neon Beam */}
+                {/* Core Hairline Route Line (1.5 - 2px) */}
                 <Polyline
                   positions={coords}
                   pathOptions={{
-                    color: '#ffffff',
-                    weight: Math.max(1.5, width * 0.45),
+                    color: isSelected ? '#ffffff' : lineColor,
+                    weight: isSelected ? 2.0 : 1.5,
                     opacity: 0.95,
                     lineCap: 'round',
                   }}
                 />
 
-                {/* Denyut Cahaya Bergerak Sepanjang Busur (Animasi Real-Time) */}
-                {tampilAnim && pulsePoint && (
-                  <CircleMarker
-                    center={pulsePoint}
-                    radius={Math.max(3.5, width * 0.8)}
-                    pathOptions={{
-                      color: '#ffffff',
-                      fillColor: '#22e3ff',
-                      fillOpacity: 0.95,
-                      weight: 2,
+                {/* Tanda Panah Kecil Mengikuti Arah Aliran Menuju Kota Cilegon */}
+                {arrows.map((arr, aIdx) => (
+                  <Marker
+                    key={`arrow-${flow.id}-${aIdx}`}
+                    position={[arr.lat, arr.lng]}
+                    icon={createFlowArrowIcon(arr.angleDeg, arrowColor)}
+                    opacity={arr.opacity}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedFlow(flow);
+                        setSelectedSarana(null);
+                      },
                     }}
                   />
-                )}
+                ))}
               </React.Fragment>
             );
           })}
@@ -558,12 +625,16 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
               <h3 className="text-[11px] font-black text-white">Legenda</h3>
               <button type="button" onClick={() => setLegendaTerbuka(false)} aria-label="Tutup legenda" className="p-0.5 rounded hover:bg-white/10 text-slate-300 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
-            <Legenda warna="rgb(34,227,255)" glow>Pasokan masuk (tervalidasi petugas)</Legenda>
+            <Legenda warna="rgb(34,227,255)">Pasokan masuk (tervalidasi petugas)</Legenda>
             <Legenda warna="rgb(148,163,184)">Pasokan masuk — belum divalidasi</Legenda>
             <Legenda warna="rgb(255,196,64)" titik>Sarana toko beras ({validSaranaList.length} titik)</Legenda>
-            <div className="flex items-center gap-2 text-[10px] text-slate-300">
-              <span className="flex items-end gap-0.5"><i className="block w-3 h-[2px] bg-cyan-300" /><i className="block w-3 h-[5px] bg-cyan-300" /><i className="block w-3 h-[9px] bg-cyan-300 rounded-sm" /></span>
-              Tebal garis ∝ √ tonase
+            <div className="flex items-center gap-2 text-[10.5px]">
+              <span className="w-4 flex items-center justify-center shrink-0">
+                <svg width="12" height="12" viewBox="0 0 16 16">
+                  <path d="M3 2.5 L13 8 L3 13.5 L6 8 Z" fill="#22e3ff" stroke="#031b2e" strokeWidth="1" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="text-slate-200 leading-tight">Arah arus pasokan</span>
             </div>
           </div>
         ) : (
