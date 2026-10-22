@@ -30,6 +30,19 @@ const AIIntelligenceMap = dynamic(
   }
 );
 
+const KameraCerdasView = dynamic(
+  () => import('@/components/kamera/KameraCerdasView'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[460px] flex items-center justify-center bg-[#04101f] text-cyan-200 text-xs font-bold gap-2 rounded-2xl">
+        <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+        <span>Memuat Peta Arus Pasokan Beras...</span>
+      </div>
+    ),
+  }
+);
+
 interface MobileForecastItem {
   key: string;
   name: string;
@@ -1142,6 +1155,11 @@ export default function MobileHome({
         <div className="w-full h-[380px] rounded-2xl overflow-hidden border border-emerald-200/90 shadow-xs relative z-0 isolate bg-slate-900">
           <AIIntelligenceMap activeTab="map" />
         </div>
+      </div>
+
+      {/* 6.6. Panel Peta Arus Pasokan & Distribusi Beras (Capture 2 Reference) */}
+      <div className="w-full h-[520px] rounded-3xl overflow-hidden shadow-md border border-slate-800">
+        <KameraCerdasView initialTab="arus" />
       </div>
 
       {/* 7. Panel Capaian Indikator Ketahanan Pangan Cilegon & Nasional 5 Tahun Terakhir (Capture 2 & Mobile First) */}

@@ -239,7 +239,6 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
   // Filter & tampilan
   const [filter, setFilter] = useState<ArusFilter>(FILTER_AWAL);
-  const [basemapMode, setBasemapMode] = useState<'dark' | 'satellite'>('satellite');
   const [tampilSarana, setTampilSarana] = useState(true);
   const [tampilLabel, setTampilLabel] = useState(true);
   const [tampilAnim, setTampilAnim] = useState(true);
@@ -372,19 +371,12 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             }}
           />
 
-          {/* Basemap Switcher */}
-          {basemapMode === 'dark' ? (
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              subdomains={['a', 'b', 'c', 'd']}
-              maxZoom={19}
-            />
-          ) : (
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-            />
-          )}
+          {/* Basemap Satelit Esri Resolusi Tinggi */}
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          />
 
           {/* Batas Geospasial KMZ Kecamatan Kota Cilegon */}
           {kmz.kecamatan && kmz.kecamatan.length > 0 && (
@@ -598,12 +590,6 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
 
         <div className={`${glass} rounded-xl p-1.5 pointer-events-auto flex items-center gap-1`}>
-          <Toggle
-            aktif={basemapMode === 'satellite'}
-            onClick={() => setBasemapMode((m) => (m === 'dark' ? 'satellite' : 'dark'))}
-            label={basemapMode === 'satellite' ? 'Satelit' : 'Dark'}
-            ikon={<span className="text-[10px] font-black leading-none">{basemapMode === 'satellite' ? '🛰️' : '🌙'}</span>}
-          />
           <Toggle aktif={tampilSarana} onClick={() => setTampilSarana((v) => !v)} label="Titik sarana" ikon={<Store className="w-3.5 h-3.5" />} />
           <Toggle aktif={tampilAnim} onClick={() => setTampilAnim((v) => !v)} label="Animasi" ikon={<Activity className="w-3.5 h-3.5" />} />
         </div>

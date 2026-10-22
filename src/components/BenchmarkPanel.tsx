@@ -382,9 +382,13 @@ export default function BenchmarkPanel({
           )}
 
           {/* Recharts Chart */}
-          <div className="w-full h-60 sm:h-72">
+          <div key={`chart-wrap-${activeIndicator.no}`} className="w-full h-60 sm:h-72 animate-in fade-in duration-300">
             <ResponsiveContainer width="99%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+              <ComposedChart 
+                key={`composed-chart-${activeIndicator.no}`} 
+                data={chartData} 
+                margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+              >
                 <defs>
                   <linearGradient id="surplusGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
@@ -415,11 +419,15 @@ export default function BenchmarkPanel({
                 />
 
                 <Area 
+                  key={`area-${activeIndicator.no}`}
                   type="monotone" 
                   dataKey="Capaian Cilegon" 
                   stroke="none" 
                   fill="url(#surplusGrad)" 
                   baseValue={target !== null ? target : 0} 
+                  isAnimationActive={true}
+                  animationDuration={900}
+                  animationEasing="ease-in-out"
                 />
 
                 {target !== null && (
@@ -439,6 +447,7 @@ export default function BenchmarkPanel({
                 )}
 
                 <Line 
+                  key={`line-${activeIndicator.no}`}
                   type="monotone" 
                   dataKey="Capaian Cilegon" 
                   name="Capaian Cilegon"
@@ -446,6 +455,9 @@ export default function BenchmarkPanel({
                   strokeWidth={3.5} 
                   dot={{ r: 5, stroke: '#FFFFFF', strokeWidth: 2, fill: '#10B981' }} 
                   activeDot={{ r: 7, stroke: '#FFFFFF', strokeWidth: 2.5 }} 
+                  isAnimationActive={true}
+                  animationDuration={900}
+                  animationEasing="ease-in-out"
                 >
                   <LabelList dataKey="Capaian Cilegon" position="top" style={{ fontSize: '8.5px', fill: '#059669', fontWeight: 'bold' }} offset={10} />
                 </Line>

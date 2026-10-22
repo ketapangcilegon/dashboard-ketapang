@@ -167,18 +167,26 @@ function MiniBenchmarkChart({ indicatorNo, currentValue, unit, nationalStandard,
             }}
           />
           <Area 
+            key={`indicator-area-${indicatorNo}`}
             type="monotone" 
             dataKey="value" 
             fill={activeColor.fill} 
             stroke="none" 
+            isAnimationActive={true}
+            animationDuration={900}
+            animationEasing="ease-in-out"
           />
           <Line 
+            key={`indicator-line-${indicatorNo}`}
             type="monotone" 
             dataKey="value" 
             stroke={activeColor.stroke} 
             strokeWidth={2.5} 
             dot={{ r: 4, fill: activeColor.dot, strokeWidth: 1.5, stroke: '#fff' }} 
             activeDot={{ r: 6 }} 
+            isAnimationActive={true}
+            animationDuration={900}
+            animationEasing="ease-in-out"
           >
             <LabelList dataKey="value" position="top" style={{ fontSize: '8px', fill: activeColor.stroke, fontWeight: 'bold' }} offset={8} />
           </Line>
@@ -2009,6 +2017,13 @@ export default function DashboardPage() {
 
                      </div>
                    </div>
+
+                    {/* Section: Panel Peta Arus Pasokan & Distribusi Beras (Capture 2 Reference) */}
+                    <div id="panel-peta-pasokan" className="mt-6 print:hidden scroll-mt-20">
+                      <div className="w-full h-[640px] rounded-3xl overflow-hidden shadow-lg border border-slate-800">
+                        <KameraCerdasView initialTab="arus" />
+                      </div>
+                    </div>
 
                 </>
               )}
