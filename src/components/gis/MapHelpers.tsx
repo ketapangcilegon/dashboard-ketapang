@@ -44,9 +44,9 @@ export function FitBoundsControl({ bounds }: { bounds?: L.LatLngBoundsExpression
           L.DomEvent.on(btn, 'click', () => {
             try {
               if (bounds) {
-                map.fitBounds(bounds, { animate: true, duration: 1.2, padding: [40, 40] });
+                map.fitBounds(bounds, { animate: true, duration: 1.2, padding: [14, 14] });
               } else {
-                map.flyTo([-6.01, 106.02], 12.5, { animate: true, duration: 1.2 });
+                map.flyTo([-5.99, 106.02], 11.5, { animate: true, duration: 1.2 });
               }
             } catch {}
           });

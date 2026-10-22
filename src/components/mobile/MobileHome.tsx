@@ -1124,7 +1124,7 @@ export default function MobileHome({
       <div className="pt-2 pb-4 flex flex-col items-center justify-center space-y-1.5 text-center">
         <VisitCounter className="bg-white/95 border border-emerald-200/90 text-slate-600 shadow-2xs hover:border-emerald-300" />
         <p className="text-[10px] text-slate-400 font-semibold tracking-tight">
-          PANCI • Platform Analisis Pangan Cilegon • DKPP Kota Cilegon
+          PANCI • Platform Analisis Pangan Cilegon
         </p>
       </div>
 

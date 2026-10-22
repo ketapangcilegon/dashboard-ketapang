@@ -72,6 +72,7 @@ const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView
 });
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
 const AIIntelligenceMap = dynamic(() => import('@/components/AIIntelligenceMap'), { ssr: false });
+const EarlyWarningSystemPanel = dynamic(() => import('@/components/EarlyWarningSystemPanel'), { ssr: false });
 import MobileAppContainer from '@/components/mobile/MobileAppContainer';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
@@ -1912,6 +1913,11 @@ export default function DashboardPage() {
                    {/* Section: AI Forecast */}
                    <div id="panel-forecast" className="space-y-3 scroll-mt-20">
                       <ForecastPanel livePrices={livePrices} onSwitchView={setCurrentView} />
+                   </div>
+
+                   {/* Section: Early Warning System (EWS) Desktop Panel */}
+                   <div id="panel-ews" className="space-y-3 scroll-mt-20 mt-6">
+                      <EarlyWarningSystemPanel livePrices={livePrices} />
                    </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}

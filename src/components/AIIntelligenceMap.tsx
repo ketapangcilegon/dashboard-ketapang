@@ -152,6 +152,37 @@ function CustomMapPanes() {
   return null;
 }
 
+// Full spatial bounds of Kota Cilegon (North: Suralaya, South: Ciwandan/Cikerai, East: Cibeber, West: Merak Coast)
+const CILEGON_FULL_BOUNDS: L.LatLngBoundsExpression = [
+  [-6.085, 105.945],
+  [-5.875, 106.095],
+];
+
+// Auto-Fit Cilegon boundaries to match Capture 1 exactly on desktop and mobile
+function AutoFitCilegonView({
+  hasCustomHighlight = false,
+  activeTab,
+}: {
+  hasCustomHighlight?: boolean;
+  activeTab?: string;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map || hasCustomHighlight) return;
+    const timer = setTimeout(() => {
+      try {
+        map.fitBounds(CILEGON_FULL_BOUNDS, {
+          padding: [14, 14],
+          animate: false,
+        });
+      } catch {}
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [map, hasCustomHighlight, activeTab]);
+
+  return null;
+}
+
 // Highlight Manager: FlyTo target wilayah atau Pin GPS saat user berinteraksi dengan AI
 function HighlightManager({
   highlightWilayah = [],
@@ -175,7 +206,7 @@ function HighlightManager({
     if (mapAction) {
       if (mapAction.type === 'RESET') {
         try {
-          map.flyTo([-6.01, 106.02], 12.5, { animate: true, duration: 1.2 });
+          map.fitBounds(CILEGON_FULL_BOUNDS, { animate: true, duration: 1.2, padding: [14, 14] });
         } catch {}
         return;
       }
@@ -990,8 +1021,10 @@ export default function AIIntelligenceMap({
         }
       `}</style>
       <MapContainer
-        center={[-6.01, 106.02]}
-        zoom={12.5}
+        center={[-5.99, 106.02]}
+        zoom={11.5}
+        minZoom={10}
+        zoomSnap={0.1}
         style={{ height: '100%', width: '100%' }}
         preferCanvas={true}
         zoomControl={true}
@@ -1043,12 +1076,16 @@ export default function AIIntelligenceMap({
         )}
 
         {/* Controls & Helpers */}
+        <AutoFitCilegonView
+          hasCustomHighlight={combinedWilayah.length > 0 || validAiPins.length > 0 || !!mapAction}
+          activeTab={activeTab}
+        />
         <CustomMapPanes />
         <MapRefSetter mapRef={mapRef} />
         <MapZoomTracker setZoom={setMapZoom} />
         <MapInvalidator invalidationKey={activeTab} />
         <MoveZoomControl />
-        <FitBoundsControl />
+        <FitBoundsControl bounds={CILEGON_FULL_BOUNDS} />
         <LocateMe />
         <LayerToggleControl setShowOsm={setShowOsm} />
 
