@@ -31,10 +31,12 @@ const Tooltip = dynamic(() => import('react-leaflet').then((m) => m.Tooltip), { 
 function MapController({
   flows,
   hub,
+  saranaList = [],
   onMapReady,
 }: {
   flows: ArusFlow[];
   hub: [number, number];
+  saranaList?: ObservasiRecord[];
   onMapReady?: (map: L.Map) => void;
 }) {
   const { useMap } = require('react-leaflet');
@@ -43,18 +45,30 @@ function MapController({
   useEffect(() => {
     if (map) {
       onMapReady?.(map);
-      // Multiple invalidateSize calls to ensure map fills container properly
-      map.invalidateSize();
-      const t1 = setTimeout(() => map.invalidateSize(), 150);
-      const t2 = setTimeout(() => map.invalidateSize(), 500);
-      const t3 = setTimeout(() => map.invalidateSize(), 1000);
+      const applyFit = () => {
+        map.invalidateSize();
+        if (flows.length > 0) {
+          const bounds = L.latLngBounds([hub[1], hub[0]], [hub[1], hub[0]]);
+          flows.forEach((f) => bounds.extend([f.sumber[1], f.sumber[0]]));
+          saranaList.forEach((s) => {
+            const lat = Number(s.latitude);
+            const lng = Number(s.longitude);
+            if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
+              bounds.extend([lat, lng]);
+            }
+          });
+          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 12 });
+        }
+      };
+      applyFit();
+      const t1 = setTimeout(applyFit, 200);
+      const t2 = setTimeout(applyFit, 600);
       return () => {
         clearTimeout(t1);
         clearTimeout(t2);
-        clearTimeout(t3);
       };
     }
-  }, [map, onMapReady]);
+  }, [map, flows, hub, saranaList, onMapReady]);
 
   return null;
 }
@@ -144,8 +158,8 @@ function createSaranaPinIcon(namaLokasi: string, kg: number, isSelected = false)
         <!-- Glowing Pulse -->
         <div style="position:absolute;width:${size + 14}px;height:${size + 14}px;background:rgba(255,196,64,0.35);border-radius:50%;top:calc(100% - ${size / 2}px);left:50%;transform:translate(-50%, -50%);pointer-events:none;animation:pulse 2s infinite;"></div>
         
-        <!-- Label Nama Toko -->
-        <div style="background:rgba(4,16,31,0.85);color:#ffdc73;font-weight:900;font-size:10px;padding:1px 6px;border-radius:6px;border:1px solid rgba(255,196,64,0.4);white-space:nowrap;margin-bottom:2px;box-shadow:0 2px 6px rgba(0,0,0,0.5);pointer-events:none;">
+        <!-- Label Nama Toko (Tanpa Kotak Background, Stroke Tipis Jelas) -->
+        <div style="background:transparent;color:#ffdc73;font-weight:900;font-size:10.5px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 5px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:3px;pointer-events:none;letter-spacing:0.2px;">
           ${namaLokasi} ${tonText ? `• ${tonText}` : ''}
         </div>
 
@@ -182,7 +196,8 @@ function createAsalPinIcon(label: string, kg: number) {
     className: 'asal-pemasok-pin',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);pointer-events:none;">
-        <div style="background:#092540;color:#22e3ff;font-weight:900;font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid #22e3ff;white-space:nowrap;margin-bottom:3px;box-shadow:0 2px 8px rgba(0,0,0,0.6);">
+        <!-- Label Asal Pemasok (Tanpa Kotak Background, Stroke Tipis Jelas) -->
+        <div style="background:transparent;color:#22e3ff;font-weight:900;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 5px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:3px;pointer-events:none;letter-spacing:0.2px;">
           ${label} • ${formatTon(kg)}
         </div>
         <div style="width:18px;height:18px;background:#22e3ff;border:2.5px solid #ffffff;border-radius:50%;box-shadow:0 0 10px #22e3ff;"></div>
@@ -214,7 +229,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
   const [tampilAnim, setTampilAnim] = useState(true);
   const [tampilTigaD, setTampilTigaD] = useState(true);
   const [filterTerbuka, setFilterTerbuka] = useState(false);
-  const [kpiTerbuka, setKpiTerbuka] = useState(true);
+  const [kpiTerbuka, setKpiTerbuka] = useState(false);
   const [legendaTerbuka, setLegendaTerbuka] = useState(true);
   const [selectedSarana, setSelectedSarana] = useState<ObservasiRecord | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<ArusFlow | null>(null);
@@ -335,6 +350,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
           <MapController
             flows={hasil.flows}
             hub={hub}
+            saranaList={validSaranaList}
             onMapReady={(m) => {
               mapInstanceRef.current = m;
             }}

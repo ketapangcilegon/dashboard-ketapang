@@ -1483,6 +1483,14 @@ export default function DashboardPage() {
       );
     }
 
+    if (currentView === 'peta_pasokan') {
+      return (
+        <div className="w-full h-[calc(100vh-140px)] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+          <KameraCerdasView initialTab="arus" />
+        </div>
+      );
+    }
+
     if (currentView === 'sumber_data') {
       return (
         <div className="dashboard-card p-4 bg-white shadow-sm border border-slate-200">
@@ -2652,10 +2660,10 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {(currentView === 'kamera_cerdas' || currentView === 'agregasi_kamera' || currentView === 'rantai_pasok') && (
+              {(currentView === 'kamera_cerdas' || currentView === 'agregasi_kamera' || currentView === 'rantai_pasok' || currentView === 'peta_pasokan') && (
                 <div className="w-full h-[calc(100vh-80px)] min-h-[520px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
                   <KameraCerdasView 
-                    initialTab={currentView === 'kamera_cerdas' ? 'camera' : 'analytics'} 
+                    initialTab={currentView === 'peta_pasokan' ? 'arus' : currentView === 'kamera_cerdas' ? 'camera' : 'analytics'} 
                     focusSection={currentView === 'rantai_pasok' ? 'rantai_pasok' : null} 
                   />
                 </div>
@@ -2664,7 +2672,7 @@ export default function DashboardPage() {
           )}
 
           {/* Footer with Visit Counter */}
-          {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && currentView !== 'agregasi_kamera' && currentView !== 'rantai_pasok' && (
+          {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && currentView !== 'agregasi_kamera' && currentView !== 'rantai_pasok' && currentView !== 'peta_pasokan' && (
             <footer className="mt-12 pt-6 pb-12 sm:pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
               <VisitCounter />
             </footer>

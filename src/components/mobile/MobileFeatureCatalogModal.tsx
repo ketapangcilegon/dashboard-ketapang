@@ -189,6 +189,14 @@ export default function MobileFeatureCatalogModal({
           icon: <BarChart3 className="w-5 h-5 text-white" />,
           gradient: 'from-violet-600 to-purple-700',
         },
+        {
+          id: 'peta_pasokan',
+          title: 'Peta Pasokan Beras',
+          subtitle: 'Arus pasokan beras & logistik wilayah',
+          icon: <Truck className="w-5 h-5 text-white" />,
+          gradient: 'from-cyan-600 to-blue-700',
+          badge: 'Geospasial',
+        },
       ],
     },
     {

@@ -68,6 +68,7 @@ export default function Sidebar({
     { label: 'Forecast Harga Pangan & EWS', view: 'forecasting' },
     { label: 'Insight Ketahanan Pangan', view: 'insight' },
     { label: 'Analisis SKPG', view: 'analisis_skpg' },
+    { label: 'Peta Pasokan Beras', view: 'peta_pasokan' },
     { label: 'Grafik Radar Ketahanan Pangan Kelurahan', view: 'radar_kelurahan' }
   ];
 
