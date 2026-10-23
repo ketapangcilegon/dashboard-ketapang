@@ -1915,9 +1915,32 @@ export default function DashboardPage() {
                       <ForecastPanel livePrices={livePrices} onSwitchView={setCurrentView} />
                    </div>
 
-                   {/* Section: Early Warning System (EWS) Desktop Panel */}
-                   <div id="panel-ews" className="space-y-3 scroll-mt-20 mt-6">
-                      <EarlyWarningSystemPanel livePrices={livePrices} />
+                   {/* Section: Early Warning System & Peta Pasokan Beras Crowdsourcing (Desktop: 2 Kolom 1/3 & 2/3 - Capture 1) */}
+                   <div id="panel-ews-pasokan" className="space-y-3 scroll-mt-20 mt-6 print:hidden">
+                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 items-stretch">
+                       {/* Kolom 1: Early Warning System (Desktop: 1/3 / Span 4) */}
+                       <div id="panel-ews" className="lg:col-span-4 flex flex-col print:col-span-4 scroll-mt-20">
+                         <EarlyWarningSystemPanel livePrices={livePrices} />
+                       </div>
+
+                       {/* Kolom 2: Peta Pasokan Beras Berbasis Crowdsourcing (Desktop: 2/3 / Span 8) */}
+                       <div id="panel-peta-pasokan" className="lg:col-span-8 flex flex-col print:col-span-8 scroll-mt-20">
+                         {/* Header OUTSIDE & ABOVE panel box (dengan ikon bar hijau di pangkal judul) */}
+                         <div className="mb-2.5 flex flex-col justify-end min-h-[42px]">
+                           <div className="flex items-center gap-2">
+                             <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                             <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
+                               PETA PASOKAN BERAS BERBASIS CROWDSOURCING
+                             </h3>
+                           </div>
+                         </div>
+
+                         {/* Box Panel Kamera AI Vision */}
+                         <div className="w-full h-[640px] rounded-3xl overflow-hidden shadow-lg border border-slate-800 flex-1 flex flex-col">
+                           <KameraCerdasView initialTab="arus" />
+                         </div>
+                       </div>
+                     </div>
                    </div>
 
                   {/* BOTTOM ROW 1: IKP & PoU (1/2 Width Each) */}
@@ -2024,12 +2047,6 @@ export default function DashboardPage() {
                      </div>
                    </div>
 
-                    {/* Section: Panel Peta Arus Pasokan & Distribusi Beras (Capture 2 Reference) */}
-                    <div id="panel-peta-pasokan" className="mt-6 print:hidden scroll-mt-20">
-                      <div className="w-full h-[640px] rounded-3xl overflow-hidden shadow-lg border border-slate-800">
-                        <KameraCerdasView initialTab="arus" />
-                      </div>
-                    </div>
 
                 </>
               )}

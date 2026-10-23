@@ -231,9 +231,9 @@ export default function EarlyWarningSystemPanel({
   const commodityName = EWS_COMMODITY_MAP[selectedCommodity] || 'Komoditas';
 
   return (
-    <div className="w-full">
+    <div className="w-full flex-1 flex flex-col">
       {/* Header Segmen */}
-      <div className="mb-3">
+      <div className="mb-2.5 flex flex-col justify-end min-h-[42px]">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
           <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide flex items-center gap-2">
@@ -241,20 +241,20 @@ export default function EarlyWarningSystemPanel({
             <span>EARLY WARNING SYSTEM</span>
           </h3>
         </div>
-        <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wider leading-relaxed">
+        <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider leading-relaxed">
           * PILIH KOMODITAS PADA TABEL UNTUK MENAMPILKAN STATUS EWS
         </p>
       </div>
 
       {/* Main EWS Card (Mobile First layout with height limit matching mobile forecast) */}
-      <div className="dashboard-card bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-md max-w-3xl mx-auto flex flex-col max-h-[580px] overflow-hidden">
+      <div className="dashboard-card bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-md w-full flex-1 flex flex-col h-[640px] overflow-hidden">
         {loading ? (
           <div className="p-16 flex flex-col justify-center items-center text-slate-400 font-bold text-xs h-full gap-2">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
             <span>Memuat evaluasi sistem peringatan dini (EWS)...</span>
           </div>
         ) : (
-          <div className="overflow-y-auto space-y-4 pr-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300">
+          <div className="overflow-y-auto space-y-4 pr-1 h-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300">
             {/* 1. Status Keamanan Banner + Carousel Selector */}
             <div className={`p-5 rounded-2xl border flex flex-col justify-between shadow-inner transition-all duration-300 ${statusBg}`}>
               <div className="flex items-center justify-between w-full">

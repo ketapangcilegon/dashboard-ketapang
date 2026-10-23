@@ -6,7 +6,8 @@ import {
   ShieldCheck, MapPin, Store, Sparkles, Target, Activity, 
   Camera, Bot, Layers, ChevronRight, TrendingUp, TrendingDown,
   ArrowRight, Sparkle, AlertCircle, CheckCircle2, ChevronLeft,
-  LineChart, ChevronUp, ChevronDown, Calendar, BarChart3, Truck
+  LineChart, ChevronUp, ChevronDown, Calendar, BarChart3, Truck,
+  Info
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaCarousel from '@/components/MediaCarousel';
@@ -16,19 +17,6 @@ import { supabase } from '@/lib/supabase';
 import MobileFsvaKelurahanModal, { FsvaPriorityDef, FsvaKelurahanItem } from './MobileFsvaKelurahanModal';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 import { KEL_TO_KEC } from '@/lib/wilayah';
-
-const AIIntelligenceMap = dynamic(
-  () => import('@/components/AIIntelligenceMap'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 gap-3 min-h-[300px]">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-semibold">Memuat Peta Food Security Intelligence...</span>
-      </div>
-    ),
-  }
-);
 
 const KameraCerdasView = dynamic(
   () => import('@/components/kamera/KameraCerdasView'),
@@ -42,6 +30,24 @@ const KameraCerdasView = dynamic(
     ),
   }
 );
+
+export interface MobileEwsItem {
+  key: string;
+  name: string;
+  icon: string;
+  hargaAktual: number;
+  forecast1m: number;
+  forecast3m: number;
+  cv: number;
+  statusForecast: string;
+  statusCv: string;
+  statusSkpg: string;
+  perubahanPct: number;
+  growthYoy: number;
+  overallStatus: 'Aman' | 'Waspada' | 'Rentan';
+  drivers: string[];
+  rekomendasi: string[];
+}
 
 interface MobileForecastItem {
   key: string;
@@ -393,6 +399,8 @@ export default function MobileHome({
   ];
 
   const [allForecastItems, setAllForecastItems] = useState<MobileForecastItem[]>([]);
+  const [allEwsItems, setAllEwsItems] = useState<MobileEwsItem[]>([]);
+  const [expandedEwsKey, setExpandedEwsKey] = useState<string | null>(null);
   const forecastScrollRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -432,6 +440,66 @@ export default function MobileHome({
         });
 
         setAllForecastItems(items);
+
+        // Early Warning System (EWS) 13 Komoditas Data
+        const ewsList: MobileEwsItem[] = FORECAST_COMMODITY_ORDER.map(cfg => {
+          const row = dbMap.get(cfg.key);
+          const aktual = row ? (Number(row.harga_aktual) || cfg.fallbackAktual) : cfg.fallbackAktual;
+          const month1 = row ? (Number(row.forecast_1m) || cfg.fallback1m) : cfg.fallback1m;
+          const month3 = row ? (Number(row.forecast_3m) || cfg.fallback3m) : cfg.fallback3m;
+          const pct = aktual > 0 ? ((month1 - aktual) / aktual) * 100 : (Number(row?.perubahan_pct) || 0);
+          const cv = Number(row?.cv) || 1.0;
+          const statusForecast = row?.status_forecast || (pct > 3 ? 'Naik' : pct < -3 ? 'Turun' : 'Stabil');
+          const statusCv = row?.status_cv || (cv > 15 ? 'RENTAN' : cv > 8 ? 'WASPADA' : 'AMAN');
+          const statusSkpg = row?.status_skpg || 'AMAN';
+          const growthYoy = Number(row?.growth_yoy) || -3.0;
+
+          let overallStatus: 'Aman' | 'Waspada' | 'Rentan' = 'Aman';
+          if (statusForecast === 'Turun') {
+            overallStatus = 'Aman';
+          } else if (statusCv === 'RENTAN' || statusSkpg === 'RENTAN') {
+            overallStatus = 'Rentan';
+          } else if (statusCv === 'WASPADA' || statusSkpg === 'WASPADA' || statusForecast === 'Naik') {
+            overallStatus = 'Waspada';
+          }
+
+          let drivers = row?.drivers;
+          if (!drivers || !Array.isArray(drivers) || drivers.length === 0) {
+            drivers = [
+              '1 Tren harga 3 bulan terakhir',
+              '2 Cuaca kondusif',
+              '3 Stabilitas inflasi makro'
+            ];
+          }
+
+          let rekomendasi = row?.rekomendasi;
+          if (!rekomendasi || !Array.isArray(rekomendasi) || rekomendasi.length === 0) {
+            rekomendasi = [
+              'monitoring rutin mingguan',
+              'jaga kestabilan pasokan'
+            ];
+          }
+
+          return {
+            key: cfg.key,
+            name: cfg.name,
+            icon: cfg.icon,
+            hargaAktual: aktual,
+            forecast1m: month1,
+            forecast3m: month3,
+            cv,
+            statusForecast,
+            statusCv,
+            statusSkpg,
+            perubahanPct: Math.round(pct * 10) / 10,
+            growthYoy,
+            overallStatus,
+            drivers,
+            rekomendasi,
+          };
+        });
+
+        setAllEwsItems(ewsList);
       } catch (err) {
         console.warn('[MobileHome] Using fallback forecasts:', err);
         const fallbackItems: MobileForecastItem[] = FORECAST_COMMODITY_ORDER.map(cfg => ({
@@ -446,6 +514,32 @@ export default function MobileHome({
           status: 'Naik',
         }));
         setAllForecastItems(fallbackItems);
+
+        const fallbackEws: MobileEwsItem[] = FORECAST_COMMODITY_ORDER.map(cfg => ({
+          key: cfg.key,
+          name: cfg.name,
+          icon: cfg.icon,
+          hargaAktual: cfg.fallbackAktual,
+          forecast1m: cfg.fallback1m,
+          forecast3m: cfg.fallback3m,
+          cv: 1.0,
+          statusForecast: 'Stabil',
+          statusCv: 'AMAN',
+          statusSkpg: 'AMAN',
+          perubahanPct: -0.6,
+          growthYoy: -3.0,
+          overallStatus: 'Aman',
+          drivers: [
+            '1 Tren harga 3 bulan terakhir',
+            '2 Cuaca kondusif',
+            '3 Stabilitas inflasi makro'
+          ],
+          rekomendasi: [
+            'monitoring rutin mingguan',
+            'jaga kestabilan pasokan'
+          ]
+        }));
+        setAllEwsItems(fallbackEws);
       }
     }
     loadAllForecasts();
@@ -1081,27 +1175,168 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* 6.5. Panel Peta Food Security Intelligence (Capture 3) */}
-      <div className="bg-gradient-to-br from-white via-emerald-50/30 to-[#ECFDF5]/50 p-3.5 rounded-3xl border border-emerald-200/80 shadow-sm space-y-2.5">
+      {/* 6.5. Panel Early Warning System (EWS) - 3 Baris Teratas & Native Scroll (Mobile First) */}
+      <div className="bg-gradient-to-br from-[#FCFAF2] via-[#F7F4EB] to-[#EFEAD8] p-3.5 rounded-3xl border border-[#E9E4D5] shadow-sm space-y-2.5">
+        {/* Header */}
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-4 bg-emerald-600 rounded-full shrink-0"></div>
-            <h3 className="font-black text-xs uppercase tracking-wider text-emerald-950">
-              FOOD SECURITY INTELLIGENCE
+            <h3 className="font-black text-xs uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>EARLY WARNING SYSTEM</span>
             </h3>
           </div>
           <button 
-            onClick={() => onNavigate('ai_intelligence')}
+            onClick={() => onNavigate('forecasting')}
             className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+            title="Buka Penuh EWS DSS"
           >
-            <span>Buka Penuh</span>
+            <span>Detail</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* GIS Interactive Leaflet Map Container */}
-        <div className="w-full h-[380px] rounded-2xl overflow-hidden border border-emerald-200/90 shadow-xs relative z-0 isolate bg-slate-900">
-          <AIIntelligenceMap activeTab="map" />
+        {/* Petunjuk Geser & Keterangan 3 Baris Teratas */}
+        <div className="px-1 flex items-center justify-between text-[9px] font-bold text-slate-500">
+          <span>* 3 komoditas teratas tampil</span>
+          <span className="text-emerald-700 font-black flex items-center gap-1">
+            Scroll ke bawah ⇅
+          </span>
+        </div>
+
+        {/* Scrollable Container (Menampilkan 3 Baris Teratas & Scrolable Native ke Bawah) */}
+        <div 
+          className="max-h-[350px] overflow-y-auto space-y-2 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300"
+          style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}
+        >
+          {allEwsItems.map((item, idx) => {
+            const isExpanded = expandedEwsKey === item.key;
+            const statusColor = 
+              item.overallStatus === 'Rentan'
+                ? { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
+                : item.overallStatus === 'Waspada'
+                ? { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' }
+                : { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' };
+
+            return (
+              <div 
+                key={item.key}
+                className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-all p-3 space-y-2"
+              >
+                {/* Header Baris Komoditas: Icon, Nama, Rank, dan Badge Status Keamanan */}
+                <div 
+                  onClick={() => setExpandedEwsKey(isExpanded ? null : item.key)}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">{item.icon}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-800 truncate">
+                          {item.name}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400 font-mono">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusColor.dot} animate-pulse`} />
+                      <span>{item.overallStatus}</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-transform"
+                      aria-label="Toggle details"
+                    >
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3 Layer Indikator EWS: L1 (Trend), L2 (CV), L3 (SKPG) */}
+                <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 text-left">
+                  {/* L1 */}
+                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                      L1: Proyeksi
+                    </span>
+                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                      item.statusForecast === 'Naik' ? 'text-rose-600' : item.statusForecast === 'Turun' ? 'text-emerald-700' : 'text-slate-700'
+                    }`}>
+                      {item.statusForecast} ({item.perubahanPct > 0 ? `+${item.perubahanPct.toFixed(1)}%` : `${item.perubahanPct.toFixed(1)}%`})
+                    </span>
+                  </div>
+
+                  {/* L2 */}
+                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                      L2: CV Volatilitas
+                    </span>
+                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                      item.statusCv === 'RENTAN' ? 'text-rose-600' : item.statusCv === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                    }`}>
+                      {item.statusCv} ({item.cv.toFixed(1)}%)
+                    </span>
+                  </div>
+
+                  {/* L3 */}
+                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                      L3: YoY SKPG
+                    </span>
+                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                      item.statusSkpg === 'RENTAN' ? 'text-rose-600' : item.statusSkpg === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                    }`}>
+                      {item.statusSkpg} ({item.growthYoy > 0 ? `+${item.growthYoy.toFixed(1)}%` : `${item.growthYoy.toFixed(1)}%`})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bagian Detail Expand: Top Drivers & Rekomendasi */}
+                {isExpanded && (
+                  <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
+                    {/* Top Drivers */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
+                        <Info className="w-3 h-3 text-emerald-600" />
+                        <span>Pendorong Utama (Drivers)</span>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-150 space-y-1 text-[9.5px]">
+                        {item.drivers.map((drv, dIdx) => (
+                          <div key={dIdx} className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-600 text-[8.5px] font-bold flex items-center justify-center shrink-0">
+                              {dIdx + 1}
+                            </span>
+                            <span className="truncate">{drv.replace(/^\d+\s*/, '')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Rekomendasi */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Rekomendasi Intervensi</span>
+                      </div>
+                      <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-150 space-y-1 text-[9.5px]">
+                        {item.rekomendasi.map((rek, rIdx) => (
+                          <div key={rIdx} className="flex items-start gap-1.5 text-emerald-800 font-semibold">
+                            <span className="text-emerald-600 font-bold shrink-0">•</span>
+                            <span className="leading-tight">{rek}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
