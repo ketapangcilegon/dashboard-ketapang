@@ -1930,7 +1930,7 @@ export default function DashboardPage() {
                            <div className="flex items-center gap-2">
                              <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
                              <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
-                               PETA PASOKAN BERAS BERBASIS CROWDSOURCING
+                               PETA PASOKAN PANGAN (AI VISION)
                              </h3>
                            </div>
                          </div>

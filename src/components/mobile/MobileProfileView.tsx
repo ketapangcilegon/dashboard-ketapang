@@ -40,10 +40,10 @@ export default function MobileProfileView({
           if (data?.user?.email) {
             setAdminEmail(data.user.email);
           } else {
-            setAdminEmail('admin@cilegon.go.id');
+            setAdminEmail('Administrator');
           }
         } catch {
-          setAdminEmail('admin@cilegon.go.id');
+          setAdminEmail('Administrator');
         }
       }
     };
@@ -120,7 +120,7 @@ export default function MobileProfileView({
               </span>
             </div>
             <p className="text-[11px] font-semibold text-slate-600 truncate mt-0.5">
-              {isAdmin ? (adminEmail || 'admin@cilegon.go.id') : 'Autentikasi Pengelola Sistem'}
+              {isAdmin ? (adminEmail || 'Administrator') : 'Autentikasi Pengelola Sistem'}
             </p>
             <p className="text-[10px] text-emerald-700 font-bold truncate">
               {isAdmin ? 'Akses Penuh Manajemen Data' : 'Masukkan email & kata sandi admin'}
@@ -166,7 +166,7 @@ export default function MobileProfileView({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@cilegon.go.id"
+                  placeholder=""
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-2xs"
                 />
               </div>

@@ -82,7 +82,7 @@ export default function KameraCerdasView({
         if (session?.user?.email) {
           setAdminEmail(session.user.email);
         } else if (sessionActive) {
-          setAdminEmail('admin@cilegon.go.id');
+          setAdminEmail('Administrator');
         }
       } catch {
         setIsAdmin(sessionActive);
@@ -95,7 +95,7 @@ export default function KameraCerdasView({
       const hasAdmin = sessionActive || !!session?.user;
       setIsAdmin(hasAdmin);
       if (session?.user?.email) setAdminEmail(session.user.email);
-      else if (sessionActive) setAdminEmail('admin@cilegon.go.id');
+      else if (sessionActive) setAdminEmail('Administrator');
       else setAdminEmail('');
     });
     return () => subscription.unsubscribe();
@@ -113,7 +113,7 @@ export default function KameraCerdasView({
       if (!error && data.user) {
         sessionStorage.setItem('adminSession', 'active');
         setIsAdmin(true);
-        setAdminEmail(data.user.email || 'admin@cilegon.go.id');
+        setAdminEmail(data.user.email || 'Administrator');
         setShowLoginModal(false);
         setLoginPassword('');
       } else {
@@ -720,7 +720,7 @@ export default function KameraCerdasView({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Kamera AI Vision</h2>
+              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Peta Pasokan Pangan (AI Vision)</h2>
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
                 isAdmin 
                   ? 'bg-emerald-500 text-white' 
@@ -1164,7 +1164,7 @@ export default function KameraCerdasView({
                   required
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="admin@cilegon.go.id"
+                  placeholder=""
                   className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
