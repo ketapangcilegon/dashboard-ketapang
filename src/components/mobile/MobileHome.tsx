@@ -15,6 +15,7 @@ import BenchmarkPanel from '@/components/BenchmarkPanel';
 import VisitCounter from '@/components/VisitCounter';
 import { supabase } from '@/lib/supabase';
 import MobileFsvaKelurahanModal, { FsvaPriorityDef, FsvaKelurahanItem } from './MobileFsvaKelurahanModal';
+import MobileIkpPouChart from './MobileIkpPouChart';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 import { KEL_TO_KEC } from '@/lib/wilayah';
 
@@ -403,6 +404,11 @@ export default function MobileHome({
   const [expandedEwsKey, setExpandedEwsKey] = useState<string | null>(null);
   const forecastScrollRef = React.useRef<HTMLDivElement>(null);
 
+  // Hanya tampilkan daftar komoditas yang secara agregat statusnya rentan dan waspada (Capture 4)
+  const alertEwsItems = useMemo(() => {
+    return allEwsItems.filter(item => item.overallStatus === 'Rentan' || item.overallStatus === 'Waspada');
+  }, [allEwsItems]);
+
   useEffect(() => {
     async function loadAllForecasts() {
       try {
@@ -515,30 +521,36 @@ export default function MobileHome({
         }));
         setAllForecastItems(fallbackItems);
 
-        const fallbackEws: MobileEwsItem[] = FORECAST_COMMODITY_ORDER.map(cfg => ({
-          key: cfg.key,
-          name: cfg.name,
-          icon: cfg.icon,
-          hargaAktual: cfg.fallbackAktual,
-          forecast1m: cfg.fallback1m,
-          forecast3m: cfg.fallback3m,
-          cv: 1.0,
-          statusForecast: 'Stabil',
-          statusCv: 'AMAN',
-          statusSkpg: 'AMAN',
-          perubahanPct: -0.6,
-          growthYoy: -3.0,
-          overallStatus: 'Aman',
-          drivers: [
-            '1 Tren harga 3 bulan terakhir',
-            '2 Cuaca kondusif',
-            '3 Stabilitas inflasi makro'
-          ],
-          rekomendasi: [
-            'monitoring rutin mingguan',
-            'jaga kestabilan pasokan'
-          ]
-        }));
+        const fallbackEws: MobileEwsItem[] = FORECAST_COMMODITY_ORDER.map(cfg => {
+          const isBmWsp = cfg.key === 'harga_bawang_merah';
+          const isCrmWsp = cfg.key === 'harga_cabai_rawit_merah';
+          const isMnyWsp = cfg.key === 'harga_cabai_merah_keriting';
+          const overallStatus = isBmWsp ? 'Rentan' : (isCrmWsp || isMnyWsp) ? 'Waspada' : 'Aman';
+          return {
+            key: cfg.key,
+            name: cfg.name,
+            icon: cfg.icon,
+            hargaAktual: cfg.fallbackAktual,
+            forecast1m: cfg.fallback1m,
+            forecast3m: cfg.fallback3m,
+            cv: isBmWsp ? 15.8 : isCrmWsp ? 10.2 : 1.0,
+            statusForecast: isBmWsp ? 'Naik' : isCrmWsp ? 'Naik' : 'Stabil',
+            statusCv: isBmWsp ? 'RENTAN' : isCrmWsp ? 'WASPADA' : 'AMAN',
+            statusSkpg: 'AMAN',
+            perubahanPct: isBmWsp ? 23.2 : isCrmWsp ? 8.4 : -0.6,
+            growthYoy: isBmWsp ? 14.2 : -3.0,
+            overallStatus,
+            drivers: [
+              '1 Tren harga 3 bulan terakhir',
+              '2 Pasokan dari sentra produksi Jawa Tengah',
+              '3 Stabilitas pasokan dan distribusi'
+            ],
+            rekomendasi: [
+              isBmWsp ? 'Operasi pasar & koordinasi distributor' : 'Monitoring berkala pergerakan harga',
+              'Jaga kelancaran arus distribusi pangan'
+            ]
+          };
+        });
         setAllEwsItems(fallbackEws);
       }
     }
@@ -895,11 +907,11 @@ export default function MobileHome({
                     </span>
                   </div>
 
-                  {/* 2. PERAMALAN +1 BULAN */}
+                  {/* 2. +1 BULAN */}
                   <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 pr-1 min-w-0">
                     <div className="leading-tight">
                       <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
-                        PERAMALAN +1 BULAN
+                        +1 BULAN
                       </div>
                       <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
                         {forecastMonths.t1MonthStr}
@@ -917,11 +929,11 @@ export default function MobileHome({
                     </span>
                   </div>
 
-                  {/* 3. PERAMALAN +3 BULAN */}
+                  {/* 3. +3 BULAN */}
                   <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 min-w-0">
                     <div className="leading-tight">
                       <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
-                        PERAMALAN +3 BULAN
+                        +3 BULAN
                       </div>
                       <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
                         {forecastMonths.t3MonthStr}
@@ -1001,148 +1013,162 @@ export default function MobileHome({
           </button>
         </div>
 
-        {/* Petunjuk Geser & Keterangan 3 Baris Teratas */}
+        {/* Petunjuk Prioritas Komoditas EWS & Scroll */}
         <div className="px-1 flex items-center justify-between text-[9px] font-bold text-slate-500">
-          <span>* 3 komoditas teratas tampil</span>
-          <span className="text-emerald-700 font-black flex items-center gap-1">
-            Scroll ke bawah ⇅
+          <span className="text-rose-700 font-extrabold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+            <span>Prioritas Pengawasan: {alertEwsItems.length} Komoditas</span>
           </span>
+          {alertEwsItems.length > 2 && (
+            <span className="text-emerald-700 font-black flex items-center gap-1">
+              Scroll ke bawah ⇅
+            </span>
+          )}
         </div>
 
-        {/* Scrollable Container (Menampilkan 3 Baris Teratas & Scrolable Native ke Bawah) */}
+        {/* Scrollable Container (HANYA Menampilkan Komoditas Rentan & Waspada - Capture 4) */}
         <div 
           className="max-h-[350px] overflow-y-auto space-y-2 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300"
           style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}
         >
-          {allEwsItems.map((item, idx) => {
-            const isExpanded = expandedEwsKey === item.key;
-            const statusColor = 
-              item.overallStatus === 'Rentan'
-                ? { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
-                : item.overallStatus === 'Waspada'
-                ? { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' }
-                : { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' };
+          {alertEwsItems.length === 0 ? (
+            <div className="bg-emerald-50/90 rounded-2xl border border-emerald-200 p-4 text-center space-y-1">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto" />
+              <p className="text-xs font-black text-emerald-950">Seluruh Komoditas Berstatus Aman</p>
+              <p className="text-[10px] text-emerald-700">Tidak ada komoditas dengan status rentan atau waspada saat ini.</p>
+            </div>
+          ) : (
+            alertEwsItems.map((item, idx) => {
+              const isExpanded = expandedEwsKey === item.key;
+              const statusColor = 
+                item.overallStatus === 'Rentan'
+                  ? { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
+                  : { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' };
 
-            return (
-              <div 
-                key={item.key}
-                className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-all p-3 space-y-2"
-              >
-                {/* Header Baris Komoditas: Icon, Nama, Rank, dan Badge Status Keamanan */}
+              return (
                 <div 
-                  onClick={() => setExpandedEwsKey(isExpanded ? null : item.key)}
-                  className="flex items-center justify-between cursor-pointer"
+                  key={item.key}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-all p-3 space-y-2"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-base shrink-0">{item.icon}</span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-slate-800 truncate">
-                          {item.name}
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-400 font-mono">
-                          #{idx + 1}
-                        </span>
+                  {/* Header Baris Komoditas: Icon, Nama, Rank, dan Badge Status Keamanan */}
+                  <div 
+                    onClick={() => setExpandedEwsKey(isExpanded ? null : item.key)}
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base shrink-0">{item.icon}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-slate-800 truncate">
+                            {item.name}
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400 font-mono">
+                            #{idx + 1}
+                          </span>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusColor.dot} animate-pulse`} />
+                        <span>{item.overallStatus}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-transform"
+                        aria-label="Toggle details"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusColor.dot} animate-pulse`} />
-                      <span>{item.overallStatus}</span>
-                    </span>
-                    <button
-                      type="button"
-                      className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-transform"
-                      aria-label="Toggle details"
-                    >
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                    </button>
+                  {/* 3 Layer Indikator EWS: L1 (Trend), L2 (CV), L3 (SKPG) */}
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 text-left">
+                    {/* L1 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                        L1: Proyeksi
+                      </span>
+                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                        item.statusForecast === 'Naik' ? 'text-rose-600' : item.statusForecast === 'Turun' ? 'text-emerald-700' : 'text-slate-700'
+                      }`}>
+                        {item.statusForecast} ({item.perubahanPct > 0 ? `+${item.perubahanPct.toFixed(1)}%` : `${item.perubahanPct.toFixed(1)}%`})
+                      </span>
+                    </div>
+
+                    {/* L2 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                        L2: CV Volatilitas
+                      </span>
+                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                        item.statusCv === 'RENTAN' ? 'text-rose-600' : item.statusCv === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                      }`}>
+                        {item.statusCv} ({item.cv.toFixed(1)}%)
+                      </span>
+                    </div>
+
+                    {/* L3 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                        L3: YoY SKPG
+                      </span>
+                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
+                        item.statusSkpg === 'RENTAN' ? 'text-rose-600' : item.statusSkpg === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                      }`}>
+                        {item.statusSkpg} ({item.growthYoy > 0 ? `+${item.growthYoy.toFixed(1)}%` : `${item.growthYoy.toFixed(1)}%`})
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Bagian Detail Expand: Top Drivers & Rekomendasi */}
+                  {isExpanded && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
+                      {/* Top Drivers */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
+                          <Info className="w-3 h-3 text-emerald-600" />
+                          <span>Pendorong Utama (Drivers)</span>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-150 space-y-1 text-[9.5px]">
+                          {item.drivers.map((drv, dIdx) => (
+                            <div key={dIdx} className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                              <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-600 text-[8.5px] font-bold flex items-center justify-center shrink-0">
+                                {dIdx + 1}
+                              </span>
+                              <span className="truncate">{drv.replace(/^\d+\s*/, '')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Rekomendasi */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Rekomendasi Intervensi</span>
+                        </div>
+                        <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-150 space-y-1 text-[9.5px]">
+                          {item.rekomendasi.map((rek, rIdx) => (
+                            <div key={rIdx} className="flex items-start gap-1.5 text-emerald-800 font-semibold">
+                              <span className="text-emerald-600 font-bold shrink-0">•</span>
+                              <span className="leading-tight">{rek}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* 3 Layer Indikator EWS: L1 (Trend), L2 (CV), L3 (SKPG) */}
-                <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 text-left">
-                  {/* L1 */}
-                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
-                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                      L1: Proyeksi
-                    </span>
-                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                      item.statusForecast === 'Naik' ? 'text-rose-600' : item.statusForecast === 'Turun' ? 'text-emerald-700' : 'text-slate-700'
-                    }`}>
-                      {item.statusForecast} ({item.perubahanPct > 0 ? `+${item.perubahanPct.toFixed(1)}%` : `${item.perubahanPct.toFixed(1)}%`})
-                    </span>
-                  </div>
-
-                  {/* L2 */}
-                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
-                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                      L2: CV Volatilitas
-                    </span>
-                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                      item.statusCv === 'RENTAN' ? 'text-rose-600' : item.statusCv === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
-                    }`}>
-                      {item.statusCv} ({item.cv.toFixed(1)}%)
-                    </span>
-                  </div>
-
-                  {/* L3 */}
-                  <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
-                    <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                      L3: YoY SKPG
-                    </span>
-                    <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                      item.statusSkpg === 'RENTAN' ? 'text-rose-600' : item.statusSkpg === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
-                    }`}>
-                      {item.statusSkpg} ({item.growthYoy > 0 ? `+${item.growthYoy.toFixed(1)}%` : `${item.growthYoy.toFixed(1)}%`})
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bagian Detail Expand: Top Drivers & Rekomendasi */}
-                {isExpanded && (
-                  <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
-                    {/* Top Drivers */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
-                        <Info className="w-3 h-3 text-emerald-600" />
-                        <span>Pendorong Utama (Drivers)</span>
-                      </div>
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-150 space-y-1 text-[9.5px]">
-                        {item.drivers.map((drv, dIdx) => (
-                          <div key={dIdx} className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                            <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-600 text-[8.5px] font-bold flex items-center justify-center shrink-0">
-                              {dIdx + 1}
-                            </span>
-                            <span className="truncate">{drv.replace(/^\d+\s*/, '')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Rekomendasi */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Rekomendasi Intervensi</span>
-                      </div>
-                      <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-150 space-y-1 text-[9.5px]">
-                        {item.rekomendasi.map((rek, rIdx) => (
-                          <div key={rIdx} className="flex items-start gap-1.5 text-emerald-800 font-semibold">
-                            <span className="text-emerald-600 font-bold shrink-0">•</span>
-                            <span className="leading-tight">{rek}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
+
+        {/* Segmen Grafik: IKP & POU KOTA CILEGON 5 TAHUN TERAKHIR (Capture 4) */}
+        <MobileIkpPouChart />
       </div>
 
       {/* 4. Indeks Ketahanan Pangan Cilegon 2025 Card */}
