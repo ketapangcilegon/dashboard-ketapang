@@ -22,11 +22,11 @@ export interface IkpPouDataPoint {
 }
 
 export const IKP_POU_5_YEARS_DATA: IkpPouDataPoint[] = [
-  { year: '2021', ikp: 71.42, pou: 2.46, ikpKategori: 'Sangat Tahan', pouKategori: 'Sangat Baik (< 5%)' },
-  { year: '2022', ikp: 72.63, pou: 2.04, ikpKategori: 'Sangat Tahan', pouKategori: 'Sangat Baik (< 5%)' },
-  { year: '2023', ikp: 81.54, pou: 2.19, ikpKategori: 'Sangat Tahan', pouKategori: 'Sangat Baik (< 5%)' },
-  { year: '2024', ikp: 80.12, pou: 1.96, ikpKategori: 'Sangat Tahan', pouKategori: 'Sangat Baik (< 5%)' },
-  { year: '2025', ikp: 83.20, pou: 2.78, ikpKategori: 'Sangat Tahan', pouKategori: 'Sangat Baik (< 5%)' },
+  { year: '2021', ikp: 71.42, pou: 2.46, ikpKategori: 'Sangat Tahan', pouKategori: 'Terkendali Baik' },
+  { year: '2022', ikp: 72.63, pou: 2.04, ikpKategori: 'Sangat Tahan', pouKategori: 'Terkendali Baik' },
+  { year: '2023', ikp: 81.54, pou: 2.19, ikpKategori: 'Sangat Tahan', pouKategori: 'Terkendali Baik' },
+  { year: '2024', ikp: 80.12, pou: 1.96, ikpKategori: 'Sangat Tahan', pouKategori: 'Terkendali Baik' },
+  { year: '2025', ikp: 83.20, pou: 2.78, ikpKategori: 'Sangat Tahan', pouKategori: 'Terkendali Baik' },
 ];
 
 interface CustomTooltipProps {
@@ -137,14 +137,14 @@ export default function MobileIkpPouChart() {
                 PoU 2025
               </span>
               <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-600 text-white leading-none">
-                Target &lt; 5%
+                Terkendali
               </span>
             </div>
             <div className="mt-1 flex items-baseline gap-1">
               <span className="text-sm font-black text-amber-950 font-mono">
                 {latestPoint.pou.toFixed(2)}%
               </span>
-              <span className="text-[8px] font-bold text-amber-700">Terkendali</span>
+              <span className="text-[8px] font-bold text-amber-700">Prevalensi</span>
             </div>
           </div>
         </div>
@@ -288,7 +288,7 @@ export default function MobileIkpPouChart() {
       <div className="bg-emerald-50/70 p-2 rounded-xl border border-emerald-100 flex items-start gap-1.5 text-[9px] text-emerald-900 leading-tight">
         <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
         <span>
-          <strong>Tren Positif:</strong> IKP Kota Cilegon konsisten menguat dari <strong>71,42</strong> (2021) ke <strong>83,20</strong> (2025), sedangkan prevalensi ketidakcukupan pangan (PoU) terjaga stabil rendah di bawah ambang batas nasional <strong>5,0%</strong>.
+          <strong>Tren Positif:</strong> IKP Kota Cilegon konsisten menguat dari <strong>71,42</strong> (2021) ke <strong>83,20</strong> (2025), sejalan dengan prevalensi ketidakcukupan pangan (PoU) yang terjaga stabil di tingkat rendah.
         </span>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut, Globe2, Mail } from 'lucide-react';
+import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut, Globe2, Mail, Lightbulb, X } from 'lucide-react';
 import GuidanceOverlay from './GuidanceOverlay';
 import KonfirmasiPasokanModal from './KonfirmasiPasokanModal';
 import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
@@ -61,6 +61,7 @@ export default function KameraCerdasView({
   const [isEnumeratorLoading, setIsEnumeratorLoading] = useState<boolean>(true);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState<boolean>(false);
   const [googleError, setGoogleError] = useState<string>('');
+  const [showCrowdsourcingInfo, setShowCrowdsourcingInfo] = useState<boolean>(false);
   // Kamera hanya dapat dipakai Admin/Petugas, atau Enumerator yang sudah login Google (bila fitur tidak dikunci admin)
   const canOperateCamera = isAdmin || (!isKameraLocked && !!enumerator);
   const [adminEmail, setAdminEmail] = useState<string>('');
@@ -719,17 +720,29 @@ export default function KameraCerdasView({
             <Camera className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-slate-900 tracking-wide uppercase">Peta Pasokan Pangan (AI Vision)</h2>
-              <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full tracking-widest leading-none ${
-                isAdmin 
-                  ? 'bg-emerald-500 text-white' 
-                  : canOperateCamera 
-                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
-                  : 'bg-amber-100 text-amber-700 border border-amber-300'
-              }`}>
-                {isAdmin ? 'PETUGAS' : enumerator ? 'ENUMERATOR' : isKameraLocked ? 'KHUSUS ADMIN' : 'LOGIN DIPERLUKAN'}
-              </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-xs sm:text-sm font-black text-slate-900 tracking-wide uppercase whitespace-nowrap">
+                Peta Pasokan Pangan (AI Vision)
+              </h2>
+              {(isAdmin || enumerator) && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wider leading-none bg-emerald-500 text-white">
+                  {isAdmin ? 'PETUGAS' : 'ENUMERATOR'}
+                </span>
+              )}
+              {/* Tombol Lampu Kuning (Konsep Crowdsourcing) */}
+              <button
+                type="button"
+                onClick={() => setShowCrowdsourcingInfo((prev) => !prev)}
+                className={`p-1 rounded-full transition-all border inline-flex items-center justify-center cursor-pointer ${
+                  showCrowdsourcingInfo
+                    ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-300 shadow-2xs'
+                }`}
+                title="Penjelasan Konsep Crowdsourcing Geospasial"
+                aria-label="Konsep Crowdsourcing Pasokan"
+              >
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+              </button>
             </div>
             <p className="text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
           </div>
@@ -839,6 +852,49 @@ export default function KameraCerdasView({
           )}
         </div>
       </div>
+
+      {/* ── Expandable Crowdsourcing Concept Note ── */}
+      {showCrowdsourcingInfo && (
+        <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-200/90 px-3.5 py-3 text-slate-800 shadow-md z-30 shrink-0 transition-all duration-300 animate-in slide-in-from-top-2">
+          <div className="max-w-4xl mx-auto flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Lightbulb className="w-4 h-4 fill-amber-950" />
+            </div>
+            <div className="flex-1 space-y-1.5 text-left">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                  Konsep Crowdsourcing Geospasial Pasokan Pangan Cilegon
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCrowdsourcingInfo(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-black/5 transition-colors cursor-pointer"
+                  aria-label="Tutup Catatan"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-700">
+                Sistem ini mengadopsi mekanisme <strong>partisipatif (crowdsourcing)</strong> berbasis autentikasi akun Google (Gmail). Petugas lapangan, enumerator, dan pemangku kepentingan pangan cukup mengambil foto sarana penjual (kios/grosir beras), produsen beras, maupun sentra tanaman pangan di Kota Cilegon.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[10px]">
+                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                  <span className="font-black text-amber-900 block mb-0.5">1. Foto & Deteksi AI</span>
+                  Kamera cerdas menganalisis visual objek pangan, stok etalase/karung, atau fase tanaman secara otomatis.
+                </div>
+                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                  <span className="font-black text-amber-900 block mb-0.5">2. Geotagging & Auto-Pin</span>
+                  Sistem mengekstrak koordinat GPS riil di lapangan dan otomatis menerbitkan pin spasial terverifikasi di peta.
+                </div>
+                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                  <span className="font-black text-amber-900 block mb-0.5">3. Agregasi Rantai Pasok</span>
+                  Setiap pasokan yang masuk ke Cilegon terpetakan komprehensif, mencakup daerah asal, rute, dan estimasi tonasenya.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Success Toast Alert ── */}
       {saveSuccessMsg && (

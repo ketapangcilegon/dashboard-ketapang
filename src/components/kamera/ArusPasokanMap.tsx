@@ -163,25 +163,25 @@ function waktu(iso?: string): string {
   return Number.isNaN(d.getTime()) ? 'Belum tersedia' : d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// Custom Leaflet Pin Icon untuk Sarana Toko Beras
+// Custom Leaflet Pin Icon untuk Sarana Toko Beras (Diperkecil)
 function createSaranaPinIcon(namaLokasi: string, kg: number, isSelected = false) {
-  const size = isSelected ? 36 : 28;
+  const size = isSelected ? 20 : 15;
   const tonText = kg > 0 ? (kg >= 1000 ? `${(kg / 1000).toFixed(1)}t` : `${kg}kg`) : '';
   return L.divIcon({
     className: 'sarana-beras-pin',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
         <!-- Glowing Pulse -->
-        <div style="position:absolute;width:${size + 14}px;height:${size + 14}px;background:rgba(255,196,64,0.35);border-radius:50%;top:calc(100% - ${size / 2}px);left:50%;transform:translate(-50%, -50%);pointer-events:none;animation:pulse 2s infinite;"></div>
+        <div style="position:absolute;width:${size + 8}px;height:${size + 8}px;background:rgba(255,196,64,0.3);border-radius:50%;top:calc(100% - ${size / 2}px);left:50%;transform:translate(-50%, -50%);pointer-events:none;animation:pulse 2s infinite;"></div>
         
         <!-- Label Nama Toko (Tanpa Kotak Background, Stroke Tipis Jelas) -->
-        <div style="background:transparent;color:#ffdc73;font-weight:900;font-size:10.5px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 5px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:3px;pointer-events:none;letter-spacing:0.2px;">
+        <div style="background:transparent;color:#ffdc73;font-weight:900;font-size:8.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:2px;pointer-events:none;letter-spacing:0.1px;max-width:115px;overflow:hidden;text-overflow:ellipsis;">
           ${namaLokasi} ${tonText ? `• ${tonText}` : ''}
         </div>
 
         <!-- Teardrop Pin -->
-        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #f59e0b, #d97706);border:2.5px solid #ffffff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 14px rgba(0,0,0,0.5);z-index:5;">
-          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.5)}px">🏪</span>
+        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #f59e0b, #d97706);border:1.5px solid #ffffff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.5);z-index:5;">
+          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.55)}px">🏪</span>
         </div>
       </div>
     `,
@@ -190,15 +190,15 @@ function createSaranaPinIcon(namaLokasi: string, kg: number, isSelected = false)
   });
 }
 
-// Hub Cilegon Center Icon
+// Hub Cilegon Center Icon (Diperkecil)
 function createHubPinIcon() {
   return L.divIcon({
     className: 'hub-cilegon-pin',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -50%);pointer-events:none;">
-        <div style="width:50px;height:50px;background:rgba(34,227,255,0.25);border:1.5px solid #22e3ff;border-radius:50%;position:absolute;animation:ping 2.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
-        <div style="width:24px;height:24px;background:rgba(34,227,255,0.4);border-radius:50%;position:absolute;"></div>
-        <div style="width:12px;height:12px;background:#ffffff;border:2.5px solid #22e3ff;border-radius:50%;box-shadow:0 0 12px #22e3ff;"></div>
+        <div style="width:28px;height:28px;background:rgba(34,227,255,0.2);border:1px solid #22e3ff;border-radius:50%;position:absolute;animation:ping 2.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
+        <div style="width:16px;height:16px;background:rgba(34,227,255,0.35);border-radius:50%;position:absolute;"></div>
+        <div style="width:8px;height:8px;background:#ffffff;border:1.5px solid #22e3ff;border-radius:50%;box-shadow:0 0 8px #22e3ff;"></div>
       </div>
     `,
     iconSize: [0, 0],
@@ -206,17 +206,17 @@ function createHubPinIcon() {
   });
 }
 
-// Asal Pemasok Pin Icon
+// Asal Pemasok Pin Icon (Diperkecil)
 function createAsalPinIcon(label: string, kg: number) {
   return L.divIcon({
     className: 'asal-pemasok-pin',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);pointer-events:none;">
         <!-- Label Asal Pemasok (Tanpa Kotak Background, Stroke Tipis Jelas) -->
-        <div style="background:transparent;color:#22e3ff;font-weight:900;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 5px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:3px;pointer-events:none;letter-spacing:0.2px;">
+        <div style="background:transparent;color:#22e3ff;font-weight:900;font-size:9.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:2px;pointer-events:none;letter-spacing:0.1px;">
           ${label} • ${formatTon(kg)}
         </div>
-        <div style="width:18px;height:18px;background:#22e3ff;border:2.5px solid #ffffff;border-radius:50%;box-shadow:0 0 10px #22e3ff;"></div>
+        <div style="width:12px;height:12px;background:#22e3ff;border:1.5px solid #ffffff;border-radius:50%;box-shadow:0 0 8px #22e3ff;"></div>
       </div>
     `,
     iconSize: [0, 0],
