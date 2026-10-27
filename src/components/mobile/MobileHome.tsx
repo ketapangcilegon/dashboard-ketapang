@@ -7,7 +7,7 @@ import {
   Camera, Bot, Layers, ChevronRight, TrendingUp, TrendingDown,
   ArrowRight, Sparkle, AlertCircle, CheckCircle2, ChevronLeft,
   LineChart, ChevronUp, ChevronDown, Calendar, BarChart3, Truck,
-  Info
+  Info, Lightbulb, X
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaCarousel from '@/components/MediaCarousel';
@@ -149,6 +149,12 @@ export default function MobileHome({
 
   // Selected FSVA Priority for Detail Modal Table
   const [selectedPriority, setSelectedPriority] = useState<FsvaPriorityDef | null>(null);
+
+  // Active Info Panel for Methodology & Concept Lightbulb (Item 1)
+  const [activeInfoPanel, setActiveInfoPanel] = useState<string | null>(null);
+  const toggleInfoPanel = (panelKey: string) => {
+    setActiveInfoPanel(prev => prev === panelKey ? null : panelKey);
+  };
 
   // All 43 Kelurahans mapped with FSVA Priority and IKP
   const allFsvaKelurahans = useMemo<FsvaKelurahanItem[]>(() => {
@@ -662,7 +668,7 @@ export default function MobileHome({
   ];
 
   return (
-    <div className="space-y-4 pb-24 max-w-md mx-auto animate-in fade-in duration-200">
+    <div className="space-y-5 pb-24 max-w-md mx-auto animate-in fade-in duration-200">
       
       {/* 1. Media & Informasi Carousel Eksisting Desktop (Autoplay & Tertaut Admin) */}
       <div className="w-full rounded-2xl overflow-hidden shadow-xs border border-emerald-100/80">
@@ -672,16 +678,16 @@ export default function MobileHome({
       {/* 2. Segmen Panel Harga Pasar Terkini (SAGON) - 13 Komoditas & Navigasi Tanggal Dinamis (Capture 3) */}
       <div className="bg-gradient-to-br from-[#FFF8E5] to-[#FFF0C7] p-3.5 rounded-3xl border border-[#FFE5A3] shadow-[0_4px_20px_rgba(255,229,163,0.25)] space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-[#FF9200] text-white flex items-center justify-center shadow-xs shrink-0">
               <Store className="w-4 h-4 text-white" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D]">
+                <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D] truncate">
                   HARGA PASAR TERKINI (SAGON)
                 </h3>
-                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border ${
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border shrink-0 ${
                   dateIndex === 4 
                     ? 'bg-[#FFF0F2] text-[#FF405B] border-[#FFCCD5] animate-pulse' 
                     : 'bg-[#EAF6FF] text-[#145BFF] border-[#CCE4FF]'
@@ -689,19 +695,65 @@ export default function MobileHome({
                   {dateIndex === 4 ? 'LIVE' : 'ARSIP'}
                 </span>
               </div>
-              <p className="text-[9px] font-semibold text-[#8192AE]">
+              <p className="text-[9px] font-semibold text-[#8192AE] truncate">
                 Pantauan 13 komoditas pasar harian Cilegon
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => onNavigate('harga_full')}
-            className="text-[11px] font-black text-[#FF9200] hover:text-[#E08200] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
-          >
-            <span>Detail</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#FF9200]" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleInfoPanel('sagon')}
+              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+                activeInfoPanel === 'sagon'
+                  ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                  : 'bg-white/90 hover:bg-white text-amber-600 border-amber-200 shadow-2xs'
+              }`}
+              title="Konsep & Metodologi SAGON"
+              aria-label="Konsep & Metodologi SAGON"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+            </button>
+            <button 
+              onClick={() => onNavigate('harga_full')}
+              className="text-[11px] font-black text-[#FF9200] hover:text-[#E08200] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>Detail</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#FF9200]" />
+            </button>
+          </div>
         </div>
+
+        {/* Expandable Info Note: SAGON */}
+        {activeInfoPanel === 'sagon' && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border border-amber-300/80 rounded-2xl p-3 my-1.5 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Konsep & Metodologi SAGON (Harga Pasar)
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveInfoPanel(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5 cursor-pointer"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-48 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                <strong>Sistem Informasi Harga Pangan Harian (SAGON):</strong> Mengagregasi data harga konsumen 13 komoditas strategis secara harian langsung dari pasar-pasar rakyat utama Kota Cilegon (Pasar Kranggot, Pasar Merak, dan Pasar Blok F).
+              </p>
+              <p>
+                <strong>Ambang Batas Status Fluktuasi:</strong>
+                <br />• <strong>Stabil:</strong> Fluktuasi harga harian &lt; 3% dari rata-rata sebelumnya.
+                <br />• <strong>Naik / Turun:</strong> Pergerakan harga 3% – 8% yang memerlukan pemantauan intensif petugas pasar.
+                <br />• <strong>Waspada:</strong> Lonjakan harga &gt; 8% yang memicu sinyal intervensi stabilisasi pasokan oleh DKPP Kota Cilegon.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Date Navigation Bar with Chevron (Versi Desktop Match) */}
         <div className="flex items-center justify-between bg-white border border-[#FFE5A3]/80 p-1.5 rounded-2xl w-full shadow-2xs">
@@ -822,6 +874,19 @@ export default function MobileHome({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleInfoPanel('forecasting')}
+              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+                activeInfoPanel === 'forecasting'
+                  ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                  : 'bg-white/20 hover:bg-white/30 text-amber-300 border-white/30 shadow-2xs'
+              }`}
+              title="Metodologi 3 Model ML (Champion-Challenger)"
+              aria-label="Metodologi 3 Model ML"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+            </button>
             <button 
               onClick={() => onNavigate('forecasting')}
               className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
@@ -832,6 +897,39 @@ export default function MobileHome({
             </button>
           </div>
         </div>
+
+        {/* Expandable Info Note: Peramalan Harga Pangan (Item 1) */}
+        {activeInfoPanel === 'forecasting' && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-300/80 p-3 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Metodologi Machine Learning 3 Model (Champion-Challenger)
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveInfoPanel(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5 cursor-pointer"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-52 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                <strong>3 Arsitektur Model Machine Learning:</strong> Sistem secara independen melatih dan menguji 3 arsitektur model pada data deret waktu harga setiap komoditas:
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li><strong>OLS (Ordinary Least Squares):</strong> Regresi time-series klasik dengan dekomposisi musiman serta kovariat makroekonomi inflasi.</li>
+                <li><strong>GBDT (Gradient Boosted Decision Trees):</strong> Model pohon ensemble adaptif yang menangkap interaksi non-linear dan shock harga eksternal.</li>
+                <li><strong>Holt-Winters / Exponential Smoothing:</strong> Memproyeksikan tren linier dan siklus musiman jangka menengah.</li>
+              </ul>
+              <p>
+                <strong>Skema Champion-Challenger:</strong> Ketiga model diadu secara back-testing pada data historis aktual. Model dengan nilai <strong>MAPE (Mean Absolute Percentage Error)</strong> terkecil otomatis dipilih sebagai <em>Champion</em> (pemenang) yang angka proyeksinya (+1 dan +3 bulan) disajikan di dashboard ini.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Petunjuk Geser Atas/Bawah */}
         <div className="px-3.5 pt-2.5 pb-1 flex items-center justify-between text-[9px] font-semibold text-[#7189A8]">
@@ -1003,15 +1101,63 @@ export default function MobileHome({
               <span>EARLY WARNING SYSTEM</span>
             </h3>
           </div>
-          <button 
-            onClick={() => onNavigate('forecasting')}
-            className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
-            title="Buka Penuh EWS DSS"
-          >
-            <span>Detail</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleInfoPanel('ews')}
+              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+                activeInfoPanel === 'ews'
+                  ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                  : 'bg-white hover:bg-amber-50 text-amber-600 border-amber-200 shadow-2xs'
+              }`}
+              title="Konsep & Metodologi 3-Layer EWS"
+              aria-label="Konsep & Metodologi EWS"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+            </button>
+            <button 
+              onClick={() => onNavigate('forecasting')}
+              className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+              title="Buka Penuh EWS DSS"
+            >
+              <span>Detail</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
+
+        {/* Expandable Info Note: EWS */}
+        {activeInfoPanel === 'ews' && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border border-amber-300/80 rounded-2xl p-3 my-1.5 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Konsep & Metodologi 3-Layer EWS
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveInfoPanel(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5 cursor-pointer"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-52 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                <strong>Early Warning System (EWS) Pangan:</strong> Sistem deteksi dini risiko gejolak pasokan dan inflasi pangan dengan memadukan 3 lapis analitik:
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li><strong>L1 (Proyeksi Tren Harga):</strong> Menggunakan sinyal kenaikan harga dari hasil model prediksi Machine Learning champion.</li>
+                <li><strong>L2 (CV Volatilitas):</strong> Koefisien Variasi harga harian. Nilai CV &gt; 15% menandakan tingginya gejolak pasar (Rentan).</li>
+                <li><strong>L3 (YoY SKPG):</strong> Tren pertumbuhan tahunan ketersediaan pangan dari Sistem Kewaspadaan Pangan & Gizi.</li>
+              </ul>
+              <p>
+                Daftar ini secara khusus memprioritaskan komoditas berstatus <strong>Rentan</strong> dan <strong>Waspada</strong> sebagai rujukan cepat tindak intervensi stabilisasi pasokan dan harga di Kota Cilegon.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Petunjuk Prioritas Komoditas EWS & Scroll */}
         <div className="px-1 flex items-center justify-between text-[9px] font-bold text-slate-500">
@@ -1166,8 +1312,10 @@ export default function MobileHome({
             })
           )}
         </div>
+      </div>
 
-        {/* Segmen Grafik: IKP & POU KOTA CILEGON 5 TAHUN TERAKHIR (Capture 4) */}
+      {/* 3.6. Segmen Panel Terpisah: IKP & POU KOTA CILEGON 5 TAHUN TERAKHIR (Capture 1) */}
+      <div className="rounded-3xl border border-emerald-300/80 bg-gradient-to-br from-[#ECFDF5] via-[#F0FDF4] to-[#E6F4EA] p-3 shadow-sm shadow-emerald-900/5">
         <MobileIkpPouChart />
       </div>
 
@@ -1177,31 +1325,85 @@ export default function MobileHome({
       >
         {/* Header IKP (Klik Masuk ke Panel Peta FSVA) */}
         <div 
-          onClick={() => onNavigate('peta_full')}
-          className="flex items-center justify-between pb-3 border-b border-emerald-200/70 cursor-pointer group"
+          className="flex items-center justify-between pb-3 border-b border-emerald-200/70"
           title="Buka Peta Tematik Spasial FSVA & SKPG 43 Kelurahan"
         >
-          <div className="flex items-center gap-3">
+          <div 
+            onClick={() => onNavigate('peta_full')}
+            className="flex items-center gap-3 cursor-pointer group min-w-0"
+          >
             <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-700/25 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <div>
-              <h3 className="font-black text-xs sm:text-sm text-emerald-950">
+            <div className="min-w-0">
+              <h3 className="font-black text-xs sm:text-sm text-emerald-950 truncate">
                 Indeks Ketahanan Pangan Cilegon 2025
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="inline-flex items-center gap-1 px-2 py-0.2 bg-emerald-600 text-white text-[10px] font-black rounded-full shadow-2xs">
+                <span className="inline-flex items-center gap-1 px-2 py-0.2 bg-emerald-600 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-pulse" />
                   {latestIkpScore >= 70 ? 'Tahan Pangan' : 'Waspada'}
                 </span>
-                <span className="text-[11px] font-black text-emerald-900">
+                <span className="text-[11px] font-black text-emerald-900 truncate">
                   Skor IKP FSVA: <strong className="text-emerald-700">{latestIkpScore.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</strong> / 100
                 </span>
               </div>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-emerald-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0" />
+          
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleInfoPanel('fsva')}
+              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+                activeInfoPanel === 'fsva'
+                  ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                  : 'bg-white hover:bg-amber-50 text-amber-600 border-emerald-200 shadow-2xs'
+              }`}
+              title="Konsep & Metodologi FSVA 43 Kelurahan"
+              aria-label="Konsep & Metodologi FSVA"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('peta_full')}
+              className="p-1 text-emerald-600 hover:text-emerald-800 cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5 text-emerald-400 hover:text-emerald-700 hover:translate-x-0.5 transition-all" />
+            </button>
+          </div>
         </div>
+
+        {/* Expandable Info Note: FSVA 2025 */}
+        {activeInfoPanel === 'fsva' && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border border-amber-300/80 rounded-2xl p-3 my-2 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Konsep & Metodologi FSVA 43 Kelurahan
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveInfoPanel(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5 cursor-pointer"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-48 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                <strong>Food Security and Vulnerability Atlas (FSVA):</strong> Peta tematik ketahanan dan kerentanan pangan mikro berbasis kelurahan di Kota Cilegon. Menggabungkan 9 indikator komposit (rasio luas baku sawah, rasio konsumsi normatif, aksesibilitas jalan, rasio tenaga kesehatan, dan akses air bersih layak).
+              </p>
+              <p>
+                <strong>6 Tingkat Prioritas:</strong>
+                <br />• <strong>Prioritas 1–3:</strong> Kategori rentan pangan (sangat rentan, rentan, agak rentan) yang menjadi fokus utama bantuan sosial dan intervensi fisik.
+                <br />• <strong>Prioritas 4–6:</strong> Kategori tahan pangan (agak tahan, tahan, sangat tahan) dengan kemandirian akses pangan yang kokoh.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Kotak Hasil FSVA 2025 per Prioritas (Prioritas X [Title], bawahnya X kelurahan, klik buka tabel rincian kelurahan) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-3">
@@ -1229,7 +1431,7 @@ export default function MobileHome({
                 <span className="text-[11px] font-black text-slate-900">
                   {item.count} kelurahan
                 </span>
-                <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-800 transition-transform group-hover:translate-x-0.5" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-800 transition-transform group-hover:translate-x-0.5" />
               </div>
             </div>
           ))}
@@ -1245,14 +1447,59 @@ export default function MobileHome({
               FITUR UNGGULAN
             </h3>
           </div>
-          <button 
-            onClick={onOpenCatalog}
-            className="text-[11px] font-black text-[#F28C00] hover:text-[#D97C00] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
-          >
-            <span>Detail</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#F28C00]" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleInfoPanel('fitur')}
+              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+                activeInfoPanel === 'fitur'
+                  ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                  : 'bg-white hover:bg-amber-50 text-amber-600 border-[#FFE8B5] shadow-2xs'
+              }`}
+              title="Informasi Ekosistem Fitur Unggulan"
+              aria-label="Informasi Fitur Unggulan"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+            </button>
+            <button 
+              onClick={onOpenCatalog}
+              className="text-[11px] font-black text-[#F28C00] hover:text-[#D97C00] flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>Detail</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#F28C00]" />
+            </button>
+          </div>
         </div>
+
+        {/* Expandable Info Note: Fitur Unggulan */}
+        {activeInfoPanel === 'fitur' && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border border-amber-300/80 rounded-2xl p-3 my-1.5 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Ekosistem Modul Layanan PANCI Cilegon
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveInfoPanel(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5 cursor-pointer"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-48 overflow-y-auto space-y-1 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                Platform PANCI (Platform Analisis Ketahanan Pangan Cilegon) mengintegrasikan seluruh instrumen pemantauan, peramalan, dan keputusan logistik pangan:
+              </p>
+              <p>
+                • <strong>Kamera Cerdas (AI Vision):</strong> Geotagging pasokan beras & tanaman pangan lapangan via crowdsourcing.
+                <br />• <strong>Agro-Climate Radar:</strong> Pantauan citra cuaca, kelembaban, dan tutupan sawah harian.
+                <br />• <strong>Simulasi & Neraca Pangan:</strong> Perhitungan ketersediaan vs kebutuhan konsumsi warga Kota Cilegon.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 8 Android App Launcher Tiles (Grid 4 x 2) */}
         <div className="grid grid-cols-4 gap-2">

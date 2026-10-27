@@ -1,9 +1,7 @@
-"use client";
-
-import React, { useState } from 'react';
-import { SARANA_DISTRIBUSI_LIST, ASAL_PASOKAN_OPTIONS } from '@/lib/kamera-normatif';
+import React, { useState, useMemo } from 'react';
+import { SARANA_DISTRIBUSI_LIST, ASAL_PASOKAN_OPTIONS, haversineDistanceMeters } from '@/lib/kamera-normatif';
 import { WILAYAH } from '@/lib/wilayah';
-import { Check, Edit3, MapPin, Sparkles, AlertCircle, Calendar, Clock, Store, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, Edit3, MapPin, Sparkles, AlertCircle, AlertTriangle, Calendar, Clock, Store, ArrowRight, Loader2 } from 'lucide-react';
 
 interface KonfirmasiPasokanModalProps {
   photoPreview: string;
@@ -16,6 +14,7 @@ interface KonfirmasiPasokanModalProps {
     timestamp: Date;
   };
   aiDraft: any;
+  existingObservations?: any[];
   onSave: (finalData: any) => Promise<void>;
   onRetake: () => void;
   isSaving: boolean;
@@ -25,11 +24,31 @@ export default function KonfirmasiPasokanModal({
   photoPreview,
   gpsMeta,
   aiDraft,
+  existingObservations = [],
   onSave,
   onRetake,
   isSaving,
 }: KonfirmasiPasokanModalProps) {
   const [isEditingManual, setIsEditingManual] = useState(false);
+  const [isConfirmedDistinct, setIsConfirmedDistinct] = useState(false);
+
+  // Algoritma Deteksi Proximity / Kemiripan Titik GPS Pin Eksisting (Radius <= 80m)
+  const nearbyPin = useMemo(() => {
+    if (!existingObservations || existingObservations.length === 0 || !gpsMeta?.lat || !gpsMeta?.lng) return null;
+    let closest: { obs: any; distMeters: number } | null = null;
+    for (const obs of existingObservations) {
+      const oLat = Number(obs.latitude);
+      const oLng = Number(obs.longitude);
+      if (!oLat || !oLng || isNaN(oLat) || isNaN(oLng)) continue;
+      const d = haversineDistanceMeters(gpsMeta.lat, gpsMeta.lng, oLat, oLng);
+      if (d <= 80) { // Radius 80 meter
+        if (!closest || d < closest.distMeters) {
+          closest = { obs, distMeters: Math.round(d) };
+        }
+      }
+    }
+    return closest;
+  }, [existingObservations, gpsMeta]);
 
   // Form State
   const [namaLokasi, setNamaLokasi] = useState(aiDraft?.nama_toko || '');
@@ -65,6 +84,12 @@ export default function KonfirmasiPasokanModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (nearbyPin && !isConfirmedDistinct) {
+      alert(`⚠️ Peringatan Duplikasi Lokasi:\nTitik GPS Anda berjarak ±${nearbyPin.distMeters}m dari "${nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}".\n\nJika ini adalah toko/sarana beras yang BERBEDA, silakan centang kotak pernyataan konfirmasi pembeda sebelum menyimpan.`);
+      return;
+    }
+
     const finalPayload = {
       mode: 'pasokan_beras',
       kategori: kategoriId,
@@ -141,6 +166,41 @@ export default function KonfirmasiPasokanModal({
               <span>{gpsMeta.lat.toFixed(5)}, {gpsMeta.lng.toFixed(5)}</span>
             </div>
           </div>
+
+          {/* Warning: Lokasi Berdekatan / Mirip Terdeteksi (Item 5) */}
+          {nearbyPin && (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-400 rounded-xl p-3.5 space-y-2 text-left shadow-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-amber-950 uppercase tracking-tight">
+                    Terdeteksi Titik Mirip / Berdekatan (±{nearbyPin.distMeters} meter)
+                  </h4>
+                  <p className="text-[10.5px] text-amber-900 leading-tight mt-0.5">
+                    Lokasi ini sangat dekat dengan pin: <strong>{nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}</strong> ({nearbyPin.obs.kategori_label || nearbyPin.obs.kelurahan}).
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/90 p-2.5 rounded-lg border border-amber-300/80 text-[10px] space-y-1.5 text-slate-700">
+                <p className="font-bold text-amber-950">
+                  Apakah ini sarana / toko beras yang BERBEDA?
+                </p>
+                <p className="leading-relaxed">
+                  Jika ini adalah toko yang berbeda, pastikan Anda mengisi <strong>Nama Toko/Grosir</strong> dan <strong>Catatan Lapangan</strong> yang membedakan dengan sarana yang sudah ada agar tidak terjadi duplikasi agregasi.
+                </p>
+                <label className="flex items-center gap-2 pt-1 font-black text-amber-950 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isConfirmedDistinct}
+                    onChange={(e) => setIsConfirmedDistinct(e.target.checked)}
+                    className="w-4 h-4 rounded border-amber-400 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Saya konfirmasi ini adalah sarana/toko BERBEDA</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* AI Result Card */}
           <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 relative overflow-hidden">

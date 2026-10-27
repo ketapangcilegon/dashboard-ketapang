@@ -8,7 +8,7 @@ import KonfirmasiPasokanModal from './KonfirmasiPasokanModal';
 import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
 import KameraCerdasMap from './KameraCerdasMap';
 import KameraAgregasiDashboard from './KameraAgregasiDashboard';
-import { cariKelurahanTerdekat } from '@/lib/kamera-normatif';
+import { cariKelurahanTerdekat, resolveDynamicGeocode, haversineDistanceMeters } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { supabase } from '@/lib/supabase';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
@@ -222,6 +222,7 @@ export default function KameraCerdasView({
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showGuidanceBubble, setShowGuidanceBubble] = useState<boolean>(true);
 
   // GPS State
   const [gpsStatus, setGpsStatus] = useState<'searching' | 'active' | 'denied' | 'unavailable'>('searching');
@@ -290,16 +291,28 @@ export default function KameraCerdasView({
         const lng = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
 
-        const geo = cariKelurahanTerdekat(lat, lng);
+        // Inisialisasi awal instan dengan kalkulasi lokal
+        const initialGeo = cariKelurahanTerdekat(lat, lng);
 
         setGpsCoords({
           lat,
           lng,
           accuracy: Number(accuracy.toFixed(1)),
-          kelurahan: geo.kelurahan,
-          kecamatan: geo.kecamatan
+          kelurahan: initialGeo.kelurahan,
+          kecamatan: initialGeo.kecamatan
         });
         setGpsStatus('active');
+
+        // Resolve wilayah riil dinamis via Reverse Geocoding (OSM Nominatim)
+        resolveDynamicGeocode(lat, lng).then((dynGeo) => {
+          if (dynGeo && dynGeo.kelurahan) {
+            setGpsCoords(prev => prev ? {
+              ...prev,
+              kelurahan: dynGeo.kelurahan,
+              kecamatan: dynGeo.kecamatan
+            } : null);
+          }
+        }).catch(() => {});
       },
       (err) => {
         console.warn('Geolocation error:', err.message);
@@ -319,38 +332,81 @@ export default function KameraCerdasView({
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // 3. Start Camera Stream
+  // 3. Start Camera Stream (Hardware-safe switching & device enumeration)
   const startCamera = useCallback(async () => {
     setCameraError(null);
+
+    // Hentikan track stream aktif secara menyeluruh
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach(t => {
+        try { t.stop(); } catch {}
+      });
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    // Jeda hardware 160ms agar driver sensor fisik kamera Android/iOS tuntas merilis kunci hardware
+    await new Promise(r => setTimeout(r, 160));
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Kamera langsung tidak didukung browser ini. Gunakan tombol upload foto.');
+        throw new Error('Kamera langsung tidak didukung browser ini.');
       }
 
-      // Gunakan constraints ideal agar kompatibel dengan berbagai sensor kamera Android (portrait/landscape)
-      let stream: MediaStream;
+      let stream: MediaStream | null = null;
+      let targetDeviceId: string | undefined;
+
+      // Cari deviceId spesifik bila tersedia untuk kehandalan membalik kamera
       try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (facingMode === 'environment') {
+          const rear = videoDevices.find(d => 
+            d.label.toLowerCase().includes('back') || 
+            d.label.toLowerCase().includes('rear') || 
+            d.label.toLowerCase().includes('environment') ||
+            d.label.toLowerCase().includes('belakang')
+          );
+          if (rear) targetDeviceId = rear.deviceId;
+        } else {
+          const front = videoDevices.find(d => 
+            d.label.toLowerCase().includes('front') || 
+            d.label.toLowerCase().includes('user') ||
+            d.label.toLowerCase().includes('depan')
+          );
+          if (front) targetDeviceId = front.deviceId;
+        }
+      } catch {}
+
+      // Tier 1: Menggunakan deviceId atau facingMode
+      try {
+        const constraints: MediaTrackConstraints = targetDeviceId
+          ? { deviceId: { exact: targetDeviceId } }
+          : { facingMode: { ideal: facingMode } };
+
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: facingMode },
-            width: { ideal: 1920, min: 640 },
-            height: { ideal: 1080, min: 480 }
-          },
+          video: constraints,
           audio: false
         });
       } catch (errConstraint) {
-        console.warn('Initial camera constraints failed, attempting fallback:', errConstraint);
-        // Fallback untuk perangkat Android tertentu yang menolak resolusi spesifik
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: facingMode } },
-          audio: false
-        });
+        console.warn('Initial camera constraints failed, attempting fallback tier 2:', errConstraint);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facingMode },
+            audio: false
+          });
+        } catch (errTier2) {
+          console.warn('Fallback tier 2 failed, attempting basic video:', errTier2);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        }
       }
+
+      if (!stream) throw new Error('Tidak dapat memperoleh akses video kamera.');
 
       streamRef.current = stream;
       if (videoRef.current) {
@@ -369,7 +425,7 @@ export default function KameraCerdasView({
     } catch (err: any) {
       console.warn('Gagal memulai kamera stream:', err);
       setIsCameraActive(false);
-      setCameraError(err.message || 'Izin kamera belum diberikan.');
+      setCameraError(err.message || 'Izin kamera belum diberikan atau sensor kamera sedang sibuk.');
     }
   }, [facingMode]);
 
@@ -940,64 +996,69 @@ export default function KameraCerdasView({
           </div>
 
           {/* Viewfinder Guidance Overlay */}
-          <GuidanceOverlay mode={mode} />
+          <GuidanceOverlay mode={mode} hideTopHeader={true} />
 
-          {/* Floating Top GPS Status Bar & Auth Status */}
+          {/* Floating Top GPS Status Bar & Reverse Camera Button (Capture 3) */}
           <div className="relative z-20 w-full px-4 pt-3 flex flex-col gap-2 pointer-events-auto">
-            <div className="flex items-center justify-between">
-              {/* GPS Indicator Badge */}
-              <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold shadow-lg flex items-center gap-2 transition-all ${
-                gpsStatus === 'active'
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                  : gpsStatus === 'searching'
-                  ? 'bg-amber-50 border-amber-300 text-amber-700 animate-pulse'
-                  : 'bg-rose-50 border-rose-300 text-rose-700'
-              }`}>
-                <span className={`w-2 h-2 rounded-full ${
-                  gpsStatus === 'active' ? 'bg-emerald-400 animate-ping' : gpsStatus === 'searching' ? 'bg-amber-400' : 'bg-rose-500'
-                }`} />
-                
-                {gpsStatus === 'active' && gpsCoords ? (
-                  <span>GPS Aktif (±{gpsCoords.accuracy}m) • {gpsCoords.kelurahan}</span>
-                ) : gpsStatus === 'searching' ? (
-                  <span>Mencari Sinyal GPS...</span>
-                ) : (
-                  <span>GPS Tidak Tersedia (Mode Manual)</span>
-                )}
+            <div className="flex items-start justify-between">
+              {/* GPS Indicator (2 Baris: Status Akurasi + Titik Wilayah / Kelurahan) */}
+              <div className="flex flex-col text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-left">
+                <div className="flex items-center gap-1.5 text-xs font-black tracking-wide">
+                  <span className={`w-2.5 h-2.5 rounded-full ${
+                    gpsStatus === 'active' 
+                      ? 'bg-[#00FF66] animate-pulse shadow-[0_0_8px_#00FF66]' 
+                      : gpsStatus === 'searching' 
+                      ? 'bg-amber-400 animate-pulse' 
+                      : 'bg-rose-500'
+                  }`} />
+                  <span>
+                    {gpsStatus === 'active' && gpsCoords 
+                      ? `GPS Aktif (±${gpsCoords.accuracy || '3.3'}m)`
+                      : gpsStatus === 'searching'
+                      ? 'Mencari Sinyal GPS...'
+                      : 'GPS Offline / Manual'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-white/95 pl-0.5 mt-0.5">
+                  <MapPin className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                  <span className="truncate max-w-[190px]">
+                    {gpsCoords?.kelurahan || 'Mendeteksi wilayah...'}
+                  </span>
+                </div>
               </div>
 
-              {/* Flip Camera Button */}
+              {/* Flip / Reverse Camera Button (Capture 3: Lingkaran Transparan Gelap) */}
               <button
+                type="button"
                 onClick={toggleCameraFacing}
-                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-95 cursor-pointer"
+                className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md border border-white/25 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer hover:bg-black/60 shrink-0"
                 title="Putar Kamera (Depan / Belakang)"
+                aria-label="Putar Kamera"
               >
-                <SwitchCamera className="w-4 h-4" />
+                <SwitchCamera className="w-5 h-5 drop-shadow-xs" />
               </button>
             </div>
 
-            {/* Banner Ajakan Autentikasi Gmail Enumerator jika belum login */}
-            {!canOperateCamera && !isKameraLocked && (
-              <div className="px-3.5 py-2 rounded-2xl bg-white/95 border border-emerald-300 shadow-md backdrop-blur-md flex items-center justify-between gap-2.5 animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-extrabold text-slate-900 leading-tight">
-                      Autentikasi Enumerator Lapangan
-                    </p>
-                    <p className="text-[10px] text-slate-500 leading-tight truncate">
-                      Masuk dengan Gmail agar nama Anda tercantum pada data pasokan beras.
-                    </p>
-                  </div>
+            {/* Floating Top Guidance Bubble (Capture 3) */}
+            {showGuidanceBubble && (
+              <div className="mt-1 bg-black/65 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/20 text-white shadow-xl flex items-center justify-between gap-2.5 max-w-sm mx-auto animate-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-2 min-w-0 text-left">
+                  <span className="text-base shrink-0">
+                    {mode === 'pasokan_beras' ? '🏪' : '🌳'}
+                  </span>
+                  <p className="text-[11px] font-medium text-white/95 leading-tight">
+                    {mode === 'pasokan_beras'
+                      ? 'Arahkan kamera ke plang toko atau tumpukan karung beras'
+                      : 'Posisikan pohon / rumpun tanaman di dalam bingkai'}
+                  </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowEnumeratorModal(true)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black shrink-0 transition-all shadow-sm cursor-pointer active:scale-95"
+                  onClick={() => setShowGuidanceBubble(false)}
+                  className="text-white/60 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                  aria-label="Tutup Panduan"
                 >
-                  Masuk Gmail
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -1016,79 +1077,106 @@ export default function KameraCerdasView({
             </div>
           )}
 
-          {/* ── Bottom Controls Bar ── */}
-          <div className="relative z-20 w-full p-5 bg-gradient-to-t from-[#F5FAF2] via-[#F5FAF2]/90 to-transparent flex flex-col items-center gap-4">
+          {/* ── Bottom Controls Bar (Capture 3 Mockup) ── */}
+          <div className="relative z-20 w-full p-4 sm:p-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center gap-3">
             
-            {/* Mode Switcher Pill */}
-            <div className="flex bg-white/90 backdrop-blur-md p-1 rounded-2xl border border-emerald-200 shadow-2xl text-xs font-black">
+            {/* Mode Switcher HUD Brackets (Capture 3) */}
+            <div className="w-full max-w-[320px] flex items-center justify-center gap-3">
+              {/* Box 1: Pasokan Beras */}
               <button
                 type="button"
                 onClick={() => setMode('pasokan_beras')}
-                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`relative flex-1 py-2.5 px-3 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
                   mode === 'pasokan_beras'
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-900/40'
-                    : 'text-slate-500 hover:text-emerald-800'
+                    ? 'bg-emerald-950/60 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
+                    : 'bg-black/40 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
                 }`}
               >
-                <Store className="w-4 h-4" />
-                <span>Pasokan Beras</span>
+                {/* 4 Corner Brackets (HUD Reticles) */}
+                <div className={`absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -right-[1px] w-2.5 h-2.5 border-t-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -left-[1px] w-2.5 h-2.5 border-b-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+
+                <div className="mb-1">
+                  <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10 12h4" />
+                    <path d="M12 10v4" />
+                  </svg>
+                </div>
+                <span className="text-[11px] font-black tracking-tight leading-tight">
+                  Pasokan Beras
+                </span>
               </button>
 
+              {/* Box 2: Tanaman Pangan */}
               <button
                 type="button"
                 onClick={() => setMode('tanaman_pangan')}
-                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`relative flex-1 py-2.5 px-3 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
                   mode === 'tanaman_pangan'
-                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-900/40'
-                    : 'text-slate-500 hover:text-emerald-800'
+                    ? 'bg-emerald-950/60 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
+                    : 'bg-black/40 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
                 }`}
               >
-                <Trees className="w-4 h-4" />
-                <span>Tanaman Pangan</span>
+                {/* 4 Corner Brackets (HUD Reticles) */}
+                <div className={`absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -right-[1px] w-2.5 h-2.5 border-t-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -left-[1px] w-2.5 h-2.5 border-b-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+
+                <div className="mb-1">
+                  <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 20h10" />
+                    <path d="M12 20v-8" />
+                    <path d="M12 12a5 5 0 0 1 5-5c0 4-2 6-5 6Z" />
+                    <path d="M12 12a5 5 0 0 0-5-5c0 4 2 6 5 6Z" />
+                  </svg>
+                </div>
+                <span className="text-[11px] font-black tracking-tight leading-tight">
+                  Tanaman Pangan
+                </span>
               </button>
             </div>
 
-            {/* Shutter Action Buttons Row */}
-            <div className="w-full max-w-sm flex items-center justify-around px-4">
+            {/* Shutter Action Buttons Row (Capture 3) */}
+            <div className="w-full max-w-xs flex items-center justify-around px-2 pt-1">
               
-              {/* Upload Foto dari Galeri */}
+              {/* Tombol Galeri (Hanya Kamera Langsung yang Diperkenankan Submit - Item 5) */}
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-full bg-emerald-50/90 border border-emerald-200 text-slate-600 hover:text-emerald-800 flex items-center justify-center shadow-lg hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
-                title="Pilih Foto dari Galeri"
+                onClick={() => alert('⚠️ Integritas Data Lapangan: Pengambilan dan pengiriman data hanya dapat dilakukan melalui jepretan kamera langsung di lokasi (Live Camera) untuk memastikan keaslian GPS, timestamp, dan fisik komoditas pangan.')}
+                className="w-12 h-12 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white hover:bg-black/60 flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer"
+                title="Wajib Kamera Langsung (Galeri Dinonaktifkan)"
+                aria-label="Upload Galeri Dinonaktifkan"
               >
                 <ImageIcon className="w-5 h-5" />
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
 
-              {/* Main Shutter Capture Button */}
+              {/* Main Shutter Capture Button (Glowing Green Circle - Capture 3) */}
               <button
                 type="button"
                 onClick={handleCapturePhoto}
                 disabled={!isCameraActive || isAnalyzing}
-                className="w-20 h-20 rounded-full border-4 border-emerald-600 flex items-center justify-center bg-white/70 p-1 active:scale-90 transition-transform shadow-[0_6px_22px_rgba(5,150,105,0.45)] disabled:opacity-40 cursor-pointer"
-                title="Ambil Foto"
+                className="w-20 h-20 rounded-full border-2 border-emerald-400/80 p-1 flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_25px_rgba(52,211,153,0.5)] disabled:opacity-40 cursor-pointer"
+                title="Ambil Foto Langsung"
+                aria-label="Ambil Foto"
               >
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-lime-500 hover:from-emerald-400 hover:to-lime-400 transition-colors shadow-inner flex items-center justify-center text-white">
-                  <Camera className="w-6 h-6 text-white" />
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00FF87] via-[#059669] to-[#047857] flex items-center justify-center text-white shadow-inner">
+                  <Camera className="w-7 h-7 text-white drop-shadow-sm" />
                 </div>
               </button>
 
-              {/* View Map Shortcut */}
+              {/* View Map / Pins Shortcut (Capture 3) */}
               <button
                 type="button"
                 onClick={() => setActiveTab('map')}
-                className="w-12 h-12 rounded-full bg-emerald-50/90 border border-emerald-200 text-slate-600 hover:text-emerald-800 flex items-center justify-center shadow-lg hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
-                title="Lihat Peta Hasil Observasi"
+                className="w-12 h-12 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white hover:bg-black/60 flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer"
+                title="Lihat Peta Pin Observasi"
+                aria-label="Lihat Pin Peta"
               >
-                <Layers className="w-5 h-5 text-emerald-700" />
+                <Layers className="w-5 h-5 text-white" />
               </button>
             </div>
 
@@ -1144,6 +1232,7 @@ export default function KameraCerdasView({
             timestamp: new Date()
           }}
           aiDraft={aiDraftResult}
+          existingObservations={observasiList}
           onSave={handleSaveObservation}
           onRetake={() => {
             setShowConfirmModal(false);
@@ -1166,6 +1255,7 @@ export default function KameraCerdasView({
             timestamp: new Date()
           }}
           aiDraft={aiDraftResult}
+          existingObservations={observasiList}
           onSave={handleSaveObservation}
           onRetake={() => {
             setShowConfirmModal(false);

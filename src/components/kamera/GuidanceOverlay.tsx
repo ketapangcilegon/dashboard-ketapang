@@ -4,19 +4,22 @@ import React from 'react';
 
 interface GuidanceOverlayProps {
   mode: 'pasokan_beras' | 'tanaman_pangan';
+  hideTopHeader?: boolean;
 }
 
-export default function GuidanceOverlay({ mode }: GuidanceOverlayProps) {
+export default function GuidanceOverlay({ mode, hideTopHeader = true }: GuidanceOverlayProps) {
   return (
-    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-between px-6 pb-44 pt-16">
+    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-between px-6 pb-48 pt-20">
       {/* Top Guidance Header */}
-      <div className="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white text-[11px] font-bold shadow-lg text-center animate-in fade-in duration-300">
-        {mode === 'pasokan_beras' ? (
-          <span>🏪 Arahkan kamera ke plang toko atau tumpukan karung beras</span>
-        ) : (
-          <span>🌳 Posisikan pohon/rumpun tanaman di dalam bingkai</span>
-        )}
-      </div>
+      {!hideTopHeader && (
+        <div className="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white text-[11px] font-bold shadow-lg text-center animate-in fade-in duration-300">
+          {mode === 'pasokan_beras' ? (
+            <span>🏪 Arahkan kamera ke plang toko atau tumpukan karung beras</span>
+          ) : (
+            <span>🌳 Posisikan pohon/rumpun tanaman di dalam bingkai</span>
+          )}
+        </div>
+      )}
 
       {/* Center Framing Viewfinder */}
       <div className="relative w-[78%] max-w-[320px] flex-1 my-3 max-h-[420px] rounded-2xl border-2 border-dashed border-white/70 flex flex-col items-center justify-between p-4 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)]">

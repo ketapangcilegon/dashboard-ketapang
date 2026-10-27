@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts';
-import { TrendingUp, ShieldCheck, Activity, Info } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Activity, Info, Lightbulb, X } from 'lucide-react';
 
 export interface IkpPouDataPoint {
   year: string;
@@ -81,6 +81,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 export default function MobileIkpPouChart() {
   const [activeMetric, setActiveMetric] = useState<'all' | 'ikp' | 'pou'>('all');
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [showInfo, setShowInfo] = useState<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -93,20 +94,62 @@ export default function MobileIkpPouChart() {
       {/* Header Segmen */}
       <div className="flex flex-col gap-1.5 pb-2 border-b border-slate-100">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <div>
-              <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-800 leading-tight">
+            <div className="min-w-0">
+              <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-800 leading-tight truncate">
                 IKP & POU KOTA CILEGON 5 TAHUN TERAKHIR
               </h4>
-              <p className="text-[9px] text-slate-500 font-medium">
+              <p className="text-[9px] text-slate-500 font-medium truncate">
                 Indeks Ketahanan Pangan & Prevalence of Undernourishment (2021-2025)
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowInfo(prev => !prev)}
+            className={`p-1.5 rounded-full transition-all border shrink-0 flex items-center justify-center cursor-pointer ${
+              showInfo
+                ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-300 shadow-2xs'
+            }`}
+            title="Konsep & Metodologi IKP & PoU"
+            aria-label="Konsep & Metodologi IKP & PoU"
+          >
+            <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
+          </button>
         </div>
+
+        {/* Expandable Info Note */}
+        {showInfo && (
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border border-amber-300/80 rounded-2xl p-3 my-1.5 text-slate-800 shadow-sm text-left animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
+                Konsep & Metodologi IKP & PoU
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowInfo(false)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md hover:bg-black/5"
+                aria-label="Tutup Info"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-48 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <p>
+                <strong>1. Indeks Ketahanan Pangan (IKP):</strong> Ukuran komposit makro tahunan berdasarkan metodologi Badan Pangan Nasional (Bapanas). IKP mengevaluasi 3 pilar utama: <em>Ketersediaan</em> (ketersediaan pangan per kapita), <em>Keterjangkauan</em> (akses fisik dan daya beli ekonomi masyarakat terhadap pangan), serta <em>Pemanfaatan</em> (aspek gizi, air bersih, dan sanitasi lingkungan). Skala skor 0–100, di mana nilai &ge; 70 masuk kategori <strong>Tahan/Sangat Tahan Pangan</strong>.
+              </p>
+              <p>
+                <strong>2. Prevalence of Undernourishment (PoU):</strong> Persentase perkiraan penduduk yang mengonsumsi energi pangan harian di bawah standar Kebutuhan Energi Minimum (Minimum Dietary Energy Requirement/MDER). Kota Cilegon konsisten menjaga PoU pada level rendah dan stabil (2,78% di tahun 2025), mengindikasikan kecukupan pangan dasar warga terkendali secara mantap.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Metric Badges Quick Info */}
         <div className="grid grid-cols-2 gap-2 pt-1">

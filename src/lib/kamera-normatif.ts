@@ -285,3 +285,91 @@ export function cariKelurahanTerdekat(lat: number, lng: number): { kelurahan: st
     jarak_km: Number(minDist.toFixed(2))
   };
 }
+
+// In-memory cache for dynamic geocoding (debounced)
+const geoCache = new Map<string, { kelurahan: string; kecamatan: string; jarak_km?: number }>();
+
+/**
+ * Reverse Geocoding Dinamis:
+ * 1. Menggunakan OpenStreetMap Nominatim untuk mendeteksi kelurahan/desa riil sesuai titik GPS saat ini.
+ * 2. Fallback ke perhitungan geometri lokal Kota Cilegon jika offline/timeout.
+ */
+export async function resolveDynamicGeocode(
+  lat: number,
+  lng: number
+): Promise<{ kelurahan: string; kecamatan: string; jarak_km?: number }> {
+  const cacheKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+  if (geoCache.has(cacheKey)) {
+    return geoCache.get(cacheKey)!;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      { signal: controller.signal, headers: { 'Accept-Language': 'id' } }
+    );
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const json = await res.json();
+      const addr = json.address || {};
+      const rawKel = addr.village || addr.suburb || addr.quarter || addr.neighbourhood || addr.city_district || addr.hamlet || addr.town;
+      const rawKec = addr.city_district || addr.county || addr.municipality || 'Cilegon';
+
+      if (rawKel) {
+        const cleanKel = rawKel.replace(/^(Kelurahan|Desa|Kampung)\s+/i, '').trim();
+        const cleanKec = rawKec.replace(/^(Kecamatan|Kota|Kabupaten)\s+/i, '').trim();
+        
+        // Cek apakah ada kelurahan resmi Cilegon yang cocok
+        const matchedOfficial = Object.keys(KELURAHAN_COORDINATES).find(
+          k => k.toLowerCase() === cleanKel.toLowerCase()
+        );
+
+        const result = {
+          kelurahan: matchedOfficial || cleanKel,
+          kecamatan: matchedOfficial ? KELURAHAN_COORDINATES[matchedOfficial].kec : cleanKec
+        };
+
+        geoCache.set(cacheKey, result);
+        return result;
+      }
+    }
+  } catch {
+    // Offline or network timeout, fallback to geometric calculation
+  }
+
+  // 2. Fallback to geometric centroid match
+  const fallback = cariKelurahanTerdekat(lat, lng);
+  if (fallback.jarak_km > 8.0) {
+    const outResult = {
+      kelurahan: `${fallback.kelurahan} (±${fallback.jarak_km}km)`,
+      kecamatan: fallback.kecamatan,
+      jarak_km: fallback.jarak_km
+    };
+    geoCache.set(cacheKey, outResult);
+    return outResult;
+  }
+
+  geoCache.set(cacheKey, fallback);
+  return fallback;
+}
+
+/**
+ * Menghitung jarak presisi dua titik koordinat GPS dalam meter menggunakan formula Haversine.
+ */
+export function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // metres
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
