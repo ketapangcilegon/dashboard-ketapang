@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Image as ImageIcon, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut, Globe2, Mail, Lightbulb, X } from 'lucide-react';
+import { Camera, RefreshCw, MapPin, Trees, Store, Layers, BarChart3, AlertTriangle, Check, Sparkles, SwitchCamera, Upload, Zap, Loader2, Lock, ShieldCheck, ShieldAlert, KeyRound, LogOut, Globe2, Mail, Lightbulb, X } from 'lucide-react';
 import GuidanceOverlay from './GuidanceOverlay';
 import KonfirmasiPasokanModal from './KonfirmasiPasokanModal';
 import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
@@ -1140,21 +1140,9 @@ export default function KameraCerdasView({
               </button>
             </div>
 
-            {/* Shutter Action Buttons Row (Capture 3) */}
-            <div className="w-full max-w-xs flex items-center justify-around px-2 pt-1">
-              
-              {/* Tombol Galeri (Hanya Kamera Langsung yang Diperkenankan Submit - Item 5) */}
-              <button
-                type="button"
-                onClick={() => alert('⚠️ Integritas Data Lapangan: Pengambilan dan pengiriman data hanya dapat dilakukan melalui jepretan kamera langsung di lokasi (Live Camera) untuk memastikan keaslian GPS, timestamp, dan fisik komoditas pangan.')}
-                className="w-12 h-12 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white hover:bg-black/60 flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer"
-                title="Wajib Kamera Langsung (Galeri Dinonaktifkan)"
-                aria-label="Upload Galeri Dinonaktifkan"
-              >
-                <ImageIcon className="w-5 h-5" />
-              </button>
-
-              {/* Main Shutter Capture Button (Glowing Green Circle - Capture 3) */}
+            {/* Shutter Action Button (Centered) */}
+            <div className="w-full max-w-xs flex items-center justify-center px-2 pt-1">
+              {/* Main Shutter Capture Button (Glowing Green Circle) */}
               <button
                 type="button"
                 onClick={handleCapturePhoto}
@@ -1166,17 +1154,6 @@ export default function KameraCerdasView({
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00FF87] via-[#059669] to-[#047857] flex items-center justify-center text-white shadow-inner">
                   <Camera className="w-7 h-7 text-white drop-shadow-sm" />
                 </div>
-              </button>
-
-              {/* View Map / Pins Shortcut (Capture 3) */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('map')}
-                className="w-12 h-12 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white hover:bg-black/60 flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer"
-                title="Lihat Peta Pin Observasi"
-                aria-label="Lihat Pin Peta"
-              >
-                <Layers className="w-5 h-5 text-white" />
               </button>
             </div>
 
