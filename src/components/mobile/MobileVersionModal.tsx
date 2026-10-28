@@ -47,7 +47,7 @@ export default function MobileVersionModal({ isOpen, onClose }: MobileVersionMod
                 Riwayat Versi Platform PANCI
               </h3>
               <p className="text-[10px] text-amber-900 font-bold truncate">
-                Versi Eksisting: <span className="font-mono text-emerald-800">v{APP_VERSION}</span> • Kaidah Standar SemVer
+                Versi Eksisting: <span className="font-mono text-emerald-800">v{APP_VERSION}</span>
               </p>
             </div>
           </div>
@@ -61,14 +61,11 @@ export default function MobileVersionModal({ isOpen, onClose }: MobileVersionMod
           </button>
         </div>
 
-        {/* Banner Penjelasan Kaidah Standar Versioning */}
-        <div className="px-4 py-2 bg-amber-100/60 border-b border-amber-200/80 text-[10px] text-amber-950 flex items-center gap-2 shrink-0">
-          <span className="font-black px-1.5 py-0.5 rounded-md bg-amber-200/90 text-amber-900 text-[9px] font-mono shrink-0">
+        {/* Banner SemVer */}
+        <div className="px-4 py-2 bg-amber-100/60 border-b border-amber-200/80 flex items-center shrink-0">
+          <span className="font-black px-2.5 py-0.5 rounded-full bg-amber-200/90 text-amber-900 text-[9px] font-mono shrink-0 shadow-2xs">
             SemVer
           </span>
-          <p className="leading-tight text-[9.5px]">
-            <strong>Digit Pertama:</strong> Perbaikan/transformasi besar arsitektur. <strong>Digit Kedua:</strong> Peningkatan modul & penyempurnaan fitur.
-          </p>
         </div>
 
         {/* Scrollable Changelog List */}

@@ -14,7 +14,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: `v${APP_VERSION}`,
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Optimasi UI Forecast Mobile, Scrollbar Peta Pasokan & Versioning Platform',
     isCurrent: true,
@@ -28,7 +28,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v2.4',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Lampu Metodologi Analitik & Optimasi Kamera Cerdas HUD',
     changes: [
@@ -40,7 +40,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v2.3',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Peta 3D Arus Pasokan Beras & Autentikasi Enumerator',
     changes: [
@@ -52,7 +52,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v2.2',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Kamera Cerdas AI Vision Lapangan & Geotagging Otomatis',
     changes: [
@@ -64,7 +64,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v2.1',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Engine Peramalan Harga Machine Learning (Champion-Challenger)',
     changes: [
@@ -76,7 +76,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v2.0',
     type: 'major',
-    typeLabel: 'Perbaikan Besar / Transformasi Sistem (Digit Pertama)',
+    typeLabel: 'Perbaikan Besar / Transformasi Sistem',
     date: 'Oktober 2026',
     title: 'Rebranding PANCI & Transformasi Total Mobile-First',
     changes: [
@@ -90,7 +90,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v1.3',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'September 2026',
     title: 'Telemetri Lengas Tanah Satelit ECMWF & Agrometeorologi',
     changes: [
@@ -102,7 +102,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v1.2',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'September 2026',
     title: 'AI Intelligence Chatbot RAG Multi-Dokumen & GIS',
     changes: [
@@ -114,7 +114,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v1.1',
     type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
+    typeLabel: 'Penyempurnaan Fitur',
     date: 'Agustus - September 2026',
     title: 'Cetak Laporan Eksekutif PDF A4 & Benchmark Indikator',
     changes: [
@@ -126,7 +126,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
     version: 'v1.0',
     type: 'major',
-    typeLabel: 'Perbaikan Besar / Rilis Perdana (Digit Pertama)',
+    typeLabel: 'Perbaikan Besar / Rilis Perdana',
     date: 'Agustus 2026',
     title: 'Peluncuran Awal Dashboard Ketahanan Pangan Cilegon',
     changes: [
