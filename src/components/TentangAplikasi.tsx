@@ -348,9 +348,9 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                     </span>
                   </a>
 
-                  {/* 3. Pemerintah Kota Cilegon */}
+                  {/* 3. Dinas Kesehatan Kota Cilegon */}
                   <a 
-                    href="https://cilegon.go.id" 
+                    href="https://dinkes.cilegon.go.id" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex flex-col items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50/20 hover:border-indigo-200 transition-all duration-300 text-center group/item hover:shadow-sm"
@@ -358,7 +358,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                     <div className="h-16 flex items-center justify-center mb-3">
                       <img 
                         src="/logo-cilegon.png" 
-                        alt="Pemkot Cilegon Logo" 
+                        alt="Dinas Kesehatan Kota Cilegon Logo" 
                         className="max-h-full max-w-[80px] object-contain group-hover/item:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
@@ -369,7 +369,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-700 group-hover/item:text-indigo-650 transition-colors">
-                      Pemerintah Kota Cilegon
+                      Dinas Kesehatan Kota Cilegon
                     </span>
                   </a>
 

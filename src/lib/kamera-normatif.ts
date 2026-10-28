@@ -38,7 +38,8 @@ export const ASAL_PASOKAN_OPTIONS = [
   'Jawa Timur / Ngawi',
   'Lampung / Luar Jawa',
   'Bulog / Cadangan Pangan Pemerintah',
-  'Tidak Diketahui / Campuran'
+  'Tidak Diketahui / Campuran',
+  'Lainnya (Manual)'
 ];
 
 // ============================================================

@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { SARANA_DISTRIBUSI_LIST, ASAL_PASOKAN_OPTIONS, haversineDistanceMeters } from '@/lib/kamera-normatif';
 import { WILAYAH } from '@/lib/wilayah';
-import { Check, Edit3, MapPin, Sparkles, AlertCircle, AlertTriangle, Calendar, Clock, Store, ArrowRight, Loader2 } from 'lucide-react';
+import { cariWilayahMendekati } from '@/lib/wilayah-indonesia';
+import { Check, Edit3, MapPin, Sparkles, AlertCircle, AlertTriangle, Calendar, Clock, Store, ArrowRight, Loader2, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 interface KonfirmasiPasokanModalProps {
   photoPreview: string;
@@ -52,22 +53,111 @@ export default function KonfirmasiPasokanModal({
 
   // Form State
   const [namaLokasi, setNamaLokasi] = useState(aiDraft?.nama_toko || '');
-  const [kategoriId, setKategoriId] = useState(aiDraft?.kategori_id || 'toko_beras');
+  const [kategoriId, setKategoriId] = useState(aiDraft?.kategori_id || (aiDraft?.kotak_beras?.terdeteksi ? 'pasar_tradisional' : 'toko_beras'));
   const [kelurahan, setKelurahan] = useState(gpsMeta.kelurahan || 'Citangkil');
   const [kecamatan, setKecamatan] = useState(gpsMeta.kecamatan || 'Citangkil');
+
+  // Custom Dropdown UI States (Capture 5 Clean Light UI for Mobile & Desktop)
+  const [isKategoriDropdownOpen, setIsKategoriDropdownOpen] = useState(false);
+  const [isAsalDropdownOpen, setIsAsalDropdownOpen] = useState(false);
+  const kategoriDropdownRef = useRef<HTMLDivElement>(null);
+  const asalDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Isian Manual Asal Pasokan & Smart Geo Typo Matcher (Capture 1 & 2)
+  const [manualAsalText, setManualAsalText] = useState('');
+  const [asalSuggestion, setAsalSuggestion] = useState<{
+    rekomendasi: string;
+    namaResmi: string;
+    skor: number;
+    pesanKonfirmasi: string;
+  } | null>(null);
+  const [isAsalConfirmed, setIsAsalConfirmed] = useState(false);
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (kategoriDropdownRef.current && !kategoriDropdownRef.current.contains(e.target as Node)) {
+        setIsKategoriDropdownOpen(false);
+      }
+      if (asalDropdownRef.current && !asalDropdownRef.current.contains(e.target as Node)) {
+        setIsAsalDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, []);
+
+  const handleManualAsalChange = (val: string) => {
+    setManualAsalText(val);
+    setIsAsalConfirmed(false);
+    if (!val.trim()) {
+      setAsalSuggestion(null);
+      return;
+    }
+    const match = cariWilayahMendekati(val);
+    if (match && match.rekomendasi.toLowerCase() !== val.trim().toLowerCase()) {
+      setAsalSuggestion(match);
+    } else if (match && match.rekomendasi.toLowerCase() === val.trim().toLowerCase()) {
+      setAsalSuggestion(null);
+      setIsAsalConfirmed(true);
+    } else {
+      setAsalSuggestion(null);
+    }
+  };
+
+  const handleAcceptSuggestion = () => {
+    if (asalSuggestion) {
+      setManualAsalText(asalSuggestion.rekomendasi);
+      setIsAsalConfirmed(true);
+      setAsalSuggestion(null);
+    }
+  };
   
+  // Deteksi Geometris Kotak Beras Curah (Pasar Tradisional / Warung Kecil)
+  const isKotakDetected = Boolean(aiDraft?.kotak_beras?.terdeteksi || aiDraft?.format_penyimpanan?.includes('kotak'));
+
   // Data Pasokan
   const [jumlahInput, setJumlahInput] = useState<number | ''>(aiDraft?.perkiraan_jumlah_karung_angka || 10);
-  const [satuan, setSatuan] = useState<'karung' | 'kg' | 'ton'>('karung');
+  const [satuan, setSatuan] = useState<'kotak' | 'karung' | 'kg' | 'ton'>(
+    isKotakDetected ? 'kotak' : 'karung'
+  );
   const [ukuranKarungKg, setUkuranKarungKg] = useState<number>(25);
-  const [asalPasokan, setAsalPasokan] = useState(aiDraft?.saran_asal_pasokan_default || 'Kabupaten Serang (Banten)');
-  const [jenisKemasan, setJenisKemasan] = useState(aiDraft?.ukuran_kemasan_terdeteksi || 'Karung 25 kg & Kemasan 5 kg');
-  const [merekBeras, setMerekBeras] = useState(aiDraft?.merek_terbaca || '');
-  const [catatanLapangan, setCatatanLapangan] = useState('');
 
-  // Hitung total kg
+  // Parameter Geometris & Fisika Kotak Sekat Beras
+  const [jumlahSekat, setJumlahSekat] = useState<number>(aiDraft?.kotak_beras?.jumlah_sekat || 4);
+  const [ukuranKotakTipe, setUkuranKotakTipe] = useState<'standar_pasar' | 'sedang_warung' | 'besar_grosir'>('standar_pasar');
+  const [volumePerSekatLiter, setVolumePerSekatLiter] = useState<number>(aiDraft?.kotak_beras?.estimasi_volume_per_sekat_liter || 65);
+  const [kondisiIsiPersen, setKondisiIsiPersen] = useState<number>(aiDraft?.kotak_beras?.estimasi_persen_isi || 105);
+  const [bufferKarungJumlah, setBufferKarungJumlah] = useState<number>(aiDraft?.karung_cadangan?.estimasi_jumlah_karung || 0);
+  const [bufferKarungKg, setBufferKarungKg] = useState<number>(aiDraft?.karung_cadangan?.ukuran_rata_rata_kg || 25);
+
+  const handleSelectUkuranKotak = (tipe: 'standar_pasar' | 'sedang_warung' | 'besar_grosir') => {
+    setUkuranKotakTipe(tipe);
+    if (tipe === 'standar_pasar') setVolumePerSekatLiter(65);
+    else if (tipe === 'sedang_warung') setVolumePerSekatLiter(45);
+    else if (tipe === 'besar_grosir') setVolumePerSekatLiter(85);
+  };
+
+  const [asalPasokan, setAsalPasokan] = useState(aiDraft?.saran_asal_pasokan_default || 'Kabupaten Serang (Banten)');
+  const [jenisKemasan, setJenisKemasan] = useState(
+    aiDraft?.ukuran_kemasan_terdeteksi || (isKotakDetected ? 'Kotak Display Sekat Kayu & Curah' : 'Karung 25 kg & Kemasan 5 kg')
+  );
+  const [merekBeras, setMerekBeras] = useState(aiDraft?.merek_terbaca || '');
+  const [catatanLapangan, setCatatanLapangan] = useState(aiDraft?.metode_kalkulasi ? `[AI Vision] ${aiDraft.metode_kalkulasi}` : '');
+
+  // Bulk Density Beras Putih Standar SNI/Bulog: 0.80 kg/liter (1 Liter Beras ≈ 0.80 kg)
+  const beratKotakKg = Math.round(jumlahSekat * volumePerSekatLiter * (kondisiIsiPersen / 100) * 0.80);
+  const beratBufferKarungKg = bufferKarungJumlah * bufferKarungKg;
+
+  // Hitung total kg komprehensif
   const totalKg = Number(
-    satuan === 'karung'
+    satuan === 'kotak'
+      ? beratKotakKg + beratBufferKarungKg
+      : satuan === 'karung'
       ? (Number(jumlahInput) || 0) * ukuranKarungKg
       : satuan === 'ton'
       ? (Number(jumlahInput) || 0) * 1000
@@ -89,6 +179,10 @@ export default function KonfirmasiPasokanModal({
       alert(`⚠️ Peringatan Duplikasi Lokasi:\nTitik GPS Anda berjarak ±${nearbyPin.distMeters}m dari "${nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}".\n\nJika ini adalah toko/sarana beras yang BERBEDA, silakan centang kotak pernyataan konfirmasi pembeda sebelum menyimpan.`);
       return;
     }
+
+    const finalAsal = asalPasokan === 'Lainnya (Manual)'
+      ? (manualAsalText.trim() || 'Lainnya (Manual)')
+      : asalPasokan;
 
     const finalPayload = {
       mode: 'pasokan_beras',
@@ -113,14 +207,25 @@ export default function KonfirmasiPasokanModal({
       satuan_input: satuan,
       ukuran_karung_kg: satuan === 'karung' ? ukuranKarungKg : undefined,
       jumlah_karung: satuan === 'karung' ? Number(jumlahInput) : undefined,
-      asal_pasokan: asalPasokan,
+      detail_kotak_curah: satuan === 'kotak' ? {
+        jumlah_sekat: jumlahSekat,
+        tipe_ukuran: ukuranKotakTipe,
+        volume_per_sekat_liter: volumePerSekatLiter,
+        kondisi_isi_persen: kondisiIsiPersen,
+        berat_kotak_kg: beratKotakKg,
+        buffer_karung_jumlah: bufferKarungJumlah,
+        buffer_karung_kg: beratBufferKarungKg,
+        densitas_ruah_kg_per_l: 0.80
+      } : undefined,
+      asal_pasokan: finalAsal,
       jenis_kemasan: jenisKemasan,
       merek_beras: merekBeras,
       catatan_lapangan: catatanLapangan,
       ai_analysis_raw: aiDraft,
-      ai_confidence: aiDraft?.confidence_score || 0.8,
+      ai_confidence: aiDraft?.confidence_score || 0.85,
       ai_detected_objects: [
         aiDraft?.kategori_sarana,
+        isKotakDetected ? `Kotak Curah (${jumlahSekat} Sekat)` : null,
         aiDraft?.estimasi_tumpukan_karung,
         aiDraft?.ukuran_kemasan_terdeteksi
       ].filter(Boolean),
@@ -203,42 +308,97 @@ export default function KonfirmasiPasokanModal({
           )}
 
           {/* AI Result Card */}
-          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2 relative overflow-hidden">
+          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 space-y-2.5 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                <span>Hasil Analisis AI Vision</span>
+              <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                <span>Hasil Analisis AI Vision (Spasial & Geometri)</span>
               </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-300">
-                Keyakinan: {Math.round((aiDraft?.confidence_score || 0.8) * 100)}%
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold border border-emerald-300">
+                Keyakinan: {Math.round((aiDraft?.confidence_score || 0.85) * 100)}%
               </span>
             </div>
 
+            {/* Grid Informasi AI */}
             <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
               <div>
                 <p className="text-slate-500 text-[10px]">Prediksi Sarana:</p>
                 <p className="font-bold text-slate-900">{aiDraft?.kategori_sarana || selectedKategori.label}</p>
               </div>
+
               <div>
-                <p className="text-slate-500 text-[10px]">Estimasi Tumpukan (Visual):</p>
-                <p className="font-bold text-amber-700">{aiDraft?.estimasi_tumpukan_karung || '± 10 karung'}</p>
+                <p className="text-slate-500 text-[10px]">Format Display:</p>
+                <p className="font-bold text-emerald-900">
+                  {isKotakDetected ? '📦 Kotak Beras Curah Bersekat' : '🎒 Tumpukan Karung Kemasan'}
+                </p>
               </div>
-              {aiDraft?.ukuran_kemasan_terdeteksi && (
-                <div className="col-span-2">
-                  <p className="text-slate-500 text-[10px]">Kemasan & Merek Terbaca:</p>
-                  <p className="text-slate-700">{aiDraft?.ukuran_kemasan_terdeteksi} {aiDraft?.merek_terbaca ? `(${aiDraft.merek_terbaca})` : ''}</p>
+
+              {/* Rincian Khusus Kotak Beras Sekat Tradisional */}
+              {isKotakDetected && (
+                <div className="col-span-2 bg-white/90 p-2 rounded-lg border border-emerald-300 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-emerald-950 text-[10.5px]">
+                      📐 Deteksi Wadah Kotak Sekat Kayu:
+                    </span>
+                    <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                      {aiDraft?.kotak_beras?.jumlah_sekat || jumlahSekat} Sekat • {aiDraft?.kotak_beras?.kondisi_permukaan === 'menggunung' ? 'Menggunung (110%)' : 'Penuh Rata'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-700 leading-tight">
+                    Estimasi Volume Kotak: <strong>~{aiDraft?.kotak_beras?.total_volume_liter || Math.round(jumlahSekat * volumePerSekatLiter)} Liter</strong> (~{aiDraft?.kotak_beras?.estimasi_berat_kotak_kg || beratKotakKg} kg beras)
+                  </p>
+                  
+                  {/* Papan Harga Terbaca */}
+                  {aiDraft?.kotak_beras?.label_harga_terbaca && aiDraft.kotak_beras.label_harga_terbaca.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-[9.5px] pt-0.5 text-amber-900 font-bold">
+                      <span className="bg-amber-100 px-1 rounded border border-amber-300">🏷️ Papan Harga Terbaca:</span>
+                      <span className="text-slate-800">
+                        Rp {aiDraft.kotak_beras.label_harga_terbaca.join(' / Rp ')}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Kaleng Canting Terbaca */}
+                  {aiDraft?.kotak_beras?.canting_takaran_terlihat && (
+                    <div className="text-[9.5px] text-emerald-800 font-semibold">
+                      ⚖️ <em>Canting takaran 1 liter terdeteksi di atas kotak (acuan skala & takaran curah).</em>
+                    </div>
+                  )}
+
+                  {/* Karung Cadangan */}
+                  {aiDraft?.karung_cadangan?.terdeteksi && (
+                    <p className="text-[9.5px] text-slate-600">
+                      🎒 Cadangan Karung di Sekitar: ±{aiDraft.karung_cadangan.estimasi_jumlah_karung} karung ({aiDraft.karung_cadangan.estimasi_berat_karung_kg} kg)
+                    </p>
+                  )}
                 </div>
+              )}
+
+              {/* Rincian Non-Kotak / Kemasan Biasa */}
+              {!isKotakDetected && (
+                <>
+                  <div>
+                    <p className="text-slate-500 text-[10px]">Estimasi Tumpukan Karung:</p>
+                    <p className="font-bold text-amber-800">{aiDraft?.estimasi_tumpukan_karung || '± 10 karung'}</p>
+                  </div>
+                  {aiDraft?.ukuran_kemasan_terdeteksi && (
+                    <div className="col-span-2">
+                      <p className="text-slate-500 text-[10px]">Kemasan & Merek Terbaca:</p>
+                      <p className="text-slate-700">{aiDraft?.ukuran_kemasan_terdeteksi} {aiDraft?.merek_terbaca ? `(${aiDraft.merek_terbaca})` : ''}</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            <div className="pt-1 flex items-center justify-between border-t border-emerald-300 text-[10px] text-emerald-700/80">
+            <div className="pt-1 flex items-center justify-between border-t border-emerald-300 text-[10px] text-emerald-800/80">
               <span className="flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> Data AI bersifat estimasi visual
+                <AlertCircle className="w-3 h-3 text-emerald-600" /> Bulk Density Beras SNI: 0.80 kg/L
               </span>
               <button
                 type="button"
                 onClick={() => setIsEditingManual(!isEditingManual)}
-                className="text-amber-700 hover:text-amber-700 font-bold flex items-center gap-1 underline"
+                className="text-amber-800 hover:text-amber-900 font-bold flex items-center gap-1 underline"
               >
                 <Edit3 className="w-3 h-3" />
                 {isEditingManual ? 'Tutup Koreksi' : 'Koreksi Data'}
@@ -252,33 +412,61 @@ export default function KonfirmasiPasokanModal({
             {/* Nama Toko / Sarana */}
             <div>
               <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                Nama Toko / Outlet / Distributor <span className="text-slate-500 font-normal">(Opsional)</span>
+                Nama Toko / Outlet / Kios Pasar <span className="text-slate-500 font-normal">(Opsional)</span>
               </label>
               <input
                 type="text"
                 value={namaLokasi}
                 onChange={(e) => setNamaLokasi(e.target.value)}
-                placeholder="Contoh: Toko Beras Berkah Jaya, Warung Madura Citangkil"
+                placeholder="Contoh: Kios Beras Berkah Pasar Kranggot, Warung Madura Citangkil"
                 className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
-            {/* Jenis Sarana */}
-            <div>
+            {/* Jenis Sarana (Capture 5 Custom Dropdown - Mobile & Desktop) */}
+            <div className="relative" ref={kategoriDropdownRef}>
               <label className="block text-[11px] font-bold text-slate-600 mb-1">
                 Jenis Sarana Distribusi
               </label>
-              <select
-                value={kategoriId}
-                onChange={(e) => setKategoriId(e.target.value)}
-                className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              <button
+                type="button"
+                onClick={() => {
+                  setIsKategoriDropdownOpen(!isKategoriDropdownOpen);
+                  setIsAsalDropdownOpen(false);
+                }}
+                className="w-full bg-[#ECFDF5] border border-emerald-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold flex items-center justify-between shadow-2xs hover:border-emerald-400 transition-colors cursor-pointer text-left"
               >
-                {SARANA_DISTRIBUSI_LIST.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.icon} {s.label}
-                  </option>
-                ))}
-              </select>
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-sm shrink-0">{selectedKategori.icon}</span>
+                  <span className="truncate">{selectedKategori.label}</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-emerald-700 transition-transform duration-200 shrink-0 ${isKategoriDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isKategoriDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#F0FDF4] border-2 border-emerald-400 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto animate-in fade-in duration-150">
+                  {SARANA_DISTRIBUSI_LIST.map((s) => {
+                    const isSelected = s.id === kategoriId;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => {
+                          setKategoriId(s.id);
+                          setIsKategoriDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2.5 transition-colors cursor-pointer border-b border-emerald-100/60 last:border-b-0 ${
+                          isSelected
+                            ? 'bg-[#1A73E8] text-white font-bold shadow-xs'
+                            : 'text-slate-800 hover:bg-emerald-100/70'
+                        }`}
+                      >
+                        <span className="text-sm shrink-0">{s.icon}</span>
+                        <span className="truncate leading-tight">{s.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Wilayah: Kecamatan & Kelurahan */}
@@ -309,79 +497,371 @@ export default function KonfirmasiPasokanModal({
               </div>
             </div>
 
-            {/* Estimasi Pasokan & Satuan */}
-            <div className="bg-emerald-50/80 border border-emerald-200 p-3 rounded-xl space-y-2.5">
-              <label className="block text-[11px] font-extrabold text-emerald-700">
-                Estimasi Pasokan / Stok Beras
-              </label>
-              
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={jumlahInput}
-                    onChange={(e) => setJumlahInput(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="Jumlah pasokan..."
-                    className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <select
-                    value={satuan}
-                    onChange={(e) => setSatuan(e.target.value as any)}
-                    className="w-full bg-white border border-emerald-200 rounded-lg px-2 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="karung">Karung</option>
-                    <option value="kg">Kg</option>
-                    <option value="ton">Ton</option>
-                  </select>
-                </div>
+            {/* Estimasi Pasokan & Format Perhitungan */}
+            <div className="bg-emerald-50/90 border border-emerald-300 p-3.5 rounded-xl space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-black text-emerald-900">
+                  Estimasi Pasokan & Metode Perhitungan
+                </label>
+                <span className="text-[9.5px] bg-emerald-200/70 text-emerald-900 font-bold px-2 py-0.5 rounded-full">
+                  Formula Fisika Spasial
+                </span>
               </div>
 
-              {satuan === 'karung' && (
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[10px] text-slate-500">Ukuran per karung:</span>
-                  {[5, 10, 25, 50].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => setUkuranKarungKg(size)}
-                      className={`text-[10px] px-2 py-0.5 rounded font-bold border transition-colors ${
-                        ukuranKarungKg === size
-                          ? 'bg-emerald-600 text-white border-emerald-400'
-                          : 'bg-white text-slate-500 border-emerald-200 hover:text-emerald-800'
-                      }`}
-                    >
-                      {size} kg
-                    </button>
-                  ))}
+              {/* Satuan Selector */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                  Format Penyimpanan / Satuan Input:
+                </label>
+                <select
+                  value={satuan}
+                  onChange={(e) => setSatuan(e.target.value as any)}
+                  className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="kotak">📦 Kotak Sekat Kayu (Curah Pasar / Warung)</option>
+                  <option value="karung">🎒 Tumpukan Karung Beras</option>
+                  <option value="kg">⚖️ Bobot Langsung (Kilogram / Kg)</option>
+                  <option value="ton">🚛 Skala Tonase (Ton)</option>
+                </select>
+              </div>
+
+              {/* A. JIKA SATUAN = KOTAK SEKAT KAYU (ALGORITMA GEOMETRI & BULK DENSITY) */}
+              {satuan === 'kotak' && (
+                <div className="bg-white/95 border border-emerald-300 rounded-xl p-3 space-y-3">
+                  <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                    <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                      <span>📐</span> Kalkulator Geometri Kotak Beras
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Densitas: 0.80 kg/L
+                    </span>
+                  </div>
+
+                  {/* 1. Jumlah Sekat Kotak */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10.5px] font-bold text-slate-700">Jumlah Sekat Kotak Terlihat:</span>
+                      <span className="text-xs font-black text-emerald-700">{jumlahSekat} Sekat</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setJumlahSekat(prev => Math.max(1, prev - 1))}
+                        className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-900 font-black text-sm flex items-center justify-center hover:bg-emerald-200"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={jumlahSekat}
+                        onChange={(e) => setJumlahSekat(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="flex-1 text-center bg-emerald-50 border border-emerald-200 rounded-lg py-1.5 text-xs font-black text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setJumlahSekat(prev => prev + 1)}
+                        className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-900 font-black text-sm flex items-center justify-center hover:bg-emerald-200"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Ukuran Modular Kotak Sekat */}
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                      Dimensi Modular Kotak Sekat:
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectUkuranKotak('standar_pasar')}
+                        className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                          ukuranKotakTipe === 'standar_pasar'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                            : 'bg-emerald-50 text-slate-700 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span className="text-[10px] font-black">Standar Pasar</span>
+                        <span className="text-[9px] opacity-90">~65 L (52 kg)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectUkuranKotak('sedang_warung')}
+                        className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                          ukuranKotakTipe === 'sedang_warung'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                            : 'bg-emerald-50 text-slate-700 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span className="text-[10px] font-black">Warung Kecil</span>
+                        <span className="text-[9px] opacity-90">~45 L (36 kg)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectUkuranKotak('besar_grosir')}
+                        className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                          ukuranKotakTipe === 'besar_grosir'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                            : 'bg-emerald-50 text-slate-700 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span className="text-[10px] font-black">Grosir Besar</span>
+                        <span className="text-[9px] opacity-90">~85 L (68 kg)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Profil Permukaan Keterisian Beras */}
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                      Kondisi Permukaan Beras:
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                      {[
+                        { label: '🏔️ Menggunung (110%)', val: 110 },
+                        { label: '📏 Penuh Rata (100%)', val: 100 },
+                        { label: '☕ 3/4 Terisi (75%)', val: 75 },
+                        { label: '📉 1/2 Terambil (50%)', val: 50 },
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setKondisiIsiPersen(item.val)}
+                          className={`py-1.5 px-2 rounded-lg border font-bold text-left transition-all ${
+                            kondisiIsiPersen === item.val
+                              ? 'bg-emerald-600 text-white border-emerald-500'
+                              : 'bg-emerald-50 text-slate-700 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Cadangan Karung Pendukung (Buffer Stock di Belakang / Samping Kotak) */}
+                  <div className="border-t border-emerald-100 pt-2.5">
+                    <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                      Cadangan Karung di Sekitar Kotak <span className="text-slate-500 font-normal">(Buffer Stock)</span>:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[9.5px] text-slate-500 block mb-0.5">Jumlah Karung:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={bufferKarungJumlah}
+                          onChange={(e) => setBufferKarungJumlah(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold"
+                          placeholder="0 karung"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9.5px] text-slate-500 block mb-0.5">Ukuran Rata-rata:</span>
+                        <select
+                          value={bufferKarungKg}
+                          onChange={(e) => setBufferKarungKg(Number(e.target.value))}
+                          className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold"
+                        >
+                          <option value="5">5 kg</option>
+                          <option value="10">10 kg</option>
+                          <option value="25">25 kg (Standar Toko)</option>
+                          <option value="50">50 kg (Karung Bulog/Pabrik)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rincian Subtotal Fisika */}
+                  <div className="bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200 text-[10.5px] space-y-1 text-slate-700">
+                    <div className="flex justify-between">
+                      <span>• Beras Kotak ({jumlahSekat} sekat × {volumePerSekatLiter}L × {kondisiIsiPersen}%):</span>
+                      <strong className="text-slate-900">{beratKotakKg} kg (~{Math.round(beratKotakKg / 0.8)} L)</strong>
+                    </div>
+                    {bufferKarungJumlah > 0 && (
+                      <div className="flex justify-between">
+                        <span>• Karung Cadangan ({bufferKarungJumlah} × {bufferKarungKg}kg):</span>
+                        <strong className="text-slate-900">{beratBufferKarungKg} kg</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="pt-1.5 border-t border-emerald-200 flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-medium">Total Estimasi Pasokan:</span>
-                <span className="font-black text-emerald-700 text-sm">
-                  {totalKg.toLocaleString('id-ID')} Kg ({ (totalKg / 1000).toFixed(2) } Ton)
+              {/* B. JIKA SATUAN = KARUNG / KG / TON */}
+              {satuan !== 'kotak' && (
+                <div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={jumlahInput}
+                        onChange={(e) => setJumlahInput(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="Jumlah pasokan..."
+                        className="w-full bg-white border border-emerald-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="text-xs font-bold text-slate-700 flex items-center px-2 bg-emerald-100/50 rounded-lg border border-emerald-200 justify-center">
+                      {satuan.toUpperCase()}
+                    </div>
+                  </div>
+
+                  {satuan === 'karung' && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <span className="text-[10px] text-slate-500">Ukuran per karung:</span>
+                      {[5, 10, 25, 50].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setUkuranKarungKg(size)}
+                          className={`text-[10px] px-2.5 py-0.5 rounded font-bold border transition-colors ${
+                            ukuranKarungKg === size
+                              ? 'bg-emerald-600 text-white border-emerald-500'
+                              : 'bg-white text-slate-600 border-emerald-200 hover:text-emerald-800'
+                          }`}
+                        >
+                          {size} kg
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Total Summary Footer */}
+              <div className="pt-2 border-t border-emerald-300 flex justify-between items-center text-xs">
+                <span className="text-slate-600 font-bold">Total Estimasi Stok:</span>
+                <span className="font-black text-emerald-800 text-base">
+                  {totalKg.toLocaleString('id-ID')} Kg <span className="text-xs font-normal text-slate-500">({ (totalKg / 1000).toFixed(2) } Ton)</span>
                 </span>
               </div>
             </div>
 
-            {/* Asal Pasokan Beras */}
-            <div>
+            {/* Asal Pasokan Beras (Capture 5 Custom Dropdown - Mobile & Desktop) */}
+            <div className="relative" ref={asalDropdownRef}>
               <label className="block text-[11px] font-bold text-slate-600 mb-1">
                 Asal / Sumber Pasokan Beras
               </label>
-              <select
-                value={asalPasokan}
-                onChange={(e) => setAsalPasokan(e.target.value)}
-                className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAsalDropdownOpen(!isAsalDropdownOpen);
+                  setIsKategoriDropdownOpen(false);
+                }}
+                className="w-full bg-[#ECFDF5] border border-emerald-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold flex items-center justify-between shadow-2xs hover:border-emerald-400 transition-colors cursor-pointer text-left"
               >
-                {ASAL_PASOKAN_OPTIONS.map((asal) => (
-                  <option key={asal} value={asal}>{asal}</option>
-                ))}
-              </select>
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-emerald-700 shrink-0">
+                    {asalPasokan === 'Lainnya (Manual)' ? '✍️' : '📍'}
+                  </span>
+                  <span className="truncate">
+                    {asalPasokan === 'Lainnya (Manual)' && manualAsalText
+                      ? `Lainnya: ${manualAsalText}`
+                      : asalPasokan}
+                  </span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-emerald-700 transition-transform duration-200 shrink-0 ${isAsalDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isAsalDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#F0FDF4] border-2 border-emerald-400 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto animate-in fade-in duration-150">
+                  {ASAL_PASOKAN_OPTIONS.map((asal) => {
+                    const isSelected = asal === asalPasokan;
+                    const isManual = asal.includes('Lainnya');
+                    return (
+                      <div
+                        key={asal}
+                        onClick={() => {
+                          setAsalPasokan(asal);
+                          setIsAsalDropdownOpen(false);
+                          if (!isManual) {
+                            setManualAsalText('');
+                            setAsalSuggestion(null);
+                            setIsAsalConfirmed(false);
+                          }
+                        }}
+                        className={`w-full px-3 py-2.5 text-left text-xs flex items-center gap-2.5 transition-colors cursor-pointer border-b border-emerald-100/60 last:border-b-0 ${
+                          isSelected
+                            ? 'bg-[#1A73E8] text-white font-bold shadow-xs'
+                            : 'text-slate-800 hover:bg-emerald-100/70'
+                        }`}
+                      >
+                        <span className="text-sm shrink-0">{isManual ? '✍️' : '📍'}</span>
+                        <span className="truncate leading-tight font-medium">{asal}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Input Manual Asal Daerah & Saran Koreksi Typo Instan (Capture 1 & 2) */}
+              {asalPasokan === 'Lainnya (Manual)' && (
+                <div className="mt-2.5 p-3 rounded-xl bg-white border border-emerald-300 shadow-2xs space-y-2 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
+                      <span>✍️</span> Ketik Nama Kota / Kab / Provinsi Asal Beras:
+                    </label>
+                    <span className="text-[9.5px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
+                      Analisis Cerdas Typo
+                    </span>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={manualAsalText}
+                    onChange={(e) => handleManualAsalChange(e.target.value)}
+                    placeholder="Contoh: Palembang, Subang, Cianjur, Lampung..."
+                    className="w-full bg-emerald-50/70 border border-emerald-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
+                  />
+
+                  {/* Saran Typo Instan & Konfirmasi Tombol OK (Misal: palembng -> "Palembang, apakah sudah benar?") */}
+                  {asalSuggestion && !isAsalConfirmed && (
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border-2 border-emerald-400 text-slate-800 space-y-1.5 shadow-2xs animate-in fade-in">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-[11px]">
+                          <span className="text-emerald-800 font-bold flex items-center gap-1">
+                            <span>💡</span> Saran Wilayah Terdeteksi:
+                          </span>
+                          <p className="font-black text-slate-900 mt-0.5 text-xs">
+                            "{asalSuggestion.rekomendasi}", apakah sudah benar?
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAcceptSuggestion}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                        >
+                          <Check className="w-3.5 h-3.5" /> OK
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Status Terkonfirmasi */}
+                  {isAsalConfirmed && manualAsalText && (
+                    <div className="flex items-center justify-between text-[10.5px] bg-emerald-100/90 text-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-300 font-bold">
+                      <span className="flex items-center gap-1 truncate">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span className="truncate">Daerah asal terkonfirmasi: <strong>{manualAsalText}</strong></span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAsalConfirmed(false)}
+                        className="text-amber-800 hover:underline text-[10px] shrink-0 ml-2 font-bold cursor-pointer"
+                      >
+                        Ubah
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Catatan Lapangan */}

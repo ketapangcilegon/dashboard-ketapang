@@ -36,7 +36,6 @@ export default function GuidanceOverlay({ mode, hideTopHeader = true }: Guidance
           <div className="w-6 h-[1.5px] bg-emerald-400" />
         </div>
 
-        {/* Mode-specific Measurement Grid Guidelines */}
         {mode === 'tanaman_pangan' ? (
           <div className="w-full h-full flex flex-col justify-between py-4 opacity-50">
             <div className="flex justify-between items-center text-[9px] text-emerald-300 font-mono">
@@ -55,21 +54,30 @@ export default function GuidanceOverlay({ mode, hideTopHeader = true }: Guidance
             </div>
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col justify-between py-4 opacity-50">
+          <div className="w-full h-full flex flex-col justify-between py-3 opacity-60">
             <div className="flex justify-between items-center text-[9px] text-amber-300 font-mono">
-              <span>Plang Nama Toko</span>
+              <span>Plang Toko / Spanduk</span>
+              <span className="text-[8px] bg-black/40 px-1 rounded">[Toko/Warung]</span>
             </div>
-            <div className="border-t border-amber-400/40 border-dotted w-full" />
+            <div className="border-t border-amber-400/50 border-dashed w-full" />
+            <div className="flex justify-between items-center text-[9px] text-amber-200 font-mono">
+              <span>Kotak Sekat / Curah / Canting</span>
+              <span className="text-[8px] bg-amber-500/30 px-1 rounded text-amber-200">Volume AI</span>
+            </div>
+            <div className="border-t border-amber-400/50 border-dashed w-full" />
             <div className="flex justify-between items-center text-[9px] text-amber-300 font-mono">
-              <span>Display / Karung Beras</span>
+              <span>Tumpukan Karung Cadangan</span>
+              <span className="text-[8px] bg-black/40 px-1 rounded">[Buffer Stock]</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Bottom Hint */}
-      <div className="text-white/80 text-[10px] font-medium drop-shadow-md text-center">
-        Pencahayaan terang & stabil menghasilkan akurasi AI terbaik
+      <div className="text-white/90 text-[10px] font-medium drop-shadow-md text-center bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
+        {mode === 'pasokan_beras' 
+          ? '📐 Pastikan kotak sekat kayu atau karung beras terlihat jelas dalam bingkai'
+          : 'Pencahayaan terang & stabil menghasilkan akurasi AI terbaik'}
       </div>
     </div>
   );
