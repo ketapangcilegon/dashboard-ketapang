@@ -3,6 +3,7 @@
   "version": "2.5.0",
   "private": true,
   "scripts": {
+    "predev": "node generate-version.js",
     "prebuild": "node generate-version.js",
     "dev": "next dev",
     "build": "next build",

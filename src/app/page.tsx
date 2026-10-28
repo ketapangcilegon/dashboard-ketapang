@@ -75,6 +75,8 @@ const AIIntelligenceMap = dynamic(() => import('@/components/AIIntelligenceMap')
 const EarlyWarningSystemPanel = dynamic(() => import('@/components/EarlyWarningSystemPanel'), { ssr: false });
 import MobileAppContainer from '@/components/mobile/MobileAppContainer';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import MobileVersionModal from '@/components/mobile/MobileVersionModal';
+import { APP_VERSION } from '@/lib/version';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Brain, BarChart3, TrendingUp, Package, Utensils, Leaf, FileText, Info } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, LabelList } from 'recharts';
 
@@ -281,6 +283,7 @@ const loadingTips = [
 export default function DashboardPage() {
   // Navigation State
   const [currentView, setCurrentViewRaw] = useState<string>('beranda');
+  const [showVersionModal, setShowVersionModal] = useState<boolean>(false);
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -1665,6 +1668,7 @@ export default function DashboardPage() {
             skpgLatestMonth={balitaLatestMonth}
             skpgLatestYear={balitaLatestYear}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
+            onOpenVersionModal={() => setShowVersionModal(true)}
           />
         </div>
         
@@ -2709,10 +2713,28 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Footer with Visit Counter */}
+          {/* Desktop Footer with Visit Counter & Versioning */}
           {currentView !== 'ai_intelligence' && currentView !== 'kamera_cerdas' && currentView !== 'agregasi_kamera' && currentView !== 'rantai_pasok' && currentView !== 'peta_pasokan' && (
-            <footer className="mt-12 pt-6 pb-12 sm:pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-3 print:hidden text-slate-500 text-xs shrink-0">
-              <VisitCounter />
+            <footer className="mt-12 pt-6 pb-12 sm:pb-6 border-t border-slate-200/60 flex flex-col items-center justify-center gap-2 print:hidden text-slate-500 text-xs shrink-0 text-center">
+              <VisitCounter className="bg-white/95 border border-emerald-200/90 text-slate-600 shadow-2xs hover:border-emerald-300" />
+              <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold tracking-tight">
+                PANCI • Platform Analisis Pangan Cilegon
+              </p>
+
+              {/* Clickable Versioning (Desktop Footer) */}
+              <button
+                type="button"
+                onClick={() => setShowVersionModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 hover:bg-emerald-50 border border-emerald-300/80 text-[10px] font-black text-emerald-800 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 group"
+                title="Klik untuk melihat riwayat rilis dan peningkatan versi platform"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono">v{APP_VERSION}</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-emerald-700 underline underline-offset-2 group-hover:text-emerald-900">
+                  Riwayat Versi
+                </span>
+              </button>
             </footer>
           )}
         </main>
@@ -2811,6 +2833,11 @@ export default function DashboardPage() {
         }
       `}} />
       </div>
+      {/* Modal Riwayat Versi Platform (Desktop) */}
+      <MobileVersionModal
+        isOpen={showVersionModal}
+        onClose={() => setShowVersionModal(false)}
+      />
     </>
   );
 }

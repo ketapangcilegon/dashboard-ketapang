@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Calendar, Filter, ChevronDown, Menu } from 'lucide-react';
 import { WILAYAH } from '@/lib/wilayah';
-import { FULL_VERSION } from '@/lib/version';
+import { APP_VERSION, FULL_VERSION } from '@/lib/version';
 import { supabase } from '@/lib/supabase';
 
 const MONTH_NAMES = [
@@ -24,6 +24,7 @@ interface NavbarProps {
   skpgLatestMonth?: number;
   skpgLatestYear?: number;
   onMenuClick?: () => void;
+  onOpenVersionModal?: () => void;
 }
 
 export default function Navbar({
@@ -38,6 +39,7 @@ export default function Navbar({
   skpgLatestMonth,
   skpgLatestYear,
   onMenuClick = () => {},
+  onOpenVersionModal,
 }: NavbarProps) {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [skpgPeriod, setSkpgPeriod] = useState<{ tahun: number; bulan: number }>({
@@ -127,9 +129,21 @@ export default function Navbar({
           <div className="flex flex-wrap items-center gap-x-2 mt-0.5 text-emerald-100 font-black tracking-widest uppercase text-[8px] sm:text-[10px] leading-none">
             <span>PLATFORM ANALISIS PANGAN KOTA CILEGON</span>
             <span className="text-white/40 hidden sm:inline">|</span>
-            <span className="text-emerald-200/85 font-semibold tracking-normal normal-case text-[8px] sm:text-[9.5px]">
-              Versi: {FULL_VERSION}
-            </span>
+            {onOpenVersionModal ? (
+              <button
+                type="button"
+                onClick={onOpenVersionModal}
+                className="inline-flex items-center gap-1.5 text-emerald-100/90 hover:text-white font-semibold tracking-normal normal-case text-[8px] sm:text-[9.5px] cursor-pointer group transition-colors active:scale-95"
+                title="Klik untuk melihat riwayat rilis dan versi platform"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                <span>Versi: <span className="font-mono underline underline-offset-2 decoration-emerald-300/60 group-hover:decoration-white font-bold">v{APP_VERSION}</span></span>
+              </button>
+            ) : (
+              <span className="text-emerald-200/85 font-semibold tracking-normal normal-case text-[8px] sm:text-[9.5px]">
+                Versi: v{APP_VERSION}
+              </span>
+            )}
           </div>
           <div className="text-amber-300 font-black text-[10.5px] sm:text-[13.5px] tracking-wide mt-0.5 sm:mt-1 select-all hover:opacity-90 transition-opacity leading-none">
             PanganCilegon.web.id

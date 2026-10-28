@@ -1,3 +1,5 @@
+import { APP_VERSION } from './version';
+
 export interface VersionLog {
   version: string;
   type: 'major' | 'minor';
@@ -10,7 +12,7 @@ export interface VersionLog {
 
 export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
-    version: 'v2.5',
+    version: `v${APP_VERSION}`,
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur (Digit Kedua)',
     date: 'Oktober 2026',

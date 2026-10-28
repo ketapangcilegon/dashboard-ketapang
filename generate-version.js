@@ -5,11 +5,11 @@ const { execSync } = require('child_process');
 try {
   // Read package.json version
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-  const version = pkg.version || '2.2.0';
+  const version = pkg.version || '2.5.0';
 
   // Get current date/time for build number
   const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // e.g., '20260606'
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // e.g., '20261028'
   
   let commitHash = '';
   try {
@@ -28,6 +28,7 @@ export const APP_VERSION = '${version}';
 export const BUILD_NUMBER = '${buildNumber}';
 export const BUILD_DATE = '${now.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' })}';
 export const FULL_VERSION = \`v\${APP_VERSION} (Build \${BUILD_NUMBER})\`;
+export const VERSION_LABEL = 'v${version}';
 `;
 
   fs.writeFileSync(path.join(__dirname, 'src/lib/version.ts'), content, 'utf8');
