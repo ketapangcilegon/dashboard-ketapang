@@ -909,9 +909,20 @@ export default function KameraCerdasView({
         </div>
       </div>
 
-      {/* ── Expandable Crowdsourcing Concept Note ── */}
+      {/* ── Expandable Crowdsourcing Concept Note (Capture 2) ── */}
       {showCrowdsourcingInfo && (
-        <div className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-200/90 px-3.5 py-3 text-slate-800 shadow-md z-30 shrink-0 transition-all duration-300 animate-in slide-in-from-top-2">
+        <div 
+          className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-300 px-3.5 py-3 text-slate-800 shadow-md z-30 shrink-0 transition-all duration-300 animate-in slide-in-from-top-2 max-h-[290px] sm:max-h-[380px] overflow-y-auto overscroll-contain touch-pan-y select-text [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-amber-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-400 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-amber-500"
+          style={{ 
+            WebkitOverflowScrolling: 'touch', 
+            touchAction: 'pan-y',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#F59E0B #FEF3C7'
+          }}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+        >
           <div className="max-w-4xl mx-auto flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
               <Lightbulb className="w-4 h-4 fill-amber-950" />
@@ -934,15 +945,15 @@ export default function KameraCerdasView({
                 Sistem ini mengadopsi mekanisme <strong>partisipatif (crowdsourcing)</strong> berbasis autentikasi akun Google (Gmail). Petugas lapangan, enumerator, dan pemangku kepentingan pangan cukup mengambil foto sarana penjual (kios/grosir beras), produsen beras, maupun sentra tanaman pangan di Kota Cilegon.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[10px]">
-                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/90 shadow-2xs">
                   <span className="font-black text-amber-900 block mb-0.5">1. Foto & Deteksi AI</span>
                   Kamera cerdas menganalisis visual objek pangan, stok etalase/karung, atau fase tanaman secara otomatis.
                 </div>
-                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/90 shadow-2xs">
                   <span className="font-black text-amber-900 block mb-0.5">2. Geotagging & Auto-Pin</span>
                   Sistem mengekstrak koordinat GPS riil di lapangan dan otomatis menerbitkan pin spasial terverifikasi di peta.
                 </div>
-                <div className="bg-white/85 p-2 rounded-lg border border-amber-200/80 shadow-2xs">
+                <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/90 shadow-2xs">
                   <span className="font-black text-amber-900 block mb-0.5">3. Agregasi Rantai Pasok</span>
                   Setiap pasokan yang masuk ke Cilegon terpetakan komprehensif, mencakup daerah asal, rute, dan estimasi tonasenya.
                 </div>

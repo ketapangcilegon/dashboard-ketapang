@@ -16,6 +16,8 @@ import VisitCounter from '@/components/VisitCounter';
 import { supabase } from '@/lib/supabase';
 import MobileFsvaKelurahanModal, { FsvaPriorityDef, FsvaKelurahanItem } from './MobileFsvaKelurahanModal';
 import MobileIkpPouChart from './MobileIkpPouChart';
+import MobileVersionModal from './MobileVersionModal';
+import { APP_VERSION } from '@/lib/version';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 import { KEL_TO_KEC } from '@/lib/wilayah';
 
@@ -149,6 +151,9 @@ export default function MobileHome({
 
   // Selected FSVA Priority for Detail Modal Table
   const [selectedPriority, setSelectedPriority] = useState<FsvaPriorityDef | null>(null);
+
+  // Modal Riwayat Versi Platform (Capture 3)
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
   // Active Info Panel for Methodology & Concept Lightbulb (Item 1)
   const [activeInfoPanel, setActiveInfoPanel] = useState<string | null>(null);
@@ -855,19 +860,19 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 13 Komoditas (Capture 4) */}
-      <div className="rounded-3xl border border-[#B8F1E6] bg-gradient-to-b from-[#EAFBF7] to-[#F7FFFD] overflow-hidden shadow-[0_4px_20px_rgba(8,127,140,0.08)]">
-        {/* Gradient Header Teal #087F8C -> Turquoise #10C9B0 */}
-        <div className="bg-gradient-to-r from-[#087F8C] to-[#10C9B0] text-white p-3.5 flex items-center justify-between gap-2">
+      {/* 3. Segmen Panel Peramalan Harga Pangan +1 dan +3 Bulan - 13 Komoditas (Capture 1 Mockup) */}
+      <div className="rounded-3xl border border-[#48cfbe] bg-[#75DECF] overflow-hidden shadow-[0_4px_22px_rgba(0,169,157,0.18)]">
+        {/* Header Teal #00A99D (Capture 1) */}
+        <div className="bg-[#00A99D] text-white p-3.5 flex items-center justify-between gap-2 shadow-xs">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs">
-              <Sparkles className="w-4.5 h-4.5" />
+            <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-black text-xs sm:text-sm text-white tracking-tight leading-tight truncate">
+              <h3 className="font-black text-sm text-white tracking-tight leading-tight truncate">
                 Peramalan Harga Pangan
               </h3>
-              <p className="text-[9px] font-bold text-white/90 truncate">
+              <p className="text-[9.5px] font-bold text-white/95 truncate mt-0.5">
                 Model Machine Learning +1 & +3 Bulan
               </p>
             </div>
@@ -877,19 +882,19 @@ export default function MobileHome({
             <button
               type="button"
               onClick={() => toggleInfoPanel('forecasting')}
-              className={`p-1.5 rounded-full transition-all border flex items-center justify-center cursor-pointer ${
+              className={`w-8 h-8 rounded-full transition-all border flex items-center justify-center cursor-pointer shrink-0 ${
                 activeInfoPanel === 'forecasting'
                   ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
-                  : 'bg-white/20 hover:bg-white/30 text-amber-300 border-white/30 shadow-2xs'
+                  : 'bg-white/20 hover:bg-white/30 text-amber-300 border-white/25 shadow-2xs'
               }`}
               title="Metodologi 3 Model ML (Champion-Challenger)"
               aria-label="Metodologi 3 Model ML"
             >
-              <Lightbulb className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+              <Lightbulb className="w-4 h-4 fill-amber-300 text-amber-300" />
             </button>
             <button 
               onClick={() => onNavigate('forecasting')}
-              className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-[10px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all"
+              className="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white text-[10.5px] font-black flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-all shadow-xs"
               title="Lihat Detail Peramalan"
             >
               <span>Detail</span>
@@ -931,10 +936,10 @@ export default function MobileHome({
           </div>
         )}
 
-        {/* Petunjuk Geser Atas/Bawah */}
-        <div className="px-3.5 pt-2.5 pb-1 flex items-center justify-between text-[9px] font-semibold text-[#7189A8]">
+        {/* Petunjuk Geser Atas/Bawah (Capture 1: Tulisan Gelap & Jelas) */}
+        <div className="px-4 pt-2.5 pb-1 flex items-center justify-between text-[9.5px] font-black text-[#064e43]">
           <span>Geser kartu ke atas/bawah (13 komoditas)</span>
-          <span className="text-[#00A98F] font-bold">Swipe ⇅</span>
+          <span className="text-[#064e43] font-black">Swipe ⇅</span>
         </div>
 
         {/* Multi-Row Vertical Scrollable Reel (Baris Komoditas Muncul Sekaligus) */}
@@ -944,39 +949,36 @@ export default function MobileHome({
           style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}
         >
           {allForecastItems.map((item, idx) => {
-            const pct1 = item.aktual > 0 ? ((item.month1 - item.aktual) / item.aktual) * 100 : 0;
-            const pct3 = item.aktual > 0 ? ((item.month3 - item.aktual) / item.aktual) * 100 : 0;
-
             return (
               <div 
                 key={item.key}
                 onClick={() => onNavigate('forecasting')}
-                className="p-3 rounded-2xl bg-[#FFFFFF] border border-[#B8F1E6] shadow-xs hover:border-[#00A98F]/50 shrink-0 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99]"
+                className="p-3.5 rounded-2xl bg-white border border-[#48cfbe]/30 shadow-xs hover:border-[#00A99D]/60 shrink-0 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99]"
                 title={`Buka analisis forecast untuk ${item.name}`}
               >
                 {/* Baris Nama Komoditas & Status */}
-                <div className="flex items-center justify-between gap-1 pb-2 border-b border-[#B8F1E6]/50">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-base shrink-0">{item.icon}</span>
-                    <span className="text-xs font-black text-[#123B4A] truncate">
+                <div className="flex items-center justify-between gap-1 pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg shrink-0">{item.icon}</span>
+                    <span className="text-xs sm:text-sm font-black text-[#123B4A] truncate">
                       {item.name}
                     </span>
-                    <span className="text-[10px] font-bold text-[#00A98F] font-mono">
+                    <span className="text-[11px] font-black text-[#00A99D] font-mono">
                       #{idx + 1}
                     </span>
                   </div>
 
-                  {/* Badge Status & Arah Tren +1 Bulan */}
-                  <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 border shrink-0 ${
-                    item.changePct < -3
-                      ? 'bg-[#D9FBE7] text-[#087F55] border-[#B8F1E6]'
-                      : item.changePct > 3
-                      ? 'bg-rose-50 text-rose-600 border-rose-200'
-                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  {/* Badge Status & Arah Tren +1 Bulan (Capture 1 Style) */}
+                  <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 border shrink-0 ${
+                    item.changePct > 3
+                      ? 'bg-[#FFF1F2] text-[#E11D48] border-[#FECDD3]'
+                      : item.changePct < -3
+                      ? 'bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]'
+                      : 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]'
                   }`}>
                     {item.changePct > 3 && <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
                     {item.changePct < -3 && <TrendingDown className="w-2.5 h-2.5 shrink-0" />}
-                    {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px]">—</span>}
+                    {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px] font-black">—</span>}
                     <span>
                       {item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}
                     </span>
@@ -985,12 +987,12 @@ export default function MobileHome({
                   </span>
                 </div>
 
-                {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan (Dinamis Sesuai Tanggal Acuan) */}
-                <div className="grid grid-cols-3 gap-1 pt-2 text-left">
+                {/* 3 Kolom Nilai: Aktual, +1 Bulan, +3 Bulan (Capture 1 Style) */}
+                <div className="grid grid-cols-3 gap-1 pt-2.5 text-left">
                   {/* 1. HARGA AKTUAL */}
                   <div className="flex flex-col justify-center pr-1 min-w-0">
                     <div className="leading-tight">
-                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                      <div className="text-[8.5px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
                         HARGA AKTUAL
                       </div>
                       <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
@@ -1000,15 +1002,15 @@ export default function MobileHome({
                     <div className="text-xs sm:text-sm font-black text-[#123B4A] mt-1.5 truncate">
                       Rp{Math.round(item.aktual).toLocaleString('id-ID')}
                     </div>
-                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
+                    <span className="text-[7.5px] text-slate-400 mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
 
                   {/* 2. +1 BULAN */}
-                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 pr-1 min-w-0">
+                  <div className="flex flex-col justify-center border-l border-slate-100 pl-2 pr-1 min-w-0">
                     <div className="leading-tight">
-                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                      <div className="text-[8.5px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
                         +1 BULAN
                       </div>
                       <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
@@ -1017,20 +1019,20 @@ export default function MobileHome({
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <span className={`text-xs sm:text-sm font-black truncate ${
-                        item.month1 > item.aktual ? 'text-rose-600' : 'text-emerald-700'
+                        item.month1 > item.aktual ? 'text-[#E11D48]' : 'text-[#087F55]'
                       }`}>
                         Rp{Math.round(item.month1).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
+                    <span className="text-[7.5px] text-slate-400 mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
 
                   {/* 3. +3 BULAN */}
-                  <div className="flex flex-col justify-center border-l border-[#B8F1E6]/70 pl-2 min-w-0">
+                  <div className="flex flex-col justify-center border-l border-slate-100 pl-2 min-w-0">
                     <div className="leading-tight">
-                      <div className="text-[8px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
+                      <div className="text-[8.5px] font-black text-[#0B4D3C] uppercase tracking-wide truncate">
                         +3 BULAN
                       </div>
                       <div className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
@@ -1039,38 +1041,38 @@ export default function MobileHome({
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <span className={`text-xs sm:text-sm font-black truncate ${
-                        item.month3 > item.aktual ? 'text-rose-600' : 'text-emerald-700'
+                        item.month3 > item.aktual ? 'text-[#E11D48]' : 'text-[#087F55]'
                       }`}>
                         Rp{Math.round(item.month3).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    <span className="text-[7.5px] text-[#7189A8] mt-0.5">
+                    <span className="text-[7.5px] text-slate-400 mt-0.5">
                       (Rp/kg)
                     </span>
                   </div>
                 </div>
 
                 {/* Bar Penjelasan Arah Tren +1 Bulan (L1) */}
-                <div className="mt-2.5 pt-2 border-t border-[#B8F1E6]/60 flex items-center justify-between gap-1 text-[8.5px]">
+                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[8.5px]">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="font-black text-[#0B4D3C] uppercase text-[7.5px] tracking-wide shrink-0">
                       Arah Tren +1 Bulan (L1):
                     </span>
-                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-mono font-black shrink-0 ${
+                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono font-black shrink-0 ${
                       item.changePct > 3
-                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        ? 'bg-[#FFF1F2] text-[#E11D48] border border-[#FECDD3]'
                         : item.changePct < -3
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        ? 'bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]'
+                        : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
                     }`}>
                       {item.changePct > 3 && <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
                       {item.changePct < -3 && <TrendingDown className="w-2.5 h-2.5 shrink-0" />}
-                      {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px]">—</span>}
+                      {Math.abs(item.changePct) <= 3 && <span className="font-mono text-[9px] font-black">—</span>}
                       {item.changePct > 0 ? `+${item.changePct.toFixed(1)}%` : `${item.changePct.toFixed(1)}%`}
                     </span>
                   </div>
 
-                  <span className="font-semibold text-slate-500 truncate text-[8px] text-right">
+                  <span className="font-bold text-slate-600 truncate text-[8px] text-right">
                     {item.changePct > 3
                       ? 'Tren Naik (Waspada Inflasi)'
                       : item.changePct < -3
@@ -1083,10 +1085,10 @@ export default function MobileHome({
           })}
         </div>
 
-        {/* Status Indikator Bawah */}
-        <div className="flex items-center justify-between px-3.5 py-2 text-[9px] font-bold text-[#087F8C] border-t border-[#B8F1E6]/40">
+        {/* Status Indikator Bawah (Capture 1: Tulisan Gelap & Jelas) */}
+        <div className="flex items-center justify-between px-4 py-2.5 text-[9.5px] font-black text-[#064e43] border-t border-[#48cfbe]/40">
           <span>13 Komoditas Strategis Cilegon</span>
-          <span className="text-slate-400 font-medium">Model Machine Learning</span>
+          <span>Model Machine Learning</span>
         </div>
       </div>
 
@@ -1545,12 +1547,27 @@ export default function MobileHome({
         />
       </div>
 
-      {/* 8. Segmen Jumlah Pengunjung & Identitas Platform */}
+      {/* 8. Segmen Jumlah Pengunjung, Identitas Platform & Versioning (Capture 3) */}
       <div className="pt-2 pb-4 flex flex-col items-center justify-center space-y-1.5 text-center">
         <VisitCounter className="bg-white/95 border border-emerald-200/90 text-slate-600 shadow-2xs hover:border-emerald-300" />
         <p className="text-[10px] text-slate-400 font-semibold tracking-tight">
           PANCI • Platform Analisis Pangan Cilegon
         </p>
+
+        {/* Clickable Versioning (Capture 3) */}
+        <button
+          type="button"
+          onClick={() => setShowVersionModal(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 hover:bg-emerald-50 border border-emerald-300/80 text-[10px] font-black text-emerald-800 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 group"
+          title="Klik untuk melihat riwayat rilis dan peningkatan versi platform"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-mono">v{APP_VERSION}</span>
+          <span className="text-slate-300">•</span>
+          <span className="text-emerald-700 underline underline-offset-2 group-hover:text-emerald-900">
+            Riwayat Versi
+          </span>
+        </button>
       </div>
 
       {/* 9. Modal Tabel Rincian Kelurahan per Prioritas FSVA (Urut Skor IKP) */}
@@ -1560,6 +1577,12 @@ export default function MobileHome({
         priorityDef={selectedPriority}
         items={activePriorityKelurahans}
         onNavigateToMap={() => onNavigate('peta_full')}
+      />
+
+      {/* 10. Modal Riwayat Versi Platform (Capture 3: Kotak Teks Info Lampu Kuning) */}
+      <MobileVersionModal
+        isOpen={showVersionModal}
+        onClose={() => setShowVersionModal(false)}
       />
 
     </div>
