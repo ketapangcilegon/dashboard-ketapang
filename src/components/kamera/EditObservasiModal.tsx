@@ -273,7 +273,7 @@ export default function EditObservasiModal({
 
           {errorMessage && (
             <div className="bg-rose-50 border border-rose-300 text-rose-800 rounded-xl p-3 text-xs font-bold">
-              âš ï¸ {errorMessage}
+              ⚠️ {errorMessage}
             </div>
           )}
 
@@ -412,7 +412,7 @@ export default function EditObservasiModal({
               <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
-                    ðŸ”„
+                    🔄
                   </div>
                   <label className="text-xs font-black text-emerald-950 uppercase tracking-tight">
                     Frekuensi dan Jumlah Pasokan
@@ -504,7 +504,7 @@ export default function EditObservasiModal({
                     </span>
                     <span className="text-[9.5px] text-slate-600">
                       {frekuensiPasokan && jumlahRataRataPasokan ? (
-                        `${frekuensiPasokan}Ã—/${satuanFrekuensi} (${frekPerTahun.toLocaleString('id-ID')}Ã—/thn) Ã— ${jumlahRataRataPasokan} ${satuanVolumePasokan}`
+                        `${frekuensiPasokan}×/${satuanFrekuensi} (${frekPerTahun.toLocaleString('id-ID')}×/thn) × ${jumlahRataRataPasokan} ${satuanVolumePasokan}`
                       ) : (
                         'Isi frekuensi & rata-rata pasokan untuk kalkulasi'
                       )}
@@ -544,7 +544,7 @@ export default function EditObservasiModal({
               >
                 <span className="flex items-center gap-2 truncate">
                   <span className="text-emerald-700 shrink-0">
-                    {asalPasokan === 'Lainnya (Manual)' ? 'âœï¸' : 'ðŸ“'}
+                    {asalPasokan === 'Lainnya (Manual)' ? '✍️' : '📍'}
                   </span>
                   <span className="truncate">
                     {asalPasokan === 'Lainnya (Manual)' && manualAsalText
@@ -562,7 +562,7 @@ export default function EditObservasiModal({
                       type="text"
                       value={searchAsal}
                       onChange={(e) => setSearchAsal(e.target.value)}
-                      placeholder="ðŸ” Cari nama kota / kabupaten / provinsi..."
+                      placeholder="🔍 Cari nama kota / kabupaten / provinsi..."
                       className="w-full px-2.5 py-1.5 text-xs bg-emerald-50 border border-emerald-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                     />
                   </div>
@@ -587,7 +587,7 @@ export default function EditObservasiModal({
                               : 'text-slate-800 hover:bg-emerald-100/70'
                           }`}
                         >
-                          <span className="text-sm shrink-0">{isManual ? 'âœï¸' : 'ðŸ“'}</span>
+                          <span className="text-sm shrink-0">{isManual ? '✍️' : '📍'}</span>
                           <span className="truncate leading-tight font-medium">{asal}</span>
                         </div>
                       );

@@ -94,7 +94,7 @@ export default function KameraCerdasView({
       }
     };
     checkAuth();
-    // Ganti polling 1.5s dengan onAuthStateChange â€” event-driven, zero polling overhead
+    // Ganti polling 1.5s dengan onAuthStateChange — event-driven, zero polling overhead
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
       const hasAdmin = sessionActive || !!session?.user;
@@ -590,12 +590,12 @@ export default function KameraCerdasView({
       ctx.shadowBlur = 4;
 
       // Line 1: Timestamp & App
-      ctx.fillText(`ðŸ“· KAMERA CERDAS DKPP CILEGON | ${dateStr} â€¢ ${timeStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.4));
+      ctx.fillText(`📷 KAMERA CERDAS DKPP CILEGON | ${dateStr} • ${timeStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.4));
 
       // Line 2: GPS & Wilayah
       ctx.font = `600 ${fontSize * 0.9}px monospace`;
       ctx.fillStyle = '#34D399'; // Light emerald
-      ctx.fillText(`${latStr} | ${lngStr} â€¢ ðŸ“ ${locStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.8));
+      ctx.fillText(`${latStr} | ${lngStr} • 📍 ${locStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.8));
 
       // Compress to JPEG with 0.82 quality (< 800 KB, visual prima & loading super cepat)
       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
@@ -835,7 +835,7 @@ export default function KameraCerdasView({
   return (
     <div className="w-full h-full flex flex-col bg-[#F5FAF2] text-slate-800 relative overflow-hidden select-none">
       
-      {/* â”€â”€ Top App Bar Navigation â”€â”€ */}
+      {/* ── Top App Bar Navigation ── */}
       <div className="bg-gradient-to-r from-white via-[#F7FCEB] to-[#EAF8EE] border-b border-emerald-100 px-3 sm:px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-[0_4px_18px_rgba(16,120,70,0.08)]">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/30">
@@ -934,7 +934,7 @@ export default function KameraCerdasView({
             </div>
           ) : enumerator ? (
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} â€¢ ${enumerator.email}`}>
+              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} • ${enumerator.email}`}>
                 {enumerator.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={enumerator.avatarUrl} alt={enumerator.nama} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover border border-emerald-200" />
@@ -975,7 +975,7 @@ export default function KameraCerdasView({
         </div>
       </div>
 
-      {/* â”€â”€ Expandable Crowdsourcing Concept Note (Capture 2) â”€â”€ */}
+      {/* ── Expandable Crowdsourcing Concept Note (Capture 2) ── */}
       {showCrowdsourcingInfo && (
         <div 
           className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-300 px-3.5 py-3 text-slate-800 shadow-md z-30 shrink-0 transition-all duration-300 animate-in slide-in-from-top-2 max-h-[290px] sm:max-h-[380px] overflow-y-auto overscroll-contain touch-pan-y select-text [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-amber-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-400 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-amber-500"
@@ -1029,7 +1029,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Success Toast Alert â”€â”€ */}
+      {/* ── Success Toast Alert ── */}
       {saveSuccessMsg && (
         <div className="absolute top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-emerald-400 animate-in slide-in-from-top duration-300">
           <Check className="w-4 h-4 bg-white/20 rounded-full p-0.5" />
@@ -1037,7 +1037,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Tab 1: Kamera Lapangan (Mobile-First Fullscreen) â”€â”€ */}
+      {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
       {activeTab === 'camera' && (
         <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-[#EAF5E4] overflow-hidden">
           
@@ -1095,7 +1095,7 @@ export default function KameraCerdasView({
                   }`} />
                   <span>
                     {gpsStatus === 'active' && gpsCoords 
-                      ? `GPS Aktif (Â±${gpsCoords.accuracy || '3.3'}m)`
+                      ? `GPS Aktif (±${gpsCoords.accuracy || '3.3'}m)`
                       : gpsStatus === 'searching'
                       ? 'Mencari Sinyal GPS...'
                       : 'GPS Offline / Manual'}
@@ -1126,7 +1126,7 @@ export default function KameraCerdasView({
               <div className="mt-1 bg-black/65 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/20 text-white shadow-xl flex items-center justify-between gap-2.5 max-w-sm mx-auto animate-in slide-in-from-top-1 duration-200">
                 <div className="flex items-center gap-2 min-w-0 text-left">
                   <span className="text-base shrink-0">
-                    {mode === 'pasokan_beras' ? 'ðŸª' : 'ðŸŒ³'}
+                    {mode === 'pasokan_beras' ? '🏪' : '🌳'}
                   </span>
                   <p className="text-[11px] font-medium text-white/95 leading-tight">
                     {mode === 'pasokan_beras'
@@ -1159,7 +1159,7 @@ export default function KameraCerdasView({
             </div>
           )}
 
-          {/* â”€â”€ Bottom Controls Bar (Capture 1 Optimized: Pasokan Beras - Tombol Rana - Tanaman Pangan) â”€â”€ */}
+          {/* ── Bottom Controls Bar (Capture 1 Optimized: Pasokan Beras - Tombol Rana - Tanaman Pangan) ── */}
           <div className="relative z-20 w-full px-3 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col items-center gap-1.5">
             
             {/* Horizontal Bar: [Pasokan Beras] [Shutter Button] [Tanaman Pangan] */}
@@ -1239,14 +1239,14 @@ export default function KameraCerdasView({
             </div>
 
             <p className="text-[9.5px] text-slate-400 font-medium drop-shadow-md">
-              Watermark GPS otomatis â€¢ Resolusi optimal
+              Watermark GPS otomatis • Resolusi optimal
             </p>
           </div>
 
         </div>
       )}
 
-      {/* â”€â”€ Tab 2: Peta Spasial Hasil Observasi â”€â”€ */}
+      {/* ── Tab 2: Peta Spasial Hasil Observasi ── */}
       {activeTab === 'map' && (
         <div className="flex-1 w-full h-full relative">
           <KameraCerdasMap
@@ -1258,7 +1258,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Tab 3: Agregasi & Analisis â”€â”€ */}
+      {/* ── Tab 3: Agregasi & Analisis ── */}
       {activeTab === 'analytics' && (
         <div className="flex-1 w-full h-full relative">
           <KameraAgregasiDashboard
@@ -1289,7 +1289,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Tab 4: Peta 3D Arus Pasokan & Distribusi Beras â”€â”€ */}
+      {/* ── Tab 4: Peta 3D Arus Pasokan & Distribusi Beras ── */}
       {activeTab === 'arus' && (
         <div className="flex-1 w-full h-full relative min-h-[420px]">
           <ArusPasokanMap
@@ -1301,7 +1301,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Confirmation Modal Mode A: Pasokan Beras â”€â”€ */}
+      {/* ── Confirmation Modal Mode A: Pasokan Beras ── */}
       {showConfirmModal && mode === 'pasokan_beras' && capturedPhoto && (
         <KonfirmasiPasokanModal
           photoPreview={capturedPhoto}
@@ -1324,7 +1324,7 @@ export default function KameraCerdasView({
         />
       )}
 
-      {/* â”€â”€ Confirmation Modal Mode B: Tanaman Pangan â”€â”€ */}
+      {/* ── Confirmation Modal Mode B: Tanaman Pangan ── */}
       {showConfirmModal && mode === 'tanaman_pangan' && capturedPhoto && (
         <KonfirmasiTanamanModal
           photoPreview={capturedPhoto}
@@ -1347,7 +1347,7 @@ export default function KameraCerdasView({
         />
       )}
 
-      {/* â”€â”€ Modal Login Petugas / Admin (DKPP Governance) â”€â”€ */}
+      {/* ── Modal Login Petugas / Admin (DKPP Governance) ── */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
@@ -1361,7 +1361,7 @@ export default function KameraCerdasView({
                 onClick={() => setShowLoginModal(false)}
                 className="text-slate-500 hover:text-emerald-800 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -1395,7 +1395,7 @@ export default function KameraCerdasView({
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
@@ -1422,7 +1422,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* â”€â”€ Modal Kotak Autentikasi Gmail (Enumerator Crowdsourcing) â”€â”€ */}
+      {/* ── Modal Kotak Autentikasi Gmail (Enumerator Crowdsourcing) ── */}
       {showEnumeratorModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
@@ -1441,7 +1441,7 @@ export default function KameraCerdasView({
                 onClick={() => setShowEnumeratorModal(false)}
                 className="text-slate-400 hover:text-slate-700 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -1535,7 +1535,7 @@ export default function KameraCerdasView({
       )}
 
 
-      {/* â”€â”€ Modal Edit Observasi (Governance) â”€â”€ */}
+      {/* ── Modal Edit Observasi (Governance) ── */}
       <EditObservasiModal
         record={editRecord}
         isOpen={isEditModalOpen}

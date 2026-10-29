@@ -170,7 +170,7 @@ export default function KonfirmasiPasokanModal({
     return ASAL_PASOKAN_OPTIONS.filter(opt => opt.toLowerCase().includes(searchAsal.toLowerCase()));
   }, [searchAsal]);
 
-  // Bulk Density Beras Putih Standar SNI/Bulog: 0.80 kg/liter (1 Liter Beras â‰ˆ 0.80 kg)
+  // Bulk Density Beras Putih Standar SNI/Bulog: 0.80 kg/liter (1 Liter Beras ≈ 0.80 kg)
   const beratKotakKg = Math.round(jumlahSekat * volumePerSekatLiter * (kondisiIsiPersen / 100) * 0.80);
   const beratBufferKarungKg = bufferKarungJumlah * bufferKarungKg;
 
@@ -197,7 +197,7 @@ export default function KonfirmasiPasokanModal({
     e.preventDefault();
 
     if (nearbyPin && !isConfirmedDistinct) {
-      alert(`âš ï¸ Peringatan Duplikasi Lokasi:\nTitik GPS Anda berjarak Â±${nearbyPin.distMeters}m dari "${nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}".\n\nJika ini adalah toko/sarana beras yang BERBEDA, silakan centang kotak pernyataan konfirmasi pembeda sebelum menyimpan.`);
+      alert(`⚠️ Peringatan Duplikasi Lokasi:\nTitik GPS Anda berjarak ±${nearbyPin.distMeters}m dari "${nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}".\n\nJika ini adalah toko/sarana beras yang BERBEDA, silakan centang kotak pernyataan konfirmasi pembeda sebelum menyimpan.`);
       return;
     }
 
@@ -306,7 +306,7 @@ export default function KonfirmasiPasokanModal({
                 <AlertTriangle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <h4 className="text-xs font-black text-amber-950 uppercase tracking-tight">
-                    Terdeteksi Titik Mirip / Berdekatan (Â±{nearbyPin.distMeters} meter)
+                    Terdeteksi Titik Mirip / Berdekatan (±{nearbyPin.distMeters} meter)
                   </h4>
                   <p className="text-[10.5px] text-amber-900 leading-tight mt-0.5">
                     Lokasi ini sangat dekat dengan pin: <strong>{nearbyPin.obs.nama_lokasi || nearbyPin.obs.kategori}</strong> ({nearbyPin.obs.kategori_label || nearbyPin.obs.kelurahan}).
@@ -356,7 +356,7 @@ export default function KonfirmasiPasokanModal({
               <div>
                 <p className="text-slate-500 text-[10px]">Format Display:</p>
                 <p className="font-bold text-emerald-900">
-                  {isKotakDetected ? 'ðŸ“¦ Kotak Beras Curah Bersekat' : 'ðŸŽ’ Tumpukan Karung Kemasan'}
+                  {isKotakDetected ? '📦 Kotak Beras Curah Bersekat' : '🎒 Tumpukan Karung Kemasan'}
                 </p>
               </div>
 
@@ -365,10 +365,10 @@ export default function KonfirmasiPasokanModal({
                 <div className="col-span-2 bg-white/90 p-2 rounded-lg border border-emerald-300 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-black text-emerald-950 text-[10.5px]">
-                      ðŸ“ Deteksi Wadah Kotak Sekat Kayu:
+                      📐 Deteksi Wadah Kotak Sekat Kayu:
                     </span>
                     <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">
-                      {aiDraft?.kotak_beras?.jumlah_sekat || jumlahSekat} Sekat â€¢ {aiDraft?.kotak_beras?.kondisi_permukaan === 'menggunung' ? 'Menggunung (110%)' : 'Penuh Rata'}
+                      {aiDraft?.kotak_beras?.jumlah_sekat || jumlahSekat} Sekat • {aiDraft?.kotak_beras?.kondisi_permukaan === 'menggunung' ? 'Menggunung (110%)' : 'Penuh Rata'}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-700 leading-tight">
@@ -378,7 +378,7 @@ export default function KonfirmasiPasokanModal({
                   {/* Papan Harga Terbaca */}
                   {aiDraft?.kotak_beras?.label_harga_terbaca && aiDraft.kotak_beras.label_harga_terbaca.length > 0 && (
                     <div className="flex items-center gap-1.5 text-[9.5px] pt-0.5 text-amber-900 font-bold">
-                      <span className="bg-amber-100 px-1 rounded border border-amber-300">ðŸ·ï¸ Papan Harga Terbaca:</span>
+                      <span className="bg-amber-100 px-1 rounded border border-amber-300">🏷️ Papan Harga Terbaca:</span>
                       <span className="text-slate-800">
                         Rp {aiDraft.kotak_beras.label_harga_terbaca.join(' / Rp ')}
                       </span>
@@ -388,14 +388,14 @@ export default function KonfirmasiPasokanModal({
                   {/* Kaleng Canting Terbaca */}
                   {aiDraft?.kotak_beras?.canting_takaran_terlihat && (
                     <div className="text-[9.5px] text-emerald-800 font-semibold">
-                      âš–ï¸ <em>Canting takaran 1 liter terdeteksi di atas kotak (acuan skala & takaran curah).</em>
+                      ⚖️ <em>Canting takaran 1 liter terdeteksi di atas kotak (acuan skala & takaran curah).</em>
                     </div>
                   )}
 
                   {/* Karung Cadangan */}
                   {aiDraft?.karung_cadangan?.terdeteksi && (
                     <p className="text-[9.5px] text-slate-600">
-                      ðŸŽ’ Cadangan Karung di Sekitar: Â±{aiDraft.karung_cadangan.estimasi_jumlah_karung} karung ({aiDraft.karung_cadangan.estimasi_berat_karung_kg} kg)
+                      🎒 Cadangan Karung di Sekitar: ±{aiDraft.karung_cadangan.estimasi_jumlah_karung} karung ({aiDraft.karung_cadangan.estimasi_berat_karung_kg} kg)
                     </p>
                   )}
                 </div>
@@ -406,7 +406,7 @@ export default function KonfirmasiPasokanModal({
                 <>
                   <div>
                     <p className="text-slate-500 text-[10px]">Estimasi Tumpukan Karung:</p>
-                    <p className="font-bold text-amber-800">{aiDraft?.estimasi_tumpukan_karung || 'Â± 10 karung'}</p>
+                    <p className="font-bold text-amber-800">{aiDraft?.estimasi_tumpukan_karung || '± 10 karung'}</p>
                   </div>
                   {aiDraft?.ukuran_kemasan_terdeteksi && (
                     <div className="col-span-2">
@@ -545,10 +545,10 @@ export default function KonfirmasiPasokanModal({
                   onChange={(e) => setSatuan(e.target.value as any)}
                   className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="kotak">ðŸ“¦ Kotak Sekat Kayu (Curah Pasar / Warung)</option>
-                  <option value="karung">ðŸŽ’ Tumpukan Karung Beras</option>
-                  <option value="kg">âš–ï¸ Bobot Langsung (Kilogram / Kg)</option>
-                  <option value="ton">ðŸš› Skala Tonase (Ton)</option>
+                  <option value="kotak">📦 Kotak Sekat Kayu (Curah Pasar / Warung)</option>
+                  <option value="karung">🎒 Tumpukan Karung Beras</option>
+                  <option value="kg">⚖️ Bobot Langsung (Kilogram / Kg)</option>
+                  <option value="ton">🚛 Skala Tonase (Ton)</option>
                 </select>
               </div>
 
@@ -557,7 +557,7 @@ export default function KonfirmasiPasokanModal({
                 <div className="bg-white/95 border border-emerald-300 rounded-xl p-3 space-y-3">
                   <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
                     <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                      <span>ðŸ“</span> Kalkulator Geometri Kotak Beras
+                      <span>📐</span> Kalkulator Geometri Kotak Beras
                     </span>
                     <span className="text-[10px] text-slate-500">
                       Densitas: 0.80 kg/L
@@ -650,10 +650,10 @@ export default function KonfirmasiPasokanModal({
                     </label>
                     <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                       {[
-                        { label: 'ðŸ”ï¸ Menggunung (110%)', val: 110 },
-                        { label: 'ðŸ“ Penuh Rata (100%)', val: 100 },
-                        { label: 'â˜• 3/4 Terisi (75%)', val: 75 },
-                        { label: 'ðŸ“‰ 1/2 Terambil (50%)', val: 50 },
+                        { label: '🏔️ Menggunung (110%)', val: 110 },
+                        { label: '📏 Penuh Rata (100%)', val: 100 },
+                        { label: '☕ 3/4 Terisi (75%)', val: 75 },
+                        { label: '📉 1/2 Terambil (50%)', val: 50 },
                       ].map((item) => (
                         <button
                           key={item.val}
@@ -707,12 +707,12 @@ export default function KonfirmasiPasokanModal({
                   {/* Rincian Subtotal Fisika */}
                   <div className="bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200 text-[10.5px] space-y-1 text-slate-700">
                     <div className="flex justify-between">
-                      <span>â€¢ Beras Kotak ({jumlahSekat} sekat Ã— {volumePerSekatLiter}L Ã— {kondisiIsiPersen}%):</span>
+                      <span>• Beras Kotak ({jumlahSekat} sekat × {volumePerSekatLiter}L × {kondisiIsiPersen}%):</span>
                       <strong className="text-slate-900">{beratKotakKg} kg (~{Math.round(beratKotakKg / 0.8)} L)</strong>
                     </div>
                     {bufferKarungJumlah > 0 && (
                       <div className="flex justify-between">
-                        <span>â€¢ Karung Cadangan ({bufferKarungJumlah} Ã— {bufferKarungKg}kg):</span>
+                        <span>• Karung Cadangan ({bufferKarungJumlah} × {bufferKarungKg}kg):</span>
                         <strong className="text-slate-900">{beratBufferKarungKg} kg</strong>
                       </div>
                     )}
@@ -776,7 +776,7 @@ export default function KonfirmasiPasokanModal({
               <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
-                    ðŸ”„
+                    🔄
                   </div>
                   <label className="text-xs font-black text-emerald-950 uppercase tracking-tight">
                     Frekuensi dan Jumlah Pasokan
@@ -864,7 +864,7 @@ export default function KonfirmasiPasokanModal({
                     </span>
                     <span className="text-[9.5px] text-slate-600">
                       {frekuensiPasokan && jumlahRataRataPasokan ? (
-                        `${frekuensiPasokan}Ã—/${satuanFrekuensi} (${frekPerTahun.toLocaleString('id-ID')}Ã—/thn) Ã— ${jumlahRataRataPasokan} ${satuanVolumePasokan}`
+                        `${frekuensiPasokan}×/${satuanFrekuensi} (${frekPerTahun.toLocaleString('id-ID')}×/thn) × ${jumlahRataRataPasokan} ${satuanVolumePasokan}`
                       ) : (
                         'Isi frekuensi & rata-rata pasokan untuk kalkulasi'
                       )}
@@ -903,7 +903,7 @@ export default function KonfirmasiPasokanModal({
               >
                 <span className="flex items-center gap-2 truncate">
                   <span className="text-emerald-700 shrink-0">
-                    {asalPasokan === 'Lainnya (Manual)' ? 'âœï¸' : 'ðŸ“'}
+                    {asalPasokan === 'Lainnya (Manual)' ? '✍️' : '📍'}
                   </span>
                   <span className="truncate">
                     {asalPasokan === 'Lainnya (Manual)' && manualAsalText
@@ -922,7 +922,7 @@ export default function KonfirmasiPasokanModal({
                       type="text"
                       value={searchAsal}
                       onChange={(e) => setSearchAsal(e.target.value)}
-                      placeholder="ðŸ” Cari nama kota / kabupaten / provinsi..."
+                      placeholder="🔍 Cari nama kota / kabupaten / provinsi..."
                       className="w-full px-2.5 py-1.5 text-xs bg-emerald-50 border border-emerald-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                     />
                   </div>
@@ -949,7 +949,7 @@ export default function KonfirmasiPasokanModal({
                               : 'text-slate-800 hover:bg-emerald-100/70'
                           }`}
                         >
-                          <span className="text-sm shrink-0">{isManual ? 'âœï¸' : 'ðŸ“'}</span>
+                          <span className="text-sm shrink-0">{isManual ? '✍️' : '📍'}</span>
                           <span className="truncate leading-tight font-medium">{asal}</span>
                         </div>
                       );
@@ -978,7 +978,7 @@ export default function KonfirmasiPasokanModal({
                 <div className="mt-2.5 p-3 rounded-xl bg-white border border-emerald-300 shadow-2xs space-y-2 animate-in fade-in slide-in-from-top-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
-                      <span>âœï¸</span> Ketik Nama Kota / Kab / Provinsi Asal Beras:
+                      <span>✍️</span> Ketik Nama Kota / Kab / Provinsi Asal Beras:
                     </label>
                     <span className="text-[9.5px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
                       Analisis Cerdas Typo
@@ -999,7 +999,7 @@ export default function KonfirmasiPasokanModal({
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-[11px]">
                           <span className="text-emerald-800 font-bold flex items-center gap-1">
-                            <span>ðŸ’¡</span> Saran Wilayah Terdeteksi:
+                            <span>💡</span> Saran Wilayah Terdeteksi:
                           </span>
                           <p className="font-black text-slate-900 mt-0.5 text-xs">
                             "{asalSuggestion.rekomendasi}", apakah sudah benar?
