@@ -214,7 +214,7 @@ Sistem Ketahanan Pangan & Peta Spasial Terpadu Kota Cilegon menyajikan data anal
 - **Lahan Pertanian Pangan Berkelanjutan (LP2B/Sawah Baku)**: **1.151,97 Ha** (407 petak sawah) dengan telemetri agroklimat lengas tanah ECMWF rata-rata **0,28 - 0,31 m³/m³** (Kapasitas Lapang Optimal).
 - **Perikanan & Kelautan**: **723 Nelayan**, **410 Kapal**, **8 Pangkalan Nelayan**, dan total produksi ikan **600,319 Ton** (2025).
 - **Pemberdayaan Wanita Tani**: **84 KWT** aktif dalam program Pekarangan Pangan Lestari (P2L).
-- **Stabilitas Harga & Cadangan**: Inflasi pangan terjaga (CV harga beras < 4%), cadangan CPPD Bulog sebesar **132,7 Ton** dalam kondisi aman.
+- **Stabilitas Harga & Cadangan**: Inflasi pangan terjaga (CV harga beras < 4%), cadangan CPPD Bulog sebesar **115,8 Ton** dalam kondisi aman (melampaui target RPJMD 115 Ton).
 
 *Silakan tanyakan rincian data sawah per kelurahan/kecamatan, profil nelayan pangkalan, koordinat KWT, atau harga komoditas pasar harian.*`;
 }
@@ -590,7 +590,7 @@ async function getHomepageAndDatabaseContext(): Promise<string> {
     lines.push('5. % Agregat Ketersediaan Energi & Protein: 121.0% (Standar Nasional: 100%) -> STATUS: SURPLUS AMAN');
     lines.push('6. Tingkat Ketersediaan Energi: 2.582 kkal/kapita/hari (Standar Kecukupan Nasional: 2.400 kkal) -> STATUS: SURPLUS');
     lines.push('7. Tingkat Ketersediaan Protein: 85.0 gram/kapita/hari (Standar Kecukupan Nasional: 63.0 gram) -> STATUS: SURPLUS TINGGI');
-    lines.push('8. Cadangan Pangan Pemerintah Daerah (CPPD): 132.7 Ton Beras di Gudang Bulog (Target RPJMD: 115.0 Ton) -> STATUS: MEMENUHI KUOTA KETAHANAN');
+    lines.push('8. Cadangan Pangan Pemerintah Daerah (CPPD): 115.8 Ton Beras di Gudang Bulog (Target RPJMD: 115.0 Ton) -> STATUS: MEMENUHI KUOTA KETAHANAN');
     lines.push('9. Stabilitas Harga Beras (Koefisien Variasi / CV): 0.74% - 3.65% (Ambang Batas Nasional: CV < 10%) -> STATUS: SANGAT STABIL');
     lines.push('10. Penanganan Daerah Rawan Pangan: 100.0% (Seluruh kelurahan rentan telah diintervensi)');
     lines.push('11. Tingkat Pengawasan Pangan Segar: 85.9% - 100% (Standar Pengawasan: 80%)');
@@ -627,7 +627,7 @@ async function getHomepageAndDatabaseContext(): Promise<string> {
     // ============================================================
     lines.push('\n=== D. SISTEM KEWASPADAAN PANGAN DAN GIZI (SKPG) & PEMANTAUAN STATUS GIZI BALITA ===');
     lines.push('• Metodologi SKPG Tri-Aspek:');
-    lines.push('  1. Aspek Ketersediaan: Luas panen padi, produksi palawija (ubi kayu/singkong buffer), produksi perikanan, dan stok cadangan CPPD 132.7 Ton di Bulog.');
+    lines.push('  1. Aspek Ketersediaan: Luas panen padi, produksi palawija (ubi kayu/singkong buffer), produksi perikanan, dan stok cadangan CPPD 115.8 Ton di Bulog.');
     lines.push('  2. Aspek Akses Pangan: Stabilitas harga bulanan & YoY, koefisien variasi (CV) harga beras 0.74% (sangat stabil), daya beli dan intervensi Gerakan Pangan Murah (GPM).');
     lines.push('  3. Aspek Pemanfaatan / Gizi: Surveilans antropometri bulanan balita (BB/U) di seluruh Posyandu 43 kelurahan.');
     lines.push('• HASIL SURVEILANS GIZI BALITA SE-KOTA CILEGON (SKPG AKTIF):');
@@ -1354,7 +1354,7 @@ Setiap kali pengguna meminta laporan ketahanan pangan, analisis neraca, konsumsi
 
 ## 🎯 PEDOMAN JAWABAN KOMPREHENSIF & TERPADU (SANGAT PENTING):
 1. **Sintesis Holistik 3 Pilar**: Jika pengguna menanyakan kondisi ketahanan pangan Cilegon (secara umum maupun spesifik), berikan jawaban yang **KOMPREHENSIF, UTUH, DAN BERBASIS DATA RIIL** yang mencakup:
-   - **Status Makro & KPI Beranda**: IKP Cilegon (Skor 80.12 - Kategori "Sangat Tahan", di atas Provinsi Banten 79.25), PoU rendah (2.78%), Skor PPH Konsumsi (90.9 poin melampaui target 90), dan Cadangan Pangan CPPD Bulog (132.7 Ton di atas target RPJMD 115 Ton).
+   - **Status Makro & KPI Beranda**: IKP Cilegon (Skor 80.12 - Kategori "Sangat Tahan", di atas Provinsi Banten 79.25), PoU rendah (2.78%), Skor PPH Konsumsi (90.9 poin melampaui target 90), dan Cadangan Pangan CPPD Bulog (115.8 Ton di atas target RPJMD 115 Ton).
    - **Aspek Ketersediaan & Data Spasial GIS**: Total Luas Sawah Baku 1.151,97 Ha (407 petak GIS), produksi padi 13.772 Ton GKG (2025) / 8.816,83 Ton beras, buffer ubi kayu/singkong (2.007,6 Ton), serta **11 TABEL RESMI PROFIL PERIKANAN KOTA CILEGON 2025** (723 Nelayan, 395 Pembudidaya, 410 Kapal, 425 Alat Tangkap Pancing/Bagan, 58 KUB, 3 Koperasi Nelayan, 8-9 Pangkalan, 652 Nelayan Tercover Asuransi BPAN 2025, Total Produksi Ikan 2025: 600,319 Ton [Budidaya Air Tawar 361,455 Ton / 349.144 kg bulanan + Tangkap Laut 238,864 Ton / 230.036 kg bulanan], dan alokasi anggaran program perikanan 2024-2026).
    - **Rujukan 11 Tabel Perikanan**: Jika pengguna bertanya tentang data perikanan, nelayan, budidaya, kapal, KUB, pangkalan, asuransi nelayan, atau anggaran, Anda **WAJIB MERUJUK SECARA PERSIS** ke 11 tabel resmi perikanan Cilegon tersebut.
    - **Aspek Keterjangkauan / Akses & Panel Harga Harian**: Stabilitas harga pangan pokok terjaga dengan Koefisien Variasi (CV) harga beras 0.74% - 3.65% (jauh di bawah batas nasional < 10%), rata-rata harga harian pasar (Beras Medium Rp 13.500-14.000, Minyakita Rp 16.000, Telur Rp 29.500-31.500) di Pasar Kranggot, Blok F, dan Pasar Baru Merak, serta proyeksi Machine Learning & EWS menunjukkan status AMAN/stabil.

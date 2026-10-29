@@ -1103,6 +1103,15 @@ export default function DashboardPage() {
     return 85;
   };
 
+  const getCPPDValue = () => {
+    let entry = benchmarkList.find(x => x.tahun === selectedYear);
+    if (!entry) entry = benchmarkList.find(x => x.tahun === 2025);
+    if (entry && entry.cadangan_pangan !== null && entry.cadangan_pangan !== undefined) {
+      return parseFloat(entry.cadangan_pangan);
+    }
+    return 115.8;
+  };
+
 
   // Dynamic Balita computed calculations
   const getBalitaData = () => {
@@ -1156,6 +1165,7 @@ export default function DashboardPage() {
     const tEnergiVal = getKetersediaanEnergiValue();
     const tProteinVal = getKetersediaanProteinValue();
     const cvVal = getCVValue();
+    const cppdVal = getCPPDValue();
 
     return {
       1: pphVal,
@@ -1165,7 +1175,7 @@ export default function DashboardPage() {
       5: parseFloat(((tEnergiVal / 2400 + tProteinVal / 63) * 50).toFixed(2)),
       6: tEnergiVal,
       7: tProteinVal,
-      8: 174,
+      8: cppdVal,
       9: cvVal,
       10: 100,
       11: 85.9,
@@ -1282,7 +1292,7 @@ export default function DashboardPage() {
       const values = {
         ketersediaanEnergi: getKetersediaanEnergiValue(),
         ketersediaanProtein: getKetersediaanProteinValue(),
-        cppd: 174
+        cppd: getCPPDValue()
       };
       const insights = getSubViewInsights('ketersediaan', values) as { energi: string[]; protein: string[]; cppd: string[] };
       return (
@@ -2172,7 +2182,7 @@ export default function DashboardPage() {
                 const values = {
                   ketersediaanEnergi: getKetersediaanEnergiValue(),
                   ketersediaanProtein: getKetersediaanProteinValue(),
-                  cppd: 174
+                  cppd: getCPPDValue()
                 };
                 const insights = getSubViewInsights('ketersediaan', values) as { energi: string[]; protein: string[]; cppd: string[] };
                 

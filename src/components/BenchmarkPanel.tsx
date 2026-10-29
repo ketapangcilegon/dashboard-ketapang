@@ -190,9 +190,11 @@ export default function BenchmarkPanel({
     return hardcodedFallback;
   };
 
-  const currentVal = currentData[activeIndicator.no] !== undefined 
+  const fallbackVal = activeIndicator.no === 8 ? 115.8 : activeIndicator.history['2024'];
+  const rawCurrentVal = currentData[activeIndicator.no] !== undefined 
     ? currentData[activeIndicator.no] 
-    : (activeIndicator.no === 8 ? 174 : activeIndicator.history['2024']);
+    : fallbackVal;
+  const currentVal = getHistoricalVal('2025', activeIndicator.no, rawCurrentVal);
   
   const target = activeIndicator.no === 1 ? 80 : (typeof activeIndicator.nationalStandard === 'number' ? activeIndicator.nationalStandard : (typeof activeIndicator.nationalStandard === 'string' ? parseFloat(activeIndicator.nationalStandard.replace(/[^\d.]/g, '')) : null));
   const unit = activeIndicator.unit;
@@ -207,7 +209,7 @@ export default function BenchmarkPanel({
     { name: '2022', 'Capaian Cilegon': getHistoricalVal('2022', activeIndicator.no, activeIndicator.history['2022']), [targetKey]: target },
     { name: '2023', 'Capaian Cilegon': getHistoricalVal('2023', activeIndicator.no, activeIndicator.history['2023']), [targetKey]: target },
     { name: '2024', 'Capaian Cilegon': getHistoricalVal('2024', activeIndicator.no, activeIndicator.history['2024']), [targetKey]: target },
-    { name: '2025', 'Capaian Cilegon': getHistoricalVal('2025', activeIndicator.no, currentVal), [targetKey]: target },
+    { name: '2025', 'Capaian Cilegon': currentVal, [targetKey]: target },
   ];
 
   const values = chartData.map(d => d['Capaian Cilegon']);
