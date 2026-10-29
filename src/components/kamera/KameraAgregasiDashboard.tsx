@@ -4,8 +4,16 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
-import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight, Users, Mail, Edit3 } from 'lucide-react';
+import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight, Users, Mail, Edit3, Calculator } from 'lucide-react';
 import { getEnumerator, jenisSumber } from '@/lib/arusPasokan';
+import {
+  hitungKalibrasi,
+  hitungEstimasiTahunan,
+  ringkasEstimasi,
+  formatTonTahun,
+  LABEL_SUMBER
+} from '@/lib/estimasi-pasokan';
+import KameraEstimasiTahunanTable, { type PatchPasokan } from './KameraEstimasiTahunanTable';
 
 interface KameraAgregasiDashboardProps {
   observasiList: ObservasiRecord[];
@@ -13,13 +21,16 @@ interface KameraAgregasiDashboardProps {
   onEdit?: (record: ObservasiRecord) => void;
   /** Governance: hanya Admin atau user pendata yang boleh mengedit */
   canEdit?: (record: ObservasiRecord) => boolean;
+  /** Simpan cepat frekuensi & jumlah pasokan langsung dari daftar toko */
+  onQuickSave?: (record: ObservasiRecord, patch: PatchPasokan) => Promise<void>;
 }
 
 export default function KameraAgregasiDashboard({
   observasiList = [],
   focusSection = null,
   onEdit,
-  canEdit
+  canEdit,
+  onQuickSave
 }: KameraAgregasiDashboardProps) {
   const [selectedKec, setSelectedKec] = useState<string>('semua');
 
@@ -40,6 +51,15 @@ export default function KameraAgregasiDashboard({
     return observasiList.filter(d => d.kecamatan === selectedKec);
   }, [observasiList, selectedKec]);
 
+  // Kalibrasi perputaran stok (median P_manual / S_AI per kategori) dari seluruh data
+  const kalibrasi = useMemo(() => hitungKalibrasi(observasiList), [observasiList]);
+
+  // Ringkasan pasokan tahunan (anti hitung ganda: total kota hanya dari luar Cilegon)
+  const ringkasanTahunan = useMemo(
+    () => ringkasEstimasi(filteredData, kalibrasi),
+    [filteredData, kalibrasi]
+  );
+
   // Statistik Utama
   const stats = useMemo(() => {
     const pasokanRecords = filteredData.filter(d => d.mode === 'pasokan_beras');
@@ -48,8 +68,7 @@ export default function KameraAgregasiDashboard({
     // Pasokan Beras
     const totalPasokanKg = pasokanRecords.reduce((acc, r) => acc + (Number(r.estimasi_pasokan_kg) || 0), 0);
     const totalPasokanTon = Number((totalPasokanKg / 1000).toFixed(2));
-    const totalPasokanTahunanKg = pasokanRecords.reduce((acc, r) => acc + (Number(r.total_pasokan_tahunan_kg) || 0), 0);
-    const totalPasokanTahunanTon = Number((totalPasokanTahunanKg / 1000).toFixed(2));
+    const totalPasokanTahunanTon = Number(ringkasanTahunan.totalKotaTon.toFixed(1));
     
     let pasokanLokalKg = 0;
     let pasokanLuarKg = 0;
@@ -83,7 +102,7 @@ export default function KameraAgregasiDashboard({
       totalPohon,
       totalLuasHa
     };
-  }, [filteredData]);
+  }, [filteredData, ringkasanTahunan]);
 
   // Daftar kontribusi terbaru (nama + Gmail enumerator) mengikuti filter wilayah
   const kontribusiTerbaru = useMemo(() => {
@@ -115,17 +134,22 @@ export default function KameraAgregasiDashboard({
       const tanamanKec = listKec.filter(d => d.mode === 'tanaman_pangan');
 
       const pasokanKg = pasokanKec.reduce((acc, r) => acc + (Number(r.estimasi_pasokan_kg) || 0), 0);
+      const pasokanTahunanTon = pasokanKec.reduce(
+        (acc, r) => acc + hitungEstimasiTahunan(r, kalibrasi).tahunanTon,
+        0
+      );
       const produksiKg = tanamanKec.reduce((acc, r) => acc + (Number(r.estimasi_produksi_kg) || 0), 0);
 
       return {
         kecamatan: kec,
         jumlahSarana: pasokanKec.length,
         estimasiPasokanTon: Number((pasokanKg / 1000).toFixed(2)),
+        estimasiPasokanTahunanTon: Number(pasokanTahunanTon.toFixed(1)),
         jumlahTanamanTitik: tanamanKec.length,
         estimasiProduksiTon: Number((produksiKg / 1000).toFixed(2))
       };
     });
-  }, [observasiList]);
+  }, [observasiList, kalibrasi]);
 
   return (
     <div className="w-full h-full bg-[#F5FAF2] text-slate-800 p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
@@ -173,15 +197,20 @@ export default function KameraAgregasiDashboard({
           <p className="text-[10px] text-sky-700 mt-1 font-medium">Toko beras, warung, minimarket, pasar</p>
         </div>
 
-        {/* Card 2: Estimasi Pasokan Beras */}
+        {/* Card 2: Estimasi Pasokan Beras (Stok & Arus Tahunan) */}
         <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estimasi Pasokan</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pasokan Beras / Tahun</span>
             <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
               <Truck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-amber-700">{stats.totalPasokanTon} <span className="text-xs font-normal text-slate-500">Ton</span></div>
+          <div className="text-2xl font-black text-indigo-700">
+            {stats.totalPasokanTahunanTon.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-500">Ton/Thn</span>
+          </div>
+          <div className="text-[10px] text-amber-700 font-bold mt-0.5">
+            Stok sesaat (AI): {stats.totalPasokanTon} Ton • Manual: {ringkasanTahunan.jumlahManual} / AI: {ringkasanTahunan.jumlahAi} toko
+          </div>
           <div className="flex items-center gap-2 mt-1 text-[10px]">
             <span className="text-emerald-700 font-bold">Lokal: {stats.persenLokal}%</span>
             <span className="text-slate-600">•</span>
@@ -261,7 +290,8 @@ export default function KameraAgregasiDashboard({
               <tr className="border-b border-emerald-100 text-slate-500 text-[11px]">
                 <th className="py-2.5 px-3 font-bold">Kecamatan</th>
                 <th className="py-2.5 px-3 font-bold text-center">Sarana Beras</th>
-                <th className="py-2.5 px-3 font-bold text-right">Estimasi Pasokan</th>
+                <th className="py-2.5 px-3 font-bold text-right">Stok Sesaat (AI)</th>
+                <th className="py-2.5 px-3 font-bold text-right">Estimasi Pasokan / Tahun</th>
                 <th className="py-2.5 px-3 font-bold text-center">Spot Tanaman</th>
                 <th className="py-2.5 px-3 font-bold text-right">Estimasi Produksi</th>
               </tr>
@@ -275,6 +305,7 @@ export default function KameraAgregasiDashboard({
                   </td>
                   <td className="py-2.5 px-3 text-center text-sky-700 font-bold">{row.jumlahSarana} Toko</td>
                   <td className="py-2.5 px-3 text-right text-amber-700 font-bold">{row.estimasiPasokanTon} Ton</td>
+                  <td className="py-2.5 px-3 text-right text-indigo-700 font-black">{row.estimasiPasokanTahunanTon.toLocaleString('id-ID')} T/Thn</td>
                   <td className="py-2.5 px-3 text-center text-emerald-700 font-bold">{row.jumlahTanamanTitik} Titik</td>
                   <td className="py-2.5 px-3 text-right text-violet-700 font-bold">{row.estimasiProduksiTon} Ton</td>
                 </tr>
@@ -282,6 +313,38 @@ export default function KameraAgregasiDashboard({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Daftar Toko & Input Cepat Frekuensi × Jumlah Pasokan Beras per Tahun */}
+      <div className="bg-white/90 border border-emerald-100 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-emerald-700" />
+              <span>Daftar Toko &amp; Estimasi Pasokan Beras per Tahun</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Isi frekuensi &amp; jumlah kiriman langsung pada baris toko untuk memperbarui estimasi tahunan. Jika belum diisi, sistem memakai stok AI × koefisien perputaran awal.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-bold">
+            <span className="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
+              Total Luar Cilegon: {ringkasanTahunan.totalKotaTon.toLocaleString('id-ID', { maximumFractionDigits: 1 })} T/Thn
+            </span>
+            {ringkasanTahunan.lokalTon > 0 && (
+              <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200" title="Tidak dijumlahkan ke total kota agar tidak hitung ganda">
+                Sirkulasi Lokal: {ringkasanTahunan.lokalTon.toLocaleString('id-ID', { maximumFractionDigits: 1 })} T/Thn
+              </span>
+            )}
+          </div>
+        </div>
+
+        <KameraEstimasiTahunanTable
+          records={filteredData}
+          kalibrasi={kalibrasi}
+          canEdit={canEdit}
+          onQuickSave={onQuickSave}
+        />
       </div>
 
       {/* Daftar Kontribusi Enumerator (Crowdsourcing) */}
@@ -346,7 +409,15 @@ export default function KameraAgregasiDashboard({
                           {estimasiKg > 0 ? `${(estimasiKg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` : '-'}
                         </td>
                         <td className="py-2 px-3 text-right font-semibold text-indigo-700 whitespace-nowrap">
-                          {r.total_pasokan_tahunan_ton ? `${Number(r.total_pasokan_tahunan_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 })} T/Thn` : '-'}
+                          {r.mode === 'pasokan_beras' ? (() => {
+                            const est = hitungEstimasiTahunan(r, kalibrasi);
+                            return est.tahunanTon > 0 ? (
+                              <div>
+                                <div>{formatTonTahun(est.tahunanTon)}</div>
+                                <div className="text-[9px] text-slate-500 font-medium">{LABEL_SUMBER[est.sumber]}</div>
+                              </div>
+                            ) : '-';
+                          })() : '-'}
                         </td>
                         <td className="py-2 px-3 text-center">
                           {onEdit && (!canEdit || canEdit(r)) ? (

@@ -17,6 +17,11 @@ import {
   klasifikasiAsal,
   type ArusFilter, type ArusFlow, type FilterArah, type FilterPeriode, type FilterSumber
 } from '@/lib/arusPasokan';
+import {
+  hitungEstimasiTahunan,
+  formatTonTahun,
+  LABEL_SUMBER
+} from '@/lib/estimasi-pasokan';
 
 // Dynamic import react-leaflet components to ensure zero SSR mismatch
 const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false });
@@ -549,9 +554,24 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
                       <div className="bg-[#0c2640]/90 border border-cyan-300/25 rounded-xl p-2 space-y-1 text-[11px] mb-2.5 shadow-inner">
                         <div className="flex justify-between items-center">
-                          <span className="text-cyan-200/80 font-medium text-[10px]">Estimasi Stok:</span>
+                          <span className="text-cyan-200/80 font-medium text-[10px]">Stok Sesaat (AI):</span>
                           <b className="text-amber-300 font-black">{kg > 0 ? formatTon(kg) : 'Stok tercatat'}</b>
                         </div>
+                        {(() => {
+                          const est = hitungEstimasiTahunan(rec);
+                          return (
+                            <>
+                              <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-cyan-200/80 font-medium">Pasokan / Tahun:</span>
+                                <b className="text-emerald-300 font-black">{formatTonTahun(est.tahunanTon)}</b>
+                              </div>
+                              <div className="flex justify-between items-center text-[9.5px]">
+                                <span className="text-slate-400">Sumber:</span>
+                                <span className="text-cyan-100 font-bold">{LABEL_SUMBER[est.sumber]}{est.perluVerifikasi ? ' ⚠️' : ''}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                         <div className="flex justify-between items-center text-[10px]">
                           <span className="text-slate-400">Kelurahan:</span>
                           <span className="text-cyan-50 font-bold">{rec.kelurahan}</span>
@@ -934,6 +954,7 @@ function DetailSarana({ r }: { r: ObservasiRecord }) {
   const asal = klasifikasiAsal(r.asal_pasokan);
   const sarana = SARANA_DISTRIBUSI_LIST.find((s) => s.id === r.kategori);
   const sumber = jenisSumber(r);
+  const est = hitungEstimasiTahunan(r);
   const fotoOk = typeof r.foto_url === 'string' && (r.foto_url.startsWith('data:image') || r.foto_url.startsWith('http'));
   return (
     <div className="space-y-3">
@@ -944,10 +965,15 @@ function DetailSarana({ r }: { r: ObservasiRecord }) {
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <Kpi label="Estimasi Pasokan" nilai={formatTon(Number(r.estimasi_pasokan_kg) > 0 ? Number(r.estimasi_pasokan_kg) : null)} aksen="text-cyan-200" />
-        <Kpi label="Jenis Sarana" nilai={sarana?.label || r.kategori_label || 'Toko Beras'} aksen="text-white" kecil />
+        <Kpi label="Pasokan / Tahun" nilai={formatTonTahun(est.tahunanTon)} aksen="text-emerald-300" />
+        <Kpi label="Stok Sesaat (AI)" nilai={formatTon(Number(r.estimasi_pasokan_kg) > 0 ? Number(r.estimasi_pasokan_kg) : null)} aksen="text-cyan-200" />
       </div>
       <div className="space-y-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5">
+        <Baris k="Jenis Sarana" v={sarana?.label || r.kategori_label || 'Toko Beras'} />
+        <Baris k="Metode Estimasi" v={`${LABEL_SUMBER[est.sumber]}${est.perluVerifikasi ? ' (Perlu verifikasi ⚠️)' : ''}`} />
+        {r.frekuensi_pasokan_angka && r.volume_pasokan_angka ? (
+          <Baris k="Frekuensi × Kiriman" v={`${r.frekuensi_pasokan_angka}×/${r.frekuensi_pasokan_satuan} @ ${r.volume_pasokan_angka} ${r.volume_pasokan_satuan}`} />
+        ) : null}
         <Baris k="Nama Lokasi" v={r.nama_lokasi || 'Toko Beras'} />
         <Baris k="Wilayah" v={`${r.kelurahan}, ${r.kecamatan}`} />
         <Baris k="Asal pasokan" v={r.asal_pasokan || 'Belum tersedia'} />

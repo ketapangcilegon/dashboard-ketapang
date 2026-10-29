@@ -10,6 +10,14 @@ import { MapRefSetter, MoveZoomControl, FitBoundsControl } from '@/components/gi
 import LocateMe from '@/components/gis/LocateMe';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles } from 'lucide-react';
+import {
+  hitungKalibrasi,
+  hitungEstimasiTahunan,
+  formatTonTahun,
+  LABEL_SUMBER,
+  WARNA_KEYAKINAN,
+  type Kalibrasi
+} from '@/lib/estimasi-pasokan';
 
 export interface KameraCerdasMapProps {
   observasiList: ObservasiRecord[];
@@ -75,6 +83,7 @@ export default function KameraCerdasMap({
   const [filterKelurahan, setFilterKelurahan] = useState<string>('semua');
   const [showOsm, setShowOsm] = useState<boolean>(false);
   const [selectedRecord, setSelectedRecord] = useState<ObservasiRecord | null>(null);
+  const kalibrasi: Kalibrasi = useMemo(() => hitungKalibrasi(observasiList), [observasiList]);
 
   // Auto-focus and open popup when focusCoords or focusPinId changes
   useEffect(() => {
@@ -257,20 +266,36 @@ export default function KameraCerdasMap({
                       📍 {item.kelurahan}, {item.kecamatan}
                     </p>
 
-                    {item.mode === 'pasokan_beras' ? (
-                      <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-[11px]">
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Estimasi Pasokan:</span>
-                          <b className="text-blue-700">{(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
-                        </div>
-                        {item.asal_pasokan && (
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-slate-600">Asal Pasokan:</span>
-                            <b className="text-slate-800">{item.asal_pasokan}</b>
+                    {item.mode === 'pasokan_beras' ? (() => {
+                      const est = hitungEstimasiTahunan(item, kalibrasi);
+                      return (
+                        <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Stok Sesaat (AI):</span>
+                            <b className="text-blue-700">{(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
                           </div>
-                        )}
-                      </div>
-                    ) : (
+                          <div className="flex justify-between items-center border-t border-blue-200/70 pt-1">
+                            <span className="text-slate-600">Estimasi / Tahun:</span>
+                            <b className="text-indigo-700">{formatTonTahun(est.tahunanTon)}</b>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-500">Metode:</span>
+                            <span
+                              className="font-bold px-1.5 py-0.5 rounded-full text-[9px]"
+                              style={{ color: WARNA_KEYAKINAN[est.keyakinan], background: `${WARNA_KEYAKINAN[est.keyakinan]}1f` }}
+                            >
+                              {LABEL_SUMBER[est.sumber]}{est.perluVerifikasi ? ' ⚠️' : ''}
+                            </span>
+                          </div>
+                          {item.asal_pasokan && (
+                            <div className="flex justify-between text-[10px]">
+                              <span className="text-slate-600">Asal Pasokan:</span>
+                              <b className="text-slate-800">{item.asal_pasokan}</b>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })() : (
                       <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2 space-y-1 text-[11px]">
                         <div className="flex justify-between">
                           <span className="text-slate-600">Estimasi Produksi:</span>

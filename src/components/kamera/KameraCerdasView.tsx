@@ -1261,7 +1261,31 @@ export default function KameraCerdasView({
       {/* â”€â”€ Tab 3: Agregasi & Analisis â”€â”€ */}
       {activeTab === 'analytics' && (
         <div className="flex-1 w-full h-full relative">
-          <KameraAgregasiDashboard observasiList={observasiList} focusSection={focusSection} onEdit={(r) => { setEditRecord(r); setIsEditModalOpen(true); }} canEdit={(r) => canEditRecord(r, isAdmin, enumerator)} />
+          <KameraAgregasiDashboard
+            observasiList={observasiList}
+            focusSection={focusSection}
+            onEdit={(r) => { setEditRecord(r); setIsEditModalOpen(true); }}
+            canEdit={(r) => canEditRecord(r, isAdmin, enumerator)}
+            onQuickSave={async (r, patch) => {
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              const token = await getAuthToken();
+              if (token) headers['Authorization'] = `Bearer ${token}`;
+              if (enumerator?.email) {
+                headers['x-enumerator-email'] = enumerator.email;
+                headers['x-enumerator-name'] = enumerator.nama || '';
+              }
+              const res = await fetch('/api/kamera-cerdas/observasi', {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ id: r.id, ...patch })
+              });
+              const json = await res.json();
+              if (!res.ok) throw new Error(json?.error || 'Gagal menyimpan');
+              if (json?.data) {
+                setObservasiList((prev) => prev.map((item) => (item.id === json.data.id ? json.data : item)));
+              }
+            }}
+          />
         </div>
       )}
 
