@@ -33,6 +33,14 @@ export interface ObservasiRecord {
   jenis_kemasan?: string;
   merek_beras?: string;
 
+  // Frekuensi & Pasokan Tahunan (Capture 2)
+  frekuensi_pasokan_angka?: number;
+  frekuensi_pasokan_satuan?: 'hari' | 'minggu' | 'bulan';
+  volume_pasokan_angka?: number;
+  volume_pasokan_satuan?: 'kg' | 'kwintal' | 'ton';
+  total_pasokan_tahunan_kg?: number;
+  total_pasokan_tahunan_ton?: number;
+
   // Tanaman Pangan
   luas_lahan_m2?: number;
   luas_lahan_ha?: number;
@@ -241,6 +249,134 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: payload, saved_in_fallback: true });
 
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body: Partial<ObservasiRecord> & { id: string } = await request.json();
+
+    if (!body.id) {
+      return NextResponse.json({ error: 'ID observasi wajib disertakan' }, { status: 400 });
+    }
+
+    // 1. Verifikasi pengirim / headers
+    const pengirim = await verifikasiPengirim(request);
+
+    // 2. Ambil data observasi saat ini dari tabel / cache / seed
+    let existingRecord: ObservasiRecord | null = null;
+    try {
+      const { data, error } = await supabase
+        .from('kamera_cerdas_observasi')
+        .select('*')
+        .eq('id', body.id)
+        .single();
+      if (!error && data) {
+        existingRecord = data;
+      }
+    } catch {
+      // lanjut ke cache
+    }
+
+    if (!existingRecord) {
+      try {
+        const { data: cacheData } = await supabase
+          .from('sp_cache_data')
+          .select('data')
+          .eq('tabel_sumber', 'kamera_cerdas_observasi')
+          .single();
+        if (Array.isArray(cacheData?.data)) {
+          existingRecord = cacheData.data.find((r: ObservasiRecord) => r.id === body.id) || null;
+        }
+      } catch {
+        // lanjut ke seed
+      }
+    }
+
+    if (!existingRecord) {
+      existingRecord = SEED_OBSERVASI_DATA.find((r) => r.id === body.id) || null;
+    }
+
+    if (!existingRecord) {
+      return NextResponse.json({ error: 'Data observasi tidak ditemukan' }, { status: 404 });
+    }
+
+    // 3. Governance Check:
+    // Pengeditan hanya diizinkan bagi Admin atau User (Enumerator) yang menginput data tersebut
+    // Admin hanya diakui melalui token sesi Supabase yang terverifikasi (bukan header klien)
+    const isPetugasAdmin = pengirim?.peran === 'petugas';
+    const recordEmail = (
+      existingRecord.petugas_email ||
+      (existingRecord.foto_watermark_meta as any)?.enumerator_email ||
+      ''
+    ).toLowerCase().trim();
+    const userEmail = (pengirim?.email || '').toLowerCase().trim();
+
+    const isOwner = Boolean(userEmail && recordEmail && userEmail === recordEmail);
+
+    if (!isPetugasAdmin && !isOwner) {
+      return NextResponse.json({
+        error: 'Akses ditolak (Governance): Hanya Admin atau user pendata yang menginput titik ini yang berhak mengedit data.'
+      }, { status: 403 });
+    }
+
+    // Gabungkan pembaruan
+    const updatedRecord: ObservasiRecord = {
+      ...existingRecord,
+      ...body,
+      // Pertahankan id dan created_at asli
+      id: existingRecord.id,
+      created_at: existingRecord.created_at,
+      // Identitas pendata tidak boleh diubah melalui edit
+      petugas_email: existingRecord.petugas_email,
+      petugas_nama: existingRecord.petugas_nama,
+      status_verifikasi: isPetugasAdmin ? 'TERVERIFIKASI_ADMIN' : existingRecord.status_verifikasi
+    };
+
+    // 4. Update ke tabel Supabase jika ada
+    try {
+      await supabase
+        .from('kamera_cerdas_observasi')
+        .update(updatedRecord)
+        .eq('id', body.id);
+    } catch {
+      // lanjut ke cache
+    }
+
+    // 5. Update di sp_cache_data
+    try {
+      const { data: cacheData } = await supabase
+        .from('sp_cache_data')
+        .select('data')
+        .eq('tabel_sumber', 'kamera_cerdas_observasi')
+        .single();
+
+      let currentList = Array.isArray(cacheData?.data) && cacheData.data.length > 0
+        ? cacheData.data
+        : [...SEED_OBSERVASI_DATA];
+
+      const idx = currentList.findIndex((r: ObservasiRecord) => r.id === body.id);
+      if (idx !== -1) {
+        currentList[idx] = updatedRecord;
+      } else {
+        currentList = [updatedRecord, ...currentList];
+      }
+
+      await supabase
+        .from('sp_cache_data')
+        .upsert({
+          tabel_sumber: 'kamera_cerdas_observasi',
+          data: currentList,
+          fetched_at: new Date().toISOString()
+        }, { onConflict: 'tabel_sumber' });
+    } catch (e) {
+      console.warn('Gagal update sp_cache_data:', e);
+    }
+
+    return NextResponse.json({ success: true, data: updatedRecord });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -4,17 +4,22 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
-import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight, Users, Mail } from 'lucide-react';
+import { Store, Trees, PieChart, BarChart3, TrendingUp, MapPin, Truck, AlertCircle, ArrowUpRight, Users, Mail, Edit3 } from 'lucide-react';
 import { getEnumerator, jenisSumber } from '@/lib/arusPasokan';
 
 interface KameraAgregasiDashboardProps {
   observasiList: ObservasiRecord[];
   focusSection?: 'rantai_pasok' | 'agregasi' | null;
+  onEdit?: (record: ObservasiRecord) => void;
+  /** Governance: hanya Admin atau user pendata yang boleh mengedit */
+  canEdit?: (record: ObservasiRecord) => boolean;
 }
 
 export default function KameraAgregasiDashboard({
   observasiList = [],
-  focusSection = null
+  focusSection = null,
+  onEdit,
+  canEdit
 }: KameraAgregasiDashboardProps) {
   const [selectedKec, setSelectedKec] = useState<string>('semua');
 
@@ -43,6 +48,8 @@ export default function KameraAgregasiDashboard({
     // Pasokan Beras
     const totalPasokanKg = pasokanRecords.reduce((acc, r) => acc + (Number(r.estimasi_pasokan_kg) || 0), 0);
     const totalPasokanTon = Number((totalPasokanKg / 1000).toFixed(2));
+    const totalPasokanTahunanKg = pasokanRecords.reduce((acc, r) => acc + (Number(r.total_pasokan_tahunan_kg) || 0), 0);
+    const totalPasokanTahunanTon = Number((totalPasokanTahunanKg / 1000).toFixed(2));
     
     let pasokanLokalKg = 0;
     let pasokanLuarKg = 0;
@@ -68,6 +75,7 @@ export default function KameraAgregasiDashboard({
     return {
       totalSarana: pasokanRecords.length,
       totalPasokanTon,
+      totalPasokanTahunanTon,
       persenLokal,
       persenLuar,
       totalTanamanSpot: tanamanRecords.length,
@@ -297,6 +305,8 @@ export default function KameraAgregasiDashboard({
                     <th className="py-2 px-3 font-bold">Data</th>
                     <th className="py-2 px-3 font-bold">Lokasi</th>
                     <th className="py-2 px-3 font-bold text-right">Estimasi</th>
+                    <th className="py-2 px-3 font-bold text-right">Pasokan/Thn</th>
+                    <th className="py-2 px-3 font-bold text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-emerald-100">
@@ -334,6 +344,22 @@ export default function KameraAgregasiDashboard({
                         </td>
                         <td className="py-2 px-3 text-right font-black text-amber-700 whitespace-nowrap">
                           {estimasiKg > 0 ? `${(estimasiKg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-right font-semibold text-indigo-700 whitespace-nowrap">
+                          {r.total_pasokan_tahunan_ton ? `${Number(r.total_pasokan_tahunan_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 })} T/Thn` : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          {onEdit && (!canEdit || canEdit(r)) ? (
+                            <button
+                              type="button"
+                              onClick={() => onEdit(r)}
+                              className="text-[10px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg mx-auto transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" /> Edit
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400" title="Hanya Admin atau pendata yang dapat mengedit">🔒</span>
+                          )}
                         </td>
                       </tr>
                     );

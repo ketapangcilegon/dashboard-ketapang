@@ -20,6 +20,7 @@ import {
   type EnumeratorProfile
 } from '@/lib/enumeratorAuth';
 import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+import EditObservasiModal, { canEditRecord } from './EditObservasiModal';
 
 // Peta 3D (MapLibre + deck.gl) hanya dimuat di browser & hanya saat tab dibuka
 const ArusPasokanMap = dynamic(() => import('./ArusPasokanMap'), {
@@ -61,6 +62,9 @@ export default function KameraCerdasView({
   const [isEnumeratorLoading, setIsEnumeratorLoading] = useState<boolean>(true);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState<boolean>(false);
   const [googleError, setGoogleError] = useState<string>('');
+  // Edit Observasi (Governance)
+  const [editRecord, setEditRecord] = useState<ObservasiRecord | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [showCrowdsourcingInfo, setShowCrowdsourcingInfo] = useState<boolean>(false);
   // Kamera hanya dapat dipakai Admin/Petugas, atau Enumerator yang sudah login Google (bila fitur tidak dikunci admin)
   const canOperateCamera = isAdmin || (!isKameraLocked && !!enumerator);
@@ -90,7 +94,7 @@ export default function KameraCerdasView({
       }
     };
     checkAuth();
-    // Ganti polling 1.5s dengan onAuthStateChange — event-driven, zero polling overhead
+    // Ganti polling 1.5s dengan onAuthStateChange â€” event-driven, zero polling overhead
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
       const hasAdmin = sessionActive || !!session?.user;
@@ -586,12 +590,12 @@ export default function KameraCerdasView({
       ctx.shadowBlur = 4;
 
       // Line 1: Timestamp & App
-      ctx.fillText(`📷 KAMERA CERDAS DKPP CILEGON | ${dateStr} • ${timeStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.4));
+      ctx.fillText(`ðŸ“· KAMERA CERDAS DKPP CILEGON | ${dateStr} â€¢ ${timeStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.4));
 
       // Line 2: GPS & Wilayah
       ctx.font = `600 ${fontSize * 0.9}px monospace`;
       ctx.fillStyle = '#34D399'; // Light emerald
-      ctx.fillText(`${latStr} | ${lngStr} • 📍 ${locStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.8));
+      ctx.fillText(`${latStr} | ${lngStr} â€¢ ðŸ“ ${locStr}`, 20, targetH - bannerHeight + (bannerHeight * 0.8));
 
       // Compress to JPEG with 0.82 quality (< 800 KB, visual prima & loading super cepat)
       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
@@ -831,7 +835,7 @@ export default function KameraCerdasView({
   return (
     <div className="w-full h-full flex flex-col bg-[#F5FAF2] text-slate-800 relative overflow-hidden select-none">
       
-      {/* ── Top App Bar Navigation ── */}
+      {/* â”€â”€ Top App Bar Navigation â”€â”€ */}
       <div className="bg-gradient-to-r from-white via-[#F7FCEB] to-[#EAF8EE] border-b border-emerald-100 px-3 sm:px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-[0_4px_18px_rgba(16,120,70,0.08)]">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/30">
@@ -930,7 +934,7 @@ export default function KameraCerdasView({
             </div>
           ) : enumerator ? (
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} • ${enumerator.email}`}>
+              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} â€¢ ${enumerator.email}`}>
                 {enumerator.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={enumerator.avatarUrl} alt={enumerator.nama} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover border border-emerald-200" />
@@ -971,7 +975,7 @@ export default function KameraCerdasView({
         </div>
       </div>
 
-      {/* ── Expandable Crowdsourcing Concept Note (Capture 2) ── */}
+      {/* â”€â”€ Expandable Crowdsourcing Concept Note (Capture 2) â”€â”€ */}
       {showCrowdsourcingInfo && (
         <div 
           className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-emerald-50 border-b border-amber-300 px-3.5 py-3 text-slate-800 shadow-md z-30 shrink-0 transition-all duration-300 animate-in slide-in-from-top-2 max-h-[290px] sm:max-h-[380px] overflow-y-auto overscroll-contain touch-pan-y select-text [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-amber-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-400 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-amber-500"
@@ -1025,7 +1029,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* ── Success Toast Alert ── */}
+      {/* â”€â”€ Success Toast Alert â”€â”€ */}
       {saveSuccessMsg && (
         <div className="absolute top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-emerald-400 animate-in slide-in-from-top duration-300">
           <Check className="w-4 h-4 bg-white/20 rounded-full p-0.5" />
@@ -1033,7 +1037,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* ── Tab 1: Kamera Lapangan (Mobile-First Fullscreen) ── */}
+      {/* â”€â”€ Tab 1: Kamera Lapangan (Mobile-First Fullscreen) â”€â”€ */}
       {activeTab === 'camera' && (
         <div className="flex-1 relative w-full h-full flex flex-col items-center justify-between bg-[#EAF5E4] overflow-hidden">
           
@@ -1091,7 +1095,7 @@ export default function KameraCerdasView({
                   }`} />
                   <span>
                     {gpsStatus === 'active' && gpsCoords 
-                      ? `GPS Aktif (±${gpsCoords.accuracy || '3.3'}m)`
+                      ? `GPS Aktif (Â±${gpsCoords.accuracy || '3.3'}m)`
                       : gpsStatus === 'searching'
                       ? 'Mencari Sinyal GPS...'
                       : 'GPS Offline / Manual'}
@@ -1122,7 +1126,7 @@ export default function KameraCerdasView({
               <div className="mt-1 bg-black/65 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/20 text-white shadow-xl flex items-center justify-between gap-2.5 max-w-sm mx-auto animate-in slide-in-from-top-1 duration-200">
                 <div className="flex items-center gap-2 min-w-0 text-left">
                   <span className="text-base shrink-0">
-                    {mode === 'pasokan_beras' ? '🏪' : '🌳'}
+                    {mode === 'pasokan_beras' ? 'ðŸª' : 'ðŸŒ³'}
                   </span>
                   <p className="text-[11px] font-medium text-white/95 leading-tight">
                     {mode === 'pasokan_beras'
@@ -1155,95 +1159,94 @@ export default function KameraCerdasView({
             </div>
           )}
 
-          {/* ── Bottom Controls Bar (Capture 3 Mockup) ── */}
-          <div className="relative z-20 w-full p-4 sm:p-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center gap-3">
+          {/* â”€â”€ Bottom Controls Bar (Capture 1 Optimized: Pasokan Beras - Tombol Rana - Tanaman Pangan) â”€â”€ */}
+          <div className="relative z-20 w-full px-3 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col items-center gap-1.5">
             
-            {/* Mode Switcher HUD Brackets (Capture 3) */}
-            <div className="w-full max-w-[320px] flex items-center justify-center gap-3">
-              {/* Box 1: Pasokan Beras */}
+            {/* Horizontal Bar: [Pasokan Beras] [Shutter Button] [Tanaman Pangan] */}
+            <div className="w-full max-w-sm flex items-center justify-between gap-2 sm:gap-3">
+              {/* Box 1: Pasokan Beras (Sebelah Kiri Tombol Rana) */}
               <button
                 type="button"
                 onClick={() => setMode('pasokan_beras')}
-                className={`relative flex-1 py-2.5 px-3 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
+                className={`relative flex-1 py-2 px-2 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group min-h-[56px] ${
                   mode === 'pasokan_beras'
-                    ? 'bg-emerald-950/60 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
-                    : 'bg-black/40 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
+                    ? 'bg-emerald-950/70 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
+                    : 'bg-black/50 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
                 }`}
               >
                 {/* 4 Corner Brackets (HUD Reticles) */}
-                <div className={`absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -top-[1px] -right-[1px] w-2.5 h-2.5 border-t-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -bottom-[1px] -left-[1px] w-2.5 h-2.5 border-b-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -left-[1px] w-2 h-2 border-t-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -right-[1px] w-2 h-2 border-t-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -left-[1px] w-2 h-2 border-b-2 border-l-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -right-[1px] w-2 h-2 border-b-2 border-r-2 transition-colors ${mode === 'pasokan_beras' ? 'border-emerald-400' : 'border-white/30'}`} />
 
-                <div className="mb-1">
-                  <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="mb-0.5">
+                  <svg className="w-4 h-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10 12h4" />
                     <path d="M12 10v4" />
                   </svg>
                 </div>
-                <span className="text-[11px] font-black tracking-tight leading-tight">
+                <span className="text-[10px] font-black tracking-tight leading-tight line-clamp-1">
                   Pasokan Beras
                 </span>
               </button>
 
-              {/* Box 2: Tanaman Pangan */}
+              {/* Shutter Capture Button (Tengah) */}
+              <div className="shrink-0 flex items-center justify-center px-1">
+                <button
+                  type="button"
+                  onClick={handleCapturePhoto}
+                  disabled={!isCameraActive || isAnalyzing}
+                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-emerald-400/80 p-1 flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_25px_rgba(52,211,153,0.5)] disabled:opacity-40 cursor-pointer"
+                  title="Ambil Foto Langsung"
+                  aria-label="Ambil Foto"
+                >
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00FF87] via-[#059669] to-[#047857] flex items-center justify-center text-white shadow-inner">
+                    <Camera className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow-sm" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Box 2: Tanaman Pangan (Sebelah Kanan Tombol Rana) */}
               <button
                 type="button"
                 onClick={() => setMode('tanaman_pangan')}
-                className={`relative flex-1 py-2.5 px-3 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
+                className={`relative flex-1 py-2 px-2 rounded-xl backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center text-center group min-h-[56px] ${
                   mode === 'tanaman_pangan'
-                    ? 'bg-emerald-950/60 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
-                    : 'bg-black/40 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
+                    ? 'bg-emerald-950/70 border border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.35)]'
+                    : 'bg-black/50 border border-white/15 text-white/60 hover:text-white hover:border-white/30'
                 }`}
               >
                 {/* 4 Corner Brackets (HUD Reticles) */}
-                <div className={`absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -top-[1px] -right-[1px] w-2.5 h-2.5 border-t-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -bottom-[1px] -left-[1px] w-2.5 h-2.5 border-b-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
-                <div className={`absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -left-[1px] w-2 h-2 border-t-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -top-[1px] -right-[1px] w-2 h-2 border-t-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -left-[1px] w-2 h-2 border-b-2 border-l-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
+                <div className={`absolute -bottom-[1px] -right-[1px] w-2 h-2 border-b-2 border-r-2 transition-colors ${mode === 'tanaman_pangan' ? 'border-emerald-400' : 'border-white/30'}`} />
 
-                <div className="mb-1">
-                  <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="mb-0.5">
+                  <svg className="w-4 h-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 20h10" />
                     <path d="M12 20v-8" />
                     <path d="M12 12a5 5 0 0 1 5-5c0 4-2 6-5 6Z" />
                     <path d="M12 12a5 5 0 0 0-5-5c0 4 2 6 5 6Z" />
                   </svg>
                 </div>
-                <span className="text-[11px] font-black tracking-tight leading-tight">
+                <span className="text-[10px] font-black tracking-tight leading-tight line-clamp-1">
                   Tanaman Pangan
                 </span>
               </button>
             </div>
 
-            {/* Shutter Action Button (Centered) */}
-            <div className="w-full max-w-xs flex items-center justify-center px-2 pt-1">
-              {/* Main Shutter Capture Button (Glowing Green Circle) */}
-              <button
-                type="button"
-                onClick={handleCapturePhoto}
-                disabled={!isCameraActive || isAnalyzing}
-                className="w-20 h-20 rounded-full border-2 border-emerald-400/80 p-1 flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_25px_rgba(52,211,153,0.5)] disabled:opacity-40 cursor-pointer"
-                title="Ambil Foto Langsung"
-                aria-label="Ambil Foto"
-              >
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00FF87] via-[#059669] to-[#047857] flex items-center justify-center text-white shadow-inner">
-                  <Camera className="w-7 h-7 text-white drop-shadow-sm" />
-                </div>
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-medium drop-shadow-md">
-              Foto otomatis diberi watermark GPS & dikompresi &lt; 1 MB
+            <p className="text-[9.5px] text-slate-400 font-medium drop-shadow-md">
+              Watermark GPS otomatis â€¢ Resolusi optimal
             </p>
           </div>
 
         </div>
       )}
 
-      {/* ── Tab 2: Peta Spasial Hasil Observasi ── */}
+      {/* â”€â”€ Tab 2: Peta Spasial Hasil Observasi â”€â”€ */}
       {activeTab === 'map' && (
         <div className="flex-1 w-full h-full relative">
           <KameraCerdasMap
@@ -1255,14 +1258,14 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* ── Tab 3: Agregasi & Analisis ── */}
+      {/* â”€â”€ Tab 3: Agregasi & Analisis â”€â”€ */}
       {activeTab === 'analytics' && (
         <div className="flex-1 w-full h-full relative">
-          <KameraAgregasiDashboard observasiList={observasiList} focusSection={focusSection} />
+          <KameraAgregasiDashboard observasiList={observasiList} focusSection={focusSection} onEdit={(r) => { setEditRecord(r); setIsEditModalOpen(true); }} canEdit={(r) => canEditRecord(r, isAdmin, enumerator)} />
         </div>
       )}
 
-      {/* ── Tab 4: Peta 3D Arus Pasokan & Distribusi Beras ── */}
+      {/* â”€â”€ Tab 4: Peta 3D Arus Pasokan & Distribusi Beras â”€â”€ */}
       {activeTab === 'arus' && (
         <div className="flex-1 w-full h-full relative min-h-[420px]">
           <ArusPasokanMap
@@ -1274,7 +1277,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* ── Confirmation Modal Mode A: Pasokan Beras ── */}
+      {/* â”€â”€ Confirmation Modal Mode A: Pasokan Beras â”€â”€ */}
       {showConfirmModal && mode === 'pasokan_beras' && capturedPhoto && (
         <KonfirmasiPasokanModal
           photoPreview={capturedPhoto}
@@ -1297,7 +1300,7 @@ export default function KameraCerdasView({
         />
       )}
 
-      {/* ── Confirmation Modal Mode B: Tanaman Pangan ── */}
+      {/* â”€â”€ Confirmation Modal Mode B: Tanaman Pangan â”€â”€ */}
       {showConfirmModal && mode === 'tanaman_pangan' && capturedPhoto && (
         <KonfirmasiTanamanModal
           photoPreview={capturedPhoto}
@@ -1320,7 +1323,7 @@ export default function KameraCerdasView({
         />
       )}
 
-      {/* ── Modal Login Petugas / Admin (DKPP Governance) ── */}
+      {/* â”€â”€ Modal Login Petugas / Admin (DKPP Governance) â”€â”€ */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
@@ -1334,7 +1337,7 @@ export default function KameraCerdasView({
                 onClick={() => setShowLoginModal(false)}
                 className="text-slate-500 hover:text-emerald-800 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1368,7 +1371,7 @@ export default function KameraCerdasView({
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
@@ -1395,7 +1398,7 @@ export default function KameraCerdasView({
         </div>
       )}
 
-      {/* ── Modal Kotak Autentikasi Gmail (Enumerator Crowdsourcing) ── */}
+      {/* â”€â”€ Modal Kotak Autentikasi Gmail (Enumerator Crowdsourcing) â”€â”€ */}
       {showEnumeratorModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-emerald-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
@@ -1414,7 +1417,7 @@ export default function KameraCerdasView({
                 onClick={() => setShowEnumeratorModal(false)}
                 className="text-slate-400 hover:text-slate-700 text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 cursor-pointer"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1507,6 +1510,21 @@ export default function KameraCerdasView({
         </div>
       )}
 
+
+      {/* â”€â”€ Modal Edit Observasi (Governance) â”€â”€ */}
+      <EditObservasiModal
+        record={editRecord}
+        isOpen={isEditModalOpen}
+        onClose={() => { setIsEditModalOpen(false); setEditRecord(null); }}
+        onSaveSuccess={(updated) => {
+          setObservasiList(prev => prev.map(r => r.id === updated.id ? updated : r));
+          setIsEditModalOpen(false);
+          setEditRecord(null);
+        }}
+        isAdmin={isAdmin}
+        enumerator={enumerator}
+        getAuthToken={getAuthToken}
+      />
     </div>
   );
 }
