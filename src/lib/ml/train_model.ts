@@ -195,6 +195,7 @@ export async function trainAndForecastAll(token?: string) {
   }
   
   const resultsToUpsert: Record<string, unknown>[] = [];
+  const historyToUpsert: Record<string, unknown>[] = [];
   
   // 2. Train models for each commodity
   for (const commodity of COMMODITIES) {
@@ -581,6 +582,14 @@ function runWalkForwardValidation(
       narasi: explanation.narasi,
       rekomendasi: explanation.rekomendasi
     });
+
+    historyToUpsert.push({
+      komoditas: commodity,
+      bulan: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
+      harga_aktual: currentPrice,
+      forecast_1m: pred1,
+      forecast_3m: pred3
+    });
   }
   
   if (resultsToUpsert.length === 0) {
@@ -596,6 +605,17 @@ function runWalkForwardValidation(
   if (upsertError) {
     console.error('[ML Train] Gagal menyimpan ke forecast_result:', upsertError.message);
     throw new Error(`Gagal menyimpan hasil peramalan ke Supabase: ${upsertError.message}`);
+  }
+
+  // Simpan snapshot bulan berjalan ke forecast_history agar log backtesting tidak terputus
+  if (historyToUpsert.length > 0) {
+    try {
+      await dbClient
+        .from('forecast_history')
+        .upsert(historyToUpsert, { onConflict: 'komoditas,bulan' });
+    } catch (hErr: any) {
+      console.warn('[ML Train] Peringatan mencatat forecast_history:', hErr?.message);
+    }
   }
   
   // Save summary performance metrics into ml_metrics table
