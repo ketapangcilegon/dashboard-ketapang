@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause, MapPin, Calendar, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export interface DashboardMedia {
@@ -101,18 +101,17 @@ export default function MediaCarousel() {
   const [inlineVideoPlaying, setInlineVideoPlaying] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
 
-  // Dynamic Title & Description line measuring for mobile (Item 1)
+  // Dominant color state extracted dynamically from the active image
+  const [dominantColor, setDominantColor] = useState<string>('rgb(30, 41, 59)');
+
+  // Dynamic Title & Description line measuring for mobile
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [isTitleTwoLines, setIsTitleTwoLines] = useState<boolean>(false);
 
-  // Drag/Pan Image State for 3.6:1 Aspect Ratio Images on Mobile (Item 2)
-  const [panPercentage, setPanPercentage] = useState<number>(50);
+  // Pointer & touch swipe state
   const [isDraggingImage, setIsDraggingImage] = useState<boolean>(false);
   const dragStartX = useRef<number>(0);
-  const dragStartPan = useRef<number>(50);
   const hasMovedDrag = useRef<boolean>(false);
-
-  // Swipe gesture touch state
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
@@ -151,16 +150,76 @@ export default function MediaCarousel() {
     setInlineVideoPlaying(false);
   }, [totalItems]);
 
-  // Reset pan & check title height on slide change
+  const currentItem = items[currentIndex];
+  const activeImageSrc = currentItem
+    ? currentItem.media_type === 'video'
+      ? currentItem.thumbnail_url || currentItem.media_url
+      : currentItem.media_url
+    : '';
+
+  // Extract dominant color from the active photo (sampling edges + overall pixels)
   useEffect(() => {
-    setPanPercentage(50);
-  }, [currentIndex]);
+    if (!activeImageSrc) return;
+    let isCancelled = false;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (isCancelled) return;
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const sampleSize = 32;
+        canvas.width = sampleSize;
+        canvas.height = sampleSize;
+        ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+
+        const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+        let rTotal = 0;
+        let gTotal = 0;
+        let bTotal = 0;
+        let weightTotal = 0;
+
+        for (let y = 0; y < sampleSize; y++) {
+          for (let x = 0; x < sampleSize; x++) {
+            const idx = (y * sampleSize + x) * 4;
+            const a = imageData[idx + 3];
+            if (a < 128) continue;
+
+            // Beri bobot lebih tinggi pada piksel tepi kiri & kanan karena area kosong berada di kiri & kanan
+            const isEdgeColumn = x < 6 || x >= sampleSize - 6;
+            const weight = isEdgeColumn ? 2.5 : 1;
+
+            rTotal += imageData[idx] * weight;
+            gTotal += imageData[idx + 1] * weight;
+            bTotal += imageData[idx + 2] * weight;
+            weightTotal += weight;
+          }
+        }
+
+        if (weightTotal > 0) {
+          const r = Math.round(rTotal / weightTotal);
+          const g = Math.round(gTotal / weightTotal);
+          const b = Math.round(bTotal / weightTotal);
+          setDominantColor(`rgb(${r}, ${g}, ${b})`);
+        }
+      } catch {
+        // Jika gambar eksternal tanpa header CORS, layer blur CSS tetap menampilkan warna dominan gambar secara visual
+      }
+    };
+    img.src = activeImageSrc;
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeImageSrc]);
 
   useEffect(() => {
     const checkTitleLines = () => {
       if (titleRef.current) {
         const h = titleRef.current.clientHeight;
-        // On mobile, text-xs line height is ~16.5px. If height > 22px, title is 2 lines.
         setIsTitleTwoLines(h > 22);
       }
     };
@@ -169,7 +228,7 @@ export default function MediaCarousel() {
     return () => window.removeEventListener('resize', checkTitleLines);
   }, [currentIndex, items]);
 
-  // Autoplay Timer (5-7 seconds interval)
+  // Autoplay Timer (6 seconds interval)
   useEffect(() => {
     if (!isPlaying || isHovered || activeVideoModal !== null || inlineVideoPlaying || isDraggingImage || totalItems <= 1) {
       return;
@@ -177,15 +236,14 @@ export default function MediaCarousel() {
 
     const timer = setInterval(() => {
       nextSlide();
-    }, 6000); // 6 seconds
+    }, 6000);
 
     return () => clearInterval(timer);
   }, [isPlaying, isHovered, activeVideoModal, inlineVideoPlaying, isDraggingImage, totalItems, nextSlide]);
 
-  // Pointer / Touch Handlers for Drag/Pan Image (Item 2)
+  // Pointer Handlers for Swipe Navigation
   const handlePointerDown = (e: React.PointerEvent) => {
     dragStartX.current = e.clientX;
-    dragStartPan.current = panPercentage;
     hasMovedDrag.current = false;
     setIsDraggingImage(true);
   };
@@ -196,12 +254,6 @@ export default function MediaCarousel() {
     if (Math.abs(deltaX) > 5) {
       hasMovedDrag.current = true;
     }
-    const containerWidth = (e.currentTarget as HTMLElement).clientWidth || 360;
-    // Dragging left (deltaX < 0) increases pan % (moves image right)
-    // Dragging right (deltaX > 0) decreases pan % (moves image left)
-    const panDelta = -(deltaX / containerWidth) * 110;
-    const newPan = Math.max(0, Math.min(100, dragStartPan.current + panDelta));
-    setPanPercentage(newPan);
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -209,10 +261,9 @@ export default function MediaCarousel() {
     setIsDraggingImage(false);
 
     const deltaX = e.clientX - dragStartX.current;
-    // Quick horizontal swipe over 75px triggers slide transition
-    if (deltaX < -75) {
+    if (deltaX < -60) {
       nextSlide();
-    } else if (deltaX > 75) {
+    } else if (deltaX > 60) {
       prevSlide();
     }
   };
@@ -230,7 +281,7 @@ export default function MediaCarousel() {
   const handleTouchEnd = () => {
     if (!touchStartX || !touchEndX) return;
     const distance = touchStartX - touchEndX;
-    const minSwipeDistance = 50; // minimum px swipe
+    const minSwipeDistance = 50;
     if (distance > minSwipeDistance) {
       nextSlide();
     } else if (distance < -minSwipeDistance) {
@@ -238,9 +289,7 @@ export default function MediaCarousel() {
     }
   };
 
-  if (totalItems === 0) return null;
-
-  const currentItem = items[currentIndex];
+  if (totalItems === 0 || !currentItem) return null;
 
   return (
     <div className="w-full mb-3.5 select-none">
@@ -256,7 +305,8 @@ export default function MediaCarousel() {
 
       {/* Main Carousel Hero Card */}
       <div 
-        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/80 group transition-all duration-300 h-[170px] sm:h-[195px] md:h-[210px] lg:h-[220px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x"
+        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[180px] sm:h-[205px] md:h-[220px] lg:h-[240px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x"
+        style={{ backgroundColor: dominantColor }}
         onClick={() => {
           if (!hasMovedDrag.current) {
             setShowTextOverlay(prev => !prev);
@@ -294,7 +344,7 @@ export default function MediaCarousel() {
         </div>
 
         {/* Media Content Container */}
-        <div className="absolute inset-0 w-full h-full">
+        <div className="absolute inset-0 w-full h-full overflow-hidden">
           {currentItem.media_type === 'video' && inlineVideoPlaying ? (
             <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <video 
@@ -316,18 +366,33 @@ export default function MediaCarousel() {
               </button>
             </div>
           ) : (
-            <div className="relative w-full h-full">
+            <div
+              className="relative w-full h-full flex items-center justify-center overflow-hidden"
+              style={{ backgroundColor: dominantColor }}
+            >
+              {/* Layer 1: Ambient Blur Background untuk mengisi ruang kosong kiri & kanan sesuai warna dominan foto */}
+              <img
+                src={activeImageSrc}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl saturate-150 opacity-85 select-none pointer-events-none"
+                draggable={false}
+              />
+              <div
+                className="absolute inset-0 pointer-events-none opacity-45 backdrop-blur-xl"
+                style={{
+                  background: `radial-gradient(circle at center, transparent 35%, ${dominantColor} 100%)`
+                }}
+              />
+
+              {/* Layer 2: Foto Utama Utuh Tanpa Terpotong (Menyesuaikan Tinggi Placeholder) */}
               <img 
-                src={currentItem.media_type === 'video' ? (currentItem.thumbnail_url || currentItem.media_url) : currentItem.media_url}
+                src={activeImageSrc}
                 alt={currentItem.title}
-                className="w-full h-full object-cover transform scale-[1.01] transition-all duration-75 ease-out select-none pointer-events-none"
-                style={{ objectPosition: `${panPercentage}% center` }}
+                className="relative z-10 h-full w-auto max-w-full max-h-full object-contain mx-auto select-none pointer-events-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.28)] transition-all duration-300"
                 loading="eager"
                 draggable={false}
               />
-              
-              {/* Subtle Overlay to enhance contrast without darkening full image */}
-              <div className="absolute inset-0 bg-black/20 pointer-events-none" />
             </div>
           )}
         </div>
@@ -375,7 +440,7 @@ export default function MediaCarousel() {
         {/* Bottom-Left Text & Content Overlay */}
         {!inlineVideoPlaying && (
           <div 
-            className={`absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-10 max-w-[72%] sm:max-w-md lg:max-w-lg text-left transition-all duration-300 space-y-0.5 ${
+            className={`absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-20 max-w-[72%] sm:max-w-md lg:max-w-lg text-left transition-all duration-300 space-y-0.5 ${
               showTextOverlay ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
             }`}
           >
@@ -424,7 +489,7 @@ export default function MediaCarousel() {
 
         {/* Dot Indicators (Anchored to Bottom Right Corner) */}
         {!inlineVideoPlaying && (
-          <div className="absolute right-3 sm:right-4 bottom-2.5 sm:bottom-3 z-10 flex items-center gap-1.5 pointer-events-auto">
+          <div className="absolute right-3 sm:right-4 bottom-2.5 sm:bottom-3 z-20 flex items-center gap-1.5 pointer-events-auto">
             {items.map((_, idx) => (
               <button
                 key={idx}
