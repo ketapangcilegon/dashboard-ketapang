@@ -454,9 +454,9 @@ export default function MediaCarousel() {
                 className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide whitespace-normal break-words"
                 style={{
                   color: '#ffffff',
-                  WebkitTextStroke: '1px #000000',
+                  WebkitTextStroke: '3.2px #000000',
                   paintOrder: 'stroke fill',
-                  textShadow: '0 1.5px 3px rgba(0,0,0,0.95), 0 0 4px #000000'
+                  textShadow: '-1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000, 1px 1px 0 #000000, 0 2px 6px rgba(0,0,0,0.98), 0 0 8px rgba(0,0,0,0.92)'
                 }}
               >
                 {currentItem.title}
@@ -472,12 +472,12 @@ export default function MediaCarousel() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <p 
-                  className="text-[10px] sm:text-[11.5px] font-medium leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
+                  className="text-[10px] sm:text-[11.5px] font-semibold leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
                   style={{
                     color: '#ffffff',
-                    WebkitTextStroke: '0.75px #000000',
+                    WebkitTextStroke: '2.4px #000000',
                     paintOrder: 'stroke fill',
-                    textShadow: '0 1px 1.5px rgba(0,0,0,0.95), 0 0 3px #000000'
+                    textShadow: '-0.8px -0.8px 0 #000000, 0.8px -0.8px 0 #000000, -0.8px 0.8px 0 #000000, 0.8px 0.8px 0 #000000, 0 1.5px 5px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9)'
                   }}
                 >
                   {currentItem.description}
