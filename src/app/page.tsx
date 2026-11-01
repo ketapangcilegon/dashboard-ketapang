@@ -1983,7 +1983,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* BOTTOM ROW 2: AI Insight Panel (Full Width) */}
-                  <div id="panel-insight" className="w-full mt-6 h-[600px] lg:h-auto print:mt-6 print:break-before-page flex flex-col scroll-mt-20">
+                  <div id="panel-insight" className="w-full mt-6 h-auto print:mt-6 print:break-before-page flex flex-col scroll-mt-20">
                     <AIInsightPanel 
                       year={selectedYear}
                       month={selectedMonth}

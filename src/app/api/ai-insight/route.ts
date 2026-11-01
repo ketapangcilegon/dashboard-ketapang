@@ -9,6 +9,21 @@ interface CacheEntry {
 const localCache: Record<string, CacheEntry> = {};
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 jam TTL (Time To Live)
 
+/**
+ * Validasi bahwa teks narasi AI Insight utuh (mencakup seluruh 6 segmen sampai
+ * bagian Rekomendasi Kebijakan & Intervensi dan berakhir pada tanda baca kalimat lengkap).
+ */
+function isInsightComplete(text?: string | null): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 600) return false;
+  const hasFinalSection =
+    /Rekomendasi Kebijakan/i.test(trimmed) &&
+    (/Kerja Sama Antar Daerah|\bKAD\b/i.test(trimmed) || /Gerakan Pangan Murah|\bGPM\b/i.test(trimmed));
+  const endsCleanly = /[.!?%*)"']$/.test(trimmed);
+  return hasFinalSection && endsCleanly;
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -45,13 +60,22 @@ export async function POST(request: Request) {
 
     // 1. CEK CACHE DATABASE (SUPABASE) & IN-MEMORY CACHE
     try {
-      // Purge old test cache entries if present
-      if (localCache[cacheKey] && (localCache[cacheKey].insight.includes('# 1. RINGKASAN EKSEKUTIF') || localCache[cacheKey].insight.includes('REKOMENDASI KEBIJAKAN TELAAHAN STAF'))) {
+      // Purge old or truncated cache entries if present
+      if (
+        localCache[cacheKey] &&
+        (localCache[cacheKey].insight.includes('# 1. RINGKASAN EKSEKUTIF') ||
+          localCache[cacheKey].insight.includes('REKOMENDASI KEBIJAKAN TELAAHAN STAF') ||
+          !isInsightComplete(localCache[cacheKey].insight))
+      ) {
         delete localCache[cacheKey];
       }
 
       // Cek in-memory cache lokal terlebih dahulu (sangat cepat)
-      if (localCache[cacheKey] && (now - localCache[cacheKey].timestamp) < CACHE_TTL) {
+      if (
+        localCache[cacheKey] &&
+        (now - localCache[cacheKey].timestamp) < CACHE_TTL &&
+        isInsightComplete(localCache[cacheKey].insight)
+      ) {
         return NextResponse.json({
           success: true,
           isFallback: false,
@@ -70,7 +94,7 @@ export async function POST(request: Request) {
         .eq('kelurahan', kelurahan)
         .single();
 
-      if (!cacheError && cacheData) {
+      if (!cacheError && cacheData && isInsightComplete(cacheData.insight)) {
         const cacheTime = new Date(cacheData.created_at).getTime();
         if ((now - cacheTime) < CACHE_TTL) {
           // Update local in-memory cache
@@ -117,7 +141,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. CALL GEMINI API WITH MULTI-MODEL FALLBACK & STRICT TIMEOUT
+    // 2. CALL GEMINI API WITH MULTI-MODEL FALLBACK & STRICT COMPLETENESS CHECK
     const models = [
       'gemini-2.5-flash-lite',
       'gemini-2.0-flash',
@@ -133,13 +157,13 @@ export async function POST(request: Request) {
           headers: {
             'Content-Type': 'application/json'
           },
-          signal: AbortSignal.timeout(5000), // Mencegah request hang jika koneksi internet terputus/laten tinggi
+          signal: AbortSignal.timeout(15000),
           body: JSON.stringify({
             contents: [{
               parts: [{
                 text: `Anda adalah pakar Analis Ketahanan Pangan (Food Security Expert) dari Kementerian Pertanian / Dinas Ketahanan Pangan Kota Cilegon.
 Tugas Anda adalah membaca data indikator ketahanan pangan real-time yang sedang ditampilkan di dashboard Ketapang berikut ini, lalu berikan laporan analisis/insight eksekutif yang tajam, solutif, profesional, dan kaya akan insight metodologis (tuliskan dalam Bahasa Indonesia yang formal dan terstruktur dengan rapi menggunakan Markdown).
-Tuliskan laporan analisis yang super-ringkas, padat, dan solutif (maksimal 280-320 kata) agar tetap ringkas namun mencakup semua instruksi penting.
+PENTING: Tuliskan keenam bagian di bawah ini secara LENGKAP dari awal hingga kalimat terakhir pada poin ke-3 Rekomendasi Kebijakan & Intervensi tanpa ada bagian atau kalimat yang terputus.
 
 DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan ${kelurahan}):
 1. Skor PPH Konsumsi (Pola Pangan Harapan): ${pphScore} (Target Nasional: 90)
@@ -163,30 +187,39 @@ DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan $
    - Gula Pasir: Rp ${(hargaStrategis.gula_pasir || 0).toLocaleString('id-ID')}/kg
    - Minyak Goreng: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
-STRUKTUR LAPORAN HARUS TERDIRI DARI:
+STRUKTUR LAPORAN WAJIB MENCANTUMKAN KEENAM SEGMEN BERIKUT SECARA UTUH:
 - **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
 - **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras bulanan (CV Bulanan: ${cvBeras}%) dan harga pangan strategis lainnya.
-- **Outlook Harga Pangan Strategis 1 dan 3 Bulan**: Berikan analisis proyeksi harga 1 bulan (+1M) dan 3 bulan (+3M) ke depan berbasis Machine Learning, berikan interpretasinya termasuk Early Warning System (EWS), serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
+- **Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**: Berikan analisis proyeksi harga 1 bulan (+1M) dan 3 bulan (+3M) ke depan berbasis Machine Learning, berikan interpretasinya termasuk Early Warning System (EWS), serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
 - **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
   1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.
-  2. Gerakan Pangan Murah (GPM) & kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan tinggi berdasarkan peta FSVA, yang terbukti secara komparatif lebih tepat saran bagi masyarakat berpenghasilan rendah.
+  2. Gerakan Pangan Murah (GPM) & kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan tinggi berdasarkan peta FSVA, yang terbukti secara komparatif lebih tepat sasaran bagi masyarakat berpenghasilan rendah.
   3. Kerja Sama Antar Daerah (KAD) dengan produsen utama pangan strategis untuk menjamin pasokan pangan jangka menengah dan menghindari gejolak spekulasi pasar.
 
-Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Jangan gunakan placeholder.`
+Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Pastikan seluruh 6 segmen selesai ditulis tuntas hingga titik kalimat terakhir. Jangan gunakan placeholder.`
               }]
             }],
             generationConfig: {
-              maxOutputTokens: 600
+              maxOutputTokens: 4096,
+              temperature: 0.4
             }
           })
         });
 
         if (response.ok) {
           const result = await response.json();
-          generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          if (generatedText) break;
+          const candidate = result.candidates?.[0];
+          const textCandidate = candidate?.content?.parts?.map((p: any) => p?.text || '').join('') || '';
+          const finishReason = candidate?.finishReason;
+
+          if (textCandidate && finishReason !== 'MAX_TOKENS' && isInsightComplete(textCandidate)) {
+            generatedText = textCandidate;
+            break;
+          } else {
+            console.warn(`[AI Insight] Model ${model} returned incomplete output (finishReason=${finishReason}, len=${textCandidate.length}), trying next model...`);
+          }
         } else {
           console.warn(`[AI Insight] Model ${model} returned status: ${response.status}`);
           if (response.status === 429) {
@@ -263,17 +296,12 @@ Jaga agar nada tulisan Anda tetap berwibawa, objektif, solutif, dan analitis. Ja
 
 function generateFallbackInsight(data: any) {
   const {
-    year,
-    month,
-    kecamatan,
-    kelurahan,
     cvBeras,
     pphScore,
     konsumsiEnergi,
     konsumsiProtein,
     ketersediaanEnergi,
     ketersediaanProtein,
-    produksiBeras,
     balitaStatus,
     hargaStrategis
   } = data;
@@ -282,15 +310,15 @@ function generateFallbackInsight(data: any) {
   const isCvGood = cvBeras < 10;
   const isBalitaAman = balitaStatus.status === 'AMAN';
 
-  return `#### **1. Ringkasan Eksekutif**
-Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'KONDISI AMAN & SEHAT' : 'KONDISI WASPADA'}**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) Bulanan harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
+  return `#### **1. Ringkasan Eksekutif Ketahanan Pangan**
+Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **${isBalitaAman && isCvGood ? 'AMAN' : 'WASPADA'}**. Nilai skor Pola Pangan Harapan (PPH) Konsumsi saat ini berada di angka **${pphScore}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk ${isPphGood ? 'sudah melampaui' : 'mendekati'} standar ideal nasional. Koefisien Variasi (CV) Bulanan harga beras tercatat sebesar **${cvBeras}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon ${isCvGood ? 'dalam kondisi sangat stabil dan terkendali' : 'menunjukkan fluktuasi musiman ringan'}.
 
-#### **2. Analisis Metodologis: Konsumsi vs Ketersediaan**
+#### **2. Analisis Metodologi Konsumsi vs Ketersediaan**
 Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi aktual masyarakat:
 - **Sektor Energi**: Ketersediaan energi tercatat sebesar **${ketersediaanEnergi} kkal/kapita/hari**, melampaui standar nasional (2.400 kkal). Hal ini mengindikasikan pasokan energi pangan makro di wilayah Cilegon sangat memadai untuk mendukung aktivitas fisik penduduk. Dari sisi konsumsi, serapan aktual berada di angka **${konsumsiEnergi} kkal/kapita/hari** (target minimal: 2.100 kkal).
 - **Sektor Protein**: Ketersediaan protein tercatat sebesar **${ketersediaanProtein} g/kapita/hari**, melampaui standar nasional (63 g). Konsumsi aktual protein tercatat sebesar **${konsumsiProtein} g/kapita/hari** (target minimal: 57 g). Tingginya angka protein ini mencerminkan kualitas asupan gizi hewani dan nabati yang baik di Kota Cilegon.
 
-#### **3. Stabilitas Harga & Aksesibilitas Pangan**
+#### **3. Stabilitas Harga & Aksesibilitas**
 Koefisien Variasi (CV) Bulanan harga beras di angka **${cvBeras}%** (di bawah ambang batas nasional 10%) membuktikan efektivitas rantai pasok lokal dan program penetrasi pasar. Harga rata-rata komoditas strategis tercatat sebagai berikut:
 - **Beras Medium**: Rp ${(hargaStrategis.beras || 0).toLocaleString('id-ID')}/kg
 - **Bawang Merah**: Rp ${(hargaStrategis.bawang_merah || 0).toLocaleString('id-ID')}/kg
@@ -303,27 +331,24 @@ Koefisien Variasi (CV) Bulanan harga beras di angka **${cvBeras}%** (di bawah am
 - **Gula Pasir**: Rp ${(hargaStrategis.gula_pasir || 0).toLocaleString('id-ID')}/kg
 - **Minyak Goreng**: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
-Angka-angka ini mencerminkan stabilitas harga komoditas strategis utama di Kota Cilegon. Meskipun terjadi dinamika harga musiman pada komoditas hortikultura (cabai dan bawang), bahan pangan pokok hewani dan nabati utama tetap dalam jangkauan pasar masyarakat.
+Angka-angka ini mencerminkan stabilitas harga komoditas strategis utama di Kota Cilegon. Meskipun terjadi dinamika harga musiman pada komoditas hortikultura (cabai dan bawang), bahan pangan pokok hewani dan nabati utama tetap dalam jangkauan daya beli masyarakat.
 
-#### **4. Outlook Harga Pangan Strategis 1 dan 3 Bulan**
+#### **4. Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**
 Berdasarkan peramalan Machine Learning (*Walk-Forward Validation Engine*) dan evaluasi Early Warning System (EWS):
-- **Proyeksi +1 Bulan (+1M)**: Sebagian besar komoditas pangan pokok diproyeksikan stabil dengan fluktuasi harga di bawah 3%. Komoditas hortikultura (Cabai Merah & Bawang Merah) teridentifikasi memerlukan perhatian khusus akibat potensi dinamika pasokan antar daerah.
-- **Proyeksi +3 Bulan (+3M)**: Estimasi harga beras medium berada pada rentang Rp 13.500–Rp 13.800/kg. Indikator EWS mengklasifikasikan kesiapsiagaan pangan secara umum pada kategori **AMAN s.d. WASPADA SEDANG**.
-- **Langkah-Langkah Mitigasi Risiko**:
-  1. **Gerakan Pangan Murah (GPM)**: Pelaksanaan pasar murah berkala serta penyaluran beras SPHP Bulog di kelurahan dengan kerentanan prioritas.
-  2. **Fasilitasi Distribusi Pangan (FDP)**: Mobilisasi pasokan langsung dari daerah surplus mitra (misal Brebes/Garut) dengan subsidi transportasi untuk menjaga keterjangkauan daya beli.
-  3. **Pemantauan Harian EWS Real-Time**: Integrasi pemantauan harga harian SAGON untuk pencegahan awal anomali harga di tingkat pengecer.
+- **Proyeksi +1 Bulan (+1M)**: Sebagian besar komoditas pangan pokok diproyeksikan stabil dengan fluktuasi harga di bawah 3%. Komoditas hortikultura (Cabai Rawit, Cabai Merah, dan Bawang Merah) teridentifikasi memerlukan kewaspadaan EWS aktif terhadap potensi dinamika pasokan antar daerah.
+- **Proyeksi +3 Bulan (+3M)**: Estimasi harga beras medium berada pada rentang Rp 13.500–Rp 13.850/kg dengan stabilisasi harga pada mayoritas komoditas strategis. Indikator EWS mengklasifikasikan kesiapsiagaan pangan secara umum pada kategori **AMAN s.d. WASPADA TERKENDALI**.
+- **Langkah-Langkah Mitigasi Risiko**: Penguatan pemantauan harga harian SAGON di tingkat pengecer, koordinasi stok distributor menjelang periode puncak permintaan, serta kesiapan operasi pasar terpadu pada titik rawan gejolak harga.
 
-#### **5. Profil Kerawanan & Kesehatan Balita**
-Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.status}** dengan total **${balitaStatus.total.toLocaleString('id-ID')} balita** yang diukur. Distribusinya adalah:
-- **Normal**: ${balitaStatus.normal.toLocaleString('id-ID')} balita (${((balitaStatus.normal / balitaStatus.total) * 100).toFixed(1)}%)
-- **Gizi Lebih**: ${balitaStatus.lebih.toLocaleString('id-ID')} balita (${((balitaStatus.lebih / balitaStatus.total) * 100).toFixed(1)}%)
-- **Gizi Kurang / Buruk**: ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita (${(((balitaStatus.kurang + balitaStatus.sangatKurang) / balitaStatus.total) * 100).toFixed(1)}%)
+#### **5. Kondisi Gizi Balita**
+Status gizi balita Kota Cilegon diklasifikasikan pada tingkat **${balitaStatus.status}** dengan total **${balitaStatus.total.toLocaleString('id-ID')} balita** yang dipantau. Distribusinya adalah:
+- **Normal**: ${balitaStatus.normal.toLocaleString('id-ID')} balita (${((balitaStatus.normal / (balitaStatus.total || 1)) * 100).toFixed(1)}%)
+- **Gizi Lebih**: ${balitaStatus.lebih.toLocaleString('id-ID')} balita (${((balitaStatus.lebih / (balitaStatus.total || 1)) * 100).toFixed(1)}%)
+- **Gizi Kurang & Sangat Kurang**: ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita (${(((balitaStatus.kurang + balitaStatus.sangatKurang) / (balitaStatus.total || 1)) * 100).toFixed(1)}%)
 
-Meskipun klasifikasi umum adalah **AMAN**, keberadaan ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita dengan indikasi gizi kurang/buruk memerlukan intervensi gizi terarah pada lokus-lokus prioritas kerawanan pangan.
+Meskipun mayoritas balita berada pada status gizi normal, keberadaan ${(balitaStatus.kurang + balitaStatus.sangatKurang).toLocaleString('id-ID')} balita dengan status gizi kurang dan sangat kurang tetap memerlukan intervensi pendampingan gizi keluarga serta pemberian makanan tambahan (PMT) berbasis pangan lokal bergizi tinggi pada lokus-lokus prioritas.
 
-#### **6. Rekomendasi Kebijakan Dinas Ketahanan Pangan**
-1. **Fasilitasi Distribusi Pangan (FDP)**: Salurkan subsidi ongkos angkut untuk mobilisasi bahan pangan strategis (seperti cabai dan bawang) dari daerah surplus mitra langsung ke pasar Kota Cilegon. Secara komparatif, program FDP terbukti lebih efisien menekan harga konsumen dan menstabilkan pasokan daripada subsidi harga tunai.
-2. **Gerakan Pangan Murah (GPM) Terarah**: Gencarkan pelaksanaan pasar murah dan perluas kemitraan kios pangan SPHP Bulog dengan fokus di kelurahan rentan pangan berdasarkan peta FSVA, yang secara komparatif terbukti lebih tepat sasaran bagi masyarakat rentan.
-3. **Kerja Sama Antar Daerah (KAD)**: Aktifkan kontrak pasokan pangan langsung jangka menengah dengan daerah produsen (seperti Brebes untuk bawang merah, Sleman untuk cabai) guna menghindari rantai spekulan dan menjamin kelancaran jalur distribusi.`;
+#### **6. Rekomendasi Kebijakan & Intervensi**
+1. **Fasilitasi Distribusi Pangan (FDP)**: Salurkan bantuan ongkos angkut untuk mobilisasi pasokan pangan strategis (khususnya cabai, bawang merah, dan komoditas bergejolak) dari daerah surplus mitra (seperti Brebes/Garut) langsung ke pasar Kota Cilegon guna menekan harga di tingkat konsumen secara lebih efisien dibandingkan subsidi harga langsung.
+2. **Gerakan Pangan Murah (GPM) & Kios Pangan SPHP Bulog**: Gencarkan pelaksanaan Gerakan Pangan Murah (GPM) dan perluas jangkauan kios pangan SPHP Bulog yang menyasar kelurahan dengan tingkat kerawanan prioritas berdasarkan peta FSVA/SKPG, sehingga intervensi lebih tepat sasaran bagi masyarakat berpenghasilan rendah.
+3. **Kerja Sama Antar Daerah (KAD)**: Perkuat kontrak Kerja Sama Antar Daerah (KAD) dengan daerah produsen utama pangan strategis untuk menjamin kepastian pasokan jangka menengah dan meredam risiko spekulasi pasar.`;
 }

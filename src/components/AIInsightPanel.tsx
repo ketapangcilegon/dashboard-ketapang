@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Copy, Check, Loader2, Download, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
+import { Copy, Check, Loader2, Lightbulb, RefreshCw } from 'lucide-react';
 
 interface AIInsightPanelProps {
   year: number;
@@ -39,26 +39,63 @@ interface AIInsightPanelProps {
   isFullScreen?: boolean;
 }
 
-const getHeuristicInsightText = (pph: number, cv: number, ketEnergi: number, konEnergi: number, ketProt: number, konProt: number) => {
+const isInsightCompleteClient = (text?: string | null): boolean => {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 550) return false;
+  const hasFinalSection =
+    /Rekomendasi Kebijakan/i.test(trimmed) &&
+    (/Kerja Sama Antar Daerah|\bKAD\b/i.test(trimmed) || /Gerakan Pangan Murah|\bGPM\b/i.test(trimmed) || /Program Intervensi/i.test(trimmed));
+  const endsCleanly = /[.!?%*)"']$/.test(trimmed);
+  return hasFinalSection && endsCleanly;
+};
+
+const getHeuristicInsightText = (
+  pph: number,
+  cv: number,
+  ketEnergi: number,
+  konEnergi: number,
+  ketProt: number,
+  konProt: number,
+  balita?: AIInsightPanelProps['balitaStatus'],
+  harga?: AIInsightPanelProps['hargaStrategis']
+) => {
   const pphVal = pph || 95;
-  const cvVal = cv || 0.74;
+  const cvVal = cv || 0.9;
   const keVal = ketEnergi || 2582;
-  const konEVal = konEnergi || 2150;
+  const konEVal = konEnergi || 2062.89;
   const kpVal = ketProt || 85;
-  const konPVal = konProt || 62.5;
+  const konPVal = konProt || 61.71;
+  const bNormal = balita?.normal ?? 25044;
+  const bLebih = balita?.lebih ?? 1064;
+  const bKurangTotal = (balita?.sangatKurang ?? 58) + (balita?.kurang ?? 268);
+  const bStatus = balita?.status || 'AMAN';
 
-  return `### 1. Ringkasan Eksekutif
-Berdasarkan pemindaian data real-time, status ketahanan pangan Kota Cilegon berada pada kategori **KONDISI AMAN & SEHAT**. Nilai skor PPH Konsumsi saat ini berada di angka **${pphVal}** dari target nasional (90), menunjukkan keragaman konsumsi pangan penduduk sudah melampaui standar ideal nasional. Koefisien Variasi (CV) Bulanan harga beras tercatat sebesar **${cvVal}%**, menandakan stabilitas pasokan pangan pokok utama di wilayah Cilegon dalam kondisi sangat stabil dan terkendali.
+  const hBeras = Math.round(harga?.beras || 13833).toLocaleString('id-ID');
+  const hCabeMerah = Math.round(harga?.cabe_merah || 55000).toLocaleString('id-ID');
+  const hCabeRawit = Math.round(harga?.cabe_rawit || 61667).toLocaleString('id-ID');
+  const hDagingSapi = Math.round(harga?.daging_sapi || 140000).toLocaleString('id-ID');
 
-### 2. Analisis Metodologis: Konsumsi vs Keterseidaan
-Terdapat korelasi yang sehat antara ketersediaan gizi di pasar dengan konsumsi aktual masyarakat:
-- **Sektor Energi**: Ketersediaan energi tercatat **${keVal} kkal/kapita/hari** (standar 2400 kkal), mendukung tingkat konsumsi aktual sebesar **${konEVal} kkal/kapita/hari**.
-- **Sektor Protein**: Ketersediaan protein sebesar **${kpVal} gram/kapita/hari** (standar 63 gram), mencukupi konsumsi protein penduduk sebesar **${konPVal} gram/kapita/hari**.
+  return `### 1. Ringkasan Eksekutif Ketahanan Pangan
+Kota Cilegon menunjukkan status **${bStatus === 'AMAN' && cvVal < 10 ? 'AMAN' : 'WASPADA'}** pada indikator ketahanan pangan secara keseluruhan. Skor Pola Pangan Harapan (PPH) sebesar **${pphVal}** melebihi target nasional (90), sementara ketersediaan energi dan protein berada pada kondisi surplus. Stabilitas harga beras sangat terkendali, namun beberapa komoditas pangan strategis hortikultura dan hewani menunjukkan dinamika harga yang perlu diantisipasi.
 
-### 3. Rekomendasi Kebijakan Strategis
-1. **Penguatan Cadangan Pangan**: Pertahankan stok beras pemerintah daerah (CPPD) pada level aman di atas target 115 Ton.
-2. **Pemantauan EWS**: Lakukan pemantauan berkala pada komoditas dengan volatilitas tinggi (cabai rawit & bawang merah) menjelang HBKN.
-3. **Program Intervensi Gizi**: Lanjutkan intervensi posyandu di kelurahan lokus stunting untuk menjaga status gizi balita tetap baik.`;
+### 2. Analisis Metodologi Konsumsi vs Ketersediaan
+- **Sektor Energi**: Konsumsi energi per kapita (**${konEVal} kkal/hari**) berada dekat dengan target nasional (2.100 kkal/hari) dan ditopang oleh ketersediaan energi pasar yang surplus (**${keVal} kkal/hari** dibanding standar 2.400 kkal/hari).
+- **Sektor Protein**: Konsumsi protein (**${konPVal} g/hari**) telah melampaui target nasional (57 g/hari) dengan dukungan ketersediaan protein yang sangat memadai (**${kpVal} g/hari** dibanding standar 63 g/hari), mengindikasikan kecukupan pangan makro secara kuantitas maupun kualitas gizi.
+
+### 3. Stabilitas Harga & Aksesibilitas
+Koefisien Variasi (CV) harga beras sebesar **${cvVal}%** menunjukkan stabilitas pasokan dan harga pokok utama yang sangat baik (jauh di bawah ambang batas nasional <10%, rata-rata beras medium Rp ${hBeras}/kg). Namun, harga beberapa komoditas strategis seperti cabai merah (Rp ${hCabeMerah}/kg), cabai rawit (Rp ${hCabeRawit}/kg), dan daging sapi (Rp ${hDagingSapi}/kg) terpantau cukup tinggi sehingga berpotensi memengaruhi aksesibilitas ekonomi rumah tangga.
+
+### 4. Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)
+Berdasarkan proyeksi *Machine Learning* (*Walk-Forward Validation Engine*), terdapat potensi fluktuasi harga pada komoditas cabai rawit, cabai merah, dan bawang merah dalam 1 bulan ke depan (+1M) yang memerlukan pemantauan aktif Early Warning System (EWS). Dalam horizon 3 bulan (+3M), model memproyeksikan stabilisasi harga pada mayoritas komoditas pokok, dengan langkah mitigasi berupa penguatan stok penyangga daerah dan pemantauan harian SAGON di tingkat pengecer.
+
+### 5. Kondisi Gizi Balita
+Mayoritas balita di Kota Cilegon berada pada kategori **Normal** (**${bNormal.toLocaleString('id-ID')} balita**) dan **Gizi Lebih** (**${bLebih.toLocaleString('id-ID')} balita**), sementara jumlah kumulatif balita dengan status gizi **Sangat Kurang dan Kurang** tercatat sebanyak **${bKurangTotal.toLocaleString('id-ID')} balita**. Kondisi ini menunjukkan ketahanan gizi makro yang terkendali (**${bStatus}**), namun tetap memerlukan intervensi pendampingan gizi keluarga dan Pemberian Makanan Tambahan (PMT) terarah di kelurahan lokus prioritas.
+
+### 6. Rekomendasi Kebijakan & Intervensi
+1. **Fasilitasi Distribusi Pangan (FDP)**: Mengoptimalkan bantuan ongkos angkut untuk mobilisasi pasokan pangan strategis dari daerah surplus produsen (seperti Brebes/Garut) ke pasar-pasar Kota Cilegon guna menekan harga konsumen secara lebih efisien dibandingkan subsidi harga langsung.
+2. **Gerakan Pangan Murah (GPM) & Kios Pangan SPHP Bulog**: Memperluas penyelenggaraan Gerakan Pangan Murah (GPM) dan distribusi beras SPHP Bulog yang menyasar kelurahan dengan kerentanan prioritas berdasarkan peta FSVA dan SKPG agar tepat sasaran bagi masyarakat berpenghasilan rendah.
+3. **Kerja Sama Antar Daerah (KAD)**: Memperkuat kontrak Kerja Sama Antar Daerah (KAD) dengan sentra produsen utama komoditas hortikultura dan hewani untuk menjamin kepastian pasokan jangka menengah serta meredam gejolak spekulasi pasar.`;
 };
 
 export default function AIInsightPanel({
@@ -78,8 +115,8 @@ export default function AIInsightPanel({
   loadingPrices,
   isFullScreen = false
 }: AIInsightPanelProps) {
-  const [insight, setInsight] = useState<string>(() => 
-    getHeuristicInsightText(pphScore, cvBeras, ketersediaanEnergi, konsumsiEnergi, ketersediaanProtein, konsumsiProtein)
+  const [insight, setInsight] = useState<string>(() =>
+    getHeuristicInsightText(pphScore, cvBeras, ketersediaanEnergi, konsumsiEnergi, ketersediaanProtein, konsumsiProtein, balitaStatus, hargaStrategis)
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -91,9 +128,18 @@ export default function AIInsightPanel({
   const hargaKey = useMemo(() => JSON.stringify(hargaStrategis || {}), [hargaStrategis]);
 
   const fetchInsightData = useCallback(async () => {
-    // Pastikan selalu ada teks heuristik instan agar UI tidak pernah kosong
-    setInsight(prev => prev || getHeuristicInsightText(pphScore, cvBeras, ketersediaanEnergi, konsumsiEnergi, ketersediaanProtein, konsumsiProtein));
-    
+    const fallbackFull = getHeuristicInsightText(
+      pphScore,
+      cvBeras,
+      ketersediaanEnergi,
+      konsumsiEnergi,
+      ketersediaanProtein,
+      konsumsiProtein,
+      balitaStatus,
+      hargaStrategis
+    );
+    setInsight(prev => (isInsightCompleteClient(prev) ? prev : fallbackFull));
+
     if (loadingPrices) return;
     setLoading(true);
 
@@ -119,12 +165,16 @@ export default function AIInsightPanel({
       });
 
       const data = await response.json();
-      if (response.ok && data?.insight) {
+      if (response.ok && data?.insight && isInsightCompleteClient(data.insight)) {
         setInsight(data.insight);
         setIsFallback(Boolean(data.isFallback));
+      } else {
+        setInsight(fallbackFull);
+        setIsFallback(true);
       }
     } catch (err) {
-      console.warn('[AIInsightPanel] Network error or timeout, retaining heuristic insight:', err);
+      console.warn('[AIInsightPanel] Network error or timeout, retaining complete heuristic insight:', err);
+      setInsight(fallbackFull);
       setIsFallback(true);
     } finally {
       setLoading(false);
@@ -143,7 +193,9 @@ export default function AIInsightPanel({
     produksiBeras,
     balitaKey,
     hargaKey,
-    loadingPrices
+    loadingPrices,
+    balitaStatus,
+    hargaStrategis
   ]);
 
   useEffect(() => {
@@ -211,13 +263,26 @@ export default function AIInsightPanel({
       const trimmed = line.trim();
 
       if (trimmed.startsWith('#')) {
-        const cleanTitle = trimmed.replace(/^#+\s*/, '');
+        const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/\*\*/g, '');
         return (
-          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3 mb-1.5'} font-extrabold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1`}>
+          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-extrabold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1`}>
             {cleanTitle}
           </h4>
         );
       }
+
+      // Deteksi judul segmen yang ditulis dengan **Judul:** atau Judul: pada satu baris penuh
+      const sectionHeaderMatch = trimmed.match(/^(?:[-*]\s*)?\*\*([^*]{4,95}?)\*\*:?\s*$/) ||
+        trimmed.match(/^(Ringkasan Eksekutif.*|Analisis Metodologi.*|Stabilitas Harga.*|Outlook Harga.*|Kondisi Gizi.*|Rekomendasi Kebijakan.*|LAPORAN ANALISIS EKSEKUTIF.*):?\s*$/i);
+      if (sectionHeaderMatch) {
+        const cleanHeader = (sectionHeaderMatch[1] || trimmed).replace(/:$/, '').replace(/\*\*/g, '').trim();
+        return (
+          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-extrabold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1`}>
+            {cleanHeader}
+          </h4>
+        );
+      }
+
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         const content = trimmed.substring(2);
         return (
@@ -231,7 +296,7 @@ export default function AIInsightPanel({
       if (numMatch) {
         const content = numMatch[2];
         return (
-          <div key={idx} className={`${isFullScreen ? 'text-[12px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
+          <div key={idx} className={`${isFullScreen ? 'text-[13px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
             <span className="font-extrabold text-blue-600 shrink-0">{numMatch[1]}.</span>
             <span>{parseBoldText(content)}</span>
           </div>
@@ -243,7 +308,7 @@ export default function AIInsightPanel({
   };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 h-auto">
       <div className="mb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-stretch gap-2.5">
@@ -296,7 +361,7 @@ export default function AIInsightPanel({
         )}
       </div>
 
-      <div className={`dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 overflow-hidden h-[600px] lg:h-auto ${isFullScreen ? 'min-h-0' : 'min-h-[300px]'}`}>
+      <div className="dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 h-auto min-h-[260px]">
         <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-blue-100/30 blur-2xl pointer-events-none z-0"></div>
 
         {insight && !loading && (
@@ -313,15 +378,15 @@ export default function AIInsightPanel({
           </button>
         )}
 
-        <div className="flex-1 relative overflow-hidden z-10 pt-2">
+        <div className="flex-1 relative z-10 pt-2 h-auto">
           {loading ? (
             <div className="w-full h-full flex flex-col items-center justify-center min-h-[220px]">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
               <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
             </div>
           ) : (
-            <div className={`w-full h-full overflow-y-auto pr-1 ${isFullScreen ? 'max-h-none' : 'max-h-[460px] lg:max-h-[240px]'} print:max-h-none print:overflow-visible print:h-auto custom-scrollbar text-left`}>
-              <div className="prose prose-sm max-w-none prose-slate pr-8">
+            <div className="w-full h-auto max-h-none overflow-visible pr-1 text-left">
+              <div className="prose prose-sm max-w-none prose-slate pr-6 sm:pr-8">
                 {renderMarkdown(
                   insight.replace(/\*?Catatan:\s*Indikator FSVA, KPI, IKP, dan POU.*?(panel harga harian\.\*?|harian\.)/gi, '').trim()
                 )}
