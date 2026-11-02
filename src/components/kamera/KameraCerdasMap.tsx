@@ -9,7 +9,7 @@ import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normat
 import { MapRefSetter, MoveZoomControl, FitBoundsControl } from '@/components/gis/MapHelpers';
 import LocateMe from '@/components/gis/LocateMe';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
-import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles } from 'lucide-react';
+import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles, Truck } from 'lucide-react';
 import {
   hitungKalibrasi,
   hitungEstimasiTahunan,
@@ -27,7 +27,7 @@ export interface KameraCerdasMapProps {
 }
 
 // Builder Icon Teardrop Tematik Serumpun Padi
-export const createKameraPinIcon = (record: ObservasiRecord) => {
+export const createKameraPinIcon = (record: ObservasiRecord, tonBadge?: string) => {
   const isPasokan = record.mode === 'pasokan_beras';
   
   let emoji = '📍';
@@ -44,6 +44,7 @@ export const createKameraPinIcon = (record: ObservasiRecord) => {
   }
 
   const size = 32;
+  const labelText = record.nama_lokasi || record.kategori_label || 'Titik Observasi';
 
   return L.divIcon({
     className: 'kamera-cerdas-pin',
@@ -54,7 +55,7 @@ export const createKameraPinIcon = (record: ObservasiRecord) => {
         
         <!-- Transparent Label with Sharp Text Shadow -->
         <div style="background:transparent;color:#ffffff;font-weight:900;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:3px;z-index:10;pointer-events:none;">
-          ${record.nama_lokasi || record.kategori_label || 'Titik Observasi'}
+          ${labelText}${tonBadge ? ` <span style="color:#67e8f9;">• ${tonBadge}</span>` : ''}
         </div>
 
         <!-- Teardrop Marker Pin -->
@@ -77,8 +78,9 @@ export default function KameraCerdasMap({
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
-  // Filters
+  // Filters & Mode Pasokan (default 'tahunan' = Estimasi Tahunan)
   const [filterMode, setFilterMode] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
+  const [modePasokan, setModePasokan] = useState<'tahunan' | 'terdata'>('tahunan');
   const [filterKecamatan, setFilterKecamatan] = useState<string>('semua');
   const [filterKelurahan, setFilterKelurahan] = useState<string>('semua');
   const [showOsm, setShowOsm] = useState<boolean>(false);
@@ -189,19 +191,53 @@ export default function KameraCerdasMap({
           )}
         </div>
 
-        {/* OSM Overlay Toggle Button */}
-        <button
-          onClick={() => setShowOsm(!showOsm)}
-          className={`px-3 py-2 rounded-xl backdrop-blur-md border text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 ${
-            showOsm
-              ? 'bg-emerald-600 text-white border-emerald-400'
-              : 'bg-white/90 text-slate-600 border-emerald-200 hover:text-emerald-800'
-          }`}
-          title="Tampilkan / Sembunyikan Overlay Jalan & Sungai"
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Overlay Jalan</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Toggle Mode Pasokan (Pasokan Terdata | Estimasi Tahunan) */}
+          <div
+            role="group"
+            aria-label="Mode Tampilan Tonase Pasokan"
+            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-full p-1 flex items-center gap-1 shadow-xl"
+          >
+            <button
+              type="button"
+              onClick={() => setModePasokan('terdata')}
+              className={`h-7 px-3 rounded-full text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                modePasokan === 'terdata'
+                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
+                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+              <span>Pasokan Terdata</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModePasokan('tahunan')}
+              className={`h-7 px-3 rounded-full text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                modePasokan === 'tahunan'
+                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
+                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+              <span>Estimasi Tahunan</span>
+            </button>
+          </div>
+
+          {/* OSM Overlay Toggle Button */}
+          <button
+            onClick={() => setShowOsm(!showOsm)}
+            className={`px-3 py-2 rounded-xl backdrop-blur-md border text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 ${
+              showOsm
+                ? 'bg-emerald-600 text-white border-emerald-400'
+                : 'bg-white/90 text-slate-600 border-emerald-200 hover:text-emerald-800'
+            }`}
+            title="Tampilkan / Sembunyikan Overlay Jalan & Sungai"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Overlay Jalan</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Leaflet Map */}
@@ -237,11 +273,25 @@ export default function KameraCerdasMap({
           {/* Markers Observasi Lapangan */}
           {filteredData.map((item, idx) => {
             if (!item.latitude || !item.longitude) return null;
+            let tonBadge: string | undefined;
+            if (item.mode === 'pasokan_beras') {
+              const est = hitungEstimasiTahunan(item, kalibrasi);
+              if (modePasokan === 'tahunan') {
+                tonBadge = est.tahunanTon >= 1
+                  ? `${est.tahunanTon.toLocaleString('id-ID', { maximumFractionDigits: 1 })} ton/thn`
+                  : `${Math.round(est.tahunanKg)} kg/thn`;
+              } else {
+                const kg = Number(item.estimasi_pasokan_kg || 0);
+                tonBadge = kg >= 1000
+                  ? `${(kg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} ton`
+                  : `${Math.round(kg)} kg`;
+              }
+            }
             return (
               <Marker
-                key={item.id || `kamera-obs-${idx}`}
+                key={`${item.id || `kamera-obs-${idx}`}-${modePasokan}`}
                 position={[Number(item.latitude), Number(item.longitude)]}
-                icon={createKameraPinIcon(item)}
+                icon={createKameraPinIcon(item, tonBadge)}
                 ref={(m) => {
                   if (m && item.id) markerRefs.current[item.id] = m;
                 }}
@@ -270,13 +320,13 @@ export default function KameraCerdasMap({
                       const est = hitungEstimasiTahunan(item, kalibrasi);
                       return (
                         <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-[11px]">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Stok Sesaat (AI):</span>
-                            <b className="text-blue-700">{(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
-                          </div>
-                          <div className="flex justify-between items-center border-t border-blue-200/70 pt-1">
+                          <div className="flex justify-between items-center">
                             <span className="text-slate-600">Estimasi / Tahun:</span>
                             <b className="text-indigo-700">{formatTonTahun(est.tahunanTon)}</b>
+                          </div>
+                          <div className="flex justify-between border-t border-blue-200/70 pt-1">
+                            <span className="text-slate-600">Pasokan Terdata (AI):</span>
+                            <b className="text-blue-700">{(item.estimasi_pasokan_kg || 0).toLocaleString('id-ID')} Kg</b>
                           </div>
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="text-slate-500">Metode:</span>

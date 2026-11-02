@@ -133,7 +133,7 @@ export default function KameraEstimasiTahunanTable({ records, kalibrasi, canEdit
         <thead>
           <tr className="bg-emerald-50 text-slate-500 text-[10px] uppercase tracking-wider">
             <th className="py-2 px-3 font-bold">Toko / Titik</th>
-            <th className="py-2 px-3 font-bold text-right">Stok AI</th>
+            <th className="py-2 px-3 font-bold text-right">Pasokan Terdata</th>
             <th className="py-2 px-3 font-bold">Frekuensi × Jumlah Pasokan (Manual)</th>
             <th className="py-2 px-3 font-bold text-right">Estimasi / Tahun</th>
             <th className="py-2 px-3 font-bold text-center">Sumber</th>

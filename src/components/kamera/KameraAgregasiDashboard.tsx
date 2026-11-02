@@ -209,7 +209,7 @@ export default function KameraAgregasiDashboard({
             {stats.totalPasokanTahunanTon.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-500">Ton/Thn</span>
           </div>
           <div className="text-[10px] text-amber-700 font-bold mt-0.5">
-            Stok sesaat (AI): {stats.totalPasokanTon} Ton • Manual: {ringkasanTahunan.jumlahManual} / AI: {ringkasanTahunan.jumlahAi} toko
+            Pasokan Terdata: {stats.totalPasokanTon} Ton • Manual: {ringkasanTahunan.jumlahManual} / AI: {ringkasanTahunan.jumlahAi} toko
           </div>
           <div className="flex items-center gap-2 mt-1 text-[10px]">
             <span className="text-emerald-700 font-bold">Lokal: {stats.persenLokal}%</span>
@@ -290,7 +290,7 @@ export default function KameraAgregasiDashboard({
               <tr className="border-b border-emerald-100 text-slate-500 text-[11px]">
                 <th className="py-2.5 px-3 font-bold">Kecamatan</th>
                 <th className="py-2.5 px-3 font-bold text-center">Sarana Beras</th>
-                <th className="py-2.5 px-3 font-bold text-right">Stok Sesaat (AI)</th>
+                <th className="py-2.5 px-3 font-bold text-right">Pasokan Terdata</th>
                 <th className="py-2.5 px-3 font-bold text-right">Estimasi Pasokan / Tahun</th>
                 <th className="py-2.5 px-3 font-bold text-center">Spot Tanaman</th>
                 <th className="py-2.5 px-3 font-bold text-right">Estimasi Produksi</th>

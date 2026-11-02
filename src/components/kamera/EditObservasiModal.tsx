@@ -135,7 +135,10 @@ export default function EditObservasiModal({
 
   const filteredAsalOptions = useMemo(() => {
     if (!searchAsal.trim()) return ASAL_PASOKAN_OPTIONS;
-    return ASAL_PASOKAN_OPTIONS.filter(opt => opt.toLowerCase().includes(searchAsal.toLowerCase()));
+    const matches = ASAL_PASOKAN_OPTIONS.filter(
+      (opt) => opt !== 'Lainnya (Manual)' && opt.toLowerCase().includes(searchAsal.toLowerCase())
+    );
+    return ['Lainnya (Manual)', ...matches];
   }, [searchAsal]);
 
   const handleKecamatanChange = (kec: string) => {

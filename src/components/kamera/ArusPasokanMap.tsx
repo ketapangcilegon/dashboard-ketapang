@@ -5,22 +5,26 @@ import dynamic from 'next/dynamic';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
-  Activity, ChevronDown, ChevronUp, Compass, Eye, EyeOff, Filter, Info, Loader2, Mail,
+  Activity, Calendar, ChevronDown, ChevronUp, Compass, Eye, EyeOff, Filter, Info, Loader2, Mail,
   RefreshCw, RotateCcw, Store, Truck, X, AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Plus, Minus
 } from 'lucide-react';
 import type { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
 import { SARANA_DISTRIBUSI_LIST } from '@/lib/kamera-normatif';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
+import { supabase } from '@/lib/supabase';
+import type { WilayahRef } from '@/lib/wilayah-indonesia';
 import {
   ASAL_NODES, CILEGON_HUB, FILTER_AWAL, bangunArus, formatTon, getEnumerator, jenisSumber,
   klasifikasiAsal,
-  type ArusFilter, type ArusFlow, type FilterArah, type FilterPeriode, type FilterSumber
+  type ArusFilter, type ArusFlow, type FilterArah, type FilterPeriode, type FilterSumber, type ModePasokanPeta
 } from '@/lib/arusPasokan';
 import {
   hitungEstimasiTahunan,
+  hitungKalibrasi,
   formatTonTahun,
-  LABEL_SUMBER
+  LABEL_SUMBER,
+  type Kalibrasi
 } from '@/lib/estimasi-pasokan';
 
 // Dynamic import react-leaflet components to ensure zero SSR mismatch
@@ -171,7 +175,12 @@ function waktu(iso?: string): string {
 // Custom Leaflet Pin Icon untuk Sarana Toko Beras (Diperkecil)
 function createSaranaPinIcon(namaLokasi: string, kg: number, isSelected = false) {
   const size = isSelected ? 20 : 15;
-  const tonText = kg > 0 ? (kg >= 1000 ? `${(kg / 1000).toFixed(1)}t` : `${kg}kg`) : '';
+  const tonText =
+    kg > 0
+      ? kg >= 1000
+        ? `${(kg / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} ton`
+        : `${Math.round(kg)} kg`
+      : '';
   return L.divIcon({
     className: 'sarana-beras-pin',
     html: `
@@ -180,7 +189,7 @@ function createSaranaPinIcon(namaLokasi: string, kg: number, isSelected = false)
         <div style="position:absolute;width:${size + 8}px;height:${size + 8}px;background:rgba(255,196,64,0.3);border-radius:50%;top:calc(100% - ${size / 2}px);left:50%;transform:translate(-50%, -50%);pointer-events:none;animation:pulse 2s infinite;"></div>
         
         <!-- Label Nama Toko (Tanpa Kotak Background, Stroke Tipis Jelas) -->
-        <div style="background:transparent;color:#ffdc73;font-weight:900;font-size:8.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:2px;pointer-events:none;letter-spacing:0.1px;max-width:115px;overflow:hidden;text-overflow:ellipsis;">
+        <div style="background:transparent;color:#ffdc73;font-weight:900;font-size:8.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #04101f,1px -1px 0 #04101f,-1px 1px 0 #04101f,1px 1px 0 #04101f;white-space:nowrap;margin-bottom:2px;pointer-events:none;letter-spacing:0.1px;max-width:135px;overflow:hidden;text-overflow:ellipsis;">
           ${namaLokasi} ${tonText ? `• ${tonText}` : ''}
         </div>
 
@@ -242,6 +251,41 @@ const selectCls = 'w-full bg-[#0c2640] border border-cyan-300/25 rounded-lg px-2
 export default function ArusPasokanMap({ observasiList = [], loaded = true, error = null, onRefresh }: ArusPasokanMapProps) {
   const mapInstanceRef = useRef<L.Map | null>(null);
 
+  // Mode tampilan tonase di peta: default 'tahunan' (Estimasi Tahunan), dapat ditoggle ke 'terdata' (Pasokan Terdata)
+  const [modePasokan, setModePasokan] = useState<ModePasokanPeta>('tahunan');
+
+  // Referensi koordinat GPS Kabupaten/Kota & Provinsi dari tabel Supabase (opsional, melengkapi 308 wilayah built-in)
+  const [extraWilayah, setExtraWilayah] = useState<WilayahRef[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadWilayahKoordinat() {
+      try {
+        const { data, error: dbErr } = await supabase
+          .from('wilayah_koordinat_indonesia')
+          .select('*');
+        if (!dbErr && data && active && data.length > 0) {
+          const mapped: WilayahRef[] = data.map((row: any) => ({
+            kode: String(row.kode || ''),
+            nama: String(row.nama || ''),
+            tipe: (row.tipe === 'provinsi' || row.tipe === 'kota' ? row.tipe : 'kabupaten') as WilayahRef['tipe'],
+            provinsi: String(row.provinsi || ''),
+            lat: Number(row.latitude ?? row.lat),
+            lng: Number(row.longitude ?? row.lng),
+            aliases: Array.isArray(row.aliases) ? row.aliases : [],
+          }));
+          setExtraWilayah(mapped);
+        }
+      } catch {
+        // Fallback otomatis ke DAFTAR_WILAYAH_INDONESIA lokal
+      }
+    }
+    loadWilayahKoordinat();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Filter & tampilan
   const [filter, setFilter] = useState<ArusFilter>(FILTER_AWAL);
   const [tampilSarana, setTampilSarana] = useState(true);
@@ -282,10 +326,32 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
   const hub: [number, number] = CILEGON_HUB;
 
-  // Agregasi arus dari data Kamera Cerdas (7 toko beras otomatis terolah)
-  const hasil = useMemo(() => bangunArus(observasiList, filter, hub), [observasiList, filter, hub]);
+  // Kalibrasi rasio pasokan tahunan lintas sampel
+  const kalibrasi = useMemo(() => hitungKalibrasi(observasiList), [observasiList]);
+
+  // Agregasi arus dari data Kamera Cerdas sesuai modePasokan ('tahunan' vs 'terdata') dan koordinat GPS wilayah Indonesia
+  const hasil = useMemo(
+    () => bangunArus(observasiList, filter, hub, { modePasokan, kalibrasi, extraWilayah }),
+    [observasiList, filter, hub, modePasokan, kalibrasi, extraWilayah]
+  );
   const semuaPasokan = useMemo(() => observasiList.filter((r) => r.mode === 'pasokan_beras').length, [observasiList]);
   const maxKg = useMemo(() => hasil.flows.reduce((m, f) => Math.max(m, f.volumeKg), 0), [hasil.flows]);
+
+  // Sinkronisasi selectedFlow saat user mengganti toggle modePasokan
+  const activeSelectedFlow = useMemo(() => {
+    if (!selectedFlow) return null;
+    return hasil.flows.find((f) => f.id === selectedFlow.id) || selectedFlow;
+  }, [selectedFlow, hasil.flows]);
+
+  // Gabungkan daftar opsi wilayah asal untuk filter dropdown (termasuk Kab/Kota dinamis yang aktif)
+  const opsiWilayahAsal = useMemo(() => {
+    const map = new Map<string, string>();
+    hasil.activeOriginNodes.forEach((n) => map.set(n.id, n.label));
+    ASAL_NODES.forEach((n) => {
+      if (!map.has(n.id)) map.set(n.id, n.label);
+    });
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [hasil.activeOriginNodes]);
 
   // Pra-kalkulasi geometri garis rute hairline presisi dan tanda panah arah aliran
   const busurList = useMemo(() => {
@@ -462,10 +528,10 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             );
           })}
 
-          {/* 2) Simpul Asal Wilayah Pemasok (Jawa Barat, DKI Jakarta, Serang) */}
+          {/* 2) Simpul Asal Wilayah Pemasok (Kabupaten/Kota & Provinsi Se-Indonesia) */}
           {hasil.flows.map((f) => (
             <Marker
-              key={`asal-${f.id}`}
+              key={`asal-${f.id}-${modePasokan}`}
               position={[f.sumber[1], f.sumber[0]]}
               icon={createAsalPinIcon(f.asal.label, f.volumeKg)}
               eventHandlers={{
@@ -481,7 +547,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                 autoPanPadding={[20, 90]}
                 className="arus-asal-popup"
               >
-                <div className="p-2.5 min-w-[200px] text-white font-sans">
+                <div className="p-2.5 min-w-[215px] text-white font-sans">
                   <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 block mb-0.5">
                     Wilayah Asal Pasokan
                   </span>
@@ -490,8 +556,20 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                   </h4>
                   <div className="bg-[#0c2640]/90 border border-cyan-300/25 rounded-xl p-2 space-y-1 text-[11px] mb-2.5">
                     <div className="flex justify-between items-center">
-                      <span className="text-cyan-200/80 font-medium text-[10px]">Volume Aliran:</span>
-                      <b className="text-cyan-200 font-black">{formatTon(f.volumeKg)}</b>
+                      <span className="text-cyan-200/80 font-medium text-[10px]">
+                        {modePasokan === 'tahunan' ? 'Estimasi Tahunan:' : 'Pasokan Terdata:'}
+                      </span>
+                      <b className="text-cyan-200 font-black">
+                        {modePasokan === 'tahunan' ? formatTon(f.volumeTahunanKg, 'ton/thn') : formatTon(f.volumeTerdataKg)}
+                      </b>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">
+                        {modePasokan === 'tahunan' ? 'Pasokan Terdata:' : 'Estimasi Tahunan:'}
+                      </span>
+                      <span className="text-emerald-300 font-bold">
+                        {modePasokan === 'tahunan' ? formatTon(f.volumeTerdataKg) : formatTon(f.volumeTahunanKg, 'ton/thn')}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-[10px]">
                       <span className="text-slate-400">Sarana Terlibat:</span>
@@ -516,17 +594,20 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
           {/* 3) Simpul Hub Sentral Kota Cilegon */}
           <Marker position={[hub[1], hub[0]]} icon={createHubPinIcon()} />
 
-          {/* 4) Pin Sarana Toko Beras Terverifikasi Lapangan (7 Toko) */}
+          {/* 4) Pin Sarana Toko Beras Terverifikasi Lapangan */}
           {tampilSarana &&
             validSaranaList.map((rec, i) => {
               const isSelected = selectedSarana?.id === rec.id;
-              const kg = Number(rec.estimasi_pasokan_kg || 0);
+              const est = hitungEstimasiTahunan(rec, kalibrasi);
+              const kgTerdata = Number(rec.estimasi_pasokan_kg || 0);
+              const kgTahunan = Math.round(est.tahunanKg);
+              const activeKg = modePasokan === 'tahunan' ? kgTahunan : kgTerdata;
               const nama = rec.nama_lokasi || rec.kategori_label || `Toko #${i + 1}`;
               return (
                 <Marker
-                  key={rec.id || `sarana-${i}`}
+                  key={`${rec.id || `sarana-${i}`}-${modePasokan}`}
                   position={[Number(rec.latitude), Number(rec.longitude)]}
-                  icon={createSaranaPinIcon(nama, kg, isSelected)}
+                  icon={createSaranaPinIcon(nama, activeKg, isSelected)}
                   eventHandlers={{
                     click: () => {
                       setSelectedSarana(rec);
@@ -540,7 +621,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                     autoPanPadding={[20, 90]}
                     className="arus-sarana-popup"
                   >
-                    <div className="p-2.5 min-w-[210px] max-w-[260px] text-white font-sans">
+                    <div className="p-2.5 min-w-[215px] max-w-[265px] text-white font-sans">
                       <div className="flex items-start justify-between gap-2 border-b border-cyan-300/20 pb-1.5 mb-2">
                         <div className="min-w-0 pr-3">
                           <span className="text-[9px] font-black uppercase tracking-wider text-amber-300 block">
@@ -553,25 +634,18 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
                       </div>
 
                       <div className="bg-[#0c2640]/90 border border-cyan-300/25 rounded-xl p-2 space-y-1 text-[11px] mb-2.5 shadow-inner">
-                        <div className="flex justify-between items-center">
-                          <span className="text-cyan-200/80 font-medium text-[10px]">Stok Sesaat (AI):</span>
-                          <b className="text-amber-300 font-black">{kg > 0 ? formatTon(kg) : 'Stok tercatat'}</b>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-cyan-200/80 font-medium">Estimasi Tahunan:</span>
+                          <b className="text-emerald-300 font-black">{formatTonTahun(est.tahunanTon)}</b>
                         </div>
-                        {(() => {
-                          const est = hitungEstimasiTahunan(rec);
-                          return (
-                            <>
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-cyan-200/80 font-medium">Pasokan / Tahun:</span>
-                                <b className="text-emerald-300 font-black">{formatTonTahun(est.tahunanTon)}</b>
-                              </div>
-                              <div className="flex justify-between items-center text-[9.5px]">
-                                <span className="text-slate-400">Sumber:</span>
-                                <span className="text-cyan-100 font-bold">{LABEL_SUMBER[est.sumber]}{est.perluVerifikasi ? ' ⚠️' : ''}</span>
-                              </div>
-                            </>
-                          );
-                        })()}
+                        <div className="flex justify-between items-center">
+                          <span className="text-cyan-200/80 font-medium text-[10px]">Pasokan Terdata:</span>
+                          <b className="text-amber-300 font-black">{kgTerdata > 0 ? formatTon(kgTerdata) : 'Stok tercatat'}</b>
+                        </div>
+                        <div className="flex justify-between items-center text-[9.5px]">
+                          <span className="text-slate-400">Sumber:</span>
+                          <span className="text-cyan-100 font-bold">{LABEL_SUMBER[est.sumber]}{est.perluVerifikasi ? ' ⚠️' : ''}</span>
+                        </div>
                         <div className="flex justify-between items-center text-[10px]">
                           <span className="text-slate-400">Kelurahan:</span>
                           <span className="text-cyan-50 font-bold">{rec.kelurahan}</span>
@@ -603,7 +677,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
       </div>
 
       {/* ── Kiri atas: Judul + KPI Card ── */}
-      <div className="absolute top-3 left-3 right-20 sm:right-auto sm:w-[340px] z-10 pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 sm:right-auto sm:w-[340px] z-10 pointer-events-none">
         <div className={`${glass} rounded-2xl pointer-events-auto overflow-hidden`}>
           <button
             type="button"
@@ -617,7 +691,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <div className="min-w-0 flex-1">
               <div className="text-xs font-black tracking-wide text-white truncate">Peta Arus Pasokan & Distribusi Beras</div>
               <div className="text-[10px] font-semibold text-cyan-200/80 truncate">
-                {formatTon(kpi.totalKg)} • {kpi.totalSarana} sarana • {kpi.wilayahPemasok} wilayah pemasok
+                {formatTon(kpi.totalKg, modePasokan === 'tahunan' ? 'ton/thn' : 'ton')} • {kpi.totalSarana} sarana • {kpi.wilayahPemasok} wilayah pemasok
               </div>
             </div>
             <span className="text-cyan-300 p-1">{kpiTerbuka ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</span>
@@ -627,9 +701,21 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <div className="p-3 pt-0 space-y-2 border-t border-cyan-300/10">
               <div className="grid grid-cols-2 gap-1.5 pt-2">
                 <Kpi label="Sarana Distribusi Terdata" nilai={`${kpi.totalSarana}`} satuan="titik" aksen="text-amber-300" />
-                <Kpi label="Estimasi Pasokan Tercatat" nilai={formatTon(kpi.totalKg)} aksen="text-cyan-200" />
-                <Kpi label="Arus Masuk Tervalidasi Petugas" nilai={kpi.masukTervalidasiKg !== null ? formatTon(kpi.masukTervalidasiKg) : '0 ton'} aksen="text-emerald-300" />
-                <Kpi label="Arus Keluar Terverifikasi" nilai={null} catatan="Data tujuan keluar belum dicatat" aksen="text-slate-400" />
+                <Kpi
+                  label={modePasokan === 'tahunan' ? 'Estimasi Pasokan Tahunan' : 'Pasokan Terdata'}
+                  nilai={formatTon(kpi.totalKg, modePasokan === 'tahunan' ? 'ton/thn' : 'ton')}
+                  aksen="text-cyan-200"
+                />
+                <Kpi
+                  label="Arus Masuk Tervalidasi Petugas"
+                  nilai={kpi.masukTervalidasiKg !== null ? formatTon(kpi.masukTervalidasiKg, modePasokan === 'tahunan' ? 'ton/thn' : 'ton') : '0 ton'}
+                  aksen="text-emerald-300"
+                />
+                <Kpi
+                  label={modePasokan === 'tahunan' ? 'Total Pasokan Terdata' : 'Total Estimasi Tahunan'}
+                  nilai={modePasokan === 'tahunan' ? formatTon(kpi.totalTerdataKg, 'ton') : formatTon(kpi.totalTahunanKg, 'ton/thn')}
+                  aksen="text-teal-300"
+                />
                 <Kpi
                   label="Lokal : Luar Cilegon"
                   nilai={kpi.persenLokal !== null && kpi.persenLuar !== null ? `${kpi.persenLokal}% : ${kpi.persenLuar}%` : '-'}
@@ -644,14 +730,47 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
       </div>
 
-      {/* ── Kanan: Toolbar Kontrol Vertikal (Filter, Kompas, Zoom In, Zoom Out, Refresh, Sarana, Animasi) ── */}
-      <div className="absolute top-16 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
-        <div className="flex flex-col items-end gap-1.5 pointer-events-auto">
+      {/* ── Kanan Atas: Toggle Mode Pasokan (Pasokan Terdata | Estimasi Tahunan) + Toolbar Kontrol Vertikal ── */}
+      <div className="absolute top-[68px] sm:top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
+        {/* Baris Atas: Pill Toggle Mode Pasokan + Tombol Filter */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Toggle Kapsul sesuai Capture 2 */}
+          <div
+            role="group"
+            aria-label="Mode Tampilan Tonase Pasokan"
+            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-full p-1 flex items-center gap-1 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+          >
+            <button
+              type="button"
+              onClick={() => setModePasokan('terdata')}
+              className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[10.5px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                modePasokan === 'terdata'
+                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_16px_rgba(34,227,255,0.65),inset_0_0_10px_rgba(34,227,255,0.35)]'
+                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+              <span>Pasokan Terdata</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModePasokan('tahunan')}
+              className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[10.5px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                modePasokan === 'tahunan'
+                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_16px_rgba(34,227,255,0.65),inset_0_0_10px_rgba(34,227,255,0.35)]'
+                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+              <span>Estimasi Tahunan</span>
+            </button>
+          </div>
+
           {/* 1. Filter */}
           <button
             type="button"
             onClick={() => setFilterTerbuka((v) => !v)}
-            className={`${glass} h-9 px-2.5 rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-lg transition-all ${
+            className={`${glass} h-9 px-3 rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-lg transition-all ${
               filterAktif ? 'text-amber-200 border-amber-300/50 bg-amber-500/10' : 'text-cyan-100 hover:text-white hover:border-cyan-300/50'
             }`}
             aria-expanded={filterTerbuka}
@@ -659,7 +778,9 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <Filter className="w-3.5 h-3.5" />
             <span>Filter{filterAktif ? ' •' : ''}</span>
           </button>
+        </div>
 
+        <div className="flex flex-col items-end gap-1.5 pointer-events-auto">
           {/* 2. Kompas / Reset Kamera */}
           <button
             type="button"
@@ -740,7 +861,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
       {/* ── Panel Filter ── */}
       {filterTerbuka && (
-        <div className={`${glass} absolute z-20 rounded-2xl p-3.5 space-y-3 bottom-0 inset-x-0 rounded-b-none sm:rounded-b-2xl sm:bottom-auto sm:inset-x-auto sm:top-[104px] sm:right-3 sm:w-[300px] max-h-[70%] overflow-y-auto`}>
+        <div className={`${glass} absolute z-20 rounded-2xl p-3.5 space-y-3 bottom-0 inset-x-0 rounded-b-none sm:rounded-b-2xl sm:bottom-auto sm:inset-x-auto sm:top-[56px] sm:right-14 sm:w-[300px] max-h-[70%] overflow-y-auto`}>
           <div className="flex items-center justify-between">
             <h3 className="text-[12px] font-black text-white flex items-center gap-1.5"><Filter className="w-3.5 h-3.5 text-cyan-300" /> Filter Arus</h3>
             <button type="button" onClick={() => setFilterTerbuka(false)} aria-label="Tutup filter" className="p-1 rounded-lg hover:bg-white/10 text-slate-300 cursor-pointer"><X className="w-4 h-4" /></button>
@@ -768,7 +889,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
           <Field label="Wilayah Asal Pasokan">
             <select className={selectCls} value={filter.asal} onChange={(e) => ubahFilter({ asal: e.target.value })}>
               <option value="semua">Semua asal</option>
-              {ASAL_NODES.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {opsiWilayahAsal.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </Field>
 
@@ -806,14 +927,14 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
       </div>
 
       {/* ── Panel Detail (Ketika Sarana Toko Beras / Aliran Diklik) ── */}
-      {(selectedSarana || selectedFlow) && (
+      {(selectedSarana || activeSelectedFlow) && (
         <div className={`${glass} absolute z-20 bottom-0 inset-x-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:inset-x-auto sm:top-[180px] sm:right-3 sm:w-[320px] max-h-[60%] sm:max-h-[calc(100%-200px)] overflow-y-auto p-4 space-y-3`}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              {selectedFlow && (
+              {activeSelectedFlow && (
                 <>
                   <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-cyan-300"><ArrowDownToLine className="w-3 h-3" /> Arus Masuk</span>
-                  <h3 className="text-sm font-black text-white leading-tight">{selectedFlow.asal.label} → Kota Cilegon</h3>
+                  <h3 className="text-sm font-black text-white leading-tight">{activeSelectedFlow.asal.label} → Kota Cilegon</h3>
                 </>
               )}
               {selectedSarana && (
@@ -837,8 +958,8 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             </button>
           </div>
 
-          {selectedFlow && <DetailFlow f={selectedFlow} />}
-          {selectedSarana && <DetailSarana r={selectedSarana} />}
+          {activeSelectedFlow && <DetailFlow f={activeSelectedFlow} modePasokan={modePasokan} />}
+          {selectedSarana && <DetailSarana r={selectedSarana} kalibrasi={kalibrasi} extraWilayah={extraWilayah} />}
         </div>
       )}
 
@@ -912,18 +1033,24 @@ function Baris({ k, v }: { k: string; v: React.ReactNode }) {
   );
 }
 
-function DetailFlow({ f }: { f: ArusFlow }) {
+function DetailFlow({ f, modePasokan }: { f: ArusFlow; modePasokan: ModePasokanPeta }) {
   const maxKec = f.perKecamatan[0]?.kg || 1;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
-        <Kpi label="Estimasi Pasokan" nilai={formatTon(f.volumeKg)} aksen="text-cyan-200" />
+        <Kpi
+          label={modePasokan === 'tahunan' ? 'Estimasi Tahunan' : 'Pasokan Terdata'}
+          nilai={formatTon(f.volumeKg, modePasokan === 'tahunan' ? 'ton/thn' : 'ton')}
+          aksen="text-cyan-200"
+        />
         <Kpi label="Sarana Terlibat" nilai={`${f.jumlahSarana}`} satuan="titik" aksen="text-amber-300" />
       </div>
       <div className="space-y-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5">
         <Baris k="Komoditas" v="Beras" />
         <Baris k="Asal" v={f.asal.label} />
         <Baris k="Tujuan" v="Kota Cilegon" />
+        <Baris k="Estimasi Tahunan" v={formatTon(f.volumeTahunanKg, 'ton/thn')} />
+        <Baris k="Pasokan Terdata" v={formatTon(f.volumeTerdataKg)} />
         <Baris k="Jarak perkiraan" v={`± ${Math.round(f.jarakKm)} km`} />
         <Baris k="Pencatatan terakhir" v={waktu(f.terakhir)} />
         <Baris
@@ -937,7 +1064,9 @@ function DetailFlow({ f }: { f: ArusFlow }) {
       </div>
 
       <div className="space-y-1.5">
-        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sebaran kecamatan sarana</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          Sebaran kecamatan sarana ({modePasokan === 'tahunan' ? 'Tahunan' : 'Terdata'})
+        </div>
         {f.perKecamatan.slice(0, 5).map((k) => (
           <div key={k.kecamatan} className="space-y-0.5">
             <div className="flex justify-between text-[10.5px]"><span className="text-slate-200 font-semibold">{k.kecamatan}</span><span className="text-cyan-200 font-black">{formatTon(k.kg)}</span></div>
@@ -949,12 +1078,12 @@ function DetailFlow({ f }: { f: ArusFlow }) {
   );
 }
 
-function DetailSarana({ r }: { r: ObservasiRecord }) {
+function DetailSarana({ r, kalibrasi, extraWilayah }: { r: ObservasiRecord; kalibrasi?: Kalibrasi; extraWilayah?: WilayahRef[] }) {
   const en = getEnumerator(r);
-  const asal = klasifikasiAsal(r.asal_pasokan);
+  const asal = klasifikasiAsal(r.asal_pasokan, extraWilayah);
   const sarana = SARANA_DISTRIBUSI_LIST.find((s) => s.id === r.kategori);
   const sumber = jenisSumber(r);
-  const est = hitungEstimasiTahunan(r);
+  const est = hitungEstimasiTahunan(r, kalibrasi);
   const fotoOk = typeof r.foto_url === 'string' && (r.foto_url.startsWith('data:image') || r.foto_url.startsWith('http'));
   return (
     <div className="space-y-3">
@@ -965,8 +1094,8 @@ function DetailSarana({ r }: { r: ObservasiRecord }) {
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <Kpi label="Pasokan / Tahun" nilai={formatTonTahun(est.tahunanTon)} aksen="text-emerald-300" />
-        <Kpi label="Stok Sesaat (AI)" nilai={formatTon(Number(r.estimasi_pasokan_kg) > 0 ? Number(r.estimasi_pasokan_kg) : null)} aksen="text-cyan-200" />
+        <Kpi label="Estimasi Tahunan" nilai={formatTonTahun(est.tahunanTon)} aksen="text-emerald-300" />
+        <Kpi label="Pasokan Terdata" nilai={formatTon(Number(r.estimasi_pasokan_kg) > 0 ? Number(r.estimasi_pasokan_kg) : null)} aksen="text-cyan-200" />
       </div>
       <div className="space-y-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5">
         <Baris k="Jenis Sarana" v={sarana?.label || r.kategori_label || 'Toko Beras'} />

@@ -164,10 +164,13 @@ export default function KonfirmasiPasokanModal({
   const totalTahunanKg = Math.round(frekPerTahun * volKgPerKirim);
   const totalTahunanTon = Number((totalTahunanKg / 1000).toFixed(2));
 
-  // Filtered Asal Options
+  // Filtered Asal Options (Lainnya (Manual) selalu di deret paling atas)
   const filteredAsalOptions = useMemo(() => {
     if (!searchAsal.trim()) return ASAL_PASOKAN_OPTIONS;
-    return ASAL_PASOKAN_OPTIONS.filter(opt => opt.toLowerCase().includes(searchAsal.toLowerCase()));
+    const matches = ASAL_PASOKAN_OPTIONS.filter(
+      (opt) => opt !== 'Lainnya (Manual)' && opt.toLowerCase().includes(searchAsal.toLowerCase())
+    );
+    return ['Lainnya (Manual)', ...matches];
   }, [searchAsal]);
 
   // Bulk Density Beras Putih Standar SNI/Bulog: 0.80 kg/liter (1 Liter Beras ≈ 0.80 kg)

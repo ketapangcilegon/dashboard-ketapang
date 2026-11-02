@@ -3,26 +3,17 @@
  *
  * Sumber data tunggal: observasi Kamera Cerdas (`kamera_cerdas_observasi`) yang sama dengan
  * panel Agregasi Data Lapangan. Tidak ada dataset tambahan / hardcode volume.
- *
- * PRINSIP INTEGRITAS DATA
- *  - Satu rekaman `pasokan_beras` = ESTIMASI stok/pasokan pada satu sarana distribusi di Cilegon
- *    yang berasal dari wilayah tertentu (`asal_pasokan`, dipilih enumerator). Ini BUKAN bukti
- *    transaksi pengiriman. Karena itu di UI disebut "estimasi pasokan tercatat".
- *  - Titik asal hanya diketahui pada tingkat wilayah (kabupaten/provinsi). Koordinat simpul asal
- *    adalah TITIK REPRESENTATIF (centroid kasar wilayah pertama yang disebut pada pilihan asal),
- *    bukan lokasi pengiriman presisi.
- *  - Asal tanpa geografi (Bulog, "Tidak Diketahui / Campuran") TIDAK digambar sebagai busur.
- *    Volumenya ditampilkan terpisah sebagai "Asal belum teridentifikasi".
- *  - Sumber data tidak memuat tujuan distribusi keluar Cilegon, sehingga arus keluar
- *    ditampilkan "Belum tersedia" dan tidak direkayasa.
  */
 
 import type { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { cariKoordinatWilayah, type WilayahRef } from '@/lib/wilayah-indonesia';
+import { hitungEstimasiTahunan, hitungKalibrasi, type Kalibrasi } from '@/lib/estimasi-pasokan';
 
 export type ArahArus = 'masuk' | 'keluar';
 export type FilterArah = 'semua' | ArahArus;
 export type FilterPeriode = 'semua' | '7' | '30' | '90';
 export type FilterSumber = 'semua' | 'petugas' | 'enumerator';
+export type ModePasokanPeta = 'tahunan' | 'terdata';
 
 /** Titik hub Kota Cilegon (fallback bila centroid KMZ belum termuat). */
 export const CILEGON_HUB: [number, number] = [106.02, -6.0];
@@ -39,29 +30,75 @@ export interface AsalNode {
   pola: RegExp;
 }
 
-const METODE_KAB = 'Titik representatif pusat kabupaten (±10 km) — bukan lokasi pengiriman presisi';
-const METODE_PROV = 'Titik representatif centroid kasar provinsi — bukan lokasi pengiriman presisi';
+const METODE_KAB = 'Titik central GPS Kabupaten/Kota — disesuaikan otomatis dengan daerah asal';
+const METODE_PROV = 'Titik central GPS Provinsi — disesuaikan otomatis dengan daerah asal';
 
-/** Urutan penting: pola lebih spesifik lebih dahulu. */
+/** Simpul preset standar (digunakan bila input adalah opsi gabungan dropdown). */
 export const ASAL_NODES: AsalNode[] = [
-  { id: 'lokal', label: 'Kota Cilegon (Lokal)', metode: 'Pasokan lokal — tidak digambar sebagai busur', kategori: 'lokal', pola: /cilegon/ },
-  { id: 'bulog', label: 'Bulog / Cadangan Pangan Pemerintah', metode: 'Tidak memiliki lokasi asal tunggal', kategori: 'tak_teridentifikasi', pola: /bulog|cadangan pangan/ },
-  { id: 'serang', label: 'Kabupaten Serang', posisi: [106.15, -6.15], metode: METODE_KAB, kategori: 'luar', pola: /serang/ },
-  { id: 'pandeglang', label: 'Kabupaten Pandeglang', posisi: [106.11, -6.31], metode: METODE_KAB, kategori: 'luar', pola: /pandeglang/ },
-  { id: 'lebak', label: 'Kabupaten Lebak', posisi: [106.25, -6.36], metode: METODE_KAB, kategori: 'luar', pola: /lebak/ },
-  { id: 'tangerang', label: 'Kab. Tangerang / Karawang', posisi: [106.45, -6.17], metode: 'Titik representatif wilayah pertama yang disebut (Kab. Tangerang) — bukan lokasi pengiriman presisi', kategori: 'luar', pola: /tangerang|karawang/ },
-  { id: 'jateng', label: 'Jawa Tengah', posisi: [110.14, -7.15], metode: METODE_PROV, kategori: 'luar', pola: /jawa tengah|demak|sragen/ },
-  { id: 'jatim', label: 'Jawa Timur', posisi: [112.24, -7.54], metode: METODE_PROV, kategori: 'luar', pola: /jawa timur|ngawi/ },
-  { id: 'lampung', label: 'Lampung / Luar Jawa', posisi: [105.4, -4.55], metode: METODE_PROV, kategori: 'luar', pola: /lampung|luar jawa/ },
-  { id: 'tak_diketahui', label: 'Asal belum teridentifikasi', metode: 'Asal tidak diketahui / campuran', kategori: 'tak_teridentifikasi', pola: /tidak diketahui|campuran/ },
+  { id: 'lokal', label: 'Kota Cilegon (Lokal)', metode: 'Pasokan lokal — tidak digambar sebagai busur', kategori: 'lokal', pola: /^kota cilegon|cilegon\s*\(lokal\)/i },
+  { id: 'bulog', label: 'Bulog / Cadangan Pangan Pemerintah', metode: 'Tidak memiliki lokasi asal tunggal', kategori: 'tak_teridentifikasi', pola: /bulog|cadangan pangan/i },
+  { id: 'serang', label: 'Kabupaten Serang', posisi: [106.1503, -6.1514], metode: METODE_KAB, kategori: 'luar', pola: /^kabupaten serang/i },
+  { id: 'pandeglang', label: 'Kabupaten Pandeglang', posisi: [106.1067, -6.3086], metode: METODE_KAB, kategori: 'luar', pola: /^kabupaten pandeglang/i },
+  { id: 'lebak', label: 'Kabupaten Lebak', posisi: [106.2522, -6.3578], metode: METODE_KAB, kategori: 'luar', pola: /^kabupaten lebak/i },
+  { id: 'tangerang', label: 'Kab. Tangerang / Karawang', posisi: [106.4519, -6.1783], metode: 'Titik representatif gabungan Kab. Tangerang / Karawang', kategori: 'luar', pola: /kabupaten tangerang\s*\/\s*karawang/i },
+  { id: 'jateng', label: 'Jawa Tengah / Demak / Sragen', posisi: [110.6396, -6.8906], metode: METODE_PROV, kategori: 'luar', pola: /jawa tengah\s*\/\s*demak\s*\/\s*sragen/i },
+  { id: 'jatim', label: 'Jawa Timur / Ngawi', posisi: [111.4461, -7.4039], metode: METODE_PROV, kategori: 'luar', pola: /jawa timur\s*\/\s*ngawi/i },
+  { id: 'lampung', label: 'Lampung / Luar Jawa', posisi: [105.4068, -4.5586], metode: METODE_PROV, kategori: 'luar', pola: /lampung\s*\/\s*luar jawa/i },
+  { id: 'tak_diketahui', label: 'Asal belum teridentifikasi', metode: 'Asal tidak diketahui / campuran', kategori: 'tak_teridentifikasi', pola: /tidak diketahui|campuran|^lainnya\s*\(manual\)$/i },
 ];
 
 const NODE_TAK_TERIDENTIFIKASI = ASAL_NODES[ASAL_NODES.length - 1];
 
-export function klasifikasiAsal(asal?: string | null): AsalNode {
-  const s = (asal || '').toLowerCase().trim();
+/**
+ * Klasifikasi & Geocode Otomatis Daerah Asal Pasokan:
+ * 1. Mengecek opsi khusus (Lokal Cilegon, Bulog, Tidak Diketahui, atau opsi gabungan dropdown).
+ * 2. Mencocokkan nama Kabupaten/Kota/Provinsi yang diinput user/petugas (misal "Bondowoso",
+ *    "Subang", "Karawang", "Banyuwangi", "Sidrap", "Palembang") ke database koordinat GPS
+ *    Indonesia (`wilayah_koordinat_indonesia` / `DAFTAR_WILAYAH_INDONESIA`) sehingga garis
+ *    lengkung pasokan ditarik presisi dari titik central daerah tersebut.
+ */
+export function klasifikasiAsal(asal?: string | null, extraWilayah?: WilayahRef[]): AsalNode {
+  const raw = (asal || '').trim();
+  const s = raw.toLowerCase();
   if (!s) return NODE_TAK_TERIDENTIFIKASI;
-  return ASAL_NODES.find((n) => n.pola.test(s)) || NODE_TAK_TERIDENTIFIKASI;
+
+  // 1. Cek kategori non-busur atau opsi preset gabungan persis
+  for (const preset of ASAL_NODES) {
+    if (preset.pola.test(s)) {
+      return preset;
+    }
+  }
+
+  // 2. Cari di direktori koordinat GPS Kabupaten/Kota & Provinsi se-Indonesia
+  const matched = cariKoordinatWilayah(raw, extraWilayah);
+  if (matched) {
+    if (matched.nama.toLowerCase() === 'cilegon') {
+      return ASAL_NODES[0]; // Kota Cilegon (Lokal)
+    }
+    const cleanId = `wilayah-${(matched.kode || matched.nama).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    const labelFormatted =
+      matched.tipe === 'kabupaten'
+        ? `Kab. ${matched.nama}`
+        : matched.tipe === 'kota'
+        ? matched.nama.toLowerCase().startsWith('kota ')
+          ? matched.nama
+          : `Kota ${matched.nama}`
+        : matched.nama;
+
+    return {
+      id: cleanId,
+      label: labelFormatted,
+      posisi: [matched.lng, matched.lat],
+      metode:
+        matched.tipe === 'provinsi'
+          ? `Titik central GPS Provinsi ${matched.nama}`
+          : `Titik central GPS ${labelFormatted}${matched.provinsi ? ` (${matched.provinsi})` : ''}`,
+      kategori: 'luar',
+      pola: new RegExp(matched.nama.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+    };
+  }
+
+  return NODE_TAK_TERIDENTIFIKASI;
 }
 
 // ------------------------------------------------------------------
@@ -105,12 +142,22 @@ export interface ArusFilter {
 
 export const FILTER_AWAL: ArusFilter = { arah: 'semua', periode: 'semua', sumber: 'semua', kecamatan: 'semua', asal: 'semua' };
 
-function kgValid(r: ObservasiRecord): number {
+function kgTerdataValid(r: ObservasiRecord): number {
   const v = Number(r.estimasi_pasokan_kg);
   return Number.isFinite(v) && v > 0 ? v : 0;
 }
 
-export function filterRecords(list: ObservasiRecord[], f: ArusFilter, now = Date.now()): ObservasiRecord[] {
+function kgTahunanValid(r: ObservasiRecord, kalibrasi?: Kalibrasi): number {
+  const est = hitungEstimasiTahunan(r, kalibrasi);
+  return Number.isFinite(est.tahunanKg) && est.tahunanKg > 0 ? est.tahunanKg : 0;
+}
+
+export function filterRecords(
+  list: ObservasiRecord[],
+  f: ArusFilter,
+  now = Date.now(),
+  extraWilayah?: WilayahRef[]
+): ObservasiRecord[] {
   const batas = f.periode === 'semua' ? 0 : now - Number(f.periode) * 86400000;
   return list.filter((r) => {
     if (r.mode !== 'pasokan_beras') return false;
@@ -124,7 +171,7 @@ export function filterRecords(list: ObservasiRecord[], f: ArusFilter, now = Date
       const t = r.created_at ? Date.parse(r.created_at) : NaN;
       if (!Number.isFinite(t) || t < batas) return false;
     }
-    if (f.asal !== 'semua' && klasifikasiAsal(r.asal_pasokan).id !== f.asal) return false;
+    if (f.asal !== 'semua' && klasifikasiAsal(r.asal_pasokan, extraWilayah).id !== f.asal) return false;
     return true;
   });
 }
@@ -136,6 +183,8 @@ export interface ArusFlow {
   sumber: [number, number];
   target: [number, number];
   volumeKg: number;
+  volumeTerdataKg: number;
+  volumeTahunanKg: number;
   jumlahSarana: number;
   perKecamatan: { kecamatan: string; kg: number }[];
   jumlahPetugas: number;
@@ -151,12 +200,14 @@ export interface ArusFlow {
 export interface ArusKPI {
   totalSarana: number;
   totalKg: number;
+  totalTerdataKg: number;
+  totalTahunanKg: number;
   lokalKg: number;
   luarKg: number;
   persenLokal: number | null;
   persenLuar: number | null;
   masukTervalidasiKg: number | null;
-  keluarKg: null; // sumber data belum memuat distribusi keluar
+  keluarKg: null;
   wilayahPemasok: number;
   takTeridentifikasiKg: number;
   komoditasTerbesar: string | null;
@@ -168,6 +219,7 @@ export interface ArusResult {
   flows: ArusFlow[];
   kpi: ArusKPI;
   records: ObservasiRecord[];
+  activeOriginNodes: AsalNode[];
 }
 
 function haversineKm(a: [number, number], b: [number, number]): number {
@@ -186,43 +238,76 @@ function hitungHeightFactor(jarakKm: number): number {
   return jarakKm > 0 ? (2 * puncakKm) / jarakKm : 0;
 }
 
-export function bangunArus(list: ObservasiRecord[], f: ArusFilter, hub: [number, number]): ArusResult {
-  const records = filterRecords(list, f);
+export interface BangunArusOptions {
+  modePasokan?: ModePasokanPeta;
+  kalibrasi?: Kalibrasi;
+  extraWilayah?: WilayahRef[];
+}
+
+export function bangunArus(
+  list: ObservasiRecord[],
+  f: ArusFilter,
+  hub: [number, number],
+  options?: BangunArusOptions
+): ArusResult {
+  const modePasokan: ModePasokanPeta = options?.modePasokan || 'tahunan';
+  const kalibrasi = options?.kalibrasi || hitungKalibrasi(list);
+  const extraWilayah = options?.extraWilayah;
+
+  const records = filterRecords(list, f, Date.now(), extraWilayah);
+
+  const ambilKg = (r: ObservasiRecord) =>
+    modePasokan === 'tahunan' ? kgTahunanValid(r, kalibrasi) : kgTerdataValid(r);
 
   let totalKg = 0;
+  let totalTerdataKg = 0;
+  let totalTahunanKg = 0;
   let lokalKg = 0;
   let luarKg = 0;
   let takKg = 0;
   let masukValidKg = 0;
   let last = 0;
   const perKecamatanKg: Record<string, number> = {};
-  const grup = new Map<string, ObservasiRecord[]>();
+  const grup = new Map<string, { node: AsalNode; recs: ObservasiRecord[] }>();
+  const originNodeMap = new Map<string, AsalNode>();
 
   for (const r of records) {
-    const kg = kgValid(r);
+    const kg = ambilKg(r);
+    const kgTerdata = kgTerdataValid(r);
+    const kgTahunan = kgTahunanValid(r, kalibrasi);
+
     totalKg += kg;
+    totalTerdataKg += kgTerdata;
+    totalTahunanKg += kgTahunan;
+
     perKecamatanKg[r.kecamatan] = (perKecamatanKg[r.kecamatan] || 0) + kg;
     const t = r.created_at ? Date.parse(r.created_at) : NaN;
     if (Number.isFinite(t) && t > last) last = t;
 
-    const node = klasifikasiAsal(r.asal_pasokan);
+    const node = klasifikasiAsal(r.asal_pasokan, extraWilayah);
+    originNodeMap.set(node.id, node);
+
     if (node.kategori === 'lokal') lokalKg += kg;
     else luarKg += kg;
     if (node.kategori === 'tak_teridentifikasi') takKg += kg;
 
     if (node.kategori === 'luar' && node.posisi && kg > 0) {
       if (jenisSumber(r) === 'petugas') masukValidKg += kg;
-      const arr = grup.get(node.id) || [];
-      arr.push(r);
-      grup.set(node.id, arr);
+      const existing = grup.get(node.id);
+      if (existing) {
+        existing.recs.push(r);
+      } else {
+        grup.set(node.id, { node, recs: [r] });
+      }
     }
   }
 
   const flows: ArusFlow[] = [];
   if (f.arah !== 'keluar') {
-    grup.forEach((recs, id) => {
-      const node = ASAL_NODES.find((n) => n.id === id)!;
-      const volumeKg = recs.reduce((a, r) => a + kgValid(r), 0);
+    grup.forEach(({ node, recs }, id) => {
+      const volumeKg = recs.reduce((a, r) => a + ambilKg(r), 0);
+      const volumeTerdataKg = recs.reduce((a, r) => a + kgTerdataValid(r), 0);
+      const volumeTahunanKg = recs.reduce((a, r) => a + kgTahunanValid(r, kalibrasi), 0);
       const kec = new Map<string, number>();
       const kon = new Map<string, EnumeratorInfo & { jumlah: number }>();
       let tervalidasi = false;
@@ -230,7 +315,7 @@ export function bangunArus(list: ObservasiRecord[], f: ArusFilter, hub: [number,
       let enumerator = 0;
       let terakhirMs = 0;
       for (const r of recs) {
-        kec.set(r.kecamatan, (kec.get(r.kecamatan) || 0) + kgValid(r));
+        kec.set(r.kecamatan, (kec.get(r.kecamatan) || 0) + ambilKg(r));
         const j = jenisSumber(r);
         if (j === 'petugas') {
           tervalidasi = true;
@@ -252,6 +337,8 @@ export function bangunArus(list: ObservasiRecord[], f: ArusFilter, hub: [number,
         sumber: node.posisi!,
         target: hub,
         volumeKg,
+        volumeTerdataKg,
+        volumeTahunanKg,
         jumlahSarana: recs.length,
         perKecamatan: [...kec.entries()].map(([kecamatan, kg]) => ({ kecamatan, kg })).sort((a, b) => b.kg - a.kg),
         jumlahPetugas: petugas,
@@ -269,6 +356,8 @@ export function bangunArus(list: ObservasiRecord[], f: ArusFilter, hub: [number,
   const kpi: ArusKPI = {
     totalSarana: records.length,
     totalKg,
+    totalTerdataKg,
+    totalTahunanKg,
     lokalKg,
     luarKg,
     persenLokal: totalKg > 0 ? Math.round((lokalKg / totalKg) * 100) : null,
@@ -282,7 +371,12 @@ export function bangunArus(list: ObservasiRecord[], f: ArusFilter, hub: [number,
     perKecamatanKg,
   };
 
-  return { flows, kpi, records };
+  return {
+    flows,
+    kpi,
+    records,
+    activeOriginNodes: [...originNodeMap.values()],
+  };
 }
 
 // ------------------------------------------------------------------
@@ -301,15 +395,14 @@ export function lebarBusur(volumeKg: number, maxKg: number): number {
   return LEBAR_MIN + (LEBAR_MAX - LEBAR_MIN) * skalaVolume(volumeKg, maxKg);
 }
 
-export function formatTon(kg: number | null | undefined): string {
+export function formatTon(kg: number | null | undefined, suffix = 'ton'): string {
   if (kg === null || kg === undefined || !Number.isFinite(kg)) return 'Belum tersedia';
   const t = kg / 1000;
-  return `${t.toLocaleString('id-ID', { maximumFractionDigits: t >= 10 ? 1 : 2 })} ton`;
+  return `${t.toLocaleString('id-ID', { maximumFractionDigits: t >= 10 ? 1 : 2 })} ${suffix}`;
 }
 
 // ------------------------------------------------------------------
 // Geometri busur yang identik dengan ArcLayer deck.gl (proyeksi flat)
-// Dipakai untuk animasi denyut cahaya yang bergerak tepat di sepanjang busur.
 // ------------------------------------------------------------------
 const TILE = 512;
 const EARTH_C = 40075016.686;

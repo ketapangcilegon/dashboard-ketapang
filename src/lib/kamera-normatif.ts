@@ -29,6 +29,7 @@ export const SARANA_DISTRIBUSI_LIST: SaranaDistribusiConfig[] = [
 ];
 
 export const ASAL_PASOKAN_OPTIONS = [
+  'Lainnya (Manual)',
   'Kota Cilegon (Lokal)',
   'Kabupaten Serang (Banten)',
   'Kabupaten Pandeglang (Banten)',
@@ -39,7 +40,6 @@ export const ASAL_PASOKAN_OPTIONS = [
   'Lampung / Luar Jawa',
   'Bulog / Cadangan Pangan Pemerintah',
   'Tidak Diketahui / Campuran',
-  'Lainnya (Manual)'
 ];
 
 // ============================================================
