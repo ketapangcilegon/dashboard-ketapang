@@ -196,12 +196,12 @@ export default function KameraCerdasMap({
           <div
             role="group"
             aria-label="Mode Tampilan Tonase Pasokan"
-            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-full p-1 flex items-center gap-1 shadow-xl"
+            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-2xl sm:rounded-full p-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 shadow-xl"
           >
             <button
               type="button"
               onClick={() => setModePasokan('terdata')}
-              className={`h-7 px-3 rounded-full text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              className={`h-7 px-3 rounded-xl sm:rounded-full text-[10.5px] sm:text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                 modePasokan === 'terdata'
                   ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
                   : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
@@ -213,7 +213,7 @@ export default function KameraCerdasMap({
             <button
               type="button"
               onClick={() => setModePasokan('tahunan')}
-              className={`h-7 px-3 rounded-full text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              className={`h-7 px-3 rounded-xl sm:rounded-full text-[10.5px] sm:text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                 modePasokan === 'tahunan'
                   ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
                   : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'

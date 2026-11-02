@@ -676,8 +676,8 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </MapContainer>
       </div>
 
-      {/* ── Kiri atas: Judul + KPI Card ── */}
-      <div className="absolute top-3 left-3 right-3 sm:right-auto sm:w-[340px] z-10 pointer-events-none">
+      {/* ── Kiri atas: Judul + KPI Card (z-30 agar saat dropdown dibuka berada di atas layer toggle) ── */}
+      <div className={`absolute top-3 left-3 right-3 sm:right-auto sm:w-[340px] ${kpiTerbuka ? 'z-30' : 'z-20'} pointer-events-none`}>
         <div className={`${glass} rounded-2xl pointer-events-auto overflow-hidden`}>
           <button
             type="button"
@@ -730,20 +730,54 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
         </div>
       </div>
 
-      {/* ── Kanan Atas: Toggle Mode Pasokan (Pasokan Terdata | Estimasi Tahunan) + Toolbar Kontrol Vertikal ── */}
+      {/* ── Kiri Atas (Khusus Mobile < 640px): Toggle Mode Pasokan Vertikal di Margin Kiri (z-10 di bawah dropdown KPI) ── */}
+      <div className="sm:hidden absolute top-[68px] left-3 z-10 pointer-events-auto">
+        <div
+          role="group"
+          aria-label="Mode Tampilan Tonase Pasokan (Mobile)"
+          className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-2xl p-1 flex flex-col items-stretch gap-1 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+        >
+          <button
+            type="button"
+            onClick={() => setModePasokan('terdata')}
+            className={`h-7 px-3 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              modePasokan === 'terdata'
+                ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.35)]'
+                : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+            <span>Pasokan Terdata</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setModePasokan('tahunan')}
+            className={`h-7 px-3 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              modePasokan === 'tahunan'
+                ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.35)]'
+                : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
+            <span>Estimasi Tahunan</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Kanan Atas: Toggle Mode Pasokan (Desktop) + Toolbar Kontrol Vertikal ── */}
       <div className="absolute top-[68px] sm:top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
-        {/* Baris Atas: Pill Toggle Mode Pasokan + Tombol Filter */}
+        {/* Baris Atas: Pill Toggle Mode Pasokan (Desktop) + Tombol Filter */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Toggle Kapsul sesuai Capture 2 */}
+          {/* Toggle Kapsul Horizontal (Tampil di Desktop >= 640px sesuai Capture 2) */}
           <div
             role="group"
             aria-label="Mode Tampilan Tonase Pasokan"
-            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-full p-1 flex items-center gap-1 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+            className="hidden sm:flex bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-full p-1 items-center gap-1 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
           >
             <button
               type="button"
               onClick={() => setModePasokan('terdata')}
-              className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[10.5px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              className={`h-8 px-3.5 rounded-full text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                 modePasokan === 'terdata'
                   ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_16px_rgba(34,227,255,0.65),inset_0_0_10px_rgba(34,227,255,0.35)]'
                   : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
@@ -755,7 +789,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <button
               type="button"
               onClick={() => setModePasokan('tahunan')}
-              className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[10.5px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+              className={`h-8 px-3.5 rounded-full text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                 modePasokan === 'tahunan'
                   ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_16px_rgba(34,227,255,0.65),inset_0_0_10px_rgba(34,227,255,0.35)]'
                   : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
