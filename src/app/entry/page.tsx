@@ -29,18 +29,52 @@ export default function EntryPage() {
         setActiveTab('media');
       } else if (params.get('tab') === 'knowledge') {
         setActiveTab('knowledge');
-      } else if (params.get('tab') === 'access') {
+      } else if (params.get('tab') === 'access' || params.get('tab') === 'smoke') {
         setActiveTab('access');
+        if (params.get('tab') === 'smoke') {
+          setTimeout(() => {
+            document.getElementById('sagon-smoke-test-panel')?.scrollIntoView({ behavior: 'smooth' });
+          }, 250);
+        }
       }
     }
   }, []);
 
-  // Load session from sessionStorage to persist state on refresh
+  // Verify cryptographic Supabase session on mount (prevent DevTools sessionStorage tampering)
   useEffect(() => {
-    const session = sessionStorage.getItem('adminSession');
-    if (session === 'active') {
-      setIsLoggedIn(true);
-    }
+    let mounted = true;
+    const verifyAdminSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          sessionStorage.setItem('adminSession', 'active');
+          setIsLoggedIn(true);
+        } else {
+          sessionStorage.removeItem('adminSession');
+          setIsLoggedIn(false);
+        }
+      } catch {
+        if (mounted) {
+          sessionStorage.removeItem('adminSession');
+          setIsLoggedIn(false);
+        }
+      }
+    };
+    verifyAdminSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        sessionStorage.setItem('adminSession', 'active');
+        setIsLoggedIn(true);
+      } else {
+        sessionStorage.removeItem('adminSession');
+        setIsLoggedIn(false);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -285,7 +319,7 @@ export default function EntryPage() {
                   }`}
                 >
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Kontrol Akses Fitur (Switch Blokir)</span>
+                  <span>Kontrol Akses & Smoke Test SAGON</span>
                 </button>
               </div>
 

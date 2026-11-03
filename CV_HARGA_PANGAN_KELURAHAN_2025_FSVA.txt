@@ -1,0 +1,246 @@
+====================================================================================================
+DATA KOEFISIEN VARIASI (CV) HARGA PANGAN STRATEGIS PER KELURAHAN KOTA CILEGON
+PERIODE: JANUARI 2025 - DESEMBER 2025 (12 BULAN)
+STANDAR METODOLOGI: FSVA (FOOD SECURITY AND VULNERABILITY ATLAS) - BADAN PANGAN NASIONAL
+====================================================================================================
+
+1. RUMUS BAKU KOEFISIEN VARIASI (CV) SESUAI FSVA
+----------------------------------------------------------------------------------------------------
+   a. CV per Komoditas (%):
+      CV (%) = (Standar Deviasi Sampel 12 Bulan [STDEV.S] / Rata-rata Harga 12 Bulan [AVERAGE]) x 100
+
+   b. CV Harga Pangan Komposit FSVA (Indikator 6 Aspek Keterjangkauan):
+      CV Pangan = (0.50 x CV Beras) + (0.15 x CV Ayam) + (0.20 x CV Telur) + (0.15 x CV Minyak)
+      * Bobot Baku FSVA:
+        - Beras Medium          : 50% (0.50)
+        - Daging Ayam Ras       : 15% (0.15)
+        - Telur Ayam Ras        : 20% (0.20)
+        - Minyak Goreng Kemasan : 15% (0.15)
+
+2. PEMETAAN PASAR ACUAN KE 8 KECAMATAN & 43 KELURAHAN (STANDAR FSVA & DISPERINDAG CILEGON)
+----------------------------------------------------------------------------------------------------
+   Karena pemantauan harga pangan dilakukan di 3 Pasar Penciri (Pasar Acuan) Kota Cilegon, maka
+   sesuai pedoman FSVA Kabupaten/Kota, nilai CV Harga Kelurahan mengikuti Pasar Acuan Kecamatannya:
+   - Pasar Baru Cilegon (Kranggot) -> Kec. Ciwandan, Citangkil, Purwakarta, Jombang (25 Kelurahan)
+   - Pasar Baru Merak              -> Kec. Pulomerak, Gerogol (8 Kelurahan)
+   - Pasar Kavling Blok F          -> Kec. Cilegon, Cibeber (11 Kelurahan)
+
+   Catatan Sumber Data Tahun 2025 (Januari - Desember 2025) di Sistem:
+   - Harga Beras, Telur Ayam Ras, dan Minyak Goreng Kemasan per Kecamatan/Pasar diambil dari
+     database sistem tabel `harga_komoditas_skpg` & `public/data SKPG/1 jan 2025 s.d. 12 des 2025`.
+   - Karena Form SKPG Tahun 2025 berubah menjadi Form 3 Komoditas (tanpa kolom Daging Ayam), maka
+     data bulanan Harga Daging Ayam Ras Tahun 2025 (Jan-Des 2025) diambil dari data SAGON Kota
+     Cilegon (`sagon.cilegon.go.id` / tabel sistem `harga_pangan_ml`).
+
+====================================================================================================
+BAGIAN A: DATA CV HARGA PER KELURAHAN TAHUN 2025 (JANUARI - DESEMBER 2025)
+Sumber: Sistem Dashboard Ketapang (SKPG Per Pasar Kecamatan + SAGON 2025)
+Urutan Kelurahan mengikuti urutan baku Sheet "0.5 Indikator Keterjangkauan" Form FSVA (No. 1 - 43)
+====================================================================================================
+
+No  Kecamatan    Kelurahan       CV Harga Beras (%)  CV Harga Ayam (%)  CV Harga Telur (%)  CV Harga Minyak (%)  CV Komposit FSVA (%)
+--  -----------  --------------  ------------------  -----------------  ------------------  -------------------  --------------------
+1   CIWANDAN     Gunung Sugih    2.94                3.28               4.29                7.69                 3.97
+2   CIWANDAN     Kepuh           2.94                3.28               4.29                7.69                 3.97
+3   CIWANDAN     Randakari       2.94                3.28               4.29                7.69                 3.97
+4   CIWANDAN     Tegal Ratu      2.94                3.28               4.29                7.69                 3.97
+5   CIWANDAN     Banjar Negara   2.94                3.28               4.29                7.69                 3.97
+6   CIWANDAN     Kubangsari      2.94                3.28               4.29                7.69                 3.97
+7   CITANGKIL    Deringo         2.94                3.28               4.29                7.69                 3.97
+8   CITANGKIL    Lebak Denok     2.94                3.28               4.29                7.69                 3.97
+9   CITANGKIL    Taman Baru      2.94                3.28               4.29                7.69                 3.97
+10  CITANGKIL    Citangkil       2.94                3.28               4.29                7.69                 3.97
+11  CITANGKIL    Kebonsari       2.94                3.28               4.29                7.69                 3.97
+12  CITANGKIL    Warnasari       2.94                3.28               4.29                7.69                 3.97
+13  CITANGKIL    Samangraya      2.94                3.28               4.29                7.69                 3.97
+14  PULO MERAK   Mekarsari       3.82                3.28               4.54                7.21                 4.39
+15  PULO MERAK   Tamansari       3.82                3.28               4.54                7.21                 4.39
+16  PULO MERAK   Lebakgede       3.82                3.28               4.54                7.21                 4.39
+17  PULO MERAK   Suralaya        3.82                3.28               4.54                7.21                 4.39
+18  PURWAKARTA   Ramanuju        2.94                3.28               4.29                7.69                 3.97
+19  PURWAKARTA   Kebon Dalem     2.94                3.28               4.29                7.69                 3.97
+20  PURWAKARTA   Purwakarta      2.94                3.28               4.29                7.69                 3.97
+21  PURWAKARTA   Tegal Bunder    2.94                3.28               4.29                7.69                 3.97
+22  PURWAKARTA   Pabean          2.94                3.28               4.29                7.69                 3.97
+23  PURWAKARTA   Kotabumi        2.94                3.28               4.29                7.69                 3.97
+24  GEROGOL      Kotasari        3.82                3.28               4.54                7.21                 4.39
+25  GEROGOL      Gerogol         3.82                3.28               4.54                7.21                 4.39
+26  GEROGOL      Rawa Arum       3.82                3.28               4.54                7.21                 4.39
+27  GEROGOL      Gerem           3.82                3.28               4.54                7.21                 4.39
+28  CILEGON      Bagendung       2.00                3.28               4.22                9.05                 3.69
+29  CILEGON      Ciwedus         2.00                3.28               4.22                9.05                 3.69
+30  CILEGON      Bendungan       2.00                3.28               4.22                9.05                 3.69
+31  CILEGON      Ciwaduk         2.00                3.28               4.22                9.05                 3.69
+32  CILEGON      Ketileng        2.00                3.28               4.22                9.05                 3.69
+33  JOMBANG      Jombang Wetan   2.94                3.28               4.29                7.69                 3.97
+34  JOMBANG      Masigit         2.94                3.28               4.29                7.69                 3.97
+35  JOMBANG      Panggung Rawi   2.94                3.28               4.29                7.69                 3.97
+36  JOMBANG      Gedong Dalem    2.94                3.28               4.29                7.69                 3.97
+37  JOMBANG      Sukmajaya       2.94                3.28               4.29                7.69                 3.97
+38  CIBEBER      Bulakan         2.00                3.28               4.22                9.05                 3.69
+39  CIBEBER      Cikerai         2.00                3.28               4.22                9.05                 3.69
+40  CIBEBER      Kalitimbang     2.00                3.28               4.22                9.05                 3.69
+41  CIBEBER      Karang Asem     2.00                3.28               4.22                9.05                 3.69
+42  CIBEBER      Cibeber         2.00                3.28               4.22                9.05                 3.69
+43  CIBEBER      Kedaleman       2.00                3.28               4.22                9.05                 3.69
+
+
+====================================================================================================
+BAGIAN B: FORMAT TAB-SEPARATED (SIAP COPY-PASTE LANGSUNG KE EXCEL)
+Kolom: Kecamatan [TAB] Kelurahan [TAB] CV Harga Beras (%) [TAB] CV Harga Ayam (%) [TAB] CV Harga Telur (%) [TAB] CV Harga Minyak (%)
+====================================================================================================
+Kecamatan	Kelurahan	CV Harga Beras (%)	CV Harga Ayam (%)	CV Harga Telur (%)	CV Harga Minyak (%)
+CIWANDAN	Gunung Sugih	2.94	3.28	4.29	7.69
+CIWANDAN	Kepuh	2.94	3.28	4.29	7.69
+CIWANDAN	Randakari	2.94	3.28	4.29	7.69
+CIWANDAN	Tegal Ratu	2.94	3.28	4.29	7.69
+CIWANDAN	Banjar Negara	2.94	3.28	4.29	7.69
+CIWANDAN	Kubangsari	2.94	3.28	4.29	7.69
+CITANGKIL	Deringo	2.94	3.28	4.29	7.69
+CITANGKIL	Lebak Denok	2.94	3.28	4.29	7.69
+CITANGKIL	Taman Baru	2.94	3.28	4.29	7.69
+CITANGKIL	Citangkil	2.94	3.28	4.29	7.69
+CITANGKIL	Kebonsari	2.94	3.28	4.29	7.69
+CITANGKIL	Warnasari	2.94	3.28	4.29	7.69
+CITANGKIL	Samangraya	2.94	3.28	4.29	7.69
+PULO MERAK	Mekarsari	3.82	3.28	4.54	7.21
+PULO MERAK	Tamansari	3.82	3.28	4.54	7.21
+PULO MERAK	Lebakgede	3.82	3.28	4.54	7.21
+PULO MERAK	Suralaya	3.82	3.28	4.54	7.21
+PURWAKARTA	Ramanuju	2.94	3.28	4.29	7.69
+PURWAKARTA	Kebon Dalem	2.94	3.28	4.29	7.69
+PURWAKARTA	Purwakarta	2.94	3.28	4.29	7.69
+PURWAKARTA	Tegal Bunder	2.94	3.28	4.29	7.69
+PURWAKARTA	Pabean	2.94	3.28	4.29	7.69
+PURWAKARTA	Kotabumi	2.94	3.28	4.29	7.69
+GEROGOL	Kotasari	3.82	3.28	4.54	7.21
+GEROGOL	Gerogol	3.82	3.28	4.54	7.21
+GEROGOL	Rawa Arum	3.82	3.28	4.54	7.21
+GEROGOL	Gerem	3.82	3.28	4.54	7.21
+CILEGON	Bagendung	2.00	3.28	4.22	9.05
+CILEGON	Ciwedus	2.00	3.28	4.22	9.05
+CILEGON	Bendungan	2.00	3.28	4.22	9.05
+CILEGON	Ciwaduk	2.00	3.28	4.22	9.05
+CILEGON	Ketileng	2.00	3.28	4.22	9.05
+JOMBANG	Jombang Wetan	2.94	3.28	4.29	7.69
+JOMBANG	Masigit	2.94	3.28	4.29	7.69
+JOMBANG	Panggung Rawi	2.94	3.28	4.29	7.69
+JOMBANG	Gedong Dalem	2.94	3.28	4.29	7.69
+JOMBANG	Sukmajaya	2.94	3.28	4.29	7.69
+CIBEBER	Bulakan	2.00	3.28	4.22	9.05
+CIBEBER	Cikerai	2.00	3.28	4.22	9.05
+CIBEBER	Kalitimbang	2.00	3.28	4.22	9.05
+CIBEBER	Karang Asem	2.00	3.28	4.22	9.05
+CIBEBER	Cibeber	2.00	3.28	4.22	9.05
+CIBEBER	Kedaleman	2.00	3.28	4.22	9.05
+
+
+====================================================================================================
+BAGIAN C: ALTERNATIF JIKA MENGGUNAKAN MURNI RATA-RATA KOTA SAGON 2025 (JAN - DES 2025)
+Sumber: sagon.cilegon.go.id / Tabel `harga_pangan_ml` (1 Nilai Seri Kota Cilegon untuk Semua Kelurahan)
+====================================================================================================
+- CV Harga Beras (%)  : 1.97%  (Rata-rata: Rp 13.900 | STDEV.S: Rp 273,47)
+- CV Harga Ayam (%)   : 3.28%  (Rata-rata: Rp 39.526 | STDEV.S: Rp 1.298,17)
+- CV Harga Telur (%)  : 3.98%  (Rata-rata: Rp 28.592 | STDEV.S: Rp 1.137,24)
+- CV Harga Minyak (%) : 4.57%  (Rata-rata: Rp 20.903 | STDEV.S: Rp 955,61)
+- CV Komposit FSVA (%): 2.96%
+
+
+====================================================================================================
+BAGIAN D: REFERENSI ANGKA EKSISTING DI FILE EXCEL FSVA 2025 (SHEET "0.5 Indikator Keterjangkauan")
+Sumber: `public/Form Analisis 2025_Kabupaten Kota_Ver1- Rev/0. Form Validasi Data FSVA Kabupaten Kota 2025 ver.1.xlsx`
+(Angka yang saat ini tercantum di Sheet 0.5 dalam sistem FSVA Kota Cilegon)
+====================================================================================================
+Kecamatan	Kelurahan	CV Harga Beras (%)	CV Harga Ayam (%)	CV Harga Telur (%)	CV Harga Minyak (%)	CV Komposit (%)
+CIWANDAN	Gunung Sugih	4.22	2.48	5.42	4.26	4.21
+CIWANDAN	Kepuh	4.22	2.48	5.42	4.26	4.21
+CIWANDAN	Randakari	4.22	2.48	5.42	4.26	4.21
+CIWANDAN	Tegal Ratu	4.22	2.48	5.42	4.26	4.21
+CIWANDAN	Banjar Negara	4.22	2.48	5.42	4.26	4.21
+CIWANDAN	Kubangsari	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Deringo	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Lebak Denok	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Taman Baru	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Citangkil	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Kebonsari	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Warnasari	4.22	2.48	5.42	4.26	4.21
+CITANGKIL	Samangraya	4.22	2.48	5.42	4.26	4.21
+PULO MERAK	Mekarsari	4.00	3.08	6.10	4.12	4.30
+PULO MERAK	Tamansari	4.00	3.08	6.10	4.12	4.30
+PULO MERAK	Lebakgede	4.00	3.08	6.10	4.12	4.30
+PULO MERAK	Suralaya	4.00	3.08	6.10	4.12	4.30
+PURWAKARTA	Ramanuju	4.22	2.48	5.42	4.26	4.21
+PURWAKARTA	Kebon Dalem	4.22	2.48	5.42	4.26	4.21
+PURWAKARTA	Purwakarta	4.22	2.48	5.42	4.26	4.21
+PURWAKARTA	Tegal Bunder	4.22	2.48	5.42	4.26	4.21
+PURWAKARTA	Pabean	4.22	2.48	5.42	4.26	4.21
+PURWAKARTA	Kotabumi	4.22	2.48	5.42	4.26	4.21
+GEROGOL	Kotasari	4.00	3.08	6.10	4.12	4.30
+GEROGOL	Gerogol	4.00	3.08	6.10	4.12	4.30
+GEROGOL	Rawa Arum	4.00	3.08	6.10	4.12	4.30
+GEROGOL	Gerem	4.00	3.08	6.10	4.12	4.30
+CILEGON	Bagendung	3.41	4.22	6.12	2.19	3.89
+CILEGON	Ciwedus	3.41	4.22	6.12	2.19	3.89
+CILEGON	Bendungan	3.41	4.22	6.12	2.19	3.89
+CILEGON	Ciwaduk	3.41	4.22	6.12	2.19	3.89
+CILEGON	Ketileng	3.41	4.22	6.12	2.19	3.89
+JOMBANG	Jombang Wetan	4.22	2.48	5.42	4.26	4.21
+JOMBANG	Masigit	4.22	2.48	5.42	4.26	4.21
+JOMBANG	Panggung Rawi	4.22	2.48	5.42	4.26	4.21
+JOMBANG	Gedong Dalem	4.22	2.48	5.42	4.26	4.21
+JOMBANG	Sukmajaya	4.22	2.48	5.42	4.26	4.21
+CIBEBER	Bulakan	3.41	4.22	6.12	2.19	3.89
+CIBEBER	Cikerai	3.41	4.22	6.12	2.19	3.89
+CIBEBER	Kalitimbang	3.41	4.22	6.12	2.19	3.89
+CIBEBER	Karang Asem	3.41	4.22	6.12	2.19	3.89
+CIBEBER	Cibeber	3.41	4.22	6.12	2.19	3.89
+CIBEBER	Kedaleman	3.41	4.22	6.12	2.19	3.89
+
+
+====================================================================================================
+BAGIAN E: RINCIAN HARGA BULANAN RIIL TAHUN 2025 (JANUARI - DESEMBER 2025) YANG DIGUNAKAN
+====================================================================================================
+
+1. WILAYAH PASAR BARU CILEGON / KRANGGOT (Kec. Ciwandan, Citangkil, Purwakarta, Jombang)
+   - Beras (Rp/Kg)  : Jan=14000, Feb=14000, Mar=13200, Apr=14000, Mei=14000, Jun=13500,
+                      Jul=13140, Agu=14175, Sep=13759, Okt=13317, Nov=13150, Des=13259
+                      -> Rata-rata = Rp 13.625,00 | STDEV.S = Rp 400,66 | CV = 2.94%
+   - Ayam (Rp/Kg)   : Jan=39552, Feb=39646, Mar=39519, Apr=39743, Mei=37282, Jun=38276,
+                      Jul=39867, Agu=38897, Sep=42630, Okt=40161, Nov=38593, Des=40143
+                      -> Rata-rata = Rp 39.525,75 | STDEV.S = Rp 1.298,17 | CV = 3.28%
+   - Telur (Rp/Kg)  : Jan=31000, Feb=30500, Mar=29500, Apr=31500, Mei=28000, Jun=28000,
+                      Jul=28600, Agu=27760, Sep=28260, Okt=29800, Nov=29233, Des=30138
+                      -> Rata-rata = Rp 29.357,58 | STDEV.S = Rp 1.260,40 | CV = 4.29%
+   - Minyak (Rp/Ltr): Jan=17300, Feb=18000, Mar=18000, Apr=20000, Mei=21000, Jun=21300,
+                      Jul=21270, Agu=21275, Sep=21220, Okt=21000, Nov=21267, Des=21483
+                      -> Rata-rata = Rp 20.259,58 | STDEV.S = Rp 1.557,38 | CV = 7.69%
+
+2. WILAYAH PASAR BARU MERAK (Kec. Pulomerak, Gerogol)
+   - Beras (Rp/Kg)  : Jan=14000, Feb=14000, Mar=13200, Apr=14000, Mei=14000, Jun=14000,
+                      Jul=14870, Agu=15000, Sep=15000, Okt=14710, Nov=14000, Des=14000
+                      -> Rata-rata = Rp 14.231,67 | STDEV.S = Rp 543,80 | CV = 3.82%
+   - Ayam (Rp/Kg)   : Jan=39552, Feb=39646, Mar=39519, Apr=39743, Mei=37282, Jun=38276,
+                      Jul=39867, Agu=38897, Sep=42630, Okt=40161, Nov=38593, Des=40143
+                      -> Rata-rata = Rp 39.525,75 | STDEV.S = Rp 1.298,17 | CV = 3.28%
+   - Telur (Rp/Kg)  : Jan=31000, Feb=30500, Mar=29500, Apr=31500, Mei=28000, Jun=28400,
+                      Jul=28500, Agu=28000, Sep=28670, Okt=31032, Nov=30000, Des=31310
+                      -> Rata-rata = Rp 29.701,00 | STDEV.S = Rp 1.348,06 | CV = 4.54%
+   - Minyak (Rp/Ltr): Jan=17300, Feb=18000, Mar=18000, Apr=20000, Mei=21000, Jun=21000,
+                      Jul=21000, Agu=21000, Sep=21000, Okt=21000, Nov=21000, Des=21000
+                      -> Rata-rata = Rp 20.108,33 | STDEV.S = Rp 1.448,80 | CV = 7.21%
+
+3. WILAYAH PASAR KAVLING BLOK F (Kec. Cilegon, Cibeber)
+   - Beras (Rp/Kg)  : Jan=14000, Feb=14000, Mar=13200, Apr=14000, Mei=14000, Jun=14000,
+                      Jul=14000, Agu=14000, Sep=14000, Okt=13855, Nov=13500, Des=13500
+                      -> Rata-rata = Rp 13.837,92 | STDEV.S = Rp 277,46 | CV = 2.00%
+   - Ayam (Rp/Kg)   : Jan=39552, Feb=39646, Mar=39519, Apr=39743, Mei=37282, Jun=38276,
+                      Jul=39867, Agu=38897, Sep=42630, Okt=40161, Nov=38593, Des=40143
+                      -> Rata-rata = Rp 39.525,75 | STDEV.S = Rp 1.298,17 | CV = 3.28%
+   - Telur (Rp/Kg)  : Jan=31000, Feb=30500, Mar=29500, Apr=31500, Mei=28000, Jun=28000,
+                      Jul=28600, Agu=27850, Sep=28480, Okt=29710, Nov=29581, Des=30333
+                      -> Rata-rata = Rp 29.421,17 | STDEV.S = Rp 1.242,88 | CV = 4.22%
+   - Minyak (Rp/Ltr): Jan=17300, Feb=18000, Mar=18000, Apr=20000, Mei=21000, Jun=22000,
+                      Jul=22000, Agu=22000, Sep=22000, Okt=22000, Nov=22000, Des=22000
+                      -> Rata-rata = Rp 20.691,67 | STDEV.S = Rp 1.872,02 | CV = 9.05%
+====================================================================================================
+

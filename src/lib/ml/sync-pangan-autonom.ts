@@ -1,24 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import { trainAndForecastAll } from './train_model';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fjycaxccbasksjooxrqg.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeWNheGNjYmFza3Nqb294cnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3Njk4NjcsImV4cCI6MjA5NTM0NTg2N30.HyFsymcv70yFFvSCicOHwQoz6aYPgZTc0dAhcoI__lo';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 async function getAdminClient() {
-  const client = createClient(supabaseUrl, supabaseKey);
+  const client = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
   let token: string | undefined = undefined;
   
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'ketapangcilegon@gmail.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'cilegon2026';
-    const { data: authData, error: authErr } = await client.auth.signInWithPassword({
-      email: adminEmail,
-      password: adminPassword
-    });
-    if (authErr) {
-      console.warn('[AutoSync] Admin login warning:', authErr.message);
-    } else {
-      token = authData.session?.access_token;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminEmail && adminPassword) {
+      const { data: authData, error: authErr } = await client.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword
+      });
+      if (authErr) {
+        console.warn('[AutoSync] Admin login warning:', authErr.message);
+      } else {
+        token = authData.session?.access_token;
+      }
     }
   }
   return { client, token };

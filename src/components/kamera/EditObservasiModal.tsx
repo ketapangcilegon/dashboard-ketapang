@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SARANA_DISTRIBUSI_LIST, ASAL_PASOKAN_OPTIONS } from '@/lib/kamera-normatif';
 import { WILAYAH } from '@/lib/wilayah';
+import { maskEmailAddress } from '@/lib/arusPasokan';
 import type { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import type { EnumeratorProfile } from '@/lib/enumeratorAuth';
 import { 
@@ -41,10 +42,11 @@ export function canEditRecord(
   ).toLowerCase().trim();
 
   const userEmail = (currentEnumerator.email || '').toLowerCase().trim();
+  const maskedUserEmail = maskEmailAddress(userEmail).toLowerCase().trim();
   const userNama = (currentEnumerator.nama || '').toLowerCase().trim();
 
-  if (creatorEmail && userEmail && creatorEmail === userEmail) return true;
-  if (creatorNama && userNama && creatorNama === userNama) return true;
+  if (creatorEmail && userEmail && (creatorEmail === userEmail || creatorEmail === maskedUserEmail)) return true;
+  if (creatorNama && userNama && (creatorNama === userNama || creatorNama === maskedUserEmail)) return true;
 
   return false;
 }
@@ -221,8 +223,13 @@ export default function EditObservasiModal({
 
   if (!isOpen || !record) return null;
 
-  const creatorName = record.petugas_nama || (record.foto_watermark_meta as any)?.enumerator_nama || 'Petugas Lapangan';
-  const creatorEmail = record.petugas_email || (record.foto_watermark_meta as any)?.enumerator_email || '';
+  const rawCreatorName = record.petugas_nama || (record.foto_watermark_meta as any)?.enumerator_nama || 'Petugas Lapangan';
+  const creatorName = rawCreatorName.includes('@') ? maskEmailAddress(rawCreatorName) : rawCreatorName;
+  const rawCreatorEmail =
+    record.petugas_email ||
+    (record.foto_watermark_meta as any)?.enumerator_email ||
+    ((record.status_verifikasi || '').toLowerCase().includes('admin') ? 'k*************n@gmail.com' : '');
+  const creatorEmail = maskEmailAddress(rawCreatorEmail);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200">

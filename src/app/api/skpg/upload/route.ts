@@ -104,20 +104,42 @@ export async function POST(req: NextRequest) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    const adminEmail = process.env.ADMIN_EMAIL || 'ketapangcilegon@gmail.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'cilegon2026';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: 'Konfigurasi Supabase belum diatur di environment server.' }, { status: 500 });
+    }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '').trim();
 
-    // Auth as admin to satisfy RLS write permissions
-    const { error: authErr } = await supabase.auth.signInWithPassword({
-      email: adminEmail,
-      password: adminPassword
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
     });
 
-    if (authErr) {
-      console.warn('Admin authentication warning:', authErr.message);
+    if (token) {
+      const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !userData?.user) {
+        return NextResponse.json({ error: 'Sesi autentikasi admin tidak valid atau telah berakhir.' }, { status: 401 });
+      }
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        await supabase.auth.setSession({ access_token: token, refresh_token: '' });
+      }
+    } else if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (!adminEmail || !adminPassword) {
+        return NextResponse.json(
+          { error: 'Akses ditolak: Diperlukan sesi login Admin (Bearer token) untuk mengunggah data SKPG.' },
+          { status: 401 }
+        );
+      }
+      const { error: authErr } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword
+      });
+      if (authErr) {
+        return NextResponse.json({ error: 'Autentikasi server gagal.' }, { status: 401 });
+      }
     }
 
     const periodsToClear = new Map<string, { tahun: number; bulan: number }>();

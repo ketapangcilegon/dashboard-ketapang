@@ -102,7 +102,7 @@ export function klasifikasiAsal(asal?: string | null, extraWilayah?: WilayahRef[
 }
 
 // ------------------------------------------------------------------
-// Identitas enumerator
+// Identitas enumerator & Masking Email (Privasi Publik)
 // ------------------------------------------------------------------
 export interface EnumeratorInfo {
   nama: string;
@@ -111,15 +111,53 @@ export interface EnumeratorInfo {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Ambil nama & email pengirim dari rekaman (kolom khusus → metadata → petugas_nama). */
+/**
+ * Masking email agar hanya menampilkan huruf pertama dan huruf terakhir dari username
+ * sebelum '@' dengan tanda bintang di tengahnya.
+ * Contoh: ketapangcilegon@gmail.com -> k*************n@gmail.com
+ */
+export function maskEmailAddress(raw?: string | null): string {
+  const trimmed = (raw || '').trim();
+  if (!trimmed || !trimmed.includes('@')) return trimmed;
+  const atIndex = trimmed.indexOf('@');
+  const local = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
+  if (!local || !domain) return trimmed;
+  if (local.includes('*')) return trimmed; // sudah dimasking
+  if (local.length <= 1) return `${local}****@${domain}`;
+  if (local.length === 2) return `${local[0]}****${local[1]}@${domain}`;
+  const stars = '*'.repeat(Math.max(4, local.length - 2));
+  return `${local[0]}${stars}${local[local.length - 1]}@${domain}`;
+}
+
+/** Ambil nama & email pengirim dari rekaman (kolom khusus → metadata → petugas_nama), dengan email ter-masking. */
 export function getEnumerator(rec: ObservasiRecord): EnumeratorInfo {
   const meta = (rec.foto_watermark_meta || {}) as Record<string, unknown>;
   const metaEmail = typeof meta.enumerator_email === 'string' ? meta.enumerator_email : '';
   const metaNama = typeof meta.enumerator_nama === 'string' ? meta.enumerator_nama : '';
   const petugas = (rec.petugas_nama || '').trim();
-  const email = (rec.petugas_email || metaEmail || (EMAIL_RE.test(petugas) ? petugas : '')).trim();
-  const nama = (metaNama || (EMAIL_RE.test(petugas) ? petugas.split('@')[0] : petugas) || '').trim();
-  return { nama: nama || (email ? email.split('@')[0] : 'Tidak tercatat'), email };
+  const isAdminRecord = (rec.status_verifikasi || '').toLowerCase().includes('admin');
+
+  const rawEmail = (
+    rec.petugas_email ||
+    metaEmail ||
+    (EMAIL_RE.test(petugas) ? petugas : '') ||
+    (isAdminRecord ? 'k*************n@gmail.com' : '')
+  ).trim();
+
+  const email = maskEmailAddress(rawEmail);
+
+  const rawNama = (
+    metaNama ||
+    (EMAIL_RE.test(petugas) ? maskEmailAddress(petugas) : petugas) ||
+    ''
+  ).trim();
+
+  const nama = EMAIL_RE.test(rawNama)
+    ? maskEmailAddress(rawNama)
+    : rawNama || (email ? email : 'Tidak tercatat');
+
+  return { nama, email };
 }
 
 export function jenisSumber(rec: ObservasiRecord): 'petugas' | 'enumerator' | 'lainnya' {

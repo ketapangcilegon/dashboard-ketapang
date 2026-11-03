@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import VisitCounter from '@/components/VisitCounter';
 import { supabase } from '@/lib/supabase';
+import { maskEmailAddress } from '@/lib/arusPasokan';
 
 interface MobileProfileViewProps {
   onNavigate: (view: string) => void;
@@ -30,20 +31,31 @@ export default function MobileProfileView({
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
+  const maskEmail = (rawEmail?: string | null) => {
+    if (!rawEmail || !rawEmail.includes('@')) return 'Administrator DKPP';
+    return maskEmailAddress(rawEmail);
+  };
+
   useEffect(() => {
+    let mounted = true;
     const checkSession = async () => {
-      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
-      setIsAdmin(sessionActive);
-      if (sessionActive) {
-        try {
-          const { data } = await supabase.auth.getUser();
-          if (data?.user?.email) {
-            setAdminEmail(data.user.email);
-          } else {
-            setAdminEmail('Administrator');
-          }
-        } catch {
-          setAdminEmail('Administrator');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          sessionStorage.setItem('adminSession', 'active');
+          setIsAdmin(true);
+          setAdminEmail(maskEmail(session.user.email));
+        } else {
+          sessionStorage.removeItem('adminSession');
+          setIsAdmin(false);
+          setAdminEmail('');
+        }
+      } catch {
+        if (mounted) {
+          sessionStorage.removeItem('adminSession');
+          setIsAdmin(false);
+          setAdminEmail('');
         }
       }
     };
@@ -64,7 +76,8 @@ export default function MobileProfileView({
       if (!error && data.user) {
         sessionStorage.setItem('adminSession', 'active');
         setIsAdmin(true);
-        setAdminEmail(data.user.email || email);
+        setAdminEmail(maskEmail(data.user.email || email));
+        setEmail('');
         setPassword('');
         setAuthError('');
       } else {
@@ -319,7 +332,7 @@ export default function MobileProfileView({
             <ExternalLink className="w-4 h-4 text-purple-600 shrink-0" />
           </a>
 
-          {/* 4. Menu Pengaturan Hak Akses Fitur */}
+          {/* 4. Menu Pengaturan Hak Akses Fitur & Smoke Test SAGON */}
           <a
             href="/entry?tab=access"
             className="w-full flex items-center justify-between p-3.5 hover:bg-teal-50/40 transition-colors text-left cursor-pointer active:bg-slate-100"
@@ -329,8 +342,8 @@ export default function MobileProfileView({
                 <Shield className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-black text-slate-800 block truncate">Pengaturan Hak Akses Fitur</span>
-                <span className="text-[10px] text-slate-400 font-semibold block truncate">Kunci / buka akses fitur publik</span>
+                <span className="text-xs font-black text-slate-800 block truncate">Kontrol Akses & Smoke Test SAGON</span>
+                <span className="text-[10px] text-slate-400 font-semibold block truncate">Kunci fitur publik & uji pipeline HTML SAGON</span>
               </div>
             </div>
             <ExternalLink className="w-4 h-4 text-teal-600 shrink-0" />

@@ -305,8 +305,8 @@ export default function MediaCarousel() {
 
       {/* Main Carousel Hero Card */}
       <div 
-        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[180px] sm:h-[205px] md:h-[220px] lg:h-[240px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x"
-        style={{ backgroundColor: dominantColor }}
+        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[180px] sm:h-[205px] md:h-[220px] lg:h-[240px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x bg-black sm:bg-[var(--dominant-bg)]"
+        style={{ '--dominant-bg': dominantColor } as React.CSSProperties}
         onClick={() => {
           if (!hasMovedDrag.current) {
             setShowTextOverlay(prev => !prev);
@@ -367,19 +367,19 @@ export default function MediaCarousel() {
             </div>
           ) : (
             <div
-              className="relative w-full h-full flex items-center justify-center overflow-hidden"
-              style={{ backgroundColor: dominantColor }}
+              className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black sm:bg-[var(--dominant-bg)]"
+              style={{ '--dominant-bg': dominantColor } as React.CSSProperties}
             >
-              {/* Layer 1: Ambient Blur Background untuk mengisi ruang kosong kiri & kanan sesuai warna dominan foto */}
+              {/* Layer 1: Ambient Blur Background (Khusus Desktop sm: ke atas; pada versi Mobile ruang kosong berwarna hitam pekat #000000) */}
               <img
                 src={activeImageSrc}
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl saturate-150 opacity-85 select-none pointer-events-none"
+                className="hidden sm:block absolute inset-0 w-full h-full object-cover scale-125 blur-2xl saturate-150 opacity-85 select-none pointer-events-none"
                 draggable={false}
               />
               <div
-                className="absolute inset-0 pointer-events-none opacity-45 backdrop-blur-xl"
+                className="hidden sm:block absolute inset-0 pointer-events-none opacity-45 backdrop-blur-xl"
                 style={{
                   background: `radial-gradient(circle at center, transparent 35%, ${dominantColor} 100%)`
                 }}

@@ -2,12 +2,12 @@
 -- Execute this script in your Supabase SQL Editor.
 
 -- ==========================================
--- 1. Confirm Email for Admin User
+-- 1. Confirm Email for Registered Admin Users
 -- ==========================================
 UPDATE auth.users 
-SET email_confirmed_at = now(), 
+SET email_confirmed_at = COALESCE(email_confirmed_at, now()), 
     last_sign_in_at = now()
-WHERE email = 'ketapangcilegon@gmail.com';
+WHERE email_confirmed_at IS NULL;
 
 -- ==========================================
 -- 2. Configure RLS and Policies for Tables

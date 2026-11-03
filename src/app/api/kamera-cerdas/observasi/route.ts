@@ -76,9 +76,10 @@ async function verifikasiPengirim(request: Request): Promise<{ nama: string; ema
       const { data, error } = await supabase.auth.getUser(token);
       const user = data?.user;
       if (!error && user?.email) {
+        const peran = user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas';
         const meta = (user.user_metadata || {}) as Record<string, unknown>;
         const nama = String(meta.full_name || meta.name || user.email.split('@')[0]);
-        return { nama, email: user.email, peran: user.app_metadata?.provider === 'google' ? 'enumerator' : 'petugas' };
+        return { nama, email: user.email, peran };
       }
     } catch {
       // lanjut ke fallback
@@ -100,6 +101,7 @@ async function verifikasiPengirim(request: Request): Promise<{ nama: string; ema
 }
 
 import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+import { maskEmailAddress } from '@/lib/arusPasokan';
 
 export async function GET(request: Request) {
   try {
@@ -165,7 +167,41 @@ export async function GET(request: Request) {
     if (kecamatan) result = result.filter((r) => r.kecamatan === kecamatan);
     if (kelurahan) result = result.filter((r) => r.kelurahan === kelurahan);
 
-    return NextResponse.json({ success: true, count: result.length, data: result });
+    // Masking seluruh email (baik Admin maupun Enumerator) menjadi huruf pertama + **** + huruf terakhir (misal k*************n@gmail.com)
+    const maskedResult = result.map((r) => {
+      const rawMeta = (r.foto_watermark_meta || {}) as Record<string, unknown>;
+      const metaEmail = typeof rawMeta.enumerator_email === 'string' ? rawMeta.enumerator_email : '';
+      const metaNama = typeof rawMeta.enumerator_nama === 'string' ? rawMeta.enumerator_nama : '';
+      const isAdminPin = (r.status_verifikasi || '').toLowerCase().includes('admin');
+
+      const rawEmail =
+        r.petugas_email ||
+        metaEmail ||
+        (r.petugas_nama && r.petugas_nama.includes('@') ? r.petugas_nama : '') ||
+        (isAdminPin ? 'k*************n@gmail.com' : '');
+
+      const maskedEmail = maskEmailAddress(rawEmail);
+      const maskedPetugasNama =
+        r.petugas_nama && r.petugas_nama.includes('@')
+          ? maskEmailAddress(r.petugas_nama)
+          : r.petugas_nama || (maskedEmail ? maskedEmail : 'Enumerator Lapangan');
+
+      const maskedMetaNama =
+        metaNama && metaNama.includes('@') ? maskEmailAddress(metaNama) : metaNama;
+
+      return {
+        ...r,
+        petugas_nama: maskedPetugasNama,
+        petugas_email: maskedEmail || undefined,
+        foto_watermark_meta: {
+          ...rawMeta,
+          ...(maskedMetaNama ? { enumerator_nama: maskedMetaNama } : {}),
+          ...(maskedEmail ? { enumerator_email: maskedEmail } : {}),
+        },
+      };
+    });
+
+    return NextResponse.json({ success: true, count: maskedResult.length, data: maskedResult });
 
   } catch (error: unknown) {
     console.warn('Fallback error pada GET observasi, menyajikan data seed:', error);
@@ -314,8 +350,13 @@ export async function PUT(request: Request) {
       ''
     ).toLowerCase().trim();
     const userEmail = (pengirim?.email || '').toLowerCase().trim();
+    const maskedUserEmail = maskEmailAddress(userEmail).toLowerCase().trim();
 
-    const isOwner = Boolean(userEmail && recordEmail && userEmail === recordEmail);
+    const isOwner = Boolean(
+      userEmail &&
+      recordEmail &&
+      (userEmail === recordEmail || maskedUserEmail === recordEmail)
+    );
 
     if (!isPetugasAdmin && !isOwner) {
       return NextResponse.json({

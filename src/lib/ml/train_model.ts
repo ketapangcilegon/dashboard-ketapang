@@ -166,16 +166,20 @@ function computeFeatures(rawRows: RawDatasetRow[], t: number, commodity: string)
 export async function trainAndForecastAll(token?: string) {
   console.log('[ML Train] Memulai pipeline training model ML...');
   
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fjycaxccbasksjooxrqg.supabase.co';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeWNheGNjYmFza3Nqb294cnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3Njk4NjcsImV4cCI6MjA5NTM0NTg2N30.HyFsymcv70yFFvSCicOHwQoz6aYPgZTc0dAhcoI__lo';
-  const dbClient = createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const dbClient = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
   
   if (token && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     await dbClient.auth.setSession({ access_token: token, refresh_token: '' });
   } else if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'ketapangcilegon@gmail.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'cilegon2026';
-    await dbClient.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminEmail && adminPassword) {
+      await dbClient.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
+    }
   }
 
   // 1. Fetch entire historical dataset from forecast_dataset view

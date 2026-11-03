@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
@@ -13,16 +14,33 @@ export async function POST(request: Request) {
     }
 
     const { email, password } = body;
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Email dan kata sandi wajib diisi.' },
+        { status: 400 }
+      );
+    }
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'ketapangcilegon@gmail.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'cilegon2026';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (
-      email &&
-      password &&
-      email.toLowerCase() === adminEmail.toLowerCase() &&
-      password === adminPassword
-    ) {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        { success: false, error: 'Konfigurasi autentikasi server belum lengkap.' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+
+    if (!authError && data?.user) {
       return NextResponse.json({ success: true });
     }
 

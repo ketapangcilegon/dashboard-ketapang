@@ -9,6 +9,7 @@ import KonfirmasiTanamanModal from './KonfirmasiTanamanModal';
 import KameraCerdasMap from './KameraCerdasMap';
 import KameraAgregasiDashboard from './KameraAgregasiDashboard';
 import { cariKelurahanTerdekat, resolveDynamicGeocode, haversineDistanceMeters } from '@/lib/kamera-normatif';
+import { maskEmailAddress } from '@/lib/arusPasokan';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { supabase } from '@/lib/supabase';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
@@ -76,32 +77,37 @@ export default function KameraCerdasView({
   const [loginError, setLoginError] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-  // Verifikasi Sesi Admin
+  // Verifikasi Sesi Admin (Wajib tervalidasi oleh Supabase Auth Session, bukan sekadar sessionStorage)
   useEffect(() => {
     const checkAuth = async () => {
-      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const hasAdmin = sessionActive || !!session?.user;
+        const hasAdmin = !!session?.user;
         setIsAdmin(hasAdmin);
-        if (session?.user?.email) {
-          setAdminEmail(session.user.email);
-        } else if (sessionActive) {
-          setAdminEmail('Administrator');
+        if (hasAdmin) {
+          sessionStorage.setItem('adminSession', 'active');
+          setAdminEmail(maskEmailAddress(session?.user?.email) || 'k*************n@gmail.com');
+        } else {
+          sessionStorage.removeItem('adminSession');
+          setAdminEmail('');
         }
       } catch {
-        setIsAdmin(sessionActive);
+        setIsAdmin(false);
+        setAdminEmail('');
       }
     };
     checkAuth();
-    // Ganti polling 1.5s dengan onAuthStateChange — event-driven, zero polling overhead
+    // Event-driven auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
-      const hasAdmin = sessionActive || !!session?.user;
+      const hasAdmin = !!session?.user;
       setIsAdmin(hasAdmin);
-      if (session?.user?.email) setAdminEmail(session.user.email);
-      else if (sessionActive) setAdminEmail('Administrator');
-      else setAdminEmail('');
+      if (hasAdmin) {
+        sessionStorage.setItem('adminSession', 'active');
+        setAdminEmail(maskEmailAddress(session?.user?.email) || 'k*************n@gmail.com');
+      } else {
+        sessionStorage.removeItem('adminSession');
+        setAdminEmail('');
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -118,8 +124,9 @@ export default function KameraCerdasView({
       if (!error && data.user) {
         sessionStorage.setItem('adminSession', 'active');
         setIsAdmin(true);
-        setAdminEmail(data.user.email || 'Administrator');
+        setAdminEmail(maskEmailAddress(data.user.email || loginEmail));
         setShowLoginModal(false);
+        setLoginEmail('');
         setLoginPassword('');
       } else {
         setLoginError(error ? 'Akses ditolak: ' + error.message : 'Email atau kata sandi tidak sesuai.');
@@ -934,7 +941,7 @@ export default function KameraCerdasView({
             </div>
           ) : enumerator ? (
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} • ${enumerator.email}`}>
+              <div className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-emerald-200 shadow-sm min-w-0" title={`${enumerator.nama} • ${maskEmailAddress(enumerator.email)}`}>
                 {enumerator.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={enumerator.avatarUrl} alt={enumerator.nama} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover border border-emerald-200" />
@@ -945,7 +952,7 @@ export default function KameraCerdasView({
                 )}
                 <span className="hidden sm:flex flex-col leading-tight min-w-0">
                   <b className="text-[10px] text-slate-800 truncate max-w-[130px]">{enumerator.nama}</b>
-                  <span className="text-[9px] text-slate-500 truncate max-w-[130px]">{enumerator.email}</span>
+                  <span className="text-[9px] text-slate-500 truncate max-w-[130px]">{maskEmailAddress(enumerator.email)}</span>
                 </span>
               </div>
               <button

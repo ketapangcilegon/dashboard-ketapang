@@ -16,14 +16,74 @@ import {
   Sliders,
   Sparkles,
   Info,
-  ExternalLink
+  ExternalLink,
+  Activity,
+  Play,
+  Clock,
+  Terminal,
+  Server
 } from 'lucide-react';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
+
+interface SmokeIndicatorResult {
+  id: string;
+  name: string;
+  endpoint: string;
+  selectorOrRule: string;
+  status: 'PASS' | 'WARN' | 'FAIL';
+  latencyMs: number;
+  httpStatus: number | null;
+  summary: string;
+  metrics: Record<string, string | number>;
+}
+
+interface SmokeTestResponse {
+  success: boolean;
+  overallStatus: 'PASS' | 'WARN' | 'FAIL';
+  executedAt: string;
+  totalDurationMs: number;
+  indicators: SmokeIndicatorResult[];
+  samplePrices: { komoditas: string; harga: number; sumber: string }[];
+  automationSchedule?: {
+    dailyCron: { endpoint: string; cronExpression: string; frequency: string; triggerType: string };
+    monthlyEtlCron: { endpoint: string; cronExpression: string; frequency: string; triggerType: string };
+    monthlyMlTrainCron: { endpoint: string; cronExpression: string; frequency: string; triggerType: string };
+    cliCommand: string;
+  };
+}
 
 export default function AdminFeatureAccessPanel() {
   const { settings, isLoading, isKameraLocked, isTentangLocked, updateSettings, reload } = useFeatureAccess();
   const [isUpdating, setIsUpdating] = useState<'kamera' | 'tentang' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // State untuk Smoke Test Pipeline Cheerio HTML SAGON
+  const [isRunningSmoke, setIsRunningSmoke] = useState(false);
+  const [smokeResult, setSmokeResult] = useState<SmokeTestResponse | null>(null);
+  const [smokeError, setSmokeError] = useState<string | null>(null);
+
+  const handleRunSmokeTest = async () => {
+    setIsRunningSmoke(true);
+    setSmokeError(null);
+    try {
+      const res = await fetch('/api/sagon-smoke-test', { cache: 'no-store' });
+      const data: SmokeTestResponse = await res.json();
+      setSmokeResult(data);
+      if (data.overallStatus === 'PASS') {
+        showToast('✅ Smoke Test Pipeline SAGON LULUS (PASS) — Seluruh selector DOM & Regex berfungsi normal!');
+      } else if (data.overallStatus === 'WARN') {
+        showToast('⚠️ Smoke Test selesai dengan catatan peringatan (WARN).');
+      } else {
+        showToast('❌ Smoke Test mendeteksi kegagalan pada salah satu endpoint SAGON.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal menghubungi endpoint /api/sagon-smoke-test';
+      setSmokeError(msg);
+      showToast('❌ Gagal menjalankan Smoke Test.');
+    } finally {
+      setIsRunningSmoke(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -309,6 +369,204 @@ export default function AdminFeatureAccessPanel() {
           </div>
         </div>
 
+      </div>
+
+      {/* ===================================================================== */}
+      {/* PANEL SMOKE TEST PIPELINE CHEERIO HTML SAGON (MANUAL TRIGGER & STATUS) */}
+      {/* ===================================================================== */}
+      <div id="sagon-smoke-test-panel" className="bg-white rounded-2xl border border-emerald-200/90 shadow-md overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-500/30">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black uppercase tracking-widest">
+              <Activity className="w-3.5 h-3.5" /> Pipeline Integrity & DOM Parser Monitor
+            </div>
+            <h2 className="text-base sm:text-lg font-black tracking-tight uppercase">
+              Smoke Test Pipeline Cheerio HTML SAGON
+            </h2>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              Uji kesehatan langsung (live non-destructive) terhadap struktur HTML tabel harian, agregat pasar, grafik bulanan Highcharts <code className="text-emerald-300 font-mono">sagon.cilegon.go.id</code>, serta kesiapan database fallback Supabase.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRunSmokeTest}
+            disabled={isRunningSmoke}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/25 transition-all active:scale-95 cursor-pointer shrink-0 disabled:opacity-60"
+          >
+            {isRunningSmoke ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Menguji Pipeline SAGON...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-slate-950" />
+                <span>Jalankan Smoke Test Manual</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="p-5 sm:p-6 space-y-5">
+          {/* Ringkasan Jadwal Otomatis & Trigger */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Cron Harian SAGON
+                </span>
+                <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  1x / Hari
+                </span>
+              </div>
+              <p className="text-xs font-extrabold text-slate-800">Setiap Pukul 06:30 WIB (23:30 UTC)</p>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Trigger: Vercel Cron (<code className="font-mono text-[10px]">/api/harga-sagon</code>) + On-Demand ISR (maks. 1x/jam saat user membuka panel harga).
+              </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                  <Server className="w-3.5 h-3.5" /> Cron Bulanan ETL & ML
+                </span>
+                <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                  2x / Bulan
+                </span>
+              </div>
+              <p className="text-xs font-extrabold text-slate-800">Tgl 1 & Tgl 5 Pukul 07:00 WIB</p>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Trigger: Tgl 1 (<code className="font-mono text-[10px]">/api/etl-ml</code> Infografis Bulanan) & Tgl 5 (<code className="font-mono text-[10px]">/api/ml/train</code> + Auto-Retrain saat drift &gt; Rp 3.000).
+              </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1">
+                  <Terminal className="w-3.5 h-3.5" /> Eksekusi Manual (Admin / CLI)
+                </span>
+                <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  On-Demand
+                </span>
+              </div>
+              <p className="text-xs font-extrabold text-slate-800">Tombol Panel Admin & Terminal CLI</p>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Klik tombol <strong>Jalankan Smoke Test Manual</strong> di atas atau jalankan <code className="font-mono text-[10px] bg-slate-200/70 px-1 py-0.5 rounded">npm run test:pipeline</code>.
+              </p>
+            </div>
+          </div>
+
+          {smokeError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{smokeError}</span>
+            </div>
+          )}
+
+          {/* Hasil Live Smoke Test */}
+          {smokeResult ? (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900 text-white px-4 py-3 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      smokeResult.overallStatus === 'PASS'
+                        ? 'bg-emerald-500 text-slate-950'
+                        : smokeResult.overallStatus === 'WARN'
+                        ? 'bg-amber-400 text-slate-950'
+                        : 'bg-rose-500 text-white'
+                    }`}
+                  >
+                    STATUS KESELURUHAN: {smokeResult.overallStatus}
+                  </span>
+                  <span className="text-xs font-bold text-slate-300">
+                    Total Durasi: <strong className="text-white">{smokeResult.totalDurationMs} ms</strong>
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  Diambil: {new Date(smokeResult.executedAt).toLocaleString('id-ID')} WIB
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {smokeResult.indicators.map((ind) => (
+                  <div
+                    key={ind.id}
+                    className={`rounded-xl border p-4 space-y-2.5 ${
+                      ind.status === 'PASS'
+                        ? 'bg-emerald-50/40 border-emerald-200'
+                        : ind.status === 'WARN'
+                        ? 'bg-amber-50/40 border-amber-200'
+                        : 'bg-rose-50/40 border-rose-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900">{ind.name}</h3>
+                        <p className="text-[10px] font-mono text-slate-500 mt-0.5">{ind.endpoint}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                          ind.status === 'PASS'
+                            ? 'bg-emerald-600 text-white'
+                            : ind.status === 'WARN'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        {ind.status} • {ind.latencyMs}ms
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{ind.summary}</p>
+
+                    <div className="bg-white/90 rounded-lg p-2.5 border border-slate-200/70 text-[10.5px] space-y-1">
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span>Selector / Rule:</span>
+                        <code className="font-mono font-bold text-slate-800">{ind.selectorOrRule}</code>
+                      </div>
+                      {Object.entries(ind.metrics).map(([k, v]) => (
+                        <div key={k} className="flex items-center justify-between text-slate-600 border-t border-slate-100 pt-1">
+                          <span className="capitalize">{k.replace(/_/g, ' ')}:</span>
+                          <strong className="text-slate-900">{String(v)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {smokeResult.samplePrices && smokeResult.samplePrices.length > 0 && (
+                <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80">
+                  <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-600 mb-2">
+                    Sampel Harga Live Terbaca saat Smoke Test:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {smokeResult.samplePrices.map((sp, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700 shadow-2xs"
+                      >
+                        {sp.komoditas}: <strong className="text-emerald-700">Rp {sp.harga.toLocaleString('id-ID')}</strong>{' '}
+                        <span className="text-[10px] text-slate-400">({sp.sumber})</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-slate-50/70 border border-dashed border-slate-300 rounded-xl p-5 text-center space-y-1">
+              <p className="text-xs font-extrabold text-slate-700">
+                Belum ada sesi pengujian manual yang dijalankan pada tampilan ini.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Klik tombol <strong>&ldquo;Jalankan Smoke Test Manual&rdquo;</strong> di kanan atas kartu ini untuk memverifikasi 4 indikator Cheerio HTML SAGON secara real-time.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Information Callout */}

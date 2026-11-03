@@ -49,7 +49,7 @@ Halaman formulir pendaftaran diakses melalui tautan resmi `smartcity.jakarta.go.
 | **Nama Penanggung Jawab (Ketua Tim)** | *(Isikan Nama Lengkap ASN Ketua Tim beserta Gelar)* |
 | **NIP Ketua Tim** | *(Isikan NIP Resmi ASN Pemerintah Daerah Kota Cilegon)* |
 | **Jabatan / Unit Kerja** | Analis Ketahanan Pangan / Dinas Ketahanan Pangan dan Pertanian Kota Cilegon |
-| **Email Penanggung Jawab** | `ketapangcilegon@gmail.com` *(atau email resmi kedinasan)* |
+| **Email Penanggung Jawab** | `-[Diisi pada Form Pendaftaran]-` |
 | **Nomor Kontak / WhatsApp** | *(Nomor HP aktif penanggung jawab)* |
 | **Asal Pemerintah Daerah** | **Pemerintah Kota Cilegon, Provinsi Banten** |
 | **Komposisi Anggota Tim (3–5 Orang ASN Aktif)** | • **Ketua Tim**: Analis Ketahanan Pangan (DKPP Kota Cilegon) – *Lead Subject Matter Expert & Product Owner*<br>• **Anggota 1**: Pranata Komputer / Analis Sistem Informasi (DKPP / Diskominfosandi Kota Cilegon) – *Technical Lead & Data Engineer*<br>• **Anggota 2**: Perencana Ahli Pertama / Analis Perencanaan (Bappeda Kota Cilegon / DKPP) – *Policy & Regional Planning Specialist*<br>• **Anggota 3 (Opsional)**: Pengawas Mutu Hasil Pertanian / Analis Pasar (DKPP / Disperindag Kota Cilegon) – *Market Monitoring & Logistics Specialist*<br>• **Anggota 4 (Opsional)**: Tenaga Gizi / Nutrisionis (Dinas Kesehatan Kota Cilegon) – *Nutrition & Stunting Health Liaison* |
@@ -218,7 +218,7 @@ Tema Kompetisi   : "Tantangan Lokal, Solusi Berstandar Global"
 Kategori Inovasi : Smart Government, Smart Living & Smart Economy
 Sasaran SDGs     : SDG 2 (Tanpa Kelaparan) & SDG 3 (Kehidupan Sehat & Sejahtera)
 Pengusung        : Tim Inovasi ASN – Dinas Ketahanan Pangan dan Pertanian Kota Cilegon
-Kontak Tim       : ketapangcilegon@gmail.com | +62 812-XXXX-XXXX
+Kontak Tim       : -[Diisi pada Form Pendaftaran]- | +62 812-XXXX-XXXX
 ========================================================================================
 ```
 
