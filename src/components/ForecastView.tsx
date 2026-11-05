@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { TrendingUp, ArrowLeft, RefreshCw, AlertTriangle, Info, ShieldAlert, Sparkles, CheckCircle2, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import CommodityIcon from './CommodityIcon';
+import { evaluateCommodity, EwsResult } from '@/lib/ews/engine';
 
 const COMMODITY_MAP: Record<string, string> = {
   harga_beras: 'Beras Medium',
@@ -113,23 +114,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
         }
         throw fcError;
       }
-      const mappedFcData = (fcData || []).map((item: any) => {
-        if (item.status_forecast === 'Turun') {
-          return {
-            ...item,
-            status_cv: 'AMAN',
-            status_skpg: 'AMAN',
-            narasi: `Tren harga diproyeksikan mengalami penurunan sebesar ${Math.abs(item.perubahan_pct).toFixed(1)}% dalam 1 bulan ke depan. Dari sudut pandang konsumen, penurunan ini sangat kondusif dan memperkuat aksesibilitas pangan masyarakat. Volatilitas (CV) dan kerentanan (SKPG) dinilai AMAN seiring dengan tren penurunan harga komoditas ini.`,
-            rekomendasi: [
-              "Lanjutkan pemantauan pasokan agar kestabilan harga tetap terjaga.",
-              "Optimalkan penyerapan hasil panen petani lokal untuk menjaga harga di tingkat produsen agar tidak anjlok terlalu dalam.",
-              "Pertahankan distribusi normal ke pasar-pasar rakyat."
-            ]
-          };
-        }
-        return item;
-      });
-      setForecasts(mappedFcData);
+      setForecasts(fcData || []);
 
       const { data: histData, error: histError } = await supabase
         .from('forecast_dataset')
@@ -211,44 +196,62 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     return months[monthNum - 1] || `${monthNum}`;
   };
 
-  const getOverallStatus = (statusForecast: string, statusCV: string, statusSKPG: string) => {
-    if (statusForecast === 'Turun') return 'Aman';
-    if (statusCV === 'RENTAN' || statusSKPG === 'RENTAN') return 'Rentan';
-    if (statusCV === 'WASPADA' || statusSKPG === 'WASPADA' || statusForecast === 'Naik') return 'Waspada';
-    return 'Aman';
+  const getOverallStatus = (item: any): 'AMAN' | 'WASPADA' | 'AWAS' => {
+    if (!item) return 'AMAN';
+    const evalRes = evaluateCommodity({
+      komoditas: item.komoditas || selectedCommodity,
+      hargaAktual: Number(item.harga_aktual) || 0,
+      forecast1m: Number(item.forecast_1m) || 0,
+      forecast3m: Number(item.forecast_3m) || 0,
+      cv: item.cv !== undefined ? Number(item.cv) : undefined,
+      yoy: item.growth_yoy !== undefined ? Number(item.growth_yoy) : undefined,
+      lower1m: item.lower_bound ? Number(item.lower_bound) : undefined,
+      upper1m: item.upper_bound ? Number(item.upper_bound) : undefined
+    });
+
+    if (evalRes.compositeStatus === 'DATA TIDAK LENGKAP') {
+      return 'AMAN';
+    }
+    return (evalRes.compositeStatus === 'KRITIS' ? 'AWAS' : evalRes.compositeStatus) as 'AMAN' | 'WASPADA' | 'AWAS';
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'rentan':
+    switch (status.toUpperCase()) {
+      case 'AWAS':
+      case 'KRITIS':
+      case 'RENTAN':
         return 'bg-rose-50 text-rose-700 border border-rose-200';
-      case 'waspada':
+      case 'WASPADA':
         return 'bg-amber-50 text-amber-700 border border-amber-200';
-      case 'aman':
+      case 'AMAN':
       default:
         return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
     }
   };
 
   const getStatusDot = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'rentan':
+    switch (status.toUpperCase()) {
+      case 'AWAS':
+      case 'KRITIS':
+      case 'RENTAN':
         return 'bg-rose-500';
-      case 'waspada':
+      case 'WASPADA':
         return 'bg-amber-500';
-      case 'aman':
+      case 'AMAN':
       default:
         return 'bg-emerald-500';
     }
   };
 
   const getStatusBgColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'rentan':
+    switch (status.toUpperCase()) {
+      case 'AWAS':
+      case 'KRITIS':
+      case 'RENTAN':
         return 'bg-rose-50/70 border-rose-200 text-rose-950';
-      case 'waspada':
+      case 'WASPADA':
         return 'bg-amber-50/70 border-amber-200 text-amber-950';
-      case 'aman':
+      case 'AMAN':
       default:
         return 'bg-emerald-50/70 border-emerald-200 text-emerald-950';
     }
@@ -344,8 +347,6 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     const forecast3m = Number(f?.forecast_3m) || 0;
     
     let statusForecast = f?.status_forecast || 'Stabil';
-    const statusCV = f?.status_cv || 'AMAN';
-    const statusSKPG = f?.status_skpg || 'AMAN';
     const cv = f?.cv !== undefined && f?.cv !== null ? Number(f.cv) : 0;
     const growthYoY = f?.growth_yoy !== undefined && f?.growth_yoy !== null ? Number(f.growth_yoy) : 0;
     const confidence = f?.confidence || 0;
@@ -353,6 +354,10 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
     const perubahanPct = (hargaKini > 0 && forecast1m > 0)
       ? ((forecast1m - hargaKini) / hargaKini) * 100
       : (f?.perubahan_pct !== undefined && f?.perubahan_pct !== null ? Number(f.perubahan_pct) : 0);
+
+    const perubahan3mPct = (hargaKini > 0 && forecast3m > 0)
+      ? ((forecast3m - hargaKini) / hargaKini) * 100
+      : 0;
 
     if (perubahanPct > 3) {
       statusForecast = 'Naik';
@@ -362,7 +367,30 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       statusForecast = 'Stabil';
     }
 
-    const overallStatus = getOverallStatus(statusForecast, statusCV, statusSKPG);
+    let statusForecast3m = 'Stabil';
+    if (perubahan3mPct > 3) {
+      statusForecast3m = 'Naik';
+    } else if (perubahan3mPct < -3) {
+      statusForecast3m = 'Turun';
+    } else {
+      statusForecast3m = 'Stabil';
+    }
+
+    // Integrated EWS 4-Dimensi
+    const ewsEval = evaluateCommodity({
+      komoditas: comm,
+      hargaAktual: hargaKini,
+      forecast1m,
+      forecast3m,
+      cv,
+      yoy: growthYoY,
+      lower1m: f?.lower_bound ? Number(f.lower_bound) : undefined,
+      upper1m: f?.upper_bound ? Number(f.upper_bound) : undefined
+    });
+
+    const overallStatus = ewsEval.compositeStatus === 'DATA TIDAK LENGKAP' ? 'AMAN' : ewsEval.compositeStatus;
+    const statusCV = ewsEval.dimensions.cv.status;
+    const statusSKPG = ewsEval.dimensions.yoy.status;
 
     return {
       key: comm,
@@ -371,13 +399,16 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       forecast1m,
       forecast3m,
       statusForecast,
+      statusForecast3m,
       statusCV,
       statusSKPG,
       cv,
       growthYoY,
       confidence,
       perubahanPct,
-      overallStatus
+      perubahan3mPct,
+      overallStatus,
+      ewsEval
     };
   });
 
@@ -427,10 +458,10 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
       )}
 
       {/* 2-Panel Layout: Forecast Table (75%) & EWS Panel (25%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-stretch">
         
         {/* Panel Kiri: Forecast Table (75% / col-span-3) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
           {/* Header Forecast Table (Sage Green #9DC183) - Sticky on mobile so it stays docked like Capture 2 */}
           <div className="p-3 px-4 sm:p-3.5 sm:px-5 bg-[#9DC183] border-b border-[#8eb574] rounded-t-2xl flex justify-between items-center flex-wrap gap-2 text-white sticky -top-4 sm:static z-20 shadow-sm">
             <h3 className="font-extrabold text-xs uppercase tracking-wider text-white flex items-center gap-2 drop-shadow-sm">
@@ -459,7 +490,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
           </div>
           
           {/* Table Container - Scrollable vertically with sticky header on both mobile & desktop */}
-          <div className="overflow-x-auto overflow-y-auto max-h-[440px] sm:max-h-[520px] flex-1 rounded-b-2xl overscroll-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="overflow-x-auto overflow-y-auto flex-1 min-h-[520px] rounded-b-2xl overscroll-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
             {loading ? (
               <div className="p-16 flex justify-center items-center text-slate-450 font-bold text-xs">
                 <RefreshCw className="w-6 h-6 animate-spin mr-3 text-emerald-600" />
@@ -486,15 +517,33 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>ARAH TREN +1 BULAN</div>
-                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L1)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(+1 Bln)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Arah Tren +1 Bulan (L1)',
-                            content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 1 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun (menguntungkan bagi konsumen).\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 2%.'
+                            title: 'Arah Tren +1 Bulan (+1 Bln)',
+                            content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 1 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun.\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 3%.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Arah Tren +1 Bulan (L1)"
+                          title="Penjelasan Arah Tren +1 Bulan"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-3 text-center whitespace-normal">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="leading-tight text-center">
+                          <div>ARAH TREN +3 BULAN</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(+3 Bln)</div>
+                        </div>
+                        <button 
+                          onClick={() => setActiveTooltip({
+                            title: 'Arah Tren +3 Bulan (+3 Bln)',
+                            content: 'Menunjukkan arah pergerakan harga komoditas pangan dalam 3 bulan ke depan berdasarkan model Machine Learning. Status berupa:\n• NAIK: Harga diproyeksikan naik.\n• TURUN: Harga diproyeksikan turun.\n• STABIL: Fluktuasi harga minor di bawah batas toleransi 3%.'
+                          })}
+                          className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
+                          title="Penjelasan Arah Tren +3 Bulan"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -504,15 +553,15 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
                           <div>KOEFISIEN VARIASI</div>
-                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L2)</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(CV 12-BLN)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Koefisien Variasi (L2)',
-                            content: 'Tingkat kestabilan harga historis selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi / Rata-rata) * 100.\n• Bulatan Hijau (Aman): Fluktuasi harga sangat rendah (< 10%).\n• Bulatan Kuning (Waspada): Fluktuasi harga sedang (10-20%).\n• Bulatan Merah (Rentan): Fluktuasi harga tinggi (> 20%).\n*Catatan: Jika tren diproyeksikan Turun, maka status CV dinilai AMAN untuk melindungi daya beli konsumen.'
+                            title: 'Volatilitas Harga (CV)',
+                            content: 'Tingkat volatilitas atau ketidakstabilan harga aktual selama 12 bulan terakhir. Diukur dengan rumus: (Standar Deviasi Populasi / Rata-rata) × 100.\n• Hijau (Aman): CV ≤ 5%.\n• Kuning (Waspada): 5% < CV ≤ 10%.\n• Merah (Awas): CV > 10%.\n*CV murni mengukur dispersi/volatilitas harga historis.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Koefisien Variasi (L2)"
+                          title="Penjelasan Koefisien Variasi (CV)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -521,16 +570,16 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
-                          <div>PERUBAHAN YoY</div>
-                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L3)</div>
+                          <div>TEKANAN TAHUNAN</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(YoY)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Perubahan YoY (L3)',
-                            content: 'Indikator kerentanan pangan sektoral berbasis perbandingan pertumbuhan harga bulanan terhadap tahun lalu (Year-on-Year Growth).\n• Bulatan Hijau (Aman): Pertumbuhan harga tahunan rendah/terkendali (< 5-10%).\n• Bulatan Kuning (Waspada): Pertumbuhan harga tahunan mulai meningkat (5-15%).\n• Bulatan Merah (Rentan): Lonjakan harga tahunan di atas ambang batas (> 10-15%).\n*Catatan: Jika tren diproyeksikan Turun, maka status SKPG dinilai AMAN untuk melindungi daya beli konsumen.'
+                            title: 'Tekanan Harga Tahunan (YoY)',
+                            content: 'Perubahan harga dibandingkan bulan yang sama tahun sebelumnya (Year-on-Year Growth).\n• Hijau (Aman): Pertumbuhan harga terkendali (YoY ≤ 5%).\n• Kuning (Waspada): Tekanan meningkat (5% < YoY ≤ 10%).\n• Merah (Awas): Lonjakan tahunan signifikan (YoY > 10%).'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Perubahan YoY (L3)"
+                          title="Penjelasan Perubahan YoY"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -597,13 +646,23 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         {row.forecast3m > 0 ? `Rp ${row.forecast3m.toLocaleString('id-ID')}` : '-'}
                       </td>
                       
-                      {/* Layer 1 Status */}
+                      {/* Tren +1 Bulan */}
                       <td className="p-3 text-center font-bold">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
                           row.statusForecast === 'Naik' ? 'bg-rose-50 text-rose-700 border border-rose-200' : row.statusForecast === 'Turun' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           <span>{row.statusForecast}</span>
                           <span className="font-mono text-[9px] font-bold opacity-90">({row.perubahanPct > 0 ? `+${row.perubahanPct.toFixed(1)}%` : `${row.perubahanPct.toFixed(1)}%`})</span>
+                        </span>
+                      </td>
+
+                      {/* Tren +3 Bulan */}
+                      <td className="p-3 text-center font-bold">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
+                          row.statusForecast3m === 'Naik' ? 'bg-rose-50 text-rose-700 border border-rose-200' : row.statusForecast3m === 'Turun' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}>
+                          <span>{row.statusForecast3m}</span>
+                          <span className="font-mono text-[9px] font-bold opacity-90">({row.perubahan3mPct > 0 ? `+${row.perubahan3mPct.toFixed(1)}%` : `${row.perubahan3mPct.toFixed(1)}%`})</span>
                         </span>
                       </td>
                       
@@ -613,7 +672,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                           <span 
                             title={`Status: ${row.statusCV} (CV: ${row.cv.toFixed(1)}%)`}
                             className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
-                              row.statusCV === 'RENTAN' 
+                              (row.statusCV === 'AWAS' || row.statusCV === 'KRITIS')
                                 ? 'bg-rose-50 text-rose-700 border-rose-200' 
                                 : row.statusCV === 'WASPADA' 
                                 ? 'bg-amber-50 text-amber-700 border-amber-200' 
@@ -621,7 +680,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                             }`}
                           >
                             <span className={`w-2 h-2 rounded-full shrink-0 ${
-                              row.statusCV === 'RENTAN' 
+                              (row.statusCV === 'AWAS' || row.statusCV === 'KRITIS')
                                 ? 'bg-rose-500' 
                                 : row.statusCV === 'WASPADA' 
                                 ? 'bg-amber-500' 
@@ -632,13 +691,13 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         ) : '-'}
                       </td>
                       
-                      {/* Layer 3: YoY Comparison (SKPG) */}
+                      {/* Layer 3: YoY Comparison */}
                       <td className="p-3 text-center">
                         {row.forecast1m > 0 ? (
                           <span 
                             title={`Status: ${row.statusSKPG} (YoY: ${row.growthYoY > 0 ? '+' : ''}${row.growthYoY.toFixed(1)}%)`}
                             className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
-                              row.statusSKPG === 'RENTAN' 
+                              (row.statusSKPG === 'AWAS' || row.statusSKPG === 'KRITIS')
                                 ? 'bg-rose-50 text-rose-700 border-rose-200' 
                                 : row.statusSKPG === 'WASPADA' 
                                 ? 'bg-amber-50 text-amber-700 border-amber-200' 
@@ -646,7 +705,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                             }`}
                           >
                             <span className={`w-2 h-2 rounded-full shrink-0 ${
-                              row.statusSKPG === 'RENTAN' 
+                              (row.statusSKPG === 'AWAS' || row.statusSKPG === 'KRITIS')
                                 ? 'bg-rose-500' 
                                 : row.statusSKPG === 'WASPADA' 
                                 ? 'bg-amber-500' 
@@ -680,7 +739,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
         </div>
 
         {/* Panel Kanan: EARLY WARNING SYSTEM */}
-        <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[480px]">
+        <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-full min-h-[480px]">
           <div>
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center gap-2 border-b border-slate-100 pb-3">
               <ShieldAlert className="w-4 h-4 text-emerald-600" />
@@ -700,7 +759,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                 {(() => {
                   const commodityKeys = COMMODITY_ORDER;
                   const activeIdx = commodityKeys.indexOf(selectedCommodity);
-                  const overallStatus = getOverallStatus(activeForecast.status_forecast, activeForecast.status_cv, activeForecast.status_skpg);
+                  const overallStatus = activeTableRow?.overallStatus || getOverallStatus(activeForecast);
                   
                   return (
                     <div className={`p-5 rounded-2xl border flex flex-col justify-between shadow-inner min-h-[120px] transition-all duration-300 ${getStatusBgColor(overallStatus)}`}>
@@ -760,34 +819,60 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                   );
                 })()}
 
-                {/* 3 Layers Breakdown */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                {/* 4 Dimensi Terpadu EWS */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-bold">L1: Proyeksi Trend (1m)</span>
+                    <span className="text-slate-600 font-bold">D1: Forecast (+1 Bulan)</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      activeForecast.status_forecast === 'Naik' ? 'text-rose-600 font-black' : activeForecast.status_forecast === 'Turun' ? 'text-emerald-600 font-black' : 'text-slate-600 font-black'
+                      activeTableRow?.ewsEval?.dimensions.f1.status === 'AWAS' || activeTableRow?.ewsEval?.dimensions.f1.status === 'KRITIS' ? 'text-rose-700 bg-rose-50 border border-rose-200' :
+                      activeTableRow?.ewsEval?.dimensions.f1.status === 'WASPADA' ? 'text-amber-700 bg-amber-50 border border-amber-200' :
+                      'text-emerald-700 bg-emerald-50 border border-emerald-200'
                     }`}>
-                      {activeForecast.status_forecast} ({activeForecast.perubahan_pct > 0 ? `+${activeForecast.perubahan_pct.toFixed(1)}%` : `${activeForecast.perubahan_pct.toFixed(1)}%`})
+                      {activeTableRow?.ewsEval?.dimensions.f1.status || activeForecast.status_forecast} ({activeForecast.perubahan_pct > 0 ? `+${activeForecast.perubahan_pct.toFixed(1)}%` : `${activeForecast.perubahan_pct.toFixed(1)}%`})
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-bold">L2: Koefisien Variasi (CV)</span>
+                    <span className="text-slate-600 font-bold">D2: Forecast (+3 Bulan)</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      activeForecast.status_cv === 'RENTAN' ? 'text-rose-600 font-black' : activeForecast.status_cv === 'WASPADA' ? 'text-amber-600 font-black' : 'text-emerald-600 font-black'
+                      activeTableRow?.ewsEval?.dimensions.f3.status === 'AWAS' || activeTableRow?.ewsEval?.dimensions.f3.status === 'KRITIS' ? 'text-rose-700 bg-rose-50 border border-rose-200' :
+                      activeTableRow?.ewsEval?.dimensions.f3.status === 'WASPADA' ? 'text-amber-700 bg-amber-50 border border-amber-200' :
+                      'text-emerald-700 bg-emerald-50 border border-emerald-200'
                     }`}>
-                      {activeForecast.status_cv} ({activeForecast.cv.toFixed(1)}%)
+                      {activeTableRow?.ewsEval?.dimensions.f3.status || 'AMAN'} ({activeTableRow?.perubahan3mPct !== undefined && activeTableRow.perubahan3mPct > 0 ? `+${activeTableRow.perubahan3mPct.toFixed(1)}%` : `${(activeTableRow?.perubahan3mPct || 0).toFixed(1)}%`})
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-bold">L3: YoY Comparison (SKPG)</span>
+                    <span className="text-slate-600 font-bold">D3: Volatilitas (CV 12-Bln)</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                      activeForecast.status_skpg === 'RENTAN' ? 'text-rose-600 font-black' : activeForecast.status_skpg === 'WASPADA' ? 'text-amber-600 font-black' : 'text-emerald-600 font-black'
+                      activeForecast.status_cv === 'AWAS' || activeForecast.status_cv === 'KRITIS' || activeForecast.status_cv === 'RENTAN' ? 'text-rose-700 bg-rose-50 border border-rose-200' :
+                      activeForecast.status_cv === 'WASPADA' ? 'text-amber-700 bg-amber-50 border border-amber-200' :
+                      'text-emerald-700 bg-emerald-50 border border-emerald-200'
                     }`}>
-                      {activeForecast.status_skpg} ({activeForecast.growth_yoy > 0 ? `+${activeForecast.growth_yoy.toFixed(1)}%` : `${activeForecast.growth_yoy.toFixed(1)}%`})
+                      {activeForecast.status_cv === 'RENTAN' || activeForecast.status_cv === 'KRITIS' ? 'AWAS' : activeForecast.status_cv} ({activeForecast.cv.toFixed(1)}%)
                     </span>
                   </div>
+
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600 font-bold">D4: Tekanan Tahunan (YoY)</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      activeForecast.status_skpg === 'AWAS' || activeForecast.status_skpg === 'KRITIS' || activeForecast.status_skpg === 'RENTAN' ? 'text-rose-700 bg-rose-50 border border-rose-200' :
+                      activeForecast.status_skpg === 'WASPADA' ? 'text-amber-700 bg-amber-50 border border-amber-200' :
+                      'text-emerald-700 bg-emerald-50 border border-emerald-200'
+                    }`}>
+                      {activeForecast.status_skpg === 'RENTAN' || activeForecast.status_skpg === 'KRITIS' ? 'AWAS' : activeForecast.status_skpg} ({activeForecast.growth_yoy > 0 ? `+${activeForecast.growth_yoy.toFixed(1)}%` : `${activeForecast.growth_yoy.toFixed(1)}%`})
+                    </span>
+                  </div>
+
+                  {activeTableRow?.ewsEval?.compositeScore !== undefined && activeTableRow?.ewsEval?.compositeScore !== null && (
+                    <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[11px] font-black">
+                      <span className="text-slate-700">Skor Risiko Komposit (0-2):</span>
+                      <span className="font-mono text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded">
+                        {activeTableRow.ewsEval.compositeScore.toFixed(2)} ({activeTableRow.ewsEval.riskIndexPct !== null ? `${activeTableRow.ewsEval.riskIndexPct.toFixed(0)}%` : '-'})
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Top Drivers */}

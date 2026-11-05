@@ -20,6 +20,8 @@ import MobileVersionModal from './MobileVersionModal';
 import { APP_VERSION } from '@/lib/version';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
 import { KEL_TO_KEC } from '@/lib/wilayah';
+import { evaluateCommodity, CommodityEvaluationResult } from '@/lib/ews/engine';
+import CommodityIcon from '../CommodityIcon';
 
 const KameraCerdasView = dynamic(
   () => import('@/components/kamera/KameraCerdasView'),
@@ -45,9 +47,14 @@ export interface MobileEwsItem {
   statusForecast: string;
   statusCv: string;
   statusSkpg: string;
+  status3m: string;
   perubahanPct: number;
+  perubahan3mPct: number;
   growthYoy: number;
-  overallStatus: 'Aman' | 'Waspada' | 'Rentan';
+  overallStatus: 'Aman' | 'Waspada' | 'Awas';
+  compositeScore: number | null;
+  riskIndex: number;
+  matrixStatus: string;
   drivers: string[];
   rekomendasi: string[];
 }
@@ -61,6 +68,8 @@ interface MobileForecastItem {
   month3: number;
   trend: 'up' | 'down' | 'stable';
   changePct: number;
+  trend3m: 'up' | 'down' | 'stable';
+  changePct3m: number;
   status: string;
 }
 
@@ -415,9 +424,9 @@ export default function MobileHome({
   const [expandedEwsKey, setExpandedEwsKey] = useState<string | null>(null);
   const forecastScrollRef = React.useRef<HTMLDivElement>(null);
 
-  // Hanya tampilkan daftar komoditas yang secara agregat statusnya rentan dan waspada (Capture 4)
+  // Hanya tampilkan daftar komoditas yang secara agregat statusnya Kritis dan Waspada
   const alertEwsItems = useMemo(() => {
-    return allEwsItems.filter(item => item.overallStatus === 'Rentan' || item.overallStatus === 'Waspada');
+    return allEwsItems.filter(item => item.overallStatus === 'Awas' || item.overallStatus === 'Waspada');
   }, [allEwsItems]);
 
   useEffect(() => {
@@ -440,7 +449,9 @@ export default function MobileHome({
           const month1 = row ? (Number(row.forecast_1m) || cfg.fallback1m) : cfg.fallback1m;
           const month3 = row ? (Number(row.forecast_3m) || cfg.fallback3m) : cfg.fallback3m;
           const pct = aktual > 0 ? ((month1 - aktual) / aktual) * 100 : (Number(row?.perubahan_pct) || 0);
+          const pct3m = aktual > 0 ? ((month3 - aktual) / aktual) * 100 : 0;
           const trend = (pct > 2 ? 'up' : pct < -2 ? 'down' : 'stable') as 'up' | 'down' | 'stable';
+          const trend3m = (pct3m > 2 ? 'up' : pct3m < -2 ? 'down' : 'stable') as 'up' | 'down' | 'stable';
           const status = row?.status_forecast || (pct > 2 ? 'Naik' : pct < -2 ? 'Turun' : 'Stabil');
 
           return {
@@ -452,44 +463,52 @@ export default function MobileHome({
             month3,
             trend,
             changePct: Math.round(pct * 10) / 10,
+            trend3m,
+            changePct3m: Math.round(pct3m * 10) / 10,
             status,
           };
         });
 
         setAllForecastItems(items);
 
-        // Early Warning System (EWS) 13 Komoditas Data
+        // Early Warning System (EWS) 13 Komoditas Data (4-Dimension Risk Engine)
         const ewsList: MobileEwsItem[] = FORECAST_COMMODITY_ORDER.map(cfg => {
           const row = dbMap.get(cfg.key);
           const aktual = row ? (Number(row.harga_aktual) || cfg.fallbackAktual) : cfg.fallbackAktual;
           const month1 = row ? (Number(row.forecast_1m) || cfg.fallback1m) : cfg.fallback1m;
           const month3 = row ? (Number(row.forecast_3m) || cfg.fallback3m) : cfg.fallback3m;
           const pct = aktual > 0 ? ((month1 - aktual) / aktual) * 100 : (Number(row?.perubahan_pct) || 0);
+          const pct3m = aktual > 0 ? ((month3 - aktual) / aktual) * 100 : 0;
           const cv = Number(row?.cv) || 1.0;
-          const statusForecast = row?.status_forecast || (pct > 3 ? 'Naik' : pct < -3 ? 'Turun' : 'Stabil');
-          const statusCv = row?.status_cv || (cv > 15 ? 'RENTAN' : cv > 8 ? 'WASPADA' : 'AMAN');
-          const statusSkpg = row?.status_skpg || 'AMAN';
           const growthYoy = Number(row?.growth_yoy) || -3.0;
 
-          let overallStatus: 'Aman' | 'Waspada' | 'Rentan' = 'Aman';
-          if (statusForecast === 'Turun') {
-            overallStatus = 'Aman';
-          } else if (statusCv === 'RENTAN' || statusSkpg === 'RENTAN') {
-            overallStatus = 'Rentan';
-          } else if (statusCv === 'WASPADA' || statusSkpg === 'WASPADA' || statusForecast === 'Naik') {
-            overallStatus = 'Waspada';
-          }
+          const ewsEval = evaluateCommodity({
+            komoditas: cfg.key,
+            hargaAktual: aktual,
+            forecast1m: month1,
+            forecast3m: month3,
+            cv,
+            yoy: growthYoy,
+            lower1m: row?.lower_bound,
+            upper1m: row?.upper_bound,
+          });
+
+          const overallStatus = (ewsEval.compositeStatus === 'AWAS' || ewsEval.compositeStatus === 'KRITIS')
+            ? 'Awas'
+            : ewsEval.compositeStatus === 'WASPADA'
+            ? 'Waspada'
+            : 'Aman';
 
           let drivers = row?.drivers;
           if (!drivers || !Array.isArray(drivers) || drivers.length === 0) {
             drivers = [
               '1 Tren harga 3 bulan terakhir',
-              '2 Cuaca kondusif',
+              '2 Pasokan sentra produksi',
               '3 Stabilitas inflasi makro'
             ];
           }
 
-          let rekomendasi = row?.rekomendasi;
+          let rekomendasi = ewsEval.rekomendasi;
           if (!rekomendasi || !Array.isArray(rekomendasi) || rekomendasi.length === 0) {
             rekomendasi = [
               'monitoring rutin mingguan',
@@ -505,12 +524,17 @@ export default function MobileHome({
             forecast1m: month1,
             forecast3m: month3,
             cv,
-            statusForecast,
-            statusCv,
-            statusSkpg,
+            statusForecast: ewsEval.dimensions.f1.status,
+            statusCv: ewsEval.dimensions.cv.status,
+            statusSkpg: ewsEval.dimensions.yoy.status,
+            status3m: ewsEval.dimensions.f3.status,
             perubahanPct: Math.round(pct * 10) / 10,
+            perubahan3mPct: Math.round(pct3m * 10) / 10,
             growthYoy,
             overallStatus,
+            compositeScore: ewsEval.compositeScore,
+            riskIndex: ewsEval.riskIndexPct ?? 0,
+            matrixStatus: ewsEval.matrixStatus || '-',
             drivers,
             rekomendasi,
           };
@@ -528,6 +552,8 @@ export default function MobileHome({
           month3: cfg.fallback3m,
           trend: 'up',
           changePct: 2.5,
+          trend3m: 'up',
+          changePct3m: 3.8,
           status: 'Naik',
         }));
         setAllForecastItems(fallbackItems);
@@ -536,7 +562,22 @@ export default function MobileHome({
           const isBmWsp = cfg.key === 'harga_bawang_merah';
           const isCrmWsp = cfg.key === 'harga_cabai_rawit_merah';
           const isMnyWsp = cfg.key === 'harga_cabai_merah_keriting';
-          const overallStatus = isBmWsp ? 'Rentan' : (isCrmWsp || isMnyWsp) ? 'Waspada' : 'Aman';
+          
+          const ewsEval = evaluateCommodity({
+            komoditas: cfg.key,
+            hargaAktual: cfg.fallbackAktual,
+            forecast1m: cfg.fallback1m,
+            forecast3m: cfg.fallback3m,
+            cv: isBmWsp ? 15.8 : isCrmWsp ? 10.2 : 1.0,
+            yoy: isBmWsp ? 14.2 : -3.0
+          });
+
+          const overallStatus = (ewsEval.compositeStatus === 'AWAS' || ewsEval.compositeStatus === 'KRITIS')
+            ? 'Awas'
+            : ewsEval.compositeStatus === 'WASPADA'
+            ? 'Waspada'
+            : 'Aman';
+
           return {
             key: cfg.key,
             name: cfg.name,
@@ -545,21 +586,23 @@ export default function MobileHome({
             forecast1m: cfg.fallback1m,
             forecast3m: cfg.fallback3m,
             cv: isBmWsp ? 15.8 : isCrmWsp ? 10.2 : 1.0,
-            statusForecast: isBmWsp ? 'Naik' : isCrmWsp ? 'Naik' : 'Stabil',
-            statusCv: isBmWsp ? 'RENTAN' : isCrmWsp ? 'WASPADA' : 'AMAN',
-            statusSkpg: 'AMAN',
+            statusForecast: ewsEval.dimensions.f1.status,
+            statusCv: ewsEval.dimensions.cv.status,
+            statusSkpg: ewsEval.dimensions.yoy.status,
+            status3m: ewsEval.dimensions.f3.status,
             perubahanPct: isBmWsp ? 23.2 : isCrmWsp ? 8.4 : -0.6,
+            perubahan3mPct: isBmWsp ? 21.0 : isCrmWsp ? 12.0 : 1.0,
             growthYoy: isBmWsp ? 14.2 : -3.0,
             overallStatus,
+            compositeScore: ewsEval.compositeScore,
+            riskIndex: ewsEval.riskIndexPct ?? 0,
+            matrixStatus: ewsEval.matrixStatus || '-',
             drivers: [
               '1 Tren harga 3 bulan terakhir',
               '2 Pasokan dari sentra produksi Jawa Tengah',
               '3 Stabilitas pasokan dan distribusi'
             ],
-            rekomendasi: [
-              isBmWsp ? 'Operasi pasar & koordinasi distributor' : 'Monitoring berkala pergerakan harga',
-              'Jaga kelancaran arus distribusi pangan'
-            ]
+            rekomendasi: ewsEval.rekomendasi
           };
         });
         setAllEwsItems(fallbackEws);
@@ -1052,11 +1095,11 @@ export default function MobileHome({
                   </div>
                 </div>
 
-                {/* Bar Penjelasan Arah Tren +1 Bulan (L1) */}
+                {/* Bar Penjelasan Arah Tren +1 Bln & +3 Bln */}
                 <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[8.5px]">
-                  <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex items-center gap-1 min-w-0">
                     <span className="font-black text-[#0B4D3C] uppercase text-[7.5px] tracking-wide shrink-0">
-                      Arah Tren +1 Bulan (L1):
+                      Tren +1 Bln:
                     </span>
                     <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono font-black shrink-0 ${
                       item.changePct > 3
@@ -1072,13 +1115,23 @@ export default function MobileHome({
                     </span>
                   </div>
 
-                  <span className="font-bold text-slate-600 truncate text-[8px] text-right">
-                    {item.changePct > 3
-                      ? 'Tren Naik (Waspada Inflasi)'
-                      : item.changePct < -3
-                      ? 'Tren Turun (Kondusif Pasar)'
-                      : 'Stabil (Fluktuasi < 3%)'}
-                  </span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="font-black text-[#0B4D3C] uppercase text-[7.5px] tracking-wide shrink-0">
+                      Tren +3 Bln:
+                    </span>
+                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono font-black shrink-0 ${
+                      item.changePct3m > 3
+                        ? 'bg-[#FFF1F2] text-[#E11D48] border border-[#FECDD3]'
+                        : item.changePct3m < -3
+                        ? 'bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]'
+                        : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
+                    }`}>
+                      {item.changePct3m > 3 && <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                      {item.changePct3m < -3 && <TrendingDown className="w-2.5 h-2.5 shrink-0" />}
+                      {Math.abs(item.changePct3m) <= 3 && <span className="font-mono text-[9px] font-black">—</span>}
+                      {item.changePct3m > 0 ? `+${item.changePct3m.toFixed(1)}%` : `${item.changePct3m.toFixed(1)}%`}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -1134,7 +1187,7 @@ export default function MobileHome({
             <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
               <span className="text-[10px] font-black uppercase tracking-tight text-amber-950 flex items-center gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 fill-amber-500 text-amber-700" />
-                Konsep & Metodologi 3-Layer EWS
+                Integrated EWS (4 Dimensi Analisis)
               </span>
               <button
                 type="button"
@@ -1147,15 +1200,16 @@ export default function MobileHome({
             </div>
             <div className="pt-2 text-[10px] leading-relaxed text-slate-700 max-h-52 overflow-y-auto space-y-1.5 pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full">
               <p>
-                <strong>Early Warning System (EWS) Pangan:</strong> Sistem deteksi dini risiko gejolak pasokan dan inflasi pangan dengan memadukan 3 lapis analitik:
+                <strong>Integrated Food Price EWS Kota Cilegon:</strong> Sistem deteksi dini peringatan risiko harga pangan dengan 4 dimensi terpadu (Equal Weighting 25%):
               </p>
               <ul className="list-disc pl-4 space-y-0.5">
-                <li><strong>L1 (Proyeksi Tren Harga):</strong> Menggunakan sinyal kenaikan harga dari hasil model prediksi Machine Learning champion.</li>
-                <li><strong>L2 (CV Volatilitas):</strong> Koefisien Variasi harga harian. Nilai CV &gt; 15% menandakan tingginya gejolak pasar (Rentan).</li>
-                <li><strong>L3 (YoY SKPG):</strong> Tren pertumbuhan tahunan ketersediaan pangan dari Sistem Kewaspadaan Pangan & Gizi.</li>
+                <li><strong>D1 (Proyeksi +1 Bulan):</strong> Potensi kenaikan jangka pendek respons operasional.</li>
+                <li><strong>D2 (Proyeksi +3 Bulan):</strong> Potensi tekanan jangka menengah antisipasi daerah.</li>
+                <li><strong>D3 (Volatilitas CV 12-Bulan):</strong> Tingkat fluktuasi harga aktual (STDEV.P). CV &gt; 10% Kritis, 5–10% Waspada, ≤ 5% Aman.</li>
+                <li><strong>D4 (Tekanan Tahunan YoY):</strong> Perubahan harga dibandingkan periode sama tahun lalu.</li>
               </ul>
               <p>
-                Daftar ini secara khusus memprioritaskan komoditas berstatus <strong>Rentan</strong> dan <strong>Waspada</strong> sebagai rujukan cepat tindak intervensi stabilisasi pasokan dan harga di Kota Cilegon.
+                Daftar ini secara khusus memprioritaskan komoditas berstatus <strong>Awas</strong> dan <strong>Waspada</strong> sebagai rujukan cepat tindak intervensi stabilisasi pasokan dan harga di Kota Cilegon.
               </p>
             </div>
           </div>
@@ -1174,24 +1228,24 @@ export default function MobileHome({
           )}
         </div>
 
-        {/* Scrollable Container (HANYA Menampilkan Komoditas Rentan & Waspada - Capture 4) */}
+        {/* Scrollable Container (HANYA Menampilkan Komoditas Kritis & Waspada) */}
         <div 
-          className="max-h-[350px] overflow-y-auto space-y-2 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300"
+          className="max-h-[360px] overflow-y-auto space-y-2 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-300"
           style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}
         >
           {alertEwsItems.length === 0 ? (
             <div className="bg-emerald-50/90 rounded-2xl border border-emerald-200 p-4 text-center space-y-1">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto" />
               <p className="text-xs font-black text-emerald-950">Seluruh Komoditas Berstatus Aman</p>
-              <p className="text-[10px] text-emerald-700">Tidak ada komoditas dengan status rentan atau waspada saat ini.</p>
+              <p className="text-[10px] text-emerald-700">Tidak ada komoditas dengan status waspada atau awas saat ini.</p>
             </div>
           ) : (
             alertEwsItems.map((item, idx) => {
               const isExpanded = expandedEwsKey === item.key;
-              const statusColor = 
-                item.overallStatus === 'Rentan'
-                  ? { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
-                  : { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' };
+              const isAwas = item.overallStatus === 'Awas';
+              const statusColor = isAwas
+                ? { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
+                : { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' };
 
               return (
                 <div 
@@ -1204,7 +1258,7 @@ export default function MobileHome({
                     className="flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base shrink-0">{item.icon}</span>
+                      <CommodityIcon id={item.key} name={item.name} size={20} className="shrink-0" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-slate-800 truncate">
@@ -1214,6 +1268,9 @@ export default function MobileHome({
                             #{idx + 1}
                           </span>
                         </div>
+                        <span className="text-[8.5px] text-slate-400 font-mono block">
+                          Skor Komposit: {item.compositeScore !== null ? item.compositeScore.toFixed(2) : '-'}/2.00 ({item.riskIndex.toFixed(0)}%)
+                        </span>
                       </div>
                     </div>
 
@@ -1232,41 +1289,53 @@ export default function MobileHome({
                     </div>
                   </div>
 
-                  {/* 3 Layer Indikator EWS: L1 (Trend), L2 (CV), L3 (SKPG) */}
-                  <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 text-left">
-                    {/* L1 */}
-                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                  {/* 4 Dimensi Indikator EWS */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-100 text-left text-[9px]">
+                    {/* D1 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex justify-between items-center">
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                        L1: Proyeksi
+                        D1: +1 Bln
                       </span>
-                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                        item.statusForecast === 'Naik' ? 'text-rose-600' : item.statusForecast === 'Turun' ? 'text-emerald-700' : 'text-slate-700'
+                      <span className={`font-black ${
+                        (item.statusForecast === 'AWAS' || item.statusForecast === 'KRITIS') ? 'text-rose-600' : item.statusForecast === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
                       }`}>
-                        {item.statusForecast} ({item.perubahanPct > 0 ? `+${item.perubahanPct.toFixed(1)}%` : `${item.perubahanPct.toFixed(1)}%`})
+                        {item.perubahanPct > 0 ? `+${item.perubahanPct.toFixed(1)}%` : `${item.perubahanPct.toFixed(1)}%`} • {item.statusForecast}
                       </span>
                     </div>
 
-                    {/* L2 */}
-                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                    {/* D2 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex justify-between items-center">
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                        L2: CV Volatilitas
+                        D2: +3 Bln
                       </span>
-                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                        item.statusCv === 'RENTAN' ? 'text-rose-600' : item.statusCv === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                      <span className={`font-black ${
+                        (item.status3m === 'AWAS' || item.status3m === 'KRITIS') ? 'text-rose-600' : item.status3m === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
                       }`}>
-                        {item.statusCv} ({item.cv.toFixed(1)}%)
+                        {item.perubahan3mPct > 0 ? `+${item.perubahan3mPct.toFixed(1)}%` : `${item.perubahan3mPct.toFixed(1)}%`} • {item.status3m}
                       </span>
                     </div>
 
-                    {/* L3 */}
-                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex flex-col justify-between">
+                    {/* D3 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex justify-between items-center">
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
-                        L3: YoY SKPG
+                        D3: CV Volatilitas
                       </span>
-                      <span className={`text-[9.5px] font-black mt-0.5 truncate ${
-                        item.statusSkpg === 'RENTAN' ? 'text-rose-600' : item.statusSkpg === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                      <span className={`font-black ${
+                        (item.statusCv === 'AWAS' || item.statusCv === 'KRITIS') ? 'text-rose-600' : item.statusCv === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
                       }`}>
-                        {item.statusSkpg} ({item.growthYoy > 0 ? `+${item.growthYoy.toFixed(1)}%` : `${item.growthYoy.toFixed(1)}%`})
+                        {item.cv.toFixed(1)}% • {item.statusCv}
+                      </span>
+                    </div>
+
+                    {/* D4 */}
+                    <div className="bg-slate-50/80 rounded-xl p-1.5 border border-slate-100 flex justify-between items-center">
+                      <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-tight">
+                        D4: YoY Tekanan
+                      </span>
+                      <span className={`font-black ${
+                        (item.statusSkpg === 'AWAS' || item.statusSkpg === 'KRITIS') ? 'text-rose-600' : item.statusSkpg === 'WASPADA' ? 'text-amber-700' : 'text-emerald-700'
+                      }`}>
+                        {item.growthYoy > 0 ? `+${item.growthYoy.toFixed(1)}%` : `${item.growthYoy.toFixed(1)}%`} • {item.statusSkpg}
                       </span>
                     </div>
                   </div>
@@ -1274,6 +1343,18 @@ export default function MobileHome({
                   {/* Bagian Detail Expand: Top Drivers & Rekomendasi */}
                   {isExpanded && (
                     <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
+                      {/* Matriks Irisan Info */}
+                      <div className="bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 flex items-center justify-between text-[9px]">
+                        <span className="font-bold text-slate-600">Status Matriks Irisan 3×3:</span>
+                        <span className={`px-2 py-0.5 rounded font-black uppercase ${
+                          (item.matrixStatus === 'AWAS' || item.matrixStatus === 'KRITIS') ? 'bg-rose-100 text-rose-800' :
+                          item.matrixStatus === 'WASPADA' ? 'bg-amber-100 text-amber-800' :
+                          'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {item.matrixStatus}
+                        </span>
+                      </div>
+
                       {/* Top Drivers */}
                       <div className="space-y-1">
                         <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-500 uppercase tracking-wide">

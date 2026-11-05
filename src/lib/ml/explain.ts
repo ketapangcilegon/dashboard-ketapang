@@ -8,30 +8,72 @@ export interface ExplanationResult {
   rekomendasi: string[];
 }
 
+export interface ExplainPredictionOptions {
+  currentPrice: number;
+  predictedPrice: number;
+  forecast3m?: number;
+  features: Record<string, number>;
+  komoditas: string;
+  cv: number;
+  growth_yoy: number;
+  status_cv?: string;
+  status_skpg?: string;
+  compositeStatus?: 'AMAN' | 'WASPADA' | 'AWAS' | 'KRITIS' | string;
+  compositeScore?: number;
+  matrixStatus?: 'AMAN' | 'WASPADA' | 'AWAS' | 'KRITIS' | string;
+  diagnostics?: string[];
+  rekomendasi?: string[];
+}
+
 /**
  * Computes feature contribution category impacts, generates an Indonesian narrative,
- * and builds dynamic EWS action recommendations.
- * 
- * @param currentPrice The actual price in the latest month
- * @param predictedPrice The forecasted price (1 month ahead)
- * @param features The feature row values for the target month
- * @param komoditas Name of the commodity
- * @param cv Volatility CV (12-month)
- * @param growth_yoy YoY Growth Rate
- * @param status_cv EWS Volatility status
- * @param status_skpg EWS SKPG status
+ * and builds dynamic EWS action recommendations based on the 4-dimension integrated EWS model.
  */
 export function explainPrediction(
-  currentPrice: number,
-  predictedPrice: number,
-  features: Record<string, number>,
-  komoditas: string,
-  cv: number,
-  growth_yoy: number,
-  status_cv: string,
-  status_skpg: string
+  currentPriceOrOpts: number | ExplainPredictionOptions,
+  predictedPriceArg?: number,
+  featuresArg?: Record<string, number>,
+  komoditasArg?: string,
+  cvArg?: number,
+  growth_yoyArg?: number,
+  status_cvArg?: string,
+  status_skpgArg?: string
 ): ExplanationResult {
-  const diffPercent = ((predictedPrice - currentPrice) / currentPrice) * 100;
+  let opts: ExplainPredictionOptions;
+
+  if (typeof currentPriceOrOpts === 'object') {
+    opts = currentPriceOrOpts;
+  } else {
+    opts = {
+      currentPrice: currentPriceOrOpts,
+      predictedPrice: predictedPriceArg || 0,
+      features: featuresArg || {},
+      komoditas: komoditasArg || '',
+      cv: cvArg || 0,
+      growth_yoy: growth_yoyArg || 0,
+      status_cv: status_cvArg,
+      status_skpg: status_skpgArg,
+    };
+  }
+
+  const {
+    currentPrice,
+    predictedPrice,
+    forecast3m = predictedPrice,
+    features,
+    komoditas,
+    cv,
+    growth_yoy,
+    status_cv = 'AMAN',
+    status_skpg = 'AMAN',
+    compositeStatus,
+    compositeScore,
+    matrixStatus,
+    diagnostics = [],
+    rekomendasi: customRekomendasi
+  } = opts;
+
+  const diffPercent = currentPrice > 0 ? ((predictedPrice - currentPrice) / currentPrice) * 100 : 0;
   const isRising = diffPercent > 0;
   const absDiff = Math.abs(diffPercent);
 
@@ -72,7 +114,7 @@ export function explainPrediction(
   const weatherReasons: string[] = [];
   const curahHujan = features.curah_hujan_mm || 0;
   const hariHujan = features.hari_hujan || 0;
-  const isCrop = ['harga_cabai_merah', 'harga_cabai_rawit', 'harga_bawang_merah', 'harga_bawang_putih'].includes(komoditas);
+  const isCrop = ['harga_cabai_merah', 'harga_cabai_rawit', 'harga_cabai_rawit_merah', 'harga_cabai_rawit_hijau', 'harga_bawang_merah', 'harga_bawang_putih'].some(k => komoditas.includes(k));
 
   if (curahHujan > 250 || hariHujan > 15) {
     weatherImpact = isCrop ? 14.5 : 4.5;
@@ -150,38 +192,61 @@ export function explainPrediction(
   });
 
   // 2. Generate EWS recommendations (rekomendasi)
-  const recommendations: string[] = [];
-  const isRentan = status_cv === 'RENTAN' || status_skpg === 'RENTAN';
-  const isWaspada = status_cv === 'WASPADA' || status_skpg === 'WASPADA' || (isRising && diffPercent > 3);
+  // Standardized 3 classifications: AMAN, WASPADA, AWAS
+  let rawStatus = (compositeStatus || (
+    status_cv === 'AWAS' || status_cv === 'KRITIS' || status_cv === 'RENTAN' || status_skpg === 'AWAS' || status_skpg === 'KRITIS' || status_skpg === 'RENTAN'
+      ? 'AWAS'
+      : status_cv === 'WASPADA' || status_skpg === 'WASPADA' || (isRising && diffPercent > 3)
+        ? 'WASPADA'
+        : 'AMAN'
+  )).toUpperCase();
 
-  if (isRentan) {
-    recommendations.push("siapkan GPM");
-    recommendations.push("intensifkan monitoring");
-    recommendations.push("koordinasi distribusi");
-  } else if (isWaspada) {
-    recommendations.push("lakukan operasi pasar mandiri");
-    recommendations.push("pantau pasokan distributor");
-    recommendations.push("himbau belanja bijak");
+  const effectiveStatus = rawStatus === 'KRITIS' ? 'AWAS' : rawStatus;
+
+  let recommendations: string[] = [];
+  if (customRekomendasi && customRekomendasi.length > 0) {
+    recommendations = [...customRekomendasi];
+  } else if (effectiveStatus === 'AWAS') {
+    recommendations = [
+      "siapkan GPM & perluas kios pangan SPHP Bulog di kelurahan prioritas",
+      "intensifkan monitoring harian harga dan pasokan distributor",
+      "fasilitasi distribusi pangan / bantuan ongkos angkut dari sentra produsen",
+      "optimalisasi Cadangan Pangan Pemerintah Daerah (CPPD) untuk stabilisasi"
+    ];
+  } else if (effectiveStatus === 'WASPADA') {
+    recommendations = [
+      "pantau pasokan distributor dan pergerakan stok pedagang",
+      "koordinasi pasokan dengan daerah produsen mitra",
+      "siapkan opsi operasi pasar mandiri jika tren berlanjut"
+    ];
   } else {
-    recommendations.push("monitoring rutin mingguan");
-    recommendations.push("jaga kestabilan pasokan");
-    recommendations.push("pastikan jalur distribusi lancar");
+    recommendations = [
+      "monitoring rutin mingguan stabilitas pasokan dan harga",
+      "jaga kestabilan pasokan dan kelancaran distribusi normal"
+    ];
   }
 
-  // 3. Generate structured narrative text
+  // 3. Generate structured narrative text conforming to Master Prompt Chapter 7
   const komoditasCleanName = komoditas.replace('harga_', '').replace(/_/g, ' ');
   const capitalizedName = komoditasCleanName.charAt(0).toUpperCase() + komoditasCleanName.slice(1);
   const actionWord = isRising ? 'naik' : 'turun';
+  const scoreText = compositeScore !== undefined ? ` (Skor Komposit: ${compositeScore.toFixed(2)}/2.00)` : '';
+  const matrixText = matrixStatus ? ` | Status Matriks Irisan: ${matrixStatus}` : '';
 
-  const narasi = `${capitalizedName} diproyeksikan ${actionWord} ${absDiff.toFixed(0)}%.
-Pendorong utama:
+  const diagText = diagnostics.length > 0 ? `\nCatatan Diagnostik:\n${diagnostics.map(d => `- ${d}`).join('\n')}\n` : '';
+
+  const narasi = `[STATUS EWS: ${effectiveStatus}${scoreText}${matrixText}]
+${capitalizedName} diproyeksikan ${actionWord} ${absDiff.toFixed(1)}% pada horizon +1 bulan (Rp ${Math.round(predictedPrice).toLocaleString('id-ID')}) dan +3 bulan (Rp ${Math.round(forecast3m).toLocaleString('id-ID')}).
+
+Pendorong utama pergerakan harga:
 ${topDrivers.join('\n')}
 
-Interpretasi risiko:
-CV: ${cv.toFixed(1)}% -> ${status_cv}
-SKPG: ${growth_yoy.toFixed(1)}% -> ${status_skpg}
-
-Rekomendasi:
+Evaluasi Dimensi Terpadu:
+- Forecast +1 Bulan: ${diffPercent >= 0 ? '+' : ''}${diffPercent.toFixed(1)}%
+- Volatilitas Historis (CV): ${cv.toFixed(1)}% -> ${status_cv}
+- Tekanan Harga Tahunan (YoY): ${growth_yoy >= 0 ? '+' : ''}${growth_yoy.toFixed(1)}% -> ${status_skpg}
+${diagText}
+Rekomendasi Kebijakan:
 ${recommendations.map(r => `* ${r}`).join('\n')}`;
 
   return {

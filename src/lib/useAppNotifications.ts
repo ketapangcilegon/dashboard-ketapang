@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { evaluateCommodity } from '@/lib/ews/engine';
 
 export interface RealNotificationItem {
   id: string;
@@ -164,7 +165,7 @@ export function useAppNotifications(
     evaluateSagonPrices();
   }, [livePrices, liveHistory]);
 
-  // 2. Compute EWS Notifications from Supabase forecast_result
+  // 2. Compute EWS Notifications using 4-Dimension Composite Risk Engine
   useEffect(() => {
     async function evaluateEwsAlerts() {
       try {
@@ -176,34 +177,49 @@ export function useAppNotifications(
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Filter commodities with warning condition: status_forecast === 'Naik' or perubahan_pct > 2.5
-          const warnings = data.filter((row: any) => {
-            const pct = Number(row.perubahan_pct) || 0;
-            return row.status_forecast === 'Naik' || pct > 2.5 || row.status_cv === 'WASPADA' || row.status_skpg === 'RENTAN';
+          const ewsItems: RealNotificationItem[] = [];
+
+          data.forEach((row: any) => {
+            const current = Number(row.harga_aktual) || 0;
+            const month1 = Number(row.forecast_1m) || 0;
+            const month3 = Number(row.forecast_3m) || 0;
+            const cv = Number(row.cv) || 0;
+            const growthYoY = Number(row.growth_yoy) || 0;
+
+            const evalRes = evaluateCommodity({
+              komoditas: row.komoditas,
+              hargaAktual: current,
+              forecast1m: month1,
+              forecast3m: month3,
+              cv,
+              yoy: growthYoY,
+              lower1m: row.lower_bound ? Number(row.lower_bound) : undefined,
+              upper1m: row.upper_bound ? Number(row.upper_bound) : undefined
+            });
+
+            if (evalRes.compositeStatus === 'AWAS' || evalRes.compositeStatus === 'KRITIS' || evalRes.compositeStatus === 'WASPADA') {
+              const name = COMMODITY_NAMES[row.komoditas] || row.komoditas;
+              const isAwas = evalRes.compositeStatus === 'AWAS' || evalRes.compositeStatus === 'KRITIS';
+              const pct1m = evalRes.dimensions.f1.value || 0;
+              const pct3m = evalRes.dimensions.f3.value || 0;
+
+              ewsItems.push({
+                id: `ews-${row.komoditas}`,
+                source: 'ews',
+                title: 'Early Warning System (EWS)',
+                commodityName: name,
+                badge: isAwas ? 'EWS AWAS' : 'EWS WASPADA',
+                message: `${name} terdeteksi berstatus ${evalRes.compositeStatus} (Skor: ${evalRes.compositeScore !== null ? evalRes.compositeScore.toFixed(2) : '-'}/2.00). Proyeksi +1 bln: Rp ${Math.round(month1).toLocaleString('id-ID')} (${pct1m >= 0 ? '+' : ''}${pct1m.toFixed(1)}%), +3 bln: Rp ${Math.round(month3).toLocaleString('id-ID')}, CV: ${cv.toFixed(1)}%, YoY: ${growthYoY >= 0 ? '+' : ''}${growthYoY.toFixed(1)}%.`,
+                time: 'Model 4-Dimensi EWS',
+                actionView: 'forecasting',
+                actionLabel: 'Lihat Analisis Forecast & EWS',
+                urgency: isAwas ? 'high' : 'medium'
+              });
+            }
           });
 
-          const ewsItems: RealNotificationItem[] = warnings.map((row: any) => {
-            const name = COMMODITY_NAMES[row.komoditas] || row.komoditas;
-            const pct = Number(row.perubahan_pct) || 0;
-            const cur = Number(row.harga_aktual) || 0;
-            const f1m = Number(row.forecast_1m) || 0;
-            const f3m = Number(row.forecast_3m) || 0;
-
-            const isHigh = pct >= 5 || row.status_cv === 'WASPADA';
-
-            return {
-              id: `ews-${row.komoditas}`,
-              source: 'ews',
-              title: 'Early Warning System (EWS)',
-              commodityName: name,
-              badge: isHigh ? 'Peringatan Dini' : 'Waspada Tren',
-              message: `${name} terdeteksi tren kenaikan ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%. Proyeksi +1 bln: Rp ${f1m.toLocaleString('id-ID')}, +3 bln: Rp ${f3m.toLocaleString('id-ID')}.`,
-              time: 'Model ML EWS',
-              actionView: 'forecasting',
-              actionLabel: 'Lihat Analisis Forecast & EWS',
-              urgency: isHigh ? 'high' : 'medium'
-            };
-          });
+          // Urutkan alert AWAS di atas WASPADA
+          ewsItems.sort((a, b) => (a.urgency === 'high' ? -1 : 1));
 
           setEwsAlerts(ewsItems);
         } else {
@@ -214,24 +230,24 @@ export function useAppNotifications(
               source: 'ews',
               title: 'Early Warning System (EWS)',
               commodityName: 'Cabai Merah',
-              badge: 'Peringatan Dini',
-              message: 'Cabai Merah terdeteksi tren kenaikan +6.6%. Proyeksi harga +1 bulan mencapai Rp 42.465/kg.',
-              time: 'Model ML EWS',
-              actionView: 'forecasting',
-              actionLabel: 'Lihat Analisis Forecast & EWS',
-              urgency: 'high'
-            },
-            {
-              id: 'ews-telur-ayam',
-              source: 'ews',
-              title: 'Early Warning System (EWS)',
-              commodityName: 'Telur Ayam Ras',
-              badge: 'Waspada Tren',
-              message: 'Telur Ayam Ras diproyeksikan mengalami peningkatan +3.8% menjadi Rp 26.894/kg.',
-              time: 'Model ML EWS',
+              badge: 'EWS WASPADA',
+              message: 'Cabai Merah terdeteksi berstatus WASPADA (Skor: 0.75). Proyeksi harga +1 bulan mencapai Rp 43.248/kg (+6.1%), CV: 18.4%.',
+              time: 'Model 4-Dimensi EWS',
               actionView: 'forecasting',
               actionLabel: 'Lihat Analisis Forecast & EWS',
               urgency: 'medium'
+            },
+            {
+              id: 'ews-bawang-merah',
+              source: 'ews',
+              title: 'Early Warning System (EWS)',
+              commodityName: 'Bawang Merah',
+              badge: 'EWS AWAS',
+              message: 'Bawang Merah terdeteksi berstatus AWAS (Skor: 1.50). Proyeksi harga +1 bulan naik +23.2% menjadi Rp 36.988/kg, CV: 15.8%.',
+              time: 'Model 4-Dimensi EWS',
+              actionView: 'forecasting',
+              actionLabel: 'Lihat Analisis Forecast & EWS',
+              urgency: 'high'
             }
           ]);
         }

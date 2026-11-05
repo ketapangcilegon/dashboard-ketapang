@@ -3,6 +3,40 @@
 import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus, Loader2, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import CommodityIcon from './CommodityIcon';
+import { supabase } from '@/lib/supabase';
+
+const COMMODITY_CV_FALLBACK: Record<string, number> = {
+  'Beras Medium': 4.1,
+  'Bawang Merah': 15.8,
+  'Bawang Putih Bonggol': 6.2,
+  'Cabe Merah Besar': 18.4,
+  'Cabe Merah Keriting': 17.7,
+  'Cabe Rawit Merah': 14.5,
+  'Cabe Rawit Hijau': 12.3,
+  'Daging Sapi Murni': 3.8,
+  'Daging Ayam Ras': 7.6,
+  'Telur Ayam Ras': 6.9,
+  'Gula Pasir': 3.2,
+  'Minyak Goreng Kemasan': 4.1,
+  'Tepung Terigu Kemasan': 2.9,
+};
+
+const COMMODITY_KEY_TO_NAME: Record<string, string> = {
+  harga_beras: 'Beras Medium',
+  harga_bawang_merah: 'Bawang Merah',
+  harga_bawang_putih: 'Bawang Putih Bonggol',
+  harga_cabai_merah: 'Cabe Merah Besar',
+  harga_cabai_merah_keriting: 'Cabe Merah Keriting',
+  harga_cabai_rawit_merah: 'Cabe Rawit Merah',
+  harga_cabai_rawit_hijau: 'Cabe Rawit Hijau',
+  harga_cabai_rawit: 'Cabe Rawit Merah',
+  harga_daging_sapi: 'Daging Sapi Murni',
+  harga_daging_ayam_ras: 'Daging Ayam Ras',
+  harga_telur_ayam_ras: 'Telur Ayam Ras',
+  harga_gula_pasir: 'Gula Pasir',
+  harga_minyak_goreng: 'Minyak Goreng Kemasan',
+  harga_tepung_terigu: 'Tepung Terigu Kemasan',
+};
 
 interface HargaPanelProps {
   hargaData: any[];
@@ -26,6 +60,7 @@ export default function HargaPanel({
   const [localLiveHistory, setLocalLiveHistory] = useState<Record<string, Record<string, number>> | null>(null);
   const [localLoadingLive, setLocalLoadingLive] = useState<boolean>(true);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [cvMap, setCvMap] = useState<Record<string, number>>(COMMODITY_CV_FALLBACK);
 
   const hasPropLive = propLivePrices !== undefined || propLoadingLive !== undefined;
   const livePrices = hasPropLive ? propLivePrices : localLivePrices;
@@ -84,6 +119,30 @@ export default function HargaPanel({
     }
     fetchLiveHarga();
   }, [hasPropLive]);
+
+  // Fetch real CV data from forecast_result Supabase table
+  useEffect(() => {
+    async function fetchCvData() {
+      try {
+        const { data, error } = await supabase
+          .from('forecast_result')
+          .select('komoditas, cv');
+        if (!error && data && data.length > 0) {
+          const mapping: Record<string, number> = {};
+          data.forEach((row: any) => {
+            const name = COMMODITY_KEY_TO_NAME[row.komoditas] || row.komoditas;
+            if (row.cv !== undefined && row.cv !== null) {
+              mapping[name] = Number(row.cv);
+            }
+          });
+          setCvMap(prev => ({ ...prev, ...mapping }));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch CV from forecast_result, using baseline fallback:', err);
+      }
+    }
+    fetchCvData();
+  }, []);
 
   // Format YYYY-MM-DD to Indonesian format
   const formatIndoDate = (dateStr: string | null | undefined) => {
@@ -204,19 +263,19 @@ export default function HargaPanel({
   };
 
   const commStats = [
-    { name: 'Beras Medium', curr: getRealHistoricalPrice('beras', berasCur), prev: berasPrev, emoji: '🍚' },
-    { name: 'Bawang Merah', curr: getRealHistoricalPrice('bawang_merah', bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅' },
-    { name: 'Bawang Putih Bonggol', curr: getRealHistoricalPrice('bawang_putih', bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄' },
-    { name: 'Cabe Merah Besar', curr: getRealHistoricalPrice('cabe_merah', cabeCur), prev: cabePrev, emoji: '🌶️' },
-    { name: 'Cabe Merah Keriting', curr: getRealHistoricalPrice('cabe_merah_keriting', cabeKeritingCur), prev: cabeKeritingPrev, emoji: '🌶️' },
-    { name: 'Cabe Rawit Merah', curr: getRealHistoricalPrice('cabe_rawit_merah', cabeRawitMerahCur), prev: cabeRawitMerahPrev, emoji: '🌶️' },
-    { name: 'Cabe Rawit Hijau', curr: getRealHistoricalPrice('cabe_rawit_hijau', cabeRawitHijauCur), prev: cabeRawitHijauPrev, emoji: '🌶️' },
-    { name: 'Daging Sapi Murni', curr: getRealHistoricalPrice('daging_sapi', dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩' },
-    { name: 'Daging Ayam Ras', curr: getRealHistoricalPrice('daging_ayam', ayamCur), prev: ayamPrev, emoji: '🍗' },
-    { name: 'Telur Ayam Ras', curr: getRealHistoricalPrice('telur', telurCur), prev: telurPrev, emoji: '🥚' },
-    { name: 'Gula Pasir', curr: getRealHistoricalPrice('gula_pasir', gulaCur), prev: gulaPrev, emoji: '🧂' },
-    { name: 'Minyak Goreng Kemasan', curr: getRealHistoricalPrice('minyak_goreng_kemasan', minyakKemasanCur), prev: minyakKemasanPrev, emoji: '🧴' },
-    { name: 'Tepung Terigu Kemasan', curr: getRealHistoricalPrice('tepung_terigu', tepungTeriguCur), prev: tepungTeriguPrev, emoji: '🌾' },
+    { name: 'Beras Medium', curr: getRealHistoricalPrice('beras', berasCur), prev: berasPrev, emoji: '🍚', cv: cvMap['Beras Medium'] ?? 4.1 },
+    { name: 'Bawang Merah', curr: getRealHistoricalPrice('bawang_merah', bawangMerahCur), prev: bawangMerahPrev, emoji: '🧅', cv: cvMap['Bawang Merah'] ?? 15.8 },
+    { name: 'Bawang Putih Bonggol', curr: getRealHistoricalPrice('bawang_putih', bawangPutihCur), prev: bawangPutihPrev, emoji: '🧄', cv: cvMap['Bawang Putih Bonggol'] ?? 6.2 },
+    { name: 'Cabe Merah Besar', curr: getRealHistoricalPrice('cabe_merah', cabeCur), prev: cabePrev, emoji: '🌶️', cv: cvMap['Cabe Merah Besar'] ?? 18.4 },
+    { name: 'Cabe Merah Keriting', curr: getRealHistoricalPrice('cabe_merah_keriting', cabeKeritingCur), prev: cabeKeritingPrev, emoji: '🌶️', cv: cvMap['Cabe Merah Keriting'] ?? 17.7 },
+    { name: 'Cabe Rawit Merah', curr: getRealHistoricalPrice('cabe_rawit_merah', cabeRawitMerahCur), prev: cabeRawitMerahPrev, emoji: '🌶️', cv: cvMap['Cabe Rawit Merah'] ?? 14.5 },
+    { name: 'Cabe Rawit Hijau', curr: getRealHistoricalPrice('cabe_rawit_hijau', cabeRawitHijauCur), prev: cabeRawitHijauPrev, emoji: '🌶️', cv: cvMap['Cabe Rawit Hijau'] ?? 12.3 },
+    { name: 'Daging Sapi Murni', curr: getRealHistoricalPrice('daging_sapi', dagingSapiCur), prev: dagingSapiPrev, emoji: '🥩', cv: cvMap['Daging Sapi Murni'] ?? 3.8 },
+    { name: 'Daging Ayam Ras', curr: getRealHistoricalPrice('daging_ayam', ayamCur), prev: ayamPrev, emoji: '🍗', cv: cvMap['Daging Ayam Ras'] ?? 7.6 },
+    { name: 'Telur Ayam Ras', curr: getRealHistoricalPrice('telur', telurCur), prev: telurPrev, emoji: '🥚', cv: cvMap['Telur Ayam Ras'] ?? 6.9 },
+    { name: 'Gula Pasir', curr: getRealHistoricalPrice('gula_pasir', gulaCur), prev: gulaPrev, emoji: '🧂', cv: cvMap['Gula Pasir'] ?? 3.2 },
+    { name: 'Minyak Goreng Kemasan', curr: getRealHistoricalPrice('minyak_goreng_kemasan', minyakKemasanCur), prev: minyakKemasanPrev, emoji: '🧴', cv: cvMap['Minyak Goreng Kemasan'] ?? 4.1 },
+    { name: 'Tepung Terigu Kemasan', curr: getRealHistoricalPrice('tepung_terigu', tepungTeriguCur), prev: tepungTeriguPrev, emoji: '🌾', cv: cvMap['Tepung Terigu Kemasan'] ?? 2.9 },
   ];
 
   // Export current table view to XLSX Excel
@@ -240,6 +299,7 @@ export default function HargaPanel({
           'Harga Acuan YoY (Rp)': Math.round(c.prev),
           'Perubahan (YoY)': stats.changeText,
           'Status': stats.status,
+          'CV (%)': `${c.cv.toFixed(1)}%`,
           'Tanggal': dates[dateIndex],
           'Tanggal Format': formattedActiveDate,
           'Sumber Data': sumberText
@@ -256,6 +316,7 @@ export default function HargaPanel({
         { wch: 22 }, // Harga Acuan YoY (Rp)
         { wch: 16 }, // Perubahan (YoY)
         { wch: 14 }, // Status
+        { wch: 12 }, // CV (%)
         { wch: 14 }, // Tanggal
         { wch: 24 }, // Tanggal Format
         { wch: 45 }  // Sumber Data
@@ -340,10 +401,11 @@ export default function HargaPanel({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[#0B7A53]/10 text-[8px] sm:text-[9px] font-black uppercase text-[#0B7A53]/70 tracking-wider sticky top-0 bg-[#E6FDF4] z-10">
-              <th className="pb-1.5 font-bold w-[35%]">Komoditas</th>
-              <th className="pb-1.5 font-bold text-center w-[25%]">Harga Rata-Rata</th>
-              <th className="pb-1.5 font-bold text-center w-[22%]">Perubahan (YoY)</th>
-              <th className="pb-1.5 font-bold text-right w-[18%] pr-1">Status</th>
+              <th className="pb-1.5 font-bold w-[32%]">Komoditas</th>
+              <th className="pb-1.5 font-bold text-center w-[23%]">Harga Rata-Rata</th>
+              <th className="pb-1.5 font-bold text-center w-[18%]">Perubahan (YoY)</th>
+              <th className="pb-1.5 font-bold text-center w-[14%]">Status</th>
+              <th className="pb-1.5 font-bold text-right w-[13%] pr-1">CV (%)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#0B7A53]/5">
@@ -364,9 +426,14 @@ export default function HargaPanel({
                       {stats.changeText}
                     </span>
                   </td>
-                  <td className="py-1 text-right pr-1">
+                  <td className="py-1 text-center">
                     <span className={`text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full uppercase border shadow-sm ${stats.colorClass}`}>
                       {stats.status}
+                    </span>
+                  </td>
+                  <td className="py-1 text-right pr-1">
+                    <span className={`text-[9px] sm:text-[10px] font-extrabold font-mono ${c.cv > 10 ? 'text-rose-600' : c.cv > 5 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                      {c.cv.toFixed(1)}%
                     </span>
                   </td>
                 </tr>

@@ -27,23 +27,23 @@ const BenchmarkPanel = dynamic(() => import('@/components/BenchmarkPanel'), { ss
 const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), { 
   ssr: false,
   loading: () => (
-    <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm animate-pulse min-h-[320px]">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+    <div className="w-full rounded-2xl border border-amber-200/80 p-6 flex flex-col justify-between shadow-sm animate-pulse min-h-[320px]" style={{ backgroundColor: '#fffbf0' }}>
+      <div className="flex items-center justify-between pb-3 border-b border-amber-100">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
-          <div className="h-5 w-72 bg-slate-200 rounded-lg" />
+          <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+          <div className="h-5 w-72 bg-amber-100/70 rounded-lg" />
         </div>
-        <div className="h-4 w-28 bg-slate-100 rounded-md" />
+        <div className="h-4 w-28 bg-amber-100/60 rounded-md" />
       </div>
       <div className="space-y-3 py-6">
-        <div className="h-4 bg-slate-100 rounded w-full" />
-        <div className="h-4 bg-slate-100 rounded w-5/6" />
-        <div className="h-4 bg-slate-100 rounded w-4/6" />
-        <div className="h-4 bg-slate-100 rounded w-full" />
-        <div className="h-4 bg-slate-100 rounded w-3/4" />
+        <div className="h-4 bg-amber-100/50 rounded w-full" />
+        <div className="h-4 bg-amber-100/50 rounded w-5/6" />
+        <div className="h-4 bg-amber-100/50 rounded w-4/6" />
+        <div className="h-4 bg-amber-100/50 rounded w-full" />
+        <div className="h-4 bg-amber-100/50 rounded w-3/4" />
       </div>
-      <div className="flex items-center gap-2 pt-3 border-t border-slate-100 text-xs text-slate-400 font-bold">
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+      <div className="flex items-center gap-2 pt-3 border-t border-amber-100 text-xs text-orange-600 font-bold">
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
         <span>Menyiapkan modul AI Insight Ketahanan Pangan...</span>
       </div>
     </div>
@@ -72,7 +72,6 @@ const AIIntelligenceView = dynamic(() => import('@/components/AIIntelligenceView
 });
 const KameraCerdasView = dynamic(() => import('@/components/kamera/KameraCerdasView'), { ssr: false });
 const AIIntelligenceMap = dynamic(() => import('@/components/AIIntelligenceMap'), { ssr: false });
-const EarlyWarningSystemPanel = dynamic(() => import('@/components/EarlyWarningSystemPanel'), { ssr: false });
 import MobileAppContainer from '@/components/mobile/MobileAppContainer';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import MobileVersionModal from '@/components/mobile/MobileVersionModal';
@@ -481,8 +480,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
-      if (w >= 1280) setVisibleCount(6);      // xl
-      else if (w >= 1024) setVisibleCount(4); // lg
+      if (w >= 1440) setVisibleCount(4);      // 2xl
+      else if (w >= 1024) setVisibleCount(3); // lg / xl (kolom kiri grid 8/12)
       else if (w >= 768) setVisibleCount(3);  // md
       else if (w >= 640) setVisibleCount(2);  // sm
       else setVisibleCount(1);                // mobile
@@ -1726,149 +1725,195 @@ export default function DashboardPage() {
               
               {currentView === 'beranda' && (
                 <>
-                  {/* INFORMASI & DOKUMENTASI (Hero Media Carousel) */}
-                  <MediaCarousel />
+                  {/* TOP SECTION: Grid 2 Kolom (Kiri: Media Carousel + KPI Gauges; Kanan: AI Insight Panel) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    {/* Kolom 1 (Kiri - 8 Kolom Desktop): 2 Baris Vertikal */}
+                    <div className="lg:col-span-8 flex flex-col space-y-3.5">
+                      {/* Baris Atas: INFORMASI & DOKUMENTASI (Hero Media Carousel) */}
+                      <div>
+                        <MediaCarousel />
+                      </div>
 
-                  {/* Title Header for KPI Carousel */}
-                  <div className="mt-6 sm:mt-8 mb-2.5 flex flex-col justify-end min-h-[38px] px-1 print:px-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
-                      <h2 className="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-widest leading-none">
-                        KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
-                      </h2>
+                      {/* Baris Bawah: KEY PERFORMANCE INDICATOR (KPI) */}
+                      <div className="flex flex-col">
+                        {/* Title Header for KPI Carousel */}
+                        <div className="mt-0.5 mb-2 flex flex-col justify-end min-h-[30px] px-1 print:px-0">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                            <h2 className="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-widest leading-none">
+                              KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
+                            </h2>
+                          </div>
+                        </div>
+                        
+                        {/* 1. Desktop KPI Carousel (lg:flex, print:flex, hidden on mobile) */}
+                        <div className="hidden lg:flex print:flex relative w-full items-center group px-8 print:px-0">
+                          {/* Left Arrow Button */}
+                          {sliderIndex > 0 && (
+                            <button
+                              onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
+                              className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-9 w-9 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
+                              title="Sebelumnya"
+                            >
+                              <ChevronLeft className="w-5 h-5 text-slate-700" />
+                            </button>
+                          )}
+
+                          {/* Carousel Viewport */}
+                          <div 
+                            className="w-full overflow-hidden py-1 print:overflow-visible select-none cursor-grab active:cursor-grabbing"
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={onTouchEnd}
+                          >
+                            <div 
+                              className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
+                              style={{ 
+                                transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
+                              }}
+                            >
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <PPHGauge value={getPPHValue()} year={pphLatestYear} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
+                                <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
+                                <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
+                              </div>
+                              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 2xl:w-1/4 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
+                                <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Arrow Button */}
+                          {sliderIndex < maxSliderIndex && (
+                            <button
+                              onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
+                              className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-9 w-9 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
+                              title="Berikutnya"
+                            >
+                              <ChevronRight className="w-5 h-5 text-slate-700" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* 2. Mobile/Android KPI Carousel (lg:hidden, block on mobile) */}
+                        <div className="block lg:hidden w-full relative print:hidden">
+                          {/* The snap scroll container */}
+                          <div 
+                            onScroll={handleMobileScroll}
+                            className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth w-full px-[15vw] py-4 gap-4 no-scrollbar animate-in fade-in duration-300"
+                            style={{ scrollbarWidth: 'none' }}
+                          >
+                            {/* Card 1 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
+                            </div>
+                            
+                            {/* Card 2 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
+                            </div>
+                            
+                            {/* Card 3 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <PPHGauge value={getPPHValue()} year={pphLatestYear} />
+                            </div>
+                            
+                            {/* Card 4 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
+                            </div>
+                            
+                            {/* Card 5 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
+                            </div>
+                            
+                            {/* Card 6 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
+                            </div>
+                            
+                            {/* Card 7 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
+                            </div>
+                            
+                            {/* Card 8 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 7 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
+                            </div>
+                            
+                            {/* Card 9 */}
+                            <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 8 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
+                              <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
+                            </div>
+                          </div>
+
+                          {/* Dynamic Dot Indicators */}
+                          <div className="flex justify-center gap-1.5 mt-2">
+                            {Array.from({ length: 9 }).map((_, idx) => (
+                              <span 
+                                key={idx} 
+                                className={`h-1.5 rounded-full transition-all duration-300 ${activeMobileIndex === idx ? 'w-4 bg-emerald-600' : 'w-1.5 bg-slate-300'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* 1. Desktop KPI Carousel (lg:flex, print:flex, hidden on mobile) */}
-                  <div className="hidden lg:flex print:flex relative w-full items-center group px-10 print:px-0">
-                    {/* Left Arrow Button */}
-                    {sliderIndex > 0 && (
-                      <button
-                        onClick={() => setSliderIndex(prev => Math.max(0, prev - 1))}
-                        className="absolute left-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
-                        title="Sebelumnya"
-                      >
-                        <ChevronLeft className="w-6 h-6 text-slate-700" />
-                      </button>
-                    )}
 
-                    {/* Carousel Viewport */}
-                    <div 
-                      className="w-full overflow-hidden py-1 print:overflow-visible select-none cursor-grab active:cursor-grabbing"
-                      onTouchStart={onTouchStart}
-                      onTouchMove={onTouchMove}
-                      onTouchEnd={onTouchEnd}
-                    >
-                      <div 
-                        className="flex transition-transform duration-500 ease-in-out print:grid print:grid-cols-10 print:gap-2 print:!transform-none print:w-full print:h-auto"
-                        style={{ 
-                          transform: `translateX(-${sliderIndex * (100 / visibleCount)}%)` 
+                    {/* Kolom 2 (Kanan - 4 Kolom Desktop): AI Insight Panel */}
+                    <div id="panel-insight" className="lg:col-span-4 flex flex-col scroll-mt-20">
+                      <AIInsightPanel 
+                        year={selectedYear}
+                        month={selectedMonth}
+                        kecamatan={selectedKecamatan}
+                        kelurahan={selectedKelurahan}
+                        cvBeras={getCVBulananValue()}
+                        pphScore={getPPHValue()}
+                        konsumsiEnergi={getKonsumsiEnergiValue()}
+                        konsumsiProtein={getKonsumsiProteinValue()}
+                        ketersediaanEnergi={getKetersediaanEnergiValue()}
+                        ketersediaanProtein={getKetersediaanProteinValue()}
+                        produksiBeras={
+                          produksiBerasList.find(x => x.tahun === selectedYear)
+                            ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
+                            : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
+                        }
+                        balitaStatus={getBalitaData()}
+                        hargaStrategis={{
+                          beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
+                          bawang_merah: livePrices ? (livePrices.bawang_merah ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_merah || 0), 0) / hargaData.length) : 40000),
+                          bawang_putih: livePrices ? (livePrices.bawang_putih ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_putih || 0), 0) / hargaData.length) : 40000),
+                          cabe_merah: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 37500),
+                          cabe_rawit: livePrices ? (livePrices.cabe_rawit ?? 50000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_rawit || 0), 0) / hargaData.length) : 50000),
+                          daging_sapi: livePrices ? (livePrices.daging_sapi ?? 150000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_sapi || 0), 0) / hargaData.length) : 150000),
+                          daging_ayam: livePrices ? livePrices.daging_ayam : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_ayam || 0), 0) / hargaData.length) : 35000),
+                          telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 24000),
+                          gula_pasir: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
+                          minyak_goreng: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
                         }}
-                      >
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <PPHGauge value={getPPHValue()} year={pphLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-2 print:px-1 print:h-[270px]">
-                          <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
-                          <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
-                        </div>
-                        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/6 shrink-0 px-2 h-[260px] print:w-full print:col-span-3 print:px-1 print:h-[270px]">
-                          <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Arrow Button */}
-                    {sliderIndex < maxSliderIndex && (
-                      <button
-                        onClick={() => setSliderIndex(prev => Math.min(maxSliderIndex, prev + 1))}
-                        className="absolute right-0 bg-white/90 hover:bg-white border border-slate-200 text-slate-800 rounded-full p-2 h-10 w-10 flex items-center justify-center cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-95 hover:scale-110 z-20 print:hidden"
-                        title="Berikutnya"
-                      >
-                        <ChevronRight className="w-6 h-6 text-slate-700" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 2. Mobile/Android KPI Carousel (lg:hidden, block on mobile) */}
-                  <div className="block lg:hidden w-full relative print:hidden">
-                    {/* The snap scroll container */}
-                    <div 
-                      onScroll={handleMobileScroll}
-                      className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth w-full px-[15vw] py-4 gap-4 no-scrollbar animate-in fade-in duration-300"
-                      style={{ scrollbarWidth: 'none' }}
-                    >
-                      {/* Card 1 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 0 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <CVGauge value={getCVBulananValue()} year={getCVBulananLabel()} isBulanan={true} />
-                      </div>
-                      
-                      {/* Card 2 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 1 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <CVGauge value={getCVValue()} year={cvLatestYear} isBulanan={false} />
-                      </div>
-                      
-                      {/* Card 3 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 2 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <PPHGauge value={getPPHValue()} year={pphLatestYear} />
-                      </div>
-                      
-                      {/* Card 4 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 3 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <ProteinGauge value={getKonsumsiProteinValue()} year={kProteinLatestYear} />
-                      </div>
-                      
-                      {/* Card 5 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 4 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <EnergiGauge value={getKonsumsiEnergiValue()} year={kEnergiLatestYear} />
-                      </div>
-                      
-                      {/* Card 6 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 5 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <KetersediaanProteinGauge value={getKetersediaanProteinValue()} year={tProteinLatestYear} />
-                      </div>
-                      
-                      {/* Card 7 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 6 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <KetersediaanEnergiGauge value={getKetersediaanEnergiValue()} year={tEnergiLatestYear} />
-                      </div>
-                      
-                      {/* Card 8 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 7 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <BalitaDoughnut balitaData={getBalitaLatestComputed()} />
-                      </div>
-                      
-                      {/* Card 9 */}
-                      <div className={`w-[70vw] shrink-0 snap-center transition-all duration-300 ease-out transform ${activeMobileIndex === 8 ? 'scale-100 opacity-100 z-10' : 'scale-85 opacity-60'} h-[260px]`}>
-                        <ProduksiLokalChart produksiBerasData={produksiBerasList} selectedYear={selectedYear} selectedMonth={selectedMonth} year={produksiLatestYear} />
-                      </div>
-                    </div>
-
-                    {/* Dynamic Dot Indicators */}
-                    <div className="flex justify-center gap-1.5 mt-2">
-                      {Array.from({ length: 9 }).map((_, idx) => (
-                        <span 
-                          key={idx} 
-                          className={`h-1.5 rounded-full transition-all duration-300 ${activeMobileIndex === idx ? 'w-4 bg-emerald-600' : 'w-1.5 bg-slate-300'}`}
-                        />
-                      ))}
+                        loadingPrices={loadingLive}
+                      />
                     </div>
                   </div>
 
@@ -1929,30 +1974,22 @@ export default function DashboardPage() {
                       <ForecastPanel livePrices={livePrices} onSwitchView={setCurrentView} />
                    </div>
 
-                   {/* Section: Early Warning System & Peta Pasokan Beras Crowdsourcing (Desktop: 2 Kolom 1/3 & 2/3 - Capture 1) */}
-                   <div id="panel-ews-pasokan" className="space-y-3 scroll-mt-20 mt-6 print:hidden">
-                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12 print:gap-4 items-stretch">
-                       {/* Kolom 1: Early Warning System (Desktop: 1/3 / Span 4) */}
-                       <div id="panel-ews" className="lg:col-span-4 flex flex-col print:col-span-4 scroll-mt-20">
-                         <EarlyWarningSystemPanel livePrices={livePrices} />
+                   {/* Section: Peta Pasokan Beras Berbasis Crowdsourcing (AI Vision) */}
+                   <div id="panel-peta-pasokan" className="space-y-3 scroll-mt-20 mt-6 print:hidden">
+                     <div className="w-full flex flex-col">
+                       {/* Header OUTSIDE & ABOVE panel box (dengan ikon bar hijau di pangkal judul) */}
+                       <div className="mb-2.5 flex flex-col justify-end min-h-[42px]">
+                         <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
+                           <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
+                             PETA PASOKAN PANGAN (AI VISION)
+                           </h3>
+                         </div>
                        </div>
 
-                       {/* Kolom 2: Peta Pasokan Beras Berbasis Crowdsourcing (Desktop: 2/3 / Span 8) */}
-                       <div id="panel-peta-pasokan" className="lg:col-span-8 flex flex-col print:col-span-8 scroll-mt-20">
-                         {/* Header OUTSIDE & ABOVE panel box (dengan ikon bar hijau di pangkal judul) */}
-                         <div className="mb-2.5 flex flex-col justify-end min-h-[42px]">
-                           <div className="flex items-center gap-2">
-                             <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
-                             <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-none uppercase tracking-wide">
-                               PETA PASOKAN PANGAN (AI VISION)
-                             </h3>
-                           </div>
-                         </div>
-
-                         {/* Box Panel Kamera AI Vision */}
-                         <div className="w-full h-[640px] rounded-3xl overflow-hidden shadow-lg border border-slate-800 flex-1 flex flex-col">
-                           <KameraCerdasView initialTab="arus" />
-                         </div>
+                       {/* Box Panel Kamera AI Vision */}
+                       <div className="w-full h-[640px] rounded-3xl overflow-hidden shadow-lg border border-slate-800 flex-1 flex flex-col">
+                         <KameraCerdasView initialTab="arus" />
                        </div>
                      </div>
                    </div>
@@ -1982,40 +2019,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW 2: AI Insight Panel (Full Width) */}
-                  <div id="panel-insight" className="w-full mt-6 h-auto print:mt-6 print:break-before-page flex flex-col scroll-mt-20">
-                    <AIInsightPanel 
-                      year={selectedYear}
-                      month={selectedMonth}
-                      kecamatan={selectedKecamatan}
-                      kelurahan={selectedKelurahan}
-                      cvBeras={getCVBulananValue()}
-                      pphScore={getPPHValue()}
-                      konsumsiEnergi={getKonsumsiEnergiValue()}
-                      konsumsiProtein={getKonsumsiProteinValue()}
-                      ketersediaanEnergi={getKetersediaanEnergiValue()}
-                      ketersediaanProtein={getKetersediaanProteinValue()}
-                      produksiBeras={
-                        produksiBerasList.find(x => x.tahun === selectedYear)
-                          ? Math.round(produksiBerasList.find(x => x.tahun === selectedYear).produksi_beras)
-                          : (selectedYear === 2021 ? 7390 : selectedYear === 2022 ? 7209 : selectedYear === 2023 ? 6230 : selectedYear === 2024 ? 6614 : 8708)
-                      }
-                      balitaStatus={getBalitaData()}
-                      hargaStrategis={{
-                        beras: livePrices ? livePrices.beras : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.beras || 0), 0) / hargaData.length) : 13500),
-                        bawang_merah: livePrices ? (livePrices.bawang_merah ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_merah || 0), 0) / hargaData.length) : 40000),
-                        bawang_putih: livePrices ? (livePrices.bawang_putih ?? 40000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.bawang_putih || 0), 0) / hargaData.length) : 40000),
-                        cabe_merah: livePrices ? livePrices.cabe_merah : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_merah || 0), 0) / hargaData.length) : 37500),
-                        cabe_rawit: livePrices ? (livePrices.cabe_rawit ?? 50000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.cabe_rawit || 0), 0) / hargaData.length) : 50000),
-                        daging_sapi: livePrices ? (livePrices.daging_sapi ?? 150000) : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_sapi || 0), 0) / hargaData.length) : 150000),
-                        daging_ayam: livePrices ? livePrices.daging_ayam : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.daging_ayam || 0), 0) / hargaData.length) : 35000),
-                        telur: livePrices ? livePrices.telur : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.telur || 0), 0) / hargaData.length) : 24000),
-                        gula_pasir: livePrices ? livePrices.gula_pasir : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.gula_pasir || 0), 0) / hargaData.length) : 16000),
-                        minyak_goreng: livePrices ? livePrices.minyak_goreng : (hargaData.length > 0 ? (hargaData.reduce((sum, x) => sum + (x.minyak_goreng || 0), 0) / hargaData.length) : 21000),
-                      }}
-                      loadingPrices={loadingLive}
-                    />
-                  </div>
+
 
                    {/* Section: Food Security Intelligence & Benchmark (Desktop: 2 Kolom dalam 1 Baris) */}
                    <div className="space-y-3 mt-6 print:hidden">

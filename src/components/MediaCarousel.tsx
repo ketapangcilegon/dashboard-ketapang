@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -188,9 +188,9 @@ export default function MediaCarousel() {
             const a = imageData[idx + 3];
             if (a < 128) continue;
 
-            // Beri bobot lebih tinggi pada piksel tepi kiri & kanan karena area kosong berada di kiri & kanan
-            const isEdgeColumn = x < 6 || x >= sampleSize - 6;
-            const weight = isEdgeColumn ? 2.5 : 1;
+            // Beri bobot lebih tinggi pada piksel tepi kanan karena placeholder teks di sisi kanan
+            const isRightSide = x >= sampleSize / 2;
+            const weight = isRightSide ? 2.0 : 1.0;
 
             rTotal += imageData[idx] * weight;
             gTotal += imageData[idx + 1] * weight;
@@ -206,7 +206,7 @@ export default function MediaCarousel() {
           setDominantColor(`rgb(${r}, ${g}, ${b})`);
         }
       } catch {
-        // Jika gambar eksternal tanpa header CORS, layer blur CSS tetap menampilkan warna dominan gambar secara visual
+        // Fallback handled gracefully
       }
     };
     img.src = activeImageSrc;
@@ -215,6 +215,17 @@ export default function MediaCarousel() {
       isCancelled = true;
     };
   }, [activeImageSrc]);
+
+  // Perceived luminance calculation for contrast
+  const isLightBg = useMemo(() => {
+    const match = dominantColor.match(/\d+/g);
+    if (!match || match.length < 3) return false;
+    const r = parseInt(match[0], 10);
+    const g = parseInt(match[1], 10);
+    const b = parseInt(match[2], 10);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 150;
+  }, [dominantColor]);
 
   useEffect(() => {
     const checkTitleLines = () => {
@@ -303,19 +314,189 @@ export default function MediaCarousel() {
         </div>
       </div>
 
-      {/* Main Carousel Hero Card */}
-      <div 
-        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[180px] sm:h-[205px] md:h-[220px] lg:h-[240px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x bg-black sm:bg-[var(--dominant-bg)]"
-        style={{ '--dominant-bg': dominantColor } as React.CSSProperties}
-        onClick={() => {
-          if (!hasMovedDrag.current) {
-            setShowTextOverlay(prev => !prev);
-          }
-        }}
+      {/* ========================================================= */}
+      {/* 1. VERSI DESKTOP (sm:flex): Teks Kiri Hijau Gradasi Blur, Foto Kanan Menempel Margin */}
+      {/* ========================================================= */}
+      <div
+        className="hidden sm:flex relative w-full rounded-2xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[290px] md:h-[310px] lg:h-[330px] flex-row items-stretch select-none touch-pan-x bg-black"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => {
           setIsHovered(false);
           setIsDraggingImage(false);
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => setIsDraggingImage(false)}
+      >
+        {/* SISI KIRI: Placeholder Teks dengan Background Hijau Gradasi Blur + Glow Orbs */}
+        <div
+          className="w-[46%] lg:w-[44%] shrink-0 h-full flex flex-col justify-between p-4 sm:p-5 relative z-10 overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#047857] to-[#022c22] shadow-inner border-r border-emerald-800/40"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Ambient Glow Orbs */}
+          <div className="absolute -top-12 -left-12 w-48 h-48 bg-emerald-400/25 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-teal-300/20 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header Bar di dalam Placeholder Teks */}
+          <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/25 relative z-10">
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-emerald-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+              Dokumentasi & Informasi
+            </span>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-400/30 bg-emerald-950/60 backdrop-blur-md text-emerald-200 text-[9.5px] sm:text-[10px] font-bold shadow-sm">
+              <span>{currentIndex + 1} / {totalItems}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPlaying(!isPlaying);
+                }}
+                className="hover:text-emerald-100 hover:scale-110 transition-transform cursor-pointer p-0.5"
+                title={isPlaying ? "Jeda Autoplay" : "Putar Autoplay"}
+              >
+                {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Area Teks: Scrollable Vertikal, Tidak Overlay ke Foto, Tidak Keluar Placeholder */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar my-2.5 pr-1 space-y-2 select-text overscroll-contain relative z-10">
+            {/* Judul: Highlight kuning dan teks hitam */}
+            <div>
+              <span className="bg-yellow-300 text-black font-extrabold text-[12px] sm:text-[13px] lg:text-[14px] leading-snug px-2.5 py-1 rounded shadow-sm inline-block whitespace-normal break-words">
+                {currentItem.title}
+              </span>
+            </div>
+
+            {/* Deskripsi Teks */}
+            {currentItem.description && (
+              <p className="text-[11px] sm:text-[12px] font-medium leading-relaxed text-emerald-50 whitespace-normal break-words drop-shadow-sm">
+                {currentItem.description}
+              </p>
+            )}
+
+            {/* Lokasi & Tanggal */}
+            {(currentItem.location || currentItem.event_date) && (
+              <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10.5px] font-bold text-emerald-100">
+                {currentItem.location && (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-900/60 border border-emerald-600/30">
+                    📍 {currentItem.location}
+                  </span>
+                )}
+                {currentItem.event_date && (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-900/60 border border-emerald-600/30">
+                    📅 {currentItem.event_date}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer Bar: Dot Indicators di bagian kanan bawah */}
+          <div className="pt-2 border-t border-emerald-500/25 flex items-center justify-end gap-1.5 relative z-10">
+            {items.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                  setInlineVideoPlaying(false);
+                }}
+                className={`transition-all duration-300 rounded-full cursor-pointer ${
+                  currentIndex === idx
+                    ? 'w-5 h-1.5 sm:w-6 sm:h-2 bg-yellow-300 shadow-md'
+                    : 'w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-200/40 hover:bg-emerald-100'
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* SISI KANAN: Foto menempel ke margin kanan */}
+        <div className="w-[54%] lg:w-[56%] h-full relative overflow-hidden bg-black flex items-center justify-end shrink-0">
+          {currentItem.media_type === 'video' && inlineVideoPlaying ? (
+            <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <video
+                src={currentItem.media_url}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+                onEnded={() => setInlineVideoPlaying(false)}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInlineVideoPlaying(false);
+                }}
+                className="absolute top-2.5 right-2.5 z-30 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-all cursor-pointer"
+                title="Tutup Video"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative w-full h-full flex items-center justify-end overflow-hidden bg-black">
+              {/* Foto Utama Rata Kanan Menempel Margin */}
+              <img
+                src={activeImageSrc}
+                alt={currentItem.title}
+                className="relative z-10 h-full w-full object-contain object-right select-none pointer-events-none drop-shadow-md transition-all duration-300"
+                loading="eager"
+                draggable={false}
+              />
+              {/* Video Play Button Overlay if Video */}
+              {currentItem.media_type === 'video' && !inlineVideoPlaying && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInlineVideoPlaying(true);
+                    }}
+                    className="pointer-events-auto w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all border-2 border-white/40 cursor-pointer"
+                    title="Putar Video"
+                  >
+                    <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Chevron Buttons: Kiri & Kanan */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+          className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+          aria-label="Previous Slide"
+        >
+          <ChevronLeft className="w-4 h-4 text-white" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+          className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-lg border border-white/30 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+          aria-label="Next Slide"
+        >
+          <ChevronRight className="w-4 h-4 text-white" />
+        </button>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 2. VERSI MOBILE (block sm:hidden): Dikembalikan ke UI/UX Sebelum Perubahan Terakhir */}
+      {/* ========================================================= */}
+      <div
+        className="block sm:hidden relative w-full rounded-xl overflow-hidden shadow-md border border-slate-200/80 group transition-all duration-300 h-[180px] flex flex-col justify-between cursor-grab active:cursor-grabbing select-none touch-pan-x bg-black"
+        onClick={() => {
+          if (!hasMovedDrag.current) {
+            setShowTextOverlay((prev) => !prev);
+          }
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -326,12 +507,12 @@ export default function MediaCarousel() {
         onTouchEnd={handleTouchEnd}
       >
         {/* Counter Badge & Play/Pause (Top Right Overlay) */}
-        <div 
-          className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20 text-white text-[10px] sm:text-[11px] font-bold shadow-sm"
+        <div
+          className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20 text-white text-[10px] font-bold shadow-sm"
           onClick={(e) => e.stopPropagation()}
         >
           <span>{currentIndex + 1} / {totalItems}</span>
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setIsPlaying(!isPlaying);
@@ -344,10 +525,10 @@ export default function MediaCarousel() {
         </div>
 
         {/* Media Content Container */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <div className="absolute inset-0 w-full h-full overflow-hidden bg-black flex items-center justify-center">
           {currentItem.media_type === 'video' && inlineVideoPlaying ? (
             <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-              <video 
+              <video
                 src={currentItem.media_url}
                 controls
                 autoPlay
@@ -366,97 +547,55 @@ export default function MediaCarousel() {
               </button>
             </div>
           ) : (
-            <div
-              className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black sm:bg-[var(--dominant-bg)]"
-              style={{ '--dominant-bg': dominantColor } as React.CSSProperties}
-            >
-              {/* Layer 1: Ambient Blur Background (Khusus Desktop sm: ke atas; pada versi Mobile ruang kosong berwarna hitam pekat #000000) */}
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black">
+              {/* Foto Utama Utuh Tanpa Terpotong */}
               <img
-                src={activeImageSrc}
-                alt=""
-                aria-hidden="true"
-                className="hidden sm:block absolute inset-0 w-full h-full object-cover scale-125 blur-2xl saturate-150 opacity-85 select-none pointer-events-none"
-                draggable={false}
-              />
-              <div
-                className="hidden sm:block absolute inset-0 pointer-events-none opacity-45 backdrop-blur-xl"
-                style={{
-                  background: `radial-gradient(circle at center, transparent 35%, ${dominantColor} 100%)`
-                }}
-              />
-
-              {/* Layer 2: Foto Utama Utuh Tanpa Terpotong (Menyesuaikan Tinggi Placeholder) */}
-              <img 
                 src={activeImageSrc}
                 alt={currentItem.title}
                 className="relative z-10 h-full w-auto max-w-full max-h-full object-contain mx-auto select-none pointer-events-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.28)] transition-all duration-300"
                 loading="eager"
                 draggable={false}
               />
+              {/* Video Play Button Overlay if Video */}
+              {currentItem.media_type === 'video' && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInlineVideoPlaying(true);
+                    }}
+                    className="pointer-events-auto w-10 h-10 rounded-full bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all border-2 border-white/40 cursor-pointer"
+                    title="Putar Video"
+                  >
+                    <Play className="w-5 h-5 fill-white ml-0.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Previous Button (Left Arrow - Always Visible) */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            prevSlide();
-          }}
-          className="absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/35 hover:bg-black/65 text-white shadow-md border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
-          aria-label="Previous Slide"
-        >
-          <ChevronLeft className="w-4 h-4 text-white" />
-        </button>
-
-        {/* Next Button (Right Arrow - Always Visible) */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            nextSlide();
-          }}
-          className="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/35 hover:bg-black/65 text-white shadow-lg border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
-          aria-label="Next Slide"
-        >
-          <ChevronRight className="w-4 h-4 text-white" />
-        </button>
-
-        {/* Video Play Button Overlay in Center */}
-        {currentItem.media_type === 'video' && !inlineVideoPlaying && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setInlineVideoPlaying(true);
-              }}
-              className="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all border-2 border-white/40 cursor-pointer"
-              title="Putar Video"
-            >
-              <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
-            </button>
-          </div>
-        )}
-
         {/* Bottom-Left Text & Content Overlay */}
         {!inlineVideoPlaying && (
-          <div 
-            className={`absolute left-3 sm:left-4.5 bottom-2.5 sm:bottom-3 z-20 max-w-[72%] sm:max-w-md lg:max-w-lg text-left transition-all duration-300 space-y-0.5 ${
+          <div
+            className={`absolute left-3 bottom-2.5 z-20 max-w-[72%] text-left transition-all duration-300 space-y-0.5 ${
               showTextOverlay ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
             }`}
           >
             {/* Title (Max 2 lines on Mobile, scrollable if exceeded) */}
-            <div 
-              className="max-h-[2.2rem] sm:max-h-[3rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 mb-0.5"
+            <div
+              className="max-h-[2.2rem] overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 mb-0.5"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 
+              <h3
                 ref={titleRef}
-                className="text-xs sm:text-[13.5px] lg:text-sm font-black leading-snug tracking-wide whitespace-normal break-words"
+                className="text-xs font-black leading-snug tracking-wide whitespace-normal break-words"
                 style={{
                   color: '#ffffff',
                   WebkitTextStroke: '3.2px #000000',
                   paintOrder: 'stroke fill',
-                  textShadow: '-1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000, 1px 1px 0 #000000, 0 2px 6px rgba(0,0,0,0.98), 0 0 8px rgba(0,0,0,0.92)'
+                  textShadow:
+                    '-1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000, 1px 1px 0 #000000, 0 2px 6px rgba(0,0,0,0.98), 0 0 8px rgba(0,0,0,0.92)',
                 }}
               >
                 {currentItem.title}
@@ -465,19 +604,20 @@ export default function MediaCarousel() {
 
             {/* Description (Dynamic Clamping: Max 2 lines if Title is 2 lines, Max 3 lines if Title is 1 line on Mobile) */}
             {currentItem.description && (
-              <div 
+              <div
                 className={`overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 transition-all duration-200 ${
-                  isTitleTwoLines ? 'max-h-[2.1rem] sm:max-h-[4.4rem]' : 'max-h-[3.1rem] sm:max-h-[4.4rem]'
+                  isTitleTwoLines ? 'max-h-[2.1rem]' : 'max-h-[3.1rem]'
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <p 
-                  className="text-[10px] sm:text-[11.5px] font-semibold leading-snug whitespace-normal break-words max-w-xs sm:max-w-md lg:max-w-lg"
+                <p
+                  className="text-[10px] font-semibold leading-snug whitespace-normal break-words max-w-xs"
                   style={{
                     color: '#ffffff',
                     WebkitTextStroke: '2.4px #000000',
                     paintOrder: 'stroke fill',
-                    textShadow: '-0.8px -0.8px 0 #000000, 0.8px -0.8px 0 #000000, -0.8px 0.8px 0 #000000, 0.8px 0.8px 0 #000000, 0 1.5px 5px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9)'
+                    textShadow:
+                      '-0.8px -0.8px 0 #000000, 0.8px -0.8px 0 #000000, -0.8px 0.8px 0 #000000, 0.8px 0.8px 0 #000000, 0 1.5px 5px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9)',
                   }}
                 >
                   {currentItem.description}
@@ -489,7 +629,7 @@ export default function MediaCarousel() {
 
         {/* Dot Indicators (Anchored to Bottom Right Corner) */}
         {!inlineVideoPlaying && (
-          <div className="absolute right-3 sm:right-4 bottom-2.5 sm:bottom-3 z-20 flex items-center gap-1.5 pointer-events-auto">
+          <div className="absolute right-3 bottom-2.5 z-20 flex items-center gap-1.5 pointer-events-auto">
             {items.map((_, idx) => (
               <button
                 key={idx}
@@ -500,14 +640,37 @@ export default function MediaCarousel() {
                 }}
                 className={`transition-all duration-300 rounded-full cursor-pointer ${
                   currentIndex === idx
-                    ? 'w-5 h-1.5 sm:w-6 sm:h-2 bg-emerald-400 shadow-md'
-                    : 'w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/50 hover:bg-white/80'
+                    ? 'w-5 h-1.5 bg-emerald-400 shadow-md'
+                    : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
           </div>
         )}
+
+        {/* Mobile Chevron Buttons */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all active:scale-95"
+          aria-label="Previous Slide"
+        >
+          <ChevronLeft className="w-4 h-4 text-white" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all active:scale-95"
+          aria-label="Next Slide"
+        >
+          <ChevronRight className="w-4 h-4 text-white" />
+        </button>
       </div>
 
       {/* Video Modal Player (Optional extra fallback for full modal viewing) */}
@@ -524,10 +687,10 @@ export default function MediaCarousel() {
               </button>
             </div>
             <div className="aspect-video w-full bg-black">
-              <video 
-                src={activeVideoModal.media_url} 
-                controls 
-                autoPlay 
+              <video
+                src={activeVideoModal.media_url}
+                controls
+                autoPlay
                 className="w-full h-full object-contain"
               />
             </div>

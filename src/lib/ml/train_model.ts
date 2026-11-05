@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { XGBoostRegressor, RandomForestRegressor, OLSRegressor } from './algorithms';
 import { evaluatePredictions } from './evaluate';
 import { explainPrediction } from './explain';
+import { evaluateCommodity } from '@/lib/ews/engine';
 import { createClient } from '@supabase/supabase-js';
 
 const COMMODITIES = [
@@ -517,56 +518,51 @@ function runWalkForwardValidation(
     
     // Volatility CV (12-month) and YoY Growth Rate on actual data
     const prices_12 = actualPrices.slice(0, 12);
-    const mean12 = prices_12.reduce((s, p) => s + p, 0) / 12;
-    const var12 = prices_12.reduce((s, p) => s + (p - mean12)**2, 0) / 12;
-    const std12 = Math.sqrt(var12);
-    const cv = mean12 > 0 ? (std12 / mean12) * 100 : 0;
-    
     const lag_13 = actualPrices[12];
-    const growth_yoy = ((currentPrice - lag_13) / lag_13) * 100;
-    
-    // EWS Layer Classification
-    // Layer 1: Forecast Trend
+
+    // Evaluasi Early Warning System (EWS) 4-Dimensi Terpadu
+    const ewsEval = evaluateCommodity({
+      komoditas: commodity,
+      hargaAktual: currentPrice,
+      forecast1m: pred1,
+      forecast3m: pred3,
+      historyPrices12m: prices_12,
+      previousYearPrice: lag_13,
+      lower1m: lower,
+      upper1m: upper,
+    });
+
+    const cv = ewsEval.dimensions.cv.value ?? 0;
+    const growth_yoy = ewsEval.dimensions.yoy.value ?? 0;
+
+    // Arah tren 1M untuk tampilan tabel
     let status_forecast = "Stabil";
     if (perubahan_pct > 3) status_forecast = "Naik";
     else if (perubahan_pct < -3) status_forecast = "Turun";
-    
-    // Layer 2: Volatilitas (CV)
-    let status_cv = "AMAN";
-    if (commodity === 'harga_beras') {
-      if (cv > 10) status_cv = "RENTAN";
-      else if (cv >= 5) status_cv = "WASPADA";
-    } else {
-      if (cv > 15) status_cv = "RENTAN";
-      else if (cv >= 9) status_cv = "WASPADA";
-    }
-    
-    // Layer 3: SKPG (YoY Growth)
-    let status_skpg = "AMAN";
-    if (commodity === 'harga_beras') {
-      if (growth_yoy > 10) status_skpg = "RENTAN";
-      else if (growth_yoy >= 5) status_skpg = "WASPADA";
-    } else if (commodity === 'harga_minyak_goreng' || commodity === 'harga_telur_ayam_ras') {
-      if (growth_yoy > 15) status_skpg = "RENTAN";
-      else if (growth_yoy >= 5) status_skpg = "WASPADA";
-    } else {
-      if (growth_yoy > 10) status_skpg = "RENTAN";
-      else if (growth_yoy >= 5) status_skpg = "WASPADA";
-    }
+
+    // Dimensi EWS terstandarisasi (AMAN / WASPADA / AWAS)
+    const status_cv = ewsEval.dimensions.cv.status;
+    const status_skpg = ewsEval.dimensions.yoy.status;
     
     const confidence = Math.max(0, Math.min(100, 100 - bestMetrics.mape));
     
-    // Generate explanation details
-    const explanation = explainPrediction(
+    // Generate explanation details with 4-dimension composite context
+    const explanation = explainPrediction({
       currentPrice,
-      pred1,
-      featMap1,
-      commodity,
+      predictedPrice: pred1,
+      forecast3m: pred3,
+      features: featMap1,
+      komoditas: commodity,
       cv,
       growth_yoy,
       status_cv,
-      status_skpg
-    );
+      status_skpg,
+      compositeStatus: ewsEval.compositeStatus,
+      compositeScore: ewsEval.compositeScore ?? undefined,
+      matrixStatus: ewsEval.matrixStatus ?? undefined,
+      diagnostics: ewsEval.diagnostics,
+      rekomendasi: ewsEval.rekomendasi
+    });
     
     resultsToUpsert.push({
       komoditas: commodity,

@@ -12,12 +12,27 @@ export interface VersionLog {
 
 export const PLATFORM_CHANGELOG: VersionLog[] = [
   {
-    version: `v${APP_VERSION}`,
+    version: 'v2.6',
+    type: 'minor',
+    typeLabel: 'Penyempurnaan Fitur',
+    date: 'November 2026',
+    title: 'Rekonstruksi Integrated EWS 4-Dimensi, Tata Letak AI Insight & Redesain Dokumentasi',
+    isCurrent: true,
+    changes: [
+      'Rekonstruksi algoritma Early Warning System (EWS) komposit berbasis 4 dimensi terpadu: Proyeksi +1 Bulan, Proyeksi +3 Bulan, Volatilitas CV 12-Bulan, dan Tekanan Tahunan YoY dengan standardisasi status AMAN, WASPADA, dan AWAS.',
+      'Penyediaan Bobot Komposit transparan (Equal Weighting 25%), penghapusan matriks irisan rumit, dan pembesaran tipografi teks diagnostik.',
+      'Penambahan kolom Koefisien Variasi CV (%) pada Panel Harga Pangan Strategis harian dan berkas unduhan Excel (.xlsx).',
+      'Restrukturisasi tata letak beranda menjadi grid 2 kolom terpadu di bawah header dengan penempatan Panel AI Insight berlatar kontras tinggi di pojok kanan atas.',
+      'Redesain Panel Informasi & Dokumentasi: foto rata kiri penuh, placeholder teks dinamis berbasis warna dominan dengan judul ter-highlight kuning dan scroll vertikal.',
+      'Pembaruan resmi klausul Status Pengembangan & Disclaimer sesuai rekomendasi Kepala Dinas Ketahanan Pangan dan Pertanian Kota Cilegon.'
+    ]
+  },
+  {
+    version: 'v2.5',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
     title: 'Optimasi UI Forecast Mobile, Scrollbar Peta Pasokan & Versioning Platform',
-    isCurrent: true,
     changes: [
       'Redesain UI Panel Peramalan Harga Pangan mobile dengan latar mint kontras tinggi, penataan 3 kolom harga (Aktual, +1 Bulan, +3 Bulan), dan pill badge status tren dinamis.',
       'Peningkatan keterbacaan teks tipografi mobile (panduan geser, kuantitas komoditas, dan label Machine Learning dibuat lebih tajam dan gelap).',

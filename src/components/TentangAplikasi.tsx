@@ -94,7 +94,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                 <ShieldAlert className="w-8 h-8" />
               </div>
               <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">
-                Status & Disclaimer
+                Status Pengembangan & Disclaimer
               </h2>
             </div>
             <div className="p-1.5 bg-slate-50 group-hover:bg-slate-100 rounded-xl border border-slate-200/50 transition-colors shrink-0 flex items-center justify-center">
@@ -109,13 +109,19 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
           {expandedSections['status'] && (
             <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 text-slate-650 space-y-3.5 text-[13px] md:text-sm leading-relaxed text-justify animate-in fade-in slide-in-from-top-2 duration-350">
               <p className="mt-4">
-                Web app ini merupakan inisiatif pengembangan mandiri dan saat ini <strong className="text-amber-705">belum merupakan aplikasi resmi Pemerintah Kota Cilegon</strong> maupun representasi resmi dari kebijakan, sikap, keputusan, atau pernyataan institusi mana pun.
+                <strong className="text-slate-800 font-bold">PANCI (Platform Analisis Pangan Kota Cilegon)</strong> merupakan inisiatif inovasi digital yang dikembangkan secara mandiri sebagai kontribusi dalam pemanfaatan teknologi informasi dan analisis data untuk mendukung penguatan sistem ketahanan pangan daerah.
               </p>
               <p>
-                Seluruh konten, fitur, visualisasi, dan pengembangannya dilakukan secara independen sebagai sarana inovasi pemanfaatan data dan teknologi informasi dalam mendukung analisis ketahanan pangan.
+                Pengembangan PANCI telah memperoleh rekomendasi positif dari Kepala Dinas Ketahanan Pangan dan Pertanian Kota Cilegon sebagai salah satu inovasi yang potensial untuk mendukung pengelolaan informasi, pemantauan, analisis, dan perumusan kebijakan di bidang ketahanan pangan.
               </p>
               <p>
-                Meskipun berbagai data dan informasi telah diupayakan untuk disajikan secara akurat, pengguna tetap disarankan untuk melakukan verifikasi terhadap sumber data resmi apabila diperlukan untuk kebutuhan formal atau pengambilan keputusan strategis.
+                Saat ini, PANCI masih berada dalam tahap pengembangan dan penyempurnaan berkelanjutan. Aplikasi ini belum ditetapkan sebagai aplikasi resmi Pemerintah Kota Cilegon dan belum menjadi sistem yang mewakili keputusan, kebijakan, maupun pernyataan resmi pemerintah daerah.
+              </p>
+              <p>
+                Seluruh fitur, visualisasi, analisis, dan rekomendasi yang disajikan dikembangkan sebagai instrumen pendukung analisis (<em>decision support system</em>), bukan sebagai pengganti kewenangan, pertimbangan, maupun proses pengambilan keputusan oleh instansi pemerintah yang berwenang.
+              </p>
+              <p>
+                Data dan informasi di dalam aplikasi diupayakan bersumber dari referensi yang relevan dan dapat dipertanggungjawabkan. Meskipun demikian, untuk kepentingan administrasi, pelaporan resmi, dan pengambilan keputusan strategis, pengguna tetap perlu melakukan verifikasi terhadap sumber data dan dokumen resmi terkait.
               </p>
             </div>
           )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Copy, Check, Loader2, Lightbulb, RefreshCw } from 'lucide-react';
+import { Copy, Check, Loader2, Lightbulb, RefreshCw, Sparkles, Brain } from 'lucide-react';
 
 interface AIInsightPanelProps {
   year: number;
@@ -265,7 +265,7 @@ export default function AIInsightPanel({
       if (trimmed.startsWith('#')) {
         const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/\*\*/g, '');
         return (
-          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-extrabold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1`}>
+          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-black text-amber-950 uppercase tracking-wide border-b border-amber-200/80 pb-1`}>
             {cleanTitle}
           </h4>
         );
@@ -277,7 +277,7 @@ export default function AIInsightPanel({
       if (sectionHeaderMatch) {
         const cleanHeader = (sectionHeaderMatch[1] || trimmed).replace(/:$/, '').replace(/\*\*/g, '').trim();
         return (
-          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-extrabold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1`}>
+          <h4 key={idx} className={`${isFullScreen ? 'text-[14px] mt-4 mb-2' : 'text-[13px] mt-3.5 mb-1.5'} font-black text-amber-950 uppercase tracking-wide border-b border-amber-200/80 pb-1`}>
             {cleanHeader}
           </h4>
         );
@@ -286,8 +286,8 @@ export default function AIInsightPanel({
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         const content = trimmed.substring(2);
         return (
-          <div key={idx} className={`${isFullScreen ? 'text-[13px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-3 flex gap-2`}>
-            <span className="text-blue-500 font-bold">•</span>
+          <div key={idx} className={`${isFullScreen ? 'text-[13px] mb-2' : 'text-[12px] mb-1.5'} text-slate-800 font-semibold leading-relaxed ml-3 flex gap-2`}>
+            <span className="text-orange-500 font-bold">•</span>
             <span>{parseBoldText(content)}</span>
           </div>
         );
@@ -296,48 +296,49 @@ export default function AIInsightPanel({
       if (numMatch) {
         const content = numMatch[2];
         return (
-          <div key={idx} className={`${isFullScreen ? 'text-[13px] mb-2' : 'text-[12px] mb-1.5'} text-slate-600 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
-            <span className="font-extrabold text-blue-600 shrink-0">{numMatch[1]}.</span>
+          <div key={idx} className={`${isFullScreen ? 'text-[13px] mb-2' : 'text-[12px] mb-1.5'} text-slate-800 font-semibold leading-relaxed ml-2 pl-1 flex gap-1.5`}>
+            <span className="font-extrabold text-orange-600 shrink-0">{numMatch[1]}.</span>
             <span>{parseBoldText(content)}</span>
           </div>
         );
       }
       if (trimmed === '') return <div key={idx} className={isFullScreen ? 'h-2' : 'h-1.5'} />;
-      return <p key={idx} className={`${isFullScreen ? 'text-[13px] mb-3' : 'text-[12px] mb-2'} text-slate-600 font-semibold leading-relaxed`}>{parseBoldText(line)}</p>;
+      return <p key={idx} className={`${isFullScreen ? 'text-[13px] mb-3' : 'text-[12px] mb-2'} text-slate-800 font-semibold leading-relaxed`}>{parseBoldText(line)}</p>;
     });
   };
 
   return (
     <div className="flex flex-col flex-1 h-auto">
-      <div className="mb-3">
+      <div className="mb-2.5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-stretch gap-2.5">
-            <div className="w-[3px] bg-emerald-600 rounded-full shrink-0"></div>
+            <div className="w-[3.5px] bg-orange-500 rounded-full shrink-0"></div>
             <div>
               <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
                 <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
                   INSIGHT KETAHANAN PANGAN CILEGON {year}-{year + 1}
                 </h3>
                 <button
                   onClick={() => setShowInfo(!showInfo)}
-                  className="p-1 hover:bg-amber-100/50 rounded-full transition-colors cursor-pointer text-amber-500 hover:text-amber-600 focus:outline-none shrink-0"
+                  className="p-1 hover:bg-orange-100/60 rounded-full transition-colors cursor-pointer text-orange-500 hover:text-orange-600 focus:outline-none shrink-0"
                   title="Catatan Data Indikator"
                 >
-                  <Lightbulb className="w-4 h-4 fill-amber-100 text-amber-500" />
+                  <Lightbulb className="w-4 h-4 fill-orange-200 text-orange-500" />
                 </button>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="font-bold italic text-slate-700 text-xs sm:text-sm">
+                <span className="font-bold italic text-orange-700 text-xs sm:text-sm">
                   {isFallback ? 'AI Assisted Heuristic Analysis' : 'Gemini AI Real-time Intelligence'}
                 </span>
                 <button
                   type="button"
                   onClick={() => fetchInsightData()}
                   disabled={loading}
-                  className="p-1 text-slate-400 hover:text-emerald-600 rounded transition-colors disabled:opacity-50 print:hidden cursor-pointer"
+                  className="p-1 text-orange-400 hover:text-orange-600 rounded transition-colors disabled:opacity-50 print:hidden cursor-pointer"
                   title="Perbarui Analisis AI"
                 >
-                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin text-orange-600' : ''}`} />
                 </button>
               </div>
             </div>
@@ -346,7 +347,7 @@ export default function AIInsightPanel({
           {insight && !loading && (
             <button
               onClick={handleDownloadDocx}
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer transition-all shrink-0 flex items-center gap-1 pt-0.5 print:hidden"
+              className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-all shrink-0 flex items-center gap-1 pt-0.5 print:hidden"
               title="Download Docx"
             >
               Download docx
@@ -355,19 +356,22 @@ export default function AIInsightPanel({
         </div>
 
         {showInfo && (
-          <div className="mt-2 ml-3 text-[10px] text-slate-650 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg font-medium leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-xl">
+          <div className="mt-2 ml-3 text-[10px] text-slate-700 bg-amber-50/90 border border-amber-200/80 p-2.5 rounded-lg font-medium leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-xl">
             Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada date stamp data balita BB/U dan data harga komoditas diperbarui secara real-time dari panel harga harian.
           </div>
         )}
       </div>
 
-      <div className="dashboard-card relative flex-1 flex flex-col bg-gradient-to-br from-white to-blue-50/20 h-auto min-h-[260px]">
-        <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-blue-100/30 blur-2xl pointer-events-none z-0"></div>
+      <div 
+        className="dashboard-card relative flex-1 flex flex-col border border-amber-200/90 shadow-md h-auto min-h-[260px] rounded-2xl" 
+        style={{ backgroundColor: '#fffbf0' }}
+      >
+        <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-orange-200/30 blur-2xl pointer-events-none z-0"></div>
 
         {insight && !loading && (
           <button
             onClick={handleCopy}
-            className="absolute top-3.5 right-3.5 z-20 p-1.5 hover:bg-slate-100/80 border border-slate-200/80 text-slate-500 hover:text-slate-800 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-white/90 backdrop-blur-sm print:hidden"
+            className="absolute top-3.5 right-3.5 z-20 p-1.5 hover:bg-amber-100 border border-amber-200/80 text-amber-800 hover:text-amber-950 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center cursor-pointer bg-amber-50/90 backdrop-blur-sm print:hidden"
             title="Copy Report"
           >
             {copied ? (
@@ -381,11 +385,11 @@ export default function AIInsightPanel({
         <div className="flex-1 relative z-10 pt-2 h-auto">
           {loading ? (
             <div className="w-full h-full flex flex-col items-center justify-center min-h-[220px]">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-              <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin mb-3" />
+              <p className="text-[10px] text-orange-700 font-black uppercase tracking-wider animate-pulse">Membaca data realtime & merumuskan analisis...</p>
             </div>
           ) : (
-            <div className="w-full h-auto max-h-none overflow-visible pr-1 text-left">
+            <div className="w-full h-auto max-h-[540px] overflow-y-auto custom-scrollbar pr-1 text-left">
               <div className="prose prose-sm max-w-none prose-slate pr-6 sm:pr-8">
                 {renderMarkdown(
                   insight.replace(/\*?Catatan:\s*Indikator FSVA, KPI, IKP, dan POU.*?(panel harga harian\.\*?|harian\.)/gi, '').trim()

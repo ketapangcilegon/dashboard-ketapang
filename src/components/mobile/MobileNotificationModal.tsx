@@ -214,18 +214,18 @@ export default function MobileNotificationModal({
                     onClose();
                   }}
                   className={`p-3 rounded-2xl border shadow-2xs space-y-2 cursor-pointer transition-all hover:shadow-md active:scale-98 ${
-                    isEws 
-                      ? 'bg-amber-50/60 border-amber-200 hover:border-amber-300' 
-                      : 'bg-rose-50/60 border-rose-200 hover:border-rose-300'
+                    item.urgency === 'high'
+                      ? 'bg-rose-50/70 border-rose-200 hover:border-rose-300' 
+                      : 'bg-amber-50/70 border-amber-200 hover:border-amber-300'
                   }`}
                 >
                   {/* Item Header */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
-                        isEws ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
+                        item.urgency === 'high' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
                       }`}>
-                        {isEws ? <AlertTriangle className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                        {item.urgency === 'high' ? <AlertTriangle className="w-3 h-3 text-rose-600" /> : <TrendingUp className="w-3 h-3 text-amber-600" />}
                       </div>
                       <div className="truncate">
                         <span className="text-[8px] font-bold uppercase tracking-wider block leading-none text-slate-400">
@@ -238,9 +238,9 @@ export default function MobileNotificationModal({
                     </div>
                     
                     <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${
-                      isEws 
-                        ? 'bg-amber-100 text-amber-800 border border-amber-300' 
-                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                      item.urgency === 'high'
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300' 
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
                     }`}>
                       {item.badge}
                     </span>

@@ -188,10 +188,10 @@ DATA REAL-TIME KOTA CILEGON (Filter Wilayah: Kecamatan ${kecamatan}, Kelurahan $
    - Minyak Goreng: Rp ${(hargaStrategis.minyak_goreng || 0).toLocaleString('id-ID')}/kg
 
 STRUKTUR LAPORAN WAJIB MENCANTUMKAN KEENAM SEGMEN BERIKUT SECARA UTUH:
-- **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Rentan).
+- **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Awas).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
 - **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras bulanan (CV Bulanan: ${cvBeras}%) dan harga pangan strategis lainnya.
-- **Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**: Berikan analisis proyeksi harga 1 bulan (+1M) dan 3 bulan (+3M) ke depan berbasis Machine Learning, berikan interpretasinya termasuk Early Warning System (EWS), serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
+- **Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**: Berikan analisis proyeksi harga 1 bulan (+1 Bln) dan 3 bulan (+3 Bln) ke depan berbasis Machine Learning, volatilitas historis (CV 12-bulan), tekanan tahunan (YoY), dan interpretasi matriks irisan terpadu (3×3), berikan interpretasinya termasuk Early Warning System (EWS) dengan klasifikasi AMAN, WASPADA, atau AWAS, serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
 - **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
   1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.

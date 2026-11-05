@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 try {
   // Read package.json version
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-  const version = pkg.version || '2.5.0';
+  const version = pkg.version || '2.6.0';
 
   // Get current date/time for build number
   const now = new Date();
