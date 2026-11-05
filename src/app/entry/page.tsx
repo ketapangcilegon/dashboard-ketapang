@@ -8,12 +8,13 @@ import UploadPanel from '@/components/UploadPanel';
 import AdminMediaPanel from '@/components/AdminMediaPanel';
 import AdminKnowledgePanel from '@/components/AdminKnowledgePanel';
 import AdminFeatureAccessPanel from '@/components/AdminFeatureAccessPanel';
-import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon, Sparkles, BookOpen, ShieldCheck } from 'lucide-react';
+import AdminSuperadminSettingsPanel from '@/components/AdminSuperadminSettingsPanel';
+import { Lock, Mail, AlertCircle, LogOut, Eye, EyeOff, FileText, Image as ImageIcon, Sparkles, BookOpen, ShieldCheck, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function EntryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'media' | 'knowledge' | 'access'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'media' | 'knowledge' | 'access' | 'superadmin'>('upload');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +37,8 @@ export default function EntryPage() {
             document.getElementById('sagon-smoke-test-panel')?.scrollIntoView({ behavior: 'smooth' });
           }, 250);
         }
+      } else if (params.get('tab') === 'superadmin' || params.get('tab') === 'settings') {
+        setActiveTab('superadmin');
       }
     }
   }, []);
@@ -321,6 +324,18 @@ export default function EntryPage() {
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>Kontrol Akses & Smoke Test SAGON</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('superadmin')}
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                    activeTab === 'superadmin'
+                      ? 'bg-emerald-800 text-white shadow-md'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <KeyRound className="w-4 h-4 text-emerald-300" />
+                  <span>Superadmin Settings</span>
+                </button>
               </div>
 
               {/* Tab Content */}
@@ -328,6 +343,7 @@ export default function EntryPage() {
               {activeTab === 'media' && <AdminMediaPanel />}
               {activeTab === 'knowledge' && <AdminKnowledgePanel />}
               {activeTab === 'access' && <AdminFeatureAccessPanel />}
+              {activeTab === 'superadmin' && <AdminSuperadminSettingsPanel />}
             </div>
           )}
         </main>
