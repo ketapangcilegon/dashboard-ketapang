@@ -603,16 +603,16 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                     <th className="p-3 text-center whitespace-normal">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="leading-tight text-center">
-                          <div>STATUS</div>
-                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(L1 + L2 + L3)</div>
+                          <div>STATUS KOMPOSIT</div>
+                          <div className="text-[9.5px] font-bold text-slate-400 mt-0.5">(4 DIMENSI)</div>
                         </div>
                         <button 
                           onClick={() => setActiveTooltip({
-                            title: 'Status (L1 + L2 + L3)',
-                            content: 'Status akhir kesiapsiagaan kerawanan pangan (Early Warning System) yang menggabungkan L1 (Tren +1 Bulan), L2 (Koefisien Variasi), dan L3 (Perubahan YoY).\nJika tren diproyeksikan Turun, maka status akhir otomatis diatur menjadi AMAN bagi konsumen.'
+                            title: 'Status Komposit EWS (4 Dimensi Terpadu)',
+                            content: 'Status komposit Early Warning System terpadu berbasis 4 dimensi analitis (Equal Weighting 25% masing-masing):\n1. D1: Proyeksi Harga +1 Bulan\n2. D2: Proyeksi Harga +3 Bulan\n3. D3: Volatilitas Harga (CV 12-Bulan STDEV.P)\n4. D4: Tekanan Tahunan (YoY)\nKlasifikasi akhir terpadu: AMAN, WASPADA, dan AWAS.'
                           })}
                           className="text-amber-500 hover:text-amber-600 transition-all transform hover:scale-110 active:scale-95 cursor-pointer mt-0.5"
-                          title="Penjelasan Status (L1 + L2 + L3)"
+                          title="Penjelasan Status Komposit (4 Dimensi)"
                         >
                           <Lightbulb className="w-3 h-3" />
                         </button>
@@ -666,7 +666,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         </span>
                       </td>
                       
-                      {/* Layer 2: Koefisien Variasi (CV) */}
+                      {/* Dimensi 3: Koefisien Variasi (CV) */}
                       <td className="p-3 text-center">
                         {row.forecast1m > 0 ? (
                           <span 
@@ -691,7 +691,7 @@ export default function ForecastView({ onBack, livePrices }: ForecastViewProps) 
                         ) : '-'}
                       </td>
                       
-                      {/* Layer 3: YoY Comparison */}
+                      {/* Dimensi 4: YoY Comparison */}
                       <td className="p-3 text-center">
                         {row.forecast1m > 0 ? (
                           <span 

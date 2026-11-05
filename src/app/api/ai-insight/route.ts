@@ -191,7 +191,7 @@ STRUKTUR LAPORAN WAJIB MENCANTUMKAN KEENAM SEGMEN BERIKUT SECARA UTUH:
 - **Ringkasan Eksekutif Ketahanan Pangan**: Ringkasan singkat status saat ini (Aman/Waspada/Awas).
 - **Analisis Metodologi Konsumsi vs Ketersediaan**: Bandingkan konsumsi kalori/protein dengan ketersediaan di pasar secara ringkas.
 - **Stabilitas Harga & Aksesibilitas**: Ulas tingkat volatilitas harga beras bulanan (CV Bulanan: ${cvBeras}%) dan harga pangan strategis lainnya.
-- **Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**: Berikan analisis proyeksi harga 1 bulan (+1 Bln) dan 3 bulan (+3 Bln) ke depan berbasis Machine Learning, volatilitas historis (CV 12-bulan), tekanan tahunan (YoY), dan interpretasi matriks irisan terpadu (3×3), berikan interpretasinya termasuk Early Warning System (EWS) dengan klasifikasi AMAN, WASPADA, atau AWAS, serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
+- **Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**: Berikan analisis proyeksi harga 1 bulan (+1 Bln) dan 3 bulan (+3 Bln) ke depan berbasis Machine Learning, volatilitas historis (CV 12-bulan STDEV.P), tekanan tahunan (YoY), dan evaluasi risiko komposit 4 dimensi terpadu (Equal Weighting 25% masing-masing), berikan interpretasinya termasuk Early Warning System (EWS) dengan klasifikasi AMAN, WASPADA, atau AWAS, serta langkah-langkah konkret yang harus diambil untuk mitigasi risiko.
 - **Kondisi Gizi Balita**: Analisis angka gizi balita Kota Cilegon dalam kaitannya dengan ketahanan pangan rumah tangga.
 - **Rekomendasi Kebijakan & Intervensi**: Berikan rekomendasi kebijakan spesifik yang terbukti secara komparatif lebih efektif menanggulangi dampak kenaikan harga pangan daerah:
   1. Fasilitasi Distribusi Pangan (FDP) melalui bantuan ongkos angkut untuk mobilisasi pasokan pangan dari daerah surplus (seperti Brebes/Garut) ke Cilegon guna menekan harga di tingkat konsumen secara efisien dibandingkan subsidi harga langsung.
@@ -334,9 +334,9 @@ Koefisien Variasi (CV) Bulanan harga beras di angka **${cvBeras}%** (di bawah am
 Angka-angka ini mencerminkan stabilitas harga komoditas strategis utama di Kota Cilegon. Meskipun terjadi dinamika harga musiman pada komoditas hortikultura (cabai dan bawang), bahan pangan pokok hewani dan nabati utama tetap dalam jangkauan daya beli masyarakat.
 
 #### **4. Outlook Harga Pangan Strategis 1 dan 3 Bulan & Early Warning System (EWS)**
-Berdasarkan peramalan Machine Learning (*Walk-Forward Validation Engine*) dan evaluasi Early Warning System (EWS):
-- **Proyeksi +1 Bulan (+1M)**: Sebagian besar komoditas pangan pokok diproyeksikan stabil dengan fluktuasi harga di bawah 3%. Komoditas hortikultura (Cabai Rawit, Cabai Merah, dan Bawang Merah) teridentifikasi memerlukan kewaspadaan EWS aktif terhadap potensi dinamika pasokan antar daerah.
-- **Proyeksi +3 Bulan (+3M)**: Estimasi harga beras medium berada pada rentang Rp 13.500–Rp 13.850/kg dengan stabilisasi harga pada mayoritas komoditas strategis. Indikator EWS mengklasifikasikan kesiapsiagaan pangan secara umum pada kategori **AMAN s.d. WASPADA TERKENDALI**.
+Berdasarkan peramalan Machine Learning (*Walk-Forward Validation Engine*) dan evaluasi 4 Dimensi Early Warning System (EWS):
+- **Proyeksi +1 Bulan (+1 Bln)**: Sebagian besar komoditas pangan pokok diproyeksikan stabil dengan fluktuasi harga di bawah 3%. Komoditas hortikultura (Cabai Rawit, Cabai Merah, dan Bawang Merah) teridentifikasi memerlukan kewaspadaan EWS aktif terhadap potensi dinamika pasokan antar daerah.
+- **Proyeksi +3 Bulan (+3 Bln)**: Estimasi harga beras medium berada pada rentang Rp 13.500–Rp 13.850/kg dengan stabilisasi harga pada mayoritas komoditas strategis. Indikator EWS mengklasifikasikan kesiapsiagaan pangan secara umum pada kategori **AMAN s.d. WASPADA TERKENDALI**.
 - **Langkah-Langkah Mitigasi Risiko**: Penguatan pemantauan harga harian SAGON di tingkat pengecer, koordinasi stok distributor menjelang periode puncak permintaan, serta kesiapan operasi pasar terpadu pada titik rawan gejolak harga.
 
 #### **5. Kondisi Gizi Balita**

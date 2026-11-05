@@ -1165,7 +1165,7 @@ export default function MobileHome({
                   ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
                   : 'bg-white hover:bg-amber-50 text-amber-600 border-amber-200 shadow-2xs'
               }`}
-              title="Konsep & Metodologi 3-Layer EWS"
+              title="Konsep & Metodologi 4-Dimensi EWS"
               aria-label="Konsep & Metodologi EWS"
             >
               <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
@@ -1205,7 +1205,7 @@ export default function MobileHome({
               <ul className="list-disc pl-4 space-y-0.5">
                 <li><strong>D1 (Proyeksi +1 Bulan):</strong> Potensi kenaikan jangka pendek respons operasional.</li>
                 <li><strong>D2 (Proyeksi +3 Bulan):</strong> Potensi tekanan jangka menengah antisipasi daerah.</li>
-                <li><strong>D3 (Volatilitas CV 12-Bulan):</strong> Tingkat fluktuasi harga aktual (STDEV.P). CV &gt; 10% Kritis, 5–10% Waspada, ≤ 5% Aman.</li>
+                <li><strong>D3 (Volatilitas CV 12-Bulan):</strong> Tingkat fluktuasi harga aktual (STDEV.P). CV &gt; 10% Awas, 5–10% Waspada, ≤ 5% Aman.</li>
                 <li><strong>D4 (Tekanan Tahunan YoY):</strong> Perubahan harga dibandingkan periode sama tahun lalu.</li>
               </ul>
               <p>
