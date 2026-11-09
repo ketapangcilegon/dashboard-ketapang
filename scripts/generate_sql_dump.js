@@ -98,3 +98,4 @@ fs.writeFileSync(fullDumpSqlPath, dumpSql, 'utf-8');
 
 console.log('Schema DDL written to:', schemaSqlPath, `(${schemaSql.length} bytes)`);
 console.log('Full Database Dump written to:', fullDumpSqlPath, `(${dumpSql.length} bytes)`);
+

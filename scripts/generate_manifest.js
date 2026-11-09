@@ -112,3 +112,4 @@ Version: ${pkg.version}
 fs.writeFileSync(path.join(manifestDir, 'backup_log.txt'), backupLog, 'utf-8');
 
 console.log(`MANIFEST GENERATED SUCCESSFULLY: ${inventory.length} files indexed.`);
+
