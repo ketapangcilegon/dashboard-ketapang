@@ -479,23 +479,23 @@ function createKameraObservasiIcon(item: ObservasiRecord) {
     }
   }
 
-  const size = 32;
+  const size = 16;
 
   return L.divIcon({
     className: 'kamera-cerdas-pin-gis',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
         <!-- Glowing Radar Pulse -->
-        <div class="sp-loc-pulse" style="width:44px;height:44px;background:${bgColor}44;top:calc(100% - 16px);left:50%;margin-left:-22px;margin-top:-22px;"></div>
+        <div class="sp-loc-pulse" style="width:22px;height:22px;background:${bgColor}44;top:calc(100% - 8px);left:50%;margin-left:-11px;margin-top:-11px;"></div>
         
         <!-- Transparent Label with Sharp Shadow -->
-        <div style="background:transparent;color:#ffffff;font-weight:900;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:3px;z-index:10;pointer-events:none;">
+        <div style="background:transparent;color:#ffffff;font-weight:900;font-size:9.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:2px;z-index:10;pointer-events:none;">
           ${item.nama_lokasi || item.kategori_label || (isPasokan ? 'Pemasok Beras' : 'Pangan Lokal')}
         </div>
 
-        <!-- Teardrop Marker Pin -->
-        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,0.45);z-index:5;">
-          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.52)}px">${emoji}</span>
+        <!-- Teardrop Marker Pin (50% dari ukuran eksisting 32px -> 16px) -->
+        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:1.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1.5px 5px rgba(0,0,0,0.45);z-index:5;">
+          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.55)}px">${emoji}</span>
         </div>
       </div>
     `,

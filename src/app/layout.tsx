@@ -18,17 +18,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   // ── TITLE ──────────────────────────────────────────────────
   title: {
-    default: 'Sistem Informasi Ketahanan Pangan Kota Cilegon | Food Security Intelligence & DSS',
-    template: '%s | Ketahanan Pangan Cilegon',
+    default: 'PANCI | Platform Analisis Pangan Kota Cilegon',
+    template: '%s | PANCI Cilegon',
   },
 
   // ── DESCRIPTION ────────────────────────────────────────────
   description:
-    'Platform analitik dan DSS ketahanan pangan Kota Cilegon. Pemantauan harga pangan strategis real-time, peta FSVA, analisis SKPG, indeks IKP, forecast ML, dan early warning system (EWS) kerawanan pangan berbasis kecerdasan buatan.',
+    'PANCI (Platform Analisis Pangan Kota Cilegon). Pemantauan harga pangan strategis real-time, peta FSVA, analisis SKPG, indeks IKP, forecast ML, dan early warning system (EWS) kerawanan pangan berbasis kecerdasan buatan.',
 
   // ── KEYWORDS ───────────────────────────────────────────────
   keywords: [
     // Nama sistem & brand
+    'PANCI',
+    'Platform Analisis Pangan Kota Cilegon',
+    'PANCI Cilegon',
     'food security intelligence Cilegon',
     'DSS ketahanan pangan Cilegon',
     'sistem informasi ketahanan pangan Kota Cilegon',
@@ -128,8 +131,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'id_ID',
     url: 'https://pangancilegon.web.id',
-    siteName: 'Sistem Informasi Ketahanan Pangan Kota Cilegon',
-    title: 'Food Security Intelligence & DSS — Kota Cilegon',
+    siteName: 'PANCI — Platform Analisis Pangan Kota Cilegon',
+    title: 'PANCI | Platform Analisis Pangan Kota Cilegon',
     description:
       'Pantau harga pangan real-time, peta FSVA, forecast AI, dan early warning system kerawanan pangan Kota Cilegon secara interaktif.',
     images: [
@@ -137,7 +140,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',        // buat gambar 1200×630 px, taruh di /public/
         width: 1200,
         height: 630,
-        alt: 'Dashboard Ketahanan Pangan Kota Cilegon',
+        alt: 'PANCI — Platform Analisis Pangan Kota Cilegon',
       },
     ],
   },
@@ -145,7 +148,7 @@ export const metadata: Metadata = {
   // ── TWITTER / X CARD ───────────────────────────────────────
   twitter: {
     card: 'summary_large_image',
-    title: 'Food Security Intelligence & DSS — Kota Cilegon',
+    title: 'PANCI | Platform Analisis Pangan Kota Cilegon',
     description:
       'Pantau harga pangan real-time, forecast ML, dan EWS kerawanan pangan Kota Cilegon.',
     images: ['/og-image.png'],

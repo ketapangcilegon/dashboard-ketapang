@@ -9,9 +9,9 @@ export default function SeoStructuredData() {
         '@type': 'WebSite',
         '@id': 'https://pangancilegon.web.id/#website',
         url: 'https://pangancilegon.web.id',
-        name: 'Sistem Informasi Ketahanan Pangan Kota Cilegon',
+        name: 'PANCI — Platform Analisis Pangan Kota Cilegon',
         description:
-          'Platform Food Security Intelligence & DSS untuk pemantauan, analisis, dan pengambilan keputusan ketahanan pangan Kota Cilegon berbasis data real-time dan kecerdasan buatan.',
+          'PANCI (Platform Analisis Pangan Kota Cilegon) untuk pemantauan, analisis, dan pengambilan keputusan ketahanan pangan Kota Cilegon berbasis data real-time dan kecerdasan buatan.',
         inLanguage: 'id',
         potentialAction: {
           '@type': 'SearchAction',
