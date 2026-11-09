@@ -672,7 +672,7 @@ export default function AIIntelligenceMap({
   // Kamera Cerdas Observasi Pins & Layer Toggles
   const [showKameraBeras, setShowKameraBeras] = useState(true);
   const [showKameraPanganLokal, setShowKameraPanganLokal] = useState(true);
-  const [kameraObservasiList, setKameraObservasiList] = useState<ObservasiRecord[]>([]);
+  const [kameraObservasiList, setKameraObservasiList] = useState<ObservasiRecord[]>(SEED_OBSERVASI_DATA);
 
   // Supabase indicator data state
   const [indicatorData, setIndicatorData] = useState<{

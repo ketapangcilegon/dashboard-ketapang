@@ -256,8 +256,21 @@ export default function KameraCerdasView({
   const [newlyCreatedCoords, setNewlyCreatedCoords] = useState<[number, number] | null>(null);
   const [isShutterFlashing, setIsShutterFlashing] = useState<boolean>(false);
 
-  // Field Observations List - Diinisialisasi langsung dengan SEED_OBSERVASI_DATA agar 7 toko beras tidak pernah kosong
-  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>(SEED_OBSERVASI_DATA);
+  // Field Observations List - Diinisialisasi langsung dengan data observasi terbaru (cache localStorage / SEED_OBSERVASI_DATA)
+  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('panci_kamera_observasi_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    return SEED_OBSERVASI_DATA;
+  });
   const [observasiLoaded, setObservasiLoaded] = useState<boolean>(true);
   const [observasiError, setObservasiError] = useState<string | null>(null);
 
@@ -274,6 +287,11 @@ export default function KameraCerdasView({
       if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
         setObservasiList(json.data);
         setObservasiError(null);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('panci_kamera_observasi_cache', JSON.stringify(json.data));
+          } catch {}
+        }
       } else if (!res.ok) {
         setObservasiError(json?.error || 'Data observasi tidak dapat dimuat.');
       }

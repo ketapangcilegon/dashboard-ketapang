@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Gabungkan dengan data seed (7 toko beras terverifikasi beserta foto & koordinat GPS)
+    // 3. Gabungkan dengan data seed (seluruh titik sarana distribusi terverifikasi beserta foto & koordinat GPS)
     // agar data penting yang sulit didapat TIDAK PERNAH hilang
     const combinedMap = new Map<string, ObservasiRecord>();
     SEED_OBSERVASI_DATA.forEach((r) => {
