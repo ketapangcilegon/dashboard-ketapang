@@ -325,9 +325,8 @@ export default function AIInsightPanel({
             <div className="w-[3.5px] bg-orange-500 rounded-full shrink-0"></div>
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
                 <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug uppercase tracking-wide">
-                  INSIGHT KETAHANAN PANGAN CILEGON {year}-{year + 1}
+                  INSIGHT KETAHANAN PANGAN CILEGON
                 </h3>
                 <button
                   onClick={() => setShowInfo(!showInfo)}
@@ -376,7 +375,7 @@ export default function AIInsightPanel({
       {/* Main Panel Content: MASKING / GERBANG TOKEN HEMAT (Capture 2) ATAU HASIL KAJIAN AI (Capture 1) */}
       {!isOpen ? (
         <div 
-          className="dashboard-card relative flex-1 flex flex-col justify-between border border-emerald-200/90 shadow-md min-h-[260px] rounded-2xl overflow-hidden p-5 sm:p-6 transition-all duration-300"
+          className="dashboard-card relative flex-1 flex flex-col justify-center items-center border border-emerald-200/90 shadow-md min-h-[220px] rounded-2xl overflow-hidden p-5 sm:p-6 transition-all duration-300"
           style={{
             background: 'linear-gradient(135deg, rgba(236, 253, 245, 0.92) 0%, rgba(240, 253, 250, 0.75) 50%, #ffffff 100%)'
           }}
@@ -386,7 +385,7 @@ export default function AIInsightPanel({
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-100/40 rounded-full blur-2xl pointer-events-none -ml-12 -mb-12" />
 
           {/* Top content row: AI Chip Icon + Title & Description */}
-          <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left pt-1">
+          <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left w-full max-w-md">
             {/* 3D-styled AI Chip Illustration */}
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
               <div className="absolute inset-2 bg-emerald-400/25 rounded-2xl blur-lg pointer-events-none" />
@@ -450,8 +449,8 @@ export default function AIInsightPanel({
             </div>
           </div>
 
-          {/* Action Button: Buka AI Insight -> */}
-          <div className="relative z-10 my-4 sm:my-5 flex flex-col sm:flex-row items-center sm:items-start">
+          {/* Action Button: Buka AI Insight -> (tepat di bawah-tengah ikon dan teks) */}
+          <div className="relative z-10 mt-5 flex justify-center w-full">
             <button
               onClick={() => {
                 setIsOpen(true);
@@ -463,12 +462,6 @@ export default function AIInsightPanel({
               <span>Buka AI Insight</span>
               <ArrowRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-1 transition-transform" />
             </button>
-          </div>
-
-          {/* Bottom Footnote */}
-          <div className="relative z-10 pt-2 border-t border-emerald-200/60 flex items-center gap-1.5 text-[10.5px] sm:text-[11px] text-slate-500 font-medium">
-            <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Klik untuk menghasilkan dan membaca AI Insight (menggunakan kuota token AI).</span>
           </div>
         </div>
       ) : (
