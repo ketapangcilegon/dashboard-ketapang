@@ -671,7 +671,7 @@ async function getHomepageAndDatabaseContext(): Promise<string> {
     // F. FORECASTING HARGA MACHINE LEARNING & EARLY WARNING SYSTEM (EWS)
     // ============================================================
     lines.push('\n=== F. FORECASTING HARGA BERBASIS MACHINE LEARNING & EARLY WARNING SYSTEM (EWS) ===');
-    lines.push('• Model Prediksi: Integrasi ARIMA, Holt-Winters Exponential Smoothing, dan Moving Average 30–90 Hari.');
+    lines.push('• Model Prediksi: Integrasi 3 Model (OLS, GBDT, dan Random Forest) dengan skema Champion-Challenger.');
     lines.push('• Status Sinyal Peringatan Dini (EWS Status):');
     lines.push('  - Beras Medium & Premium: [AMAN / HIJAU] - Pola pasokan lancar, cadangan Bulog mencukupi, tidak ada sinyal lonjakan harga.');
     lines.push('  - Minyak Goreng & Gula: [AMAN / HIJAU] - Distribusi dari produsen teratur, stabilitas harga terjaga.');

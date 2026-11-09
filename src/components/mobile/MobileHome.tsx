@@ -970,7 +970,7 @@ export default function MobileHome({
               <ul className="list-disc pl-4 space-y-0.5">
                 <li><strong>OLS (Ordinary Least Squares):</strong> Regresi time-series klasik dengan dekomposisi musiman serta kovariat makroekonomi inflasi.</li>
                 <li><strong>GBDT (Gradient Boosted Decision Trees):</strong> Model pohon ensemble adaptif yang menangkap interaksi non-linear dan shock harga eksternal.</li>
-                <li><strong>Holt-Winters / Exponential Smoothing:</strong> Memproyeksikan tren linier dan siklus musiman jangka menengah.</li>
+                <li><strong>Random Forest:</strong> Model pohon ensemble berbasis bootstrap agregasi yang andal mereduksi variansi dan menjaga stabilitas proyeksi.</li>
               </ul>
               <p>
                 <strong>Skema Champion-Challenger:</strong> Ketiga model diadu secara back-testing pada data historis aktual. Model dengan nilai <strong>MAPE (Mean Absolute Percentage Error)</strong> terkecil otomatis dipilih sebagai <em>Champion</em> (pemenang) yang angka proyeksinya (+1 dan +3 bulan) disajikan di dashboard ini.

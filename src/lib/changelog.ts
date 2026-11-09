@@ -16,15 +16,14 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'November 2026',
-    title: 'Rekonstruksi Integrated EWS 4-Dimensi, Tata Letak AI Insight & Redesain Dokumentasi',
+    title: 'Rekonstruksi Integrated EWS 4-Dimensi, Masking Kuota AI Insight & Redesain Dokumentasi',
     isCurrent: true,
     changes: [
       'Rekonstruksi algoritma Early Warning System (EWS) komposit berbasis 4 dimensi terpadu: Proyeksi +1 Bulan, Proyeksi +3 Bulan, Volatilitas CV 12-Bulan, dan Tekanan Tahunan YoY dengan standardisasi status AMAN, WASPADA, dan AWAS.',
       'Penyediaan Bobot Komposit transparan (Equal Weighting 25%), penghapusan matriks irisan rumit, dan pembesaran tipografi teks diagnostik.',
       'Penambahan kolom Koefisien Variasi CV (%) pada Panel Harga Pangan Strategis harian dan berkas unduhan Excel (.xlsx).',
-      'Restrukturisasi tata letak beranda menjadi grid 2 kolom terpadu di bawah header dengan penempatan Panel AI Insight berlatar kontras tinggi di pojok kanan atas.',
-      'Redesain Panel Informasi & Dokumentasi: foto rata kiri penuh, placeholder teks dinamis berbasis warna dominan dengan judul ter-highlight kuning dan scroll vertikal.',
-      'Pembaruan resmi klausul Status Pengembangan & Disclaimer sesuai rekomendasi Kepala Dinas Ketahanan Pangan dan Pertanian Kota Cilegon.'
+      'Penerapan sistem masking on-demand AI Insight untuk menghemat kuota token AI, serta pemindahan panel ke pojok kanan atas di bawah header.',
+      'Redesain Panel Informasi & Dokumentasi dengan layout adaptif desktop dan mobile serta pembaruan klausul resmi Status Pengembangan & Disclaimer.'
     ]
   },
   {
@@ -32,7 +31,19 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
-    title: 'Optimasi UI Forecast Mobile, Scrollbar Peta Pasokan & Versioning Platform',
+    title: 'Mesin Estimasi Pasokan Tahunan & Aliran Rantai Pasok Nusantara',
+    changes: [
+      'Implementasi mesin estimasi pasokan beras tahunan hibrida (kombinasi input manual lapangan dan perputaran stok AI turnover rate).',
+      'Visualisasi arus simpul asal wilayah pemasok lintas provinsi se-Indonesia (Jawa Barat, Jawa Tengah, Jawa Timur, NTB, Lampung) ke Kota Cilegon.',
+      'Penyempurnaan tata kelola edit data observasi lapangan dan optimasi performa peta satelit Leaflet.'
+    ]
+  },
+  {
+    version: 'v2.4',
+    type: 'minor',
+    typeLabel: 'Penyempurnaan Fitur',
+    date: 'Oktober 2026',
+    title: 'Optimasi UI Forecast Mobile, Scrollbar Peta Pasokan & Platform Versioning',
     changes: [
       'Redesain UI Panel Peramalan Harga Pangan mobile dengan latar mint kontras tinggi, penataan 3 kolom harga (Aktual, +1 Bulan, +3 Bulan), dan pill badge status tren dinamis.',
       'Peningkatan keterbacaan teks tipografi mobile (panduan geser, kuantitas komoditas, dan label Machine Learning dibuat lebih tajam dan gelap).',
@@ -41,7 +52,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     ]
   },
   {
-    version: 'v2.4',
+    version: 'v2.3',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
@@ -53,7 +64,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     ]
   },
   {
-    version: 'v2.3',
+    version: 'v2.2',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
@@ -65,7 +76,7 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     ]
   },
   {
-    version: 'v2.2',
+    version: 'v2.1',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'Oktober 2026',
@@ -74,18 +85,6 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
       'Peluncuran fitur Kamera Cerdas AI Vision untuk deteksi stok komoditas pangan dan fase tanaman pertanian secara instan.',
       'Ekstraksi koordinat GPS otomatis dan penerbitan pin observasi terverifikasi ke peta spasial Cilegon.',
       'Direktori data sarana penjual pangan (kios, grosir beras) dan sentra produksi pangan lokal.'
-    ]
-  },
-  {
-    version: 'v2.1',
-    type: 'minor',
-    typeLabel: 'Penyempurnaan Fitur',
-    date: 'Oktober 2026',
-    title: 'Engine Peramalan Harga Machine Learning (Champion-Challenger)',
-    changes: [
-      'Pelatihan dan seleksi 3 arsitektur model ML (OLS, GBDT, Holt-Winters/RF) untuk peramalan harga jangka pendek +1 dan +3 bulan.',
-      'Evaluasi presisi model berbasis Walk-Forward Validation dan metrik MAPE (Mean Absolute Percentage Error).',
-      'Halaman validasi log backtesting perbandingan harga prediksi terhadap realisasi pasar SAGON.'
     ]
   },
   {
@@ -103,52 +102,66 @@ export const PLATFORM_CHANGELOG: VersionLog[] = [
     ]
   },
   {
-    version: 'v1.3',
+    version: 'v1.4',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
     date: 'September 2026',
-    title: 'Telemetri Lengas Tanah Satelit ECMWF & Agrometeorologi',
+    title: 'AI Intelligence Chatbot RAG Multi-Dokumen & GIS Spasial',
     changes: [
-      'Integrasi data telemetri lengas tanah (soil moisture) ERA5-Land ECMWF untuk pemantauan lahan pertanian secara spasial.',
-      'Kalkulasi matematis akurat poligon sawah dan lahan pertanian di seluruh kecamatan Cilegon.',
-      'Optimasi layer peta tematik OSM & CartoDB dengan label poligon berpresisi tinggi.'
+      'Integrasi AI Chatbot interaktif bertenaga Google Gemini dengan arsitektur Retrieval-Augmented Generation (RAG).',
+      'Penggabungan tiga pilar data cerdas: data spasial GIS, basis data regulasi/dokumen Pemkot, dan database indikator Supabase.',
+      'Visualisasi grafik responsif Recharts dan sintesis neraca pangan otomatis lintas sektor.'
+    ]
+  },
+  {
+    version: 'v1.3',
+    type: 'minor',
+    typeLabel: 'Penyempurnaan Fitur',
+    date: 'Agustus 2026',
+    title: 'Telemetri Lengas Tanah ECMWF, Sawah Baku LBS & Walk-Forward Validation',
+    changes: [
+      'Integrasi data telemetri lengas tanah (soil moisture) ERA5-Land ECMWF dan kalkulasi matematis poligon sawah baku (LBS) per kecamatan/kelurahan.',
+      'Implementasi Walk-Forward Validation (Backtesting Akurasi ML deret waktu bergeser) untuk menguji keandalan model terhadap realisasi harga pasar.',
+      'Standardisasi tata letak ekspor dokumen PDF A4 resmi pemerintah daerah tanpa pemotongan elemen maupun tumpang tindih.',
+      'Integrasi basis data spasial Serumpun Padi dan sentra pangan lokal/sukun Kota Cilegon.'
     ]
   },
   {
     version: 'v1.2',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
-    date: 'September 2026',
-    title: 'AI Intelligence Chatbot RAG Multi-Dokumen & GIS',
+    date: 'Juli 2026',
+    title: 'Komparasi Benchmark Indikator & Neraca Bahan Makanan',
     changes: [
-      'Integrasi AI Chatbot interaktif bertenaga Google Gemini dengan arsitektur Retrieval-Augmented Generation (RAG).',
-      'Penggabungan tiga pilar data cerdas: data geospasial GIS, basis data regulasi/dokumen Pemkot, dan database indikator Supabase.',
-      'Visualisasi grafik responsif Recharts dan sintesis neraca pangan lintas komoditas.'
+      'Panel komparasi capaian indikator ketahanan pangan Kota Cilegon terhadap target dan rata-rata nasional 5 tahun terakhir (PPH, IKP, PoU).',
+      'Agregasi harian harga pasar rata-rata dari 3 pasar utama di Kota Cilegon.',
+      'Penguatan skema filter spasial 43 kelurahan dan formulir entri data neraca bahan makanan (NBM).'
     ]
   },
   {
     version: 'v1.1',
     type: 'minor',
     typeLabel: 'Penyempurnaan Fitur',
-    date: 'Agustus - September 2026',
-    title: 'Cetak Laporan Eksekutif PDF A4 & Benchmark Indikator',
+    date: 'Juni 2026',
+    title: 'Engine Peramalan Harga Machine Learning (OLS, GBDT, Random Forest) & EWS',
     changes: [
-      'Penyediaan tata letak ekspor dokumen PDF format A4 berstandar resmi pemerintah daerah tanpa pemotongan elemen.',
-      'Panel komparasi capaian indikator ketahanan pangan Kota Cilegon terhadap rata-rata nasional 5 tahun terakhir.',
-      'Agregasi harian harga pasar rata-rata dari 3 pasar utama di Kota Cilegon.'
+      'Pelatihan dan seleksi 3 arsitektur model ML (OLS, GBDT, Random Forest) untuk peramalan harga komoditas pangan jangka pendek (+1 dan +3 bulan).',
+      'Penerapan skema evaluasi presisi Champion-Challenger berbasis nilai MAPE (Mean Absolute Percentage Error) terkecil.',
+      'Pembangunan pipeline ETL SAGON otomatis, integrasi indikator inflasi BPS, dan peluncuran modul awal Early Warning System (EWS).',
+      'Halaman validasi perbandingan harga prediksi terhadap realisasi pasar SAGON.'
     ]
   },
   {
     version: 'v1.0',
     type: 'major',
-    typeLabel: 'Perbaikan Besar / Rilis Perdana',
-    date: 'Agustus 2026',
-    title: 'Peluncuran Awal Dashboard Ketahanan Pangan Cilegon',
+    typeLabel: 'Perbaikan Besar / Inisiasi Platform',
+    date: '28 Mei 2026',
+    title: 'Inisiasi Repositori & Rilis Fondasi Platform Ketahanan Pangan',
     changes: [
-      'Pembangunan fondasi platform dashboard ketahanan pangan terpadu berbasis Next.js dan Supabase.',
-      'Pemantauan indikator SKPG, FSVA, Prevalensi Balita Stunting, dan Produksi Beras tingkat kelurahan.',
-      'Sistem scraping otomatis harga pangan harian pasar dari portal SAGON Banten.',
-      'Peta spasial GIS interaktif Leaflet untuk 43 kelurahan di 8 kecamatan Kota Cilegon.'
+      'Inisiasi repositori resmi GitHub dashboard-ketapang oleh @ketapangcilegon (28 Mei 2026) dan integrasi awal Supabase data tingkat kelurahan dengan benchmark Kota Cilegon.',
+      'Pembangunan portal admin, tema peta dinamis, dan integrasi live scraping harga pasar harian SAGON Banten dengan bypass TLS.',
+      'Kalkulasi komposit FSVA IKP kelurahan, formula prioritas Borda Desil intervensi pangan, serta ekspor laporan cetak resmi PDF A4.',
+      'Penerapan persistent database cache dan token-limiting Gemini AI 2.5 Flash Lite untuk analitik cerdas efisien biaya.'
     ]
   }
 ];

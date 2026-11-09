@@ -153,7 +153,7 @@ export default function MobileFeatureCatalogModal({
         {
           id: 'forecasting',
           title: 'Forecast Harga & EWS',
-          subtitle: 'Prediksi Machine Learning Holt-Winters & SARIMA',
+          subtitle: 'Prediksi Machine Learning OLS, GBDT & Random Forest',
           icon: <Sparkles className="w-5 h-5 text-white" />,
           gradient: 'from-[#FF5E74] to-[#FF405B]',
           badge: 'AI ML',
