@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { searchKnowledgeBase, MatchedKnowledgeChunk } from '@/app/api/knowledge/search/route';
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
 import { BASELINE_KELURAHAN_DATA } from '@/lib/thematic-indicators';
+import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
 
 // Data Luas Sawah Resmi per Kelurahan (Ha) untuk GIS Intelligence Pin
 const KELURAHAN_SAWAH: Record<string, number> = {
@@ -219,12 +220,13 @@ Sistem Ketahanan Pangan & Peta Spasial Terpadu Kota Cilegon menyajikan data anal
 *Silakan tanyakan rincian data sawah per kelurahan/kecamatan, profil nelayan pangkalan, koordinat KWT, atau harga komoditas pasar harian.*`;
 }
 
-// Ambil semua cache SP yang tersedia dari Supabase Ketapang
+// Ambil semua cache SP yang tersedia dari Supabase Ketapang (kecuali blob base64 kamera_cerdas_observasi 5.3 MB)
 async function getSpContextData(): Promise<Record<string, unknown>> {
   try {
     const { data } = await supabase
       .from('sp_cache_data')
-      .select('tabel_sumber, data, fetched_at');
+      .select('tabel_sumber, data, fetched_at')
+      .neq('tabel_sumber', 'kamera_cerdas_observasi');
     
     const ctx: Record<string, unknown> = {};
     for (const row of data || []) {
@@ -235,21 +237,15 @@ async function getSpContextData(): Promise<Record<string, unknown>> {
       };
     }
 
-    // Ambil data observasi kamera cerdas langsung dari tabel kamera_cerdas_observasi
-    try {
-      const { data: obsData } = await supabase
-        .from('kamera_cerdas_observasi')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (obsData && obsData.length > 0) {
-        ctx['kamera_cerdas_observasi'] = {
-          data: obsData,
-          fetched_at: new Date().toISOString(),
-          age_minutes: 0
-        };
-      }
-    } catch {}
+    // Gunakan ringkasan metadata observasi tanpa string base64 foto agar hemat kuota Egress & token AI
+    ctx['kamera_cerdas_observasi'] = {
+      data: SEED_OBSERVASI_DATA.map(({ foto_url: _omit, ...rest }) => {
+        void _omit;
+        return rest;
+      }),
+      fetched_at: new Date().toISOString(),
+      age_minutes: 0
+    };
 
     return ctx;
   } catch {

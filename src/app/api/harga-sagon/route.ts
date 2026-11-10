@@ -216,12 +216,31 @@ async function scrapeMarket(idPasar: string, tanggal: string): Promise<Record<st
   return items;
 }
 
+// Server-side in-memory cache (15 minutes TTL) to avoid redundant SAGON scraping & Supabase PostgREST queries
+const SAGON_CACHE_TTL_MS = 15 * 60 * 1000;
+const sagonResponseCache = new Map<string, { payload: Record<string, unknown>; expiresAt: number }>();
+let lastAutoSyncedDate: string | null = null;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const requestedDate = searchParams.get('tanggal');
+  const forceRefresh = searchParams.get('refresh') === '1';
   
   // Default to today
   const targetDate = requestedDate || formatDate(new Date());
+
+  // Return cached response if valid
+  if (!forceRefresh) {
+    const cached = sagonResponseCache.get(targetDate);
+    if (cached && Date.now() < cached.expiresAt) {
+      return NextResponse.json(cached.payload, {
+        headers: {
+          'Cache-Control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800',
+          'X-Sagon-Cache': 'HIT',
+        },
+      });
+    }
+  }
   
   console.log(`[SAGON Scraper] Initializing scraping for date: ${targetDate}`);
   
@@ -359,13 +378,23 @@ export async function GET(request: Request) {
         const latestDate = dates[0];
         const latestPrices = history[latestDate];
         console.log(`[SAGON Scraper] Fallback sukses! Menggunakan arsip database dari tanggal: ${latestDate}`);
-        return NextResponse.json({
+        const fallbackPayload = {
           success: true,
           source: 'Supabase Archive Fallback (SAGON Offline)',
           pasar: 'Rata-rata Seluruh Pasar (Arsip Database)',
           tanggal: latestDate,
           prices: latestPrices,
           history
+        };
+        sagonResponseCache.set(targetDate, {
+          payload: fallbackPayload,
+          expiresAt: Date.now() + SAGON_CACHE_TTL_MS,
+        });
+        return NextResponse.json(fallbackPayload, {
+          headers: {
+            'Cache-Control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800',
+            'X-Sagon-Cache': 'FALLBACK',
+          },
         });
       }
     } catch (dbErr: unknown) {
@@ -453,10 +482,13 @@ export async function GET(request: Request) {
       }
     } else {
       console.log(`[SAGON Scraper] Berhasil menyimpan arsip harian untuk tanggal: ${parsedDate}`);
-      // Autonomously update monthly dataset and trigger ML retrain if necessary
-      autoSyncSagonToDataset().catch(syncErr => {
-        console.warn('[SAGON Scraper] Background autoSync warning:', syncErr?.message);
-      });
+      // Autonomously update monthly dataset and trigger ML retrain at most once per date per server instance
+      if (lastAutoSyncedDate !== parsedDate) {
+        lastAutoSyncedDate = parsedDate;
+        autoSyncSagonToDataset().catch(syncErr => {
+          console.warn('[SAGON Scraper] Background autoSync warning:', syncErr?.message);
+        });
+      }
     }
   } catch (dbErr: unknown) {
     const err = dbErr as Error;
@@ -467,12 +499,24 @@ export async function GET(request: Request) {
   const history = await getRecentArchiveHistory();
   history[parsedDate] = prices;
   
-  return NextResponse.json({
+  const responsePayload = {
     success: true,
     source: 'https://sagon.cilegon.go.id/',
     pasar: 'Rata-rata Seluruh Pasar Kota Cilegon',
     tanggal: parsedDate,
     prices,
     history
+  };
+
+  sagonResponseCache.set(targetDate, {
+    payload: responsePayload,
+    expiresAt: Date.now() + SAGON_CACHE_TTL_MS,
+  });
+
+  return NextResponse.json(responsePayload, {
+    headers: {
+      'Cache-Control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800',
+      'X-Sagon-Cache': 'MISS',
+    },
   });
 }

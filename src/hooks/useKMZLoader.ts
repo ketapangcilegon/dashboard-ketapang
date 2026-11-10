@@ -3,13 +3,13 @@ import JSZip from 'jszip';
 import togeojson from '@mapbox/togeojson';
 import { calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 
-// Supabase Storage KMZ URL in bucket 'kmz-files' with fallback to local public asset
-const SUPABASE_STORAGE_URL = process.env.NEXT_PUBLIC_KMZ_URL || (
+// Primary: local public static asset on Vercel CDN (zero Supabase Egress). Fallback: Supabase Storage KMZ URL.
+const LOCAL_PRIMARY_URL = '/my-places-apr-2026-v250426.kmz';
+const SUPABASE_FALLBACK_URL = process.env.NEXT_PUBLIC_KMZ_URL || (
   process.env.NEXT_PUBLIC_SUPABASE_URL
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/kmz-files/my-places-apr-2026-v250426.kmz`
-    : '/my-places-apr-2026-v250426.kmz'
+    : LOCAL_PRIMARY_URL
 );
-const LOCAL_FALLBACK_URL = '/my-places-apr-2026-v250426.kmz';
 
 export interface KMZLayers {
   kecamatan: any[];
@@ -17,8 +17,14 @@ export interface KMZLayers {
   sawah: any[];
 }
 
+// Module-level singleton cache so MapUnified, AIIntelligenceMap, ArusPasokanMap, etc. share 1 parsed result
+let cachedKmzLayers: KMZLayers | null = null;
+let inFlightKmzPromise: Promise<KMZLayers> | null = null;
+
 export function useKMZLoader() {
-  const [layers, setLayers] = useState<KMZLayers>({ kecamatan: [], kelurahan: [], sawah: [] });
+  const [layers, setLayers] = useState<KMZLayers>(
+    () => cachedKmzLayers || { kecamatan: [], kelurahan: [], sawah: [] }
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,34 +162,50 @@ export function useKMZLoader() {
         }
       });
 
-      setLayers({ kecamatan: kecF, kelurahan: kelF, sawah: sawahF });
+      const parsedResult: KMZLayers = { kecamatan: kecF, kelurahan: kelF, sawah: sawahF };
+      cachedKmzLayers = parsedResult;
+      setLayers(parsedResult);
+      return parsedResult;
 
     } catch (e: any) {
       setError(e.message);
       console.error('KMZ processing error:', e);
+      throw e;
     } finally {
       setLoading(false);
     }
   }, []);
 
   const loadFromURL = useCallback(async () => {
+    if (cachedKmzLayers) {
+      setLayers(cachedKmzLayers);
+      return;
+    }
     if (loadedRef.current) return;
     loadedRef.current = true;
     setLoading(true);
     try {
-      let res = await fetch(SUPABASE_STORAGE_URL).catch(() => null);
-      if (!res || !res.ok) {
-        res = await fetch(LOCAL_FALLBACK_URL);
-      }
-      if (!res.ok) throw new Error(`Gagal memuat KMZ (${res.status} ${res.statusText})`);
+      if (!inFlightKmzPromise) {
+        inFlightKmzPromise = (async () => {
+          let res = await fetch(LOCAL_PRIMARY_URL, { cache: 'force-cache' }).catch(() => null);
+          if (!res || !res.ok) {
+            res = await fetch(SUPABASE_FALLBACK_URL);
+          }
+          if (!res.ok) throw new Error(`Gagal memuat KMZ (${res.status} ${res.statusText})`);
 
-      const arrayBuffer = await res.arrayBuffer();
-      const zip = await JSZip.loadAsync(arrayBuffer);
-      const kmlFile = Object.values(zip.files).find(f => f.name.endsWith('.kml'));
-      if (kmlFile) {
-        await processKML(await kmlFile.async('string'));
+          const arrayBuffer = await res.arrayBuffer();
+          const zip = await JSZip.loadAsync(arrayBuffer);
+          const kmlFile = Object.values(zip.files).find(f => f.name.endsWith('.kml'));
+          if (!kmlFile) {
+            return { kecamatan: [], kelurahan: [], sawah: [] };
+          }
+          return await processKML(await kmlFile.async('string'));
+        })();
       }
+      const result = await inFlightKmzPromise;
+      setLayers(result);
     } catch (e: any) {
+      inFlightKmzPromise = null;
       setError(e.message);
       console.error('Auto-load KMZ gagal:', e);
     } finally {

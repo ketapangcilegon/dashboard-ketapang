@@ -92,17 +92,89 @@ const DEFAULT_MEDIA_SEED: DashboardMedia[] = [
   }
 ];
 
+// Module-level cache & deduplication so multiple mounts / route switches never re-query or re-download
+let cachedMediaItems: DashboardMedia[] | null = null;
+let inFlightMediaPromise: Promise<DashboardMedia[] | null> | null = null;
+const preloadedImageUrls = new Set<string>();
+const MEDIA_SESSION_CACHE_KEY = 'panci_dashboard_media_cache_v2';
+const MEDIA_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+export function invalidateDashboardMediaCache() {
+  cachedMediaItems = null;
+  inFlightMediaPromise = null;
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem(MEDIA_SESSION_CACHE_KEY);
+    } catch { }
+  }
+}
+
+async function fetchDashboardMediaCached(): Promise<DashboardMedia[] | null> {
+  if (cachedMediaItems && cachedMediaItems.length > 0) {
+    return cachedMediaItems;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = sessionStorage.getItem(MEDIA_SESSION_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.ts && Date.now() - parsed.ts < MEDIA_CACHE_TTL_MS && Array.isArray(parsed.data) && parsed.data.length > 0) {
+          cachedMediaItems = parsed.data;
+          return cachedMediaItems;
+        }
+      }
+    } catch { }
+  }
+
+  if (inFlightMediaPromise) {
+    return inFlightMediaPromise;
+  }
+
+  inFlightMediaPromise = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('dashboard_media')
+        .select('id, media_type, media_url, thumbnail_url, title, description, location, event_date, duration, is_active, sort_order')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(10);
+
+      if (!error && data && data.length > 0) {
+        cachedMediaItems = data as DashboardMedia[];
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(MEDIA_SESSION_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: cachedMediaItems }));
+          } catch { }
+        }
+        return cachedMediaItems;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[MediaCarousel] Using fallback seed data:', err);
+      return null;
+    } finally {
+      inFlightMediaPromise = null;
+    }
+  })();
+
+  return inFlightMediaPromise;
+}
+
 export default function MediaCarousel() {
-  const [items, setItems] = useState<DashboardMedia[]>(DEFAULT_MEDIA_SEED);
+  const [items, setItems] = useState<DashboardMedia[]>(() => cachedMediaItems || DEFAULT_MEDIA_SEED);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [activeVideoModal, setActiveVideoModal] = useState<DashboardMedia | null>(null);
   const [inlineVideoPlaying, setInlineVideoPlaying] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
+  const [isInViewport, setIsInViewport] = useState<boolean>(true);
+  const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(false);
+  const [currentSlideLoaded, setCurrentSlideLoaded] = useState<boolean>(false);
 
-  // Dominant color state extracted dynamically from the active image
-  const [dominantColor, setDominantColor] = useState<string>('rgb(30, 41, 59)');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Title & Description line measuring for mobile
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -115,117 +187,114 @@ export default function MediaCarousel() {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
-  // Fetch items from Supabase
+  // Track responsive viewport (< 640px vs >= 640px) & tab visibility
   useEffect(() => {
-    async function loadMediaData() {
-      try {
-        const { data, error } = await supabase
-          .from('dashboard_media')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true })
-          .limit(10);
+    const mq = window.matchMedia('(max-width: 639px)');
+    const updateMedia = () => setIsMobileViewport(mq.matches);
+    updateMedia();
+    mq.addEventListener('change', updateMedia);
 
-        if (!error && data && data.length > 0) {
-          setItems(data);
+    const handleVis = () => setIsTabVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handleVis);
+
+    return () => {
+      mq.removeEventListener('change', updateMedia);
+      document.removeEventListener('visibilitychange', handleVis);
+    };
+  }, []);
+
+  // Track whether this carousel instance is actually visible (not inside display:none or scrolled offscreen)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry) {
+          setIsInViewport(entry.isIntersecting && entry.intersectionRatio > 0);
         }
-      } catch (err) {
-        console.warn('[MediaCarousel] Using fallback seed data:', err);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Fetch items from Supabase (deduplicated & cached)
+  useEffect(() => {
+    let active = true;
+    fetchDashboardMediaCached().then((data) => {
+      if (active && data && data.length > 0) {
+        setItems(data);
       }
-    }
-    loadMediaData();
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const totalItems = items.length;
 
   const nextSlide = useCallback(() => {
     if (totalItems === 0) return;
+    setCurrentSlideLoaded(false);
     setCurrentIndex(prev => (prev + 1) % totalItems);
     setInlineVideoPlaying(false);
   }, [totalItems]);
 
   const prevSlide = useCallback(() => {
     if (totalItems === 0) return;
+    setCurrentSlideLoaded(false);
     setCurrentIndex(prev => (prev - 1 + totalItems) % totalItems);
     setInlineVideoPlaying(false);
   }, [totalItems]);
 
   const currentItem = items[currentIndex];
-  const activeImageSrc = currentItem
-    ? currentItem.media_type === 'video'
-      ? currentItem.thumbnail_url || currentItem.media_url
-      : currentItem.media_url
-    : '';
 
-  // Extract dominant color from the active photo (sampling edges + overall pixels)
+  // Resolve optimal image URL & responsive srcSet per device
+  const getSlideImageProps = useCallback((item: DashboardMedia | undefined, mobile: boolean) => {
+    if (!item) return { src: '', srcSet: undefined as string | undefined };
+    if (item.media_type === 'video') {
+      const poster = item.thumbnail_url || item.media_url;
+      return { src: poster, srcSet: undefined };
+    }
+    const desktopUrl = item.media_url;
+    const mobileUrl = item.thumbnail_url || item.media_url;
+    const primarySrc = mobile ? mobileUrl : desktopUrl;
+    const srcSet =
+      item.thumbnail_url && item.thumbnail_url !== item.media_url
+        ? `${item.thumbnail_url} 640w, ${item.media_url} 1080w`
+        : undefined;
+    return { src: primarySrc, srcSet };
+  }, []);
+
+  const activeImageProps = useMemo(
+    () => getSlideImageProps(currentItem, isMobileViewport),
+    [currentItem, isMobileViewport, getSlideImageProps]
+  );
+
+  // Progressive preload of ONLY the next 1 slide after the current slide finishes loading
   useEffect(() => {
-    if (!activeImageSrc) return;
-    let isCancelled = false;
+    if (!currentSlideLoaded || !isInViewport || !isTabVisible || totalItems <= 1) return;
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      if (isCancelled) return;
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+    const nextIdx = (currentIndex + 1) % totalItems;
+    const nextItem = items[nextIdx];
+    if (!nextItem) return;
 
-        const sampleSize = 32;
-        canvas.width = sampleSize;
-        canvas.height = sampleSize;
-        ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+    const { src: nextUrl } = getSlideImageProps(nextItem, isMobileViewport);
+    if (!nextUrl || preloadedImageUrls.has(nextUrl)) return;
 
-        const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
-        let rTotal = 0;
-        let gTotal = 0;
-        let bTotal = 0;
-        let weightTotal = 0;
+    const timer = setTimeout(() => {
+      if (preloadedImageUrls.has(nextUrl)) return;
+      preloadedImageUrls.add(nextUrl);
+      const preloadImg = new Image();
+      preloadImg.decoding = 'async';
+      preloadImg.src = nextUrl;
+    }, 2000);
 
-        for (let y = 0; y < sampleSize; y++) {
-          for (let x = 0; x < sampleSize; x++) {
-            const idx = (y * sampleSize + x) * 4;
-            const a = imageData[idx + 3];
-            if (a < 128) continue;
-
-            // Beri bobot lebih tinggi pada piksel tepi kanan karena placeholder teks di sisi kanan
-            const isRightSide = x >= sampleSize / 2;
-            const weight = isRightSide ? 2.0 : 1.0;
-
-            rTotal += imageData[idx] * weight;
-            gTotal += imageData[idx + 1] * weight;
-            bTotal += imageData[idx + 2] * weight;
-            weightTotal += weight;
-          }
-        }
-
-        if (weightTotal > 0) {
-          const r = Math.round(rTotal / weightTotal);
-          const g = Math.round(gTotal / weightTotal);
-          const b = Math.round(bTotal / weightTotal);
-          setDominantColor(`rgb(${r}, ${g}, ${b})`);
-        }
-      } catch {
-        // Fallback handled gracefully
-      }
-    };
-    img.src = activeImageSrc;
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [activeImageSrc]);
-
-  // Perceived luminance calculation for contrast
-  const isLightBg = useMemo(() => {
-    const match = dominantColor.match(/\d+/g);
-    if (!match || match.length < 3) return false;
-    const r = parseInt(match[0], 10);
-    const g = parseInt(match[1], 10);
-    const b = parseInt(match[2], 10);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 150;
-  }, [dominantColor]);
+    return () => clearTimeout(timer);
+  }, [currentSlideLoaded, currentIndex, items, totalItems, isInViewport, isTabVisible, isMobileViewport, getSlideImageProps]);
 
   useEffect(() => {
     const checkTitleLines = () => {
@@ -239,9 +308,18 @@ export default function MediaCarousel() {
     return () => window.removeEventListener('resize', checkTitleLines);
   }, [currentIndex, items]);
 
-  // Autoplay Timer (6 seconds interval)
+  // Autoplay Timer (6 seconds interval) — only runs when visible in viewport & active tab
   useEffect(() => {
-    if (!isPlaying || isHovered || activeVideoModal !== null || inlineVideoPlaying || isDraggingImage || totalItems <= 1) {
+    if (
+      !isPlaying ||
+      isHovered ||
+      !isInViewport ||
+      !isTabVisible ||
+      activeVideoModal !== null ||
+      inlineVideoPlaying ||
+      isDraggingImage ||
+      totalItems <= 1
+    ) {
       return;
     }
 
@@ -250,7 +328,7 @@ export default function MediaCarousel() {
     }, 6000);
 
     return () => clearInterval(timer);
-  }, [isPlaying, isHovered, activeVideoModal, inlineVideoPlaying, isDraggingImage, totalItems, nextSlide]);
+  }, [isPlaying, isHovered, isInViewport, isTabVisible, activeVideoModal, inlineVideoPlaying, isDraggingImage, totalItems, nextSlide]);
 
   // Pointer Handlers for Swipe Navigation
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -303,7 +381,7 @@ export default function MediaCarousel() {
   if (totalItems === 0 || !currentItem) return null;
 
   return (
-    <div className="w-full mb-3.5 select-none">
+    <div ref={containerRef} className="w-full mb-3.5 select-none">
       {/* Section Header Title */}
       <div className="flex items-center justify-between mb-1.5 px-1">
         <div className="flex items-center gap-1.5">
@@ -399,14 +477,14 @@ export default function MediaCarousel() {
                 key={idx}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setCurrentSlideLoaded(false);
                   setCurrentIndex(idx);
                   setInlineVideoPlaying(false);
                 }}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  currentIndex === idx
-                    ? 'w-5 h-1.5 sm:w-6 sm:h-2 bg-yellow-300 shadow-md'
-                    : 'w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-200/40 hover:bg-emerald-100'
-                }`}
+                className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
+                  ? 'w-5 h-1.5 sm:w-6 sm:h-2 bg-yellow-300 shadow-md'
+                  : 'w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-200/40 hover:bg-emerald-100'
+                  }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
@@ -421,6 +499,7 @@ export default function MediaCarousel() {
                 src={currentItem.media_url}
                 controls
                 autoPlay
+                preload="none"
                 className="w-full h-full object-contain"
                 onEnded={() => setInlineVideoPlaying(false)}
               />
@@ -437,14 +516,21 @@ export default function MediaCarousel() {
             </div>
           ) : (
             <div className="relative w-full h-full flex items-center justify-end overflow-hidden bg-black">
-              {/* Foto Utama Rata Kanan Menempel Margin */}
-              <img
-                src={activeImageSrc}
-                alt={currentItem.title}
-                className="relative z-10 h-full w-full object-contain object-right select-none pointer-events-none drop-shadow-md transition-all duration-300"
-                loading="eager"
-                draggable={false}
-              />
+              {/* Foto Utama Rata Kanan Menempel Margin — hanya dirender saat di viewport Desktop agar tidak double-download */}
+              {!isMobileViewport && isInViewport && activeImageProps.src && (
+                <img
+                  src={activeImageProps.src}
+                  srcSet={activeImageProps.srcSet}
+                  sizes="(max-width: 639px) 100vw, 56vw"
+                  alt={currentItem.title}
+                  className="relative z-10 h-full w-full object-contain object-right select-none pointer-events-none drop-shadow-md transition-all duration-300"
+                  loading={currentIndex === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={currentIndex === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                  draggable={false}
+                  onLoad={() => setCurrentSlideLoaded(true)}
+                />
+              )}
               {/* Video Play Button Overlay if Video */}
               {currentItem.media_type === 'video' && !inlineVideoPlaying && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
@@ -532,6 +618,7 @@ export default function MediaCarousel() {
                 src={currentItem.media_url}
                 controls
                 autoPlay
+                preload="none"
                 className="w-full h-full object-contain"
                 onEnded={() => setInlineVideoPlaying(false)}
               />
@@ -548,14 +635,21 @@ export default function MediaCarousel() {
             </div>
           ) : (
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black">
-              {/* Foto Utama Utuh Tanpa Terpotong */}
-              <img
-                src={activeImageSrc}
-                alt={currentItem.title}
-                className="relative z-10 h-full w-auto max-w-full max-h-full object-contain mx-auto select-none pointer-events-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.28)] transition-all duration-300"
-                loading="eager"
-                draggable={false}
-              />
+              {/* Foto Utama Utuh Tanpa Terpotong — hanya dirender saat di viewport Mobile menggunakan thumbnail WebP ringan */}
+              {isMobileViewport && isInViewport && activeImageProps.src && (
+                <img
+                  src={activeImageProps.src}
+                  srcSet={activeImageProps.srcSet}
+                  sizes="100vw"
+                  alt={currentItem.title}
+                  className="relative z-10 h-full w-auto max-w-full max-h-full object-contain mx-auto select-none pointer-events-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.28)] transition-all duration-300"
+                  loading={currentIndex === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={currentIndex === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                  draggable={false}
+                  onLoad={() => setCurrentSlideLoaded(true)}
+                />
+              )}
               {/* Video Play Button Overlay if Video */}
               {currentItem.media_type === 'video' && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
@@ -578,9 +672,8 @@ export default function MediaCarousel() {
         {/* Bottom-Left Text & Content Overlay */}
         {!inlineVideoPlaying && (
           <div
-            className={`absolute left-3 bottom-2.5 z-20 max-w-[72%] text-left transition-all duration-300 space-y-0.5 ${
-              showTextOverlay ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
-            }`}
+            className={`absolute left-3 bottom-2.5 z-20 max-w-[72%] text-left transition-all duration-300 space-y-0.5 ${showTextOverlay ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+              }`}
           >
             {/* Title (Max 2 lines on Mobile, scrollable if exceeded) */}
             <div
@@ -605,9 +698,8 @@ export default function MediaCarousel() {
             {/* Description (Dynamic Clamping: Max 2 lines if Title is 2 lines, Max 3 lines if Title is 1 line on Mobile) */}
             {currentItem.description && (
               <div
-                className={`overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 transition-all duration-200 ${
-                  isTitleTwoLines ? 'max-h-[2.1rem]' : 'max-h-[3.1rem]'
-                }`}
+                className={`overflow-y-auto pointer-events-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/50 transition-all duration-200 ${isTitleTwoLines ? 'max-h-[2.1rem]' : 'max-h-[3.1rem]'
+                  }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <p
@@ -638,11 +730,10 @@ export default function MediaCarousel() {
                   setCurrentIndex(idx);
                   setInlineVideoPlaying(false);
                 }}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  currentIndex === idx
-                    ? 'w-5 h-1.5 bg-emerald-400 shadow-md'
-                    : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                }`}
+                className={`transition-all duration-300 rounded-full cursor-pointer ${currentIndex === idx
+                  ? 'w-5 h-1.5 bg-emerald-400 shadow-md'
+                  : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                  }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
             ))}

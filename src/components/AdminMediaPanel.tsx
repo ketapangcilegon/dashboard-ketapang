@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle, Edit3, Trash2, CheckCircle2, AlertCircle, Loader2, UploadCloud, Eye, ArrowUp, ArrowDown, Video, Image as ImageIcon, Sparkles, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { DashboardMedia } from './MediaCarousel';
+import { DashboardMedia, invalidateDashboardMediaCache } from './MediaCarousel';
 
 export default function AdminMediaPanel() {
   const [items, setItems] = useState<DashboardMedia[]>([]);
@@ -98,15 +98,55 @@ export default function AdminMediaPanel() {
   // Helper to count currently active items
   const activeCount = items.filter(x => x.is_active && x.id !== editingItem?.id).length;
 
-  const handleUploadFile = async (file: File, folder: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
+  // Helper to compress and convert image File to WebP before uploading to Supabase Storage
+  const convertImageToWebP = (file: File, maxWidth: number, quality = 0.8): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else resolve(file);
+          },
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+      img.src = objectUrl;
+    });
+  };
+
+  const handleUploadFile = async (file: File | Blob, folder: string, extOverride?: string): Promise<string> => {
+    const fileExt = extOverride || (file instanceof File ? file.name.split('.').pop() : 'webp') || 'webp';
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
     const { error } = await supabase.storage
       .from('dashboard-media')
       .upload(filePath, file, {
-        cacheControl: '3600',
+        contentType: fileExt === 'webp' ? 'image/webp' : undefined,
+        cacheControl: '31536000',
         upsert: true
       });
 
@@ -152,18 +192,32 @@ export default function AdminMediaPanel() {
       let finalMediaUrl = existingMediaUrl;
       let finalThumbnailUrl = existingThumbnailUrl;
 
-      // Upload media file if selected
+      // Upload media file if selected (auto-convert images to WebP 1080w + 640w mobile thumbnail)
       if (mediaFile) {
         setUploadProgress(35);
-        const folder = mediaType === 'video' ? 'videos' : 'images';
-        finalMediaUrl = await handleUploadFile(mediaFile, folder);
+        if (mediaType === 'image' && mediaFile.type.startsWith('image/')) {
+          const webpDesktop = await convertImageToWebP(mediaFile, 1080, 0.8);
+          finalMediaUrl = await handleUploadFile(webpDesktop, 'images', 'webp');
+          if (!thumbnailFile) {
+            const webpMobile = await convertImageToWebP(mediaFile, 640, 0.75);
+            finalThumbnailUrl = await handleUploadFile(webpMobile, 'images', 'webp');
+          }
+        } else {
+          const folder = mediaType === 'video' ? 'videos' : 'images';
+          finalMediaUrl = await handleUploadFile(mediaFile, folder);
+        }
       }
 
       setUploadProgress(70);
 
-      // Upload thumbnail file if selected
+      // Upload custom thumbnail file if selected (also converted to WebP)
       if (thumbnailFile) {
-        finalThumbnailUrl = await handleUploadFile(thumbnailFile, 'thumbnails');
+        if (thumbnailFile.type.startsWith('image/')) {
+          const webpThumb = await convertImageToWebP(thumbnailFile, 640, 0.78);
+          finalThumbnailUrl = await handleUploadFile(webpThumb, 'thumbnails', 'webp');
+        } else {
+          finalThumbnailUrl = await handleUploadFile(thumbnailFile, 'thumbnails');
+        }
       }
 
       setUploadProgress(85);
@@ -201,6 +255,7 @@ export default function AdminMediaPanel() {
         setStatusMessage({ type: 'success', msg: 'Konten media baru berhasil ditambahkan!' });
       }
 
+      invalidateDashboardMediaCache();
       setUploadProgress(100);
       setTimeout(() => {
         setIsModalOpen(false);
@@ -233,6 +288,7 @@ export default function AdminMediaPanel() {
         .eq('id', item.id);
 
       if (!error) {
+        invalidateDashboardMediaCache();
         fetchMediaItems();
       } else {
         alert(`Gagal mengubah status: ${error.message}`);
@@ -252,6 +308,7 @@ export default function AdminMediaPanel() {
         .eq('id', item.id);
 
       if (!error) {
+        invalidateDashboardMediaCache();
         fetchMediaItems();
       } else {
         alert(`Gagal menghapus konten: ${error.message}`);
@@ -348,8 +405,10 @@ export default function AdminMediaPanel() {
                     <td className="py-3 px-4">
                       <div className="relative w-16 h-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shrink-0">
                         <img 
-                          src={item.media_type === 'video' ? (item.thumbnail_url || item.media_url) : item.media_url} 
+                          src={item.thumbnail_url || item.media_url} 
                           alt={item.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover" 
                         />
                         <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[8px] font-bold px-1 rounded uppercase">

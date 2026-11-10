@@ -127,8 +127,15 @@ export default function AIInsightPanel({
   // Serialized keys to prevent re-render cancellation race conditions
   const balitaKey = useMemo(() => JSON.stringify(balitaStatus || {}), [balitaStatus]);
   const hargaKey = useMemo(() => JSON.stringify(hargaStrategis || {}), [hargaStrategis]);
+  const cacheStorageKey = useMemo(
+    () => `panci_ai_insight_v1_${year}_${month}_${kecamatan || 'ALL'}_${kelurahan || 'ALL'}`,
+    [year, month, kecamatan, kelurahan]
+  );
 
-  const fetchInsightData = useCallback(async () => {
+  const fetchInsightData = useCallback(async (forceRefresh = false) => {
+    const parsedBalita = JSON.parse(balitaKey) as AIInsightPanelProps['balitaStatus'];
+    const parsedHarga = JSON.parse(hargaKey) as AIInsightPanelProps['hargaStrategis'];
+
     const fallbackFull = getHeuristicInsightText(
       pphScore,
       cvBeras,
@@ -136,10 +143,26 @@ export default function AIInsightPanel({
       konsumsiEnergi,
       ketersediaanProtein,
       konsumsiProtein,
-      balitaStatus,
-      hargaStrategis
+      parsedBalita,
+      parsedHarga
     );
     setInsight(prev => (isInsightCompleteClient(prev) ? prev : fallbackFull));
+
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const cachedRaw = sessionStorage.getItem(cacheStorageKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as { insight: string; isFallback: boolean; ts: number };
+          if (cached?.insight && isInsightCompleteClient(cached.insight) && Date.now() - cached.ts < 30 * 60 * 1000) {
+            setInsight(cached.insight);
+            setIsFallback(Boolean(cached.isFallback));
+            return;
+          }
+        }
+      } catch {
+        // Ignore sessionStorage errors
+      }
+    }
 
     if (loadingPrices) return;
     setLoading(true);
@@ -160,8 +183,9 @@ export default function AIInsightPanel({
           ketersediaanEnergi,
           ketersediaanProtein,
           produksiBeras,
-          balitaStatus,
-          hargaStrategis
+          balitaStatus: parsedBalita,
+          hargaStrategis: parsedHarga,
+          forceRefresh
         }),
       });
 
@@ -169,6 +193,16 @@ export default function AIInsightPanel({
       if (response.ok && data?.insight && isInsightCompleteClient(data.insight)) {
         setInsight(data.insight);
         setIsFallback(Boolean(data.isFallback));
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(
+              cacheStorageKey,
+              JSON.stringify({ insight: data.insight, isFallback: Boolean(data.isFallback), ts: Date.now() })
+            );
+          } catch {
+            // Ignore quota errors
+          }
+        }
       } else {
         setInsight(fallbackFull);
         setIsFallback(true);
@@ -195,14 +229,13 @@ export default function AIInsightPanel({
     balitaKey,
     hargaKey,
     loadingPrices,
-    balitaStatus,
-    hargaStrategis
+    cacheStorageKey
   ]);
 
   // Hanya fetch data dan konsumsi token AI jika user telah secara sadar membuka panel AI Insight
   useEffect(() => {
     if (isOpen) {
-      fetchInsightData();
+      fetchInsightData(false);
     }
   }, [isOpen, fetchInsightData]);
 
@@ -343,7 +376,7 @@ export default function AIInsightPanel({
                 {isOpen && (
                   <button
                     type="button"
-                    onClick={() => fetchInsightData()}
+                    onClick={() => fetchInsightData(true)}
                     disabled={loading}
                     className="p-1 text-orange-400 hover:text-orange-600 rounded transition-colors disabled:opacity-50 print:hidden cursor-pointer"
                     title="Perbarui Analisis AI"

@@ -525,11 +525,12 @@ export async function POST(request: Request) {
   }
 }
 
-// GET — cek status cache saat ini
+// GET — cek status cache saat ini (kecuali blob kamera_cerdas_observasi 5.3 MB)
 export async function GET() {
   const { data } = await supabase
     .from('sp_cache_data')
     .select('tabel_sumber, fetched_at, data')
+    .neq('tabel_sumber', 'kamera_cerdas_observasi')
     .order('fetched_at', { ascending: false });
 
   const now = Date.now();

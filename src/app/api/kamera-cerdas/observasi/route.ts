@@ -100,8 +100,65 @@ async function verifikasiPengirim(request: Request): Promise<{ nama: string; ema
   return null;
 }
 
-import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+import { SEED_OBSERVASI_DATA, getSeedObservasiById } from '@/lib/kameraSeedData';
 import { maskEmailAddress } from '@/lib/arusPasokan';
+
+// Server-side cache keyed by sp_cache_data.fetched_at to avoid downloading 5.3 MB on every GET request
+const SEED_BASELINE_FETCHED_AT = '2026-11-09T04:36:04.9+00:00';
+let serverObservasiCache: {
+  fetchedAt: string;
+  checkedAt: number;
+  rawList: ObservasiRecord[];
+} = {
+  fetchedAt: SEED_BASELINE_FETCHED_AT,
+  checkedAt: 0,
+  rawList: SEED_OBSERVASI_DATA,
+};
+const METADATA_CHECK_TTL_MS = 60 * 1000; // Check fetched_at (40B) at most once per 60 seconds
+
+async function getRawObservasiList(): Promise<ObservasiRecord[]> {
+  const now = Date.now();
+  if (now - serverObservasiCache.checkedAt < METADATA_CHECK_TTL_MS && serverObservasiCache.rawList.length > 0) {
+    return serverObservasiCache.rawList;
+  }
+
+  try {
+    // 1. Cek hanya kolom fetched_at (~40 byte) terlebih dahulu agar tidak mengunduh blob 5.3 MB jika belum ada perubahan
+    const { data: metaRow, error: metaErr } = await supabase
+      .from('sp_cache_data')
+      .select('fetched_at')
+      .eq('tabel_sumber', 'kamera_cerdas_observasi')
+      .single();
+
+    if (!metaErr && metaRow?.fetched_at) {
+      serverObservasiCache.checkedAt = now;
+      if (metaRow.fetched_at === serverObservasiCache.fetchedAt && serverObservasiCache.rawList.length > 0) {
+        return serverObservasiCache.rawList;
+      }
+
+      // Hanya unduh kolom data penuh jika fetched_at berubah (ada input/edit baru)
+      const { data: cacheData } = await supabase
+        .from('sp_cache_data')
+        .select('data, fetched_at')
+        .eq('tabel_sumber', 'kamera_cerdas_observasi')
+        .single();
+
+      if (Array.isArray(cacheData?.data) && cacheData.data.length > 0) {
+        serverObservasiCache = {
+          fetchedAt: cacheData.fetched_at || metaRow.fetched_at,
+          checkedAt: now,
+          rawList: cacheData.data,
+        };
+        return serverObservasiCache.rawList;
+      }
+    }
+  } catch {
+    // lanjut ke seed fallback
+  }
+
+  serverObservasiCache.checkedAt = now;
+  return serverObservasiCache.rawList;
+}
 
 export async function GET(request: Request) {
   try {
@@ -109,42 +166,12 @@ export async function GET(request: Request) {
     const mode = searchParams.get('mode');
     const kecamatan = searchParams.get('kecamatan');
     const kelurahan = searchParams.get('kelurahan');
+    const idParam = searchParams.get('id');
+    const isSummary = searchParams.get('summary') === '1' || searchParams.get('summary') === 'true';
 
-    let rawList: ObservasiRecord[] = [];
+    const rawList = await getRawObservasiList();
 
-    // 1. Coba ambil dari tabel kamera_cerdas_observasi
-    try {
-      let query = supabase
-        .from('kamera_cerdas_observasi')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const { data, error } = await query;
-      if (!error && Array.isArray(data) && data.length > 0) {
-        rawList = data;
-      }
-    } catch {
-      // lanjut ke fallback
-    }
-
-    // 2. Fallback: Coba ambil dari sp_cache_data jika tabel utama belum dimigrasi / kosong
-    if (rawList.length === 0) {
-      try {
-        const { data: cacheData } = await supabase
-          .from('sp_cache_data')
-          .select('data')
-          .eq('tabel_sumber', 'kamera_cerdas_observasi')
-          .single();
-
-        if (Array.isArray(cacheData?.data) && cacheData.data.length > 0) {
-          rawList = cacheData.data;
-        }
-      } catch {
-        // lanjut ke seed fallback
-      }
-    }
-
-    // 3. Gabungkan dengan data seed (seluruh titik sarana distribusi terverifikasi beserta foto & koordinat GPS)
+    // Gabungkan dengan data seed (seluruh titik sarana distribusi terverifikasi beserta foto & koordinat GPS)
     // agar data penting yang sulit didapat TIDAK PERNAH hilang
     const combinedMap = new Map<string, ObservasiRecord>();
     SEED_OBSERVASI_DATA.forEach((r) => {
@@ -163,6 +190,7 @@ export async function GET(request: Request) {
       return tb - ta;
     });
 
+    if (idParam) result = result.filter((r) => r.id === idParam);
     if (mode) result = result.filter((r) => r.mode === mode);
     if (kecamatan) result = result.filter((r) => r.kecamatan === kecamatan);
     if (kelurahan) result = result.filter((r) => r.kelurahan === kelurahan);
@@ -189,8 +217,19 @@ export async function GET(request: Request) {
       const maskedMetaNama =
         metaNama && metaNama.includes('@') ? maskEmailAddress(metaNama) : metaNama;
 
+      // Jika summary mode (?summary=1), gantikan base64 foto seed dengan token ringan '__SEED_PHOTO__'
+      // yang langsung di-rehydrate di sisi klien dari SEED_OBSERVASI_DATA lokal (menghemat ~5.2 MB transfer per request)
+      let compactFotoUrl = r.foto_url;
+      if (isSummary && r.id) {
+        const seedItem = getSeedObservasiById(r.id);
+        if (seedItem && seedItem.foto_url === r.foto_url) {
+          compactFotoUrl = '__SEED_PHOTO__';
+        }
+      }
+
       return {
         ...r,
+        foto_url: compactFotoUrl,
         petugas_nama: maskedPetugasNama,
         petugas_email: maskedEmail || undefined,
         foto_watermark_meta: {
@@ -201,11 +240,18 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, count: maskedResult.length, data: maskedResult });
+    return NextResponse.json(
+      { success: true, count: maskedResult.length, data: maskedResult },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
 
   } catch (error: unknown) {
     console.warn('Fallback error pada GET observasi, menyajikan data seed:', error);
-    let fallbackResult = SEED_OBSERVASI_DATA;
+    const fallbackResult = SEED_OBSERVASI_DATA;
     return NextResponse.json({ success: true, count: fallbackResult.length, data: fallbackResult, is_fallback: true });
   }
 }
@@ -263,25 +309,24 @@ export async function POST(request: Request) {
 
     // 2. Fallback jika tabel belum di-create: Simpan ke sp_cache_data
     console.warn('Simpan ke tabel kamera_cerdas_observasi fallback ke sp_cache_data:', error?.message);
-    const { data: existingCache } = await supabase
-      .from('sp_cache_data')
-      .select('data')
-      .eq('tabel_sumber', 'kamera_cerdas_observasi')
-      .single();
-
-    const currentList = Array.isArray(existingCache?.data) && existingCache.data.length > 0
-      ? existingCache.data
-      : SEED_OBSERVASI_DATA;
+    const currentList = await getRawObservasiList();
     const filteredExisting = currentList.filter((r: ObservasiRecord) => r.id !== payload.id);
     const updatedList = [payload, ...filteredExisting];
+    const newFetchedAt = new Date().toISOString();
 
     await supabase
       .from('sp_cache_data')
       .upsert({
         tabel_sumber: 'kamera_cerdas_observasi',
         data: updatedList,
-        fetched_at: new Date().toISOString()
+        fetched_at: newFetchedAt
       }, { onConflict: 'tabel_sumber' });
+
+    serverObservasiCache = {
+      fetchedAt: newFetchedAt,
+      checkedAt: Date.now(),
+      rawList: updatedList,
+    };
 
     return NextResponse.json({ success: true, data: payload, saved_in_fallback: true });
 
@@ -302,39 +347,12 @@ export async function PUT(request: Request) {
     // 1. Verifikasi pengirim / headers
     const pengirim = await verifikasiPengirim(request);
 
-    // 2. Ambil data observasi saat ini dari tabel / cache / seed
-    let existingRecord: ObservasiRecord | null = null;
-    try {
-      const { data, error } = await supabase
-        .from('kamera_cerdas_observasi')
-        .select('*')
-        .eq('id', body.id)
-        .single();
-      if (!error && data) {
-        existingRecord = data;
-      }
-    } catch {
-      // lanjut ke cache
-    }
-
-    if (!existingRecord) {
-      try {
-        const { data: cacheData } = await supabase
-          .from('sp_cache_data')
-          .select('data')
-          .eq('tabel_sumber', 'kamera_cerdas_observasi')
-          .single();
-        if (Array.isArray(cacheData?.data)) {
-          existingRecord = cacheData.data.find((r: ObservasiRecord) => r.id === body.id) || null;
-        }
-      } catch {
-        // lanjut ke seed
-      }
-    }
-
-    if (!existingRecord) {
-      existingRecord = SEED_OBSERVASI_DATA.find((r) => r.id === body.id) || null;
-    }
+    // 2. Ambil data observasi saat ini dari cache / seed tanpa re-download penuh jika belum berubah
+    const currentCachedList = await getRawObservasiList();
+    let existingRecord: ObservasiRecord | null =
+      currentCachedList.find((r: ObservasiRecord) => r.id === body.id) ||
+      SEED_OBSERVASI_DATA.find((r) => r.id === body.id) ||
+      null;
 
     if (!existingRecord) {
       return NextResponse.json({ error: 'Data observasi tidak ditemukan' }, { status: 404 });
@@ -377,28 +395,9 @@ export async function PUT(request: Request) {
       status_verifikasi: isPetugasAdmin ? 'TERVERIFIKASI_ADMIN' : existingRecord.status_verifikasi
     };
 
-    // 4. Update ke tabel Supabase jika ada
+    // 4. Update di sp_cache_data
     try {
-      await supabase
-        .from('kamera_cerdas_observasi')
-        .update(updatedRecord)
-        .eq('id', body.id);
-    } catch {
-      // lanjut ke cache
-    }
-
-    // 5. Update di sp_cache_data
-    try {
-      const { data: cacheData } = await supabase
-        .from('sp_cache_data')
-        .select('data')
-        .eq('tabel_sumber', 'kamera_cerdas_observasi')
-        .single();
-
-      let currentList = Array.isArray(cacheData?.data) && cacheData.data.length > 0
-        ? cacheData.data
-        : [...SEED_OBSERVASI_DATA];
-
+      let currentList = [...currentCachedList];
       const idx = currentList.findIndex((r: ObservasiRecord) => r.id === body.id);
       if (idx !== -1) {
         currentList[idx] = updatedRecord;
@@ -406,13 +405,20 @@ export async function PUT(request: Request) {
         currentList = [updatedRecord, ...currentList];
       }
 
+      const newFetchedAt = new Date().toISOString();
       await supabase
         .from('sp_cache_data')
         .upsert({
           tabel_sumber: 'kamera_cerdas_observasi',
           data: currentList,
-          fetched_at: new Date().toISOString()
+          fetched_at: newFetchedAt
         }, { onConflict: 'tabel_sumber' });
+
+      serverObservasiCache = {
+        fetchedAt: newFetchedAt,
+        checkedAt: Date.now(),
+        rawList: currentList,
+      };
     } catch (e) {
       console.warn('Gagal update sp_cache_data:', e);
     }

@@ -39,7 +39,7 @@ import {
 import { evaluateSawahAgroTelemetry, generateSawahPixelGridFeatures, calculateGeometryAreaM2 } from '@/lib/agro-satellite';
 import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normatif';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
-import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+import { SEED_OBSERVASI_DATA, fetchObservasiClientCached } from '@/lib/kameraSeedData';
 import { Layers, ChevronDown, ChevronUp, Sparkles, SlidersHorizontal, Satellite, X, Store, Trees, Camera } from 'lucide-react';
 
 // ============================================================
@@ -741,50 +741,14 @@ export default function AIIntelligenceMap({
     }
   }, [mapAction]);
 
-  // Fetch data observasi kamera cerdas dari API / Supabase (dengan realtime listener)
+  // Fetch data observasi kamera cerdas (deduplicated & summary hydrated, zero redundant 5.3 MB sp_cache_data pull)
   useEffect(() => {
-    async function fetchKameraObservasi() {
-      try {
-        const res = await fetch('/api/kamera-cerdas/observasi');
-        const json = await res.json();
-        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
-          setKameraObservasiList(json.data);
-          return;
-        }
-      } catch (err) {
-        // Fallback to direct Supabase
+    let active = true;
+    fetchObservasiClientCached(false).then((data) => {
+      if (active && Array.isArray(data) && data.length > 0) {
+        setKameraObservasiList(data);
       }
-
-      try {
-        const { data, error } = await supabase
-          .from('kamera_cerdas_observasi')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (!error && data && data.length > 0) {
-          setKameraObservasiList(data);
-          return;
-        }
-
-        const { data: cacheData } = await supabase
-          .from('sp_cache_data')
-          .select('data')
-          .eq('tabel_sumber', 'kamera_cerdas_observasi')
-          .single();
-
-        if (cacheData?.data && Array.isArray(cacheData.data)) {
-          setKameraObservasiList(cacheData.data);
-          return;
-        }
-      } catch (err) {
-        console.warn('Gagal memuat observasi kamera cerdas:', err);
-      }
-
-      // Fallback final ke seed data jika list masih kosong
-      setKameraObservasiList((prev) => (prev && prev.length > 0 ? prev : SEED_OBSERVASI_DATA));
-    }
-
-    fetchKameraObservasi();
+    });
 
     const handleObsUpdate = (e: Event) => {
       const customEvt = e as CustomEvent;
@@ -794,7 +758,10 @@ export default function AIIntelligenceMap({
     };
 
     window.addEventListener('kamera_observasi_updated', handleObsUpdate);
-    return () => window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
+    return () => {
+      active = false;
+      window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
+    };
   }, []);
 
   // Database pin data fetched from sp_cache_data
@@ -819,13 +786,21 @@ export default function AIIntelligenceMap({
     loadFromURL();
   }, [loadFromURL]);
 
-  // Fetch Serumpun Padi database pins from sp_cache_data
+  // Fetch Serumpun Padi database pins from sp_cache_data (hanya 6 tabel kecil ~6 KB, tidak menarik kamera_cerdas_observasi 5.3 MB)
   useEffect(() => {
     async function fetchCachePins() {
       try {
         const { data, error } = await supabase
           .from('sp_cache_data')
-          .select('tabel_sumber, data');
+          .select('tabel_sumber, data')
+          .in('tabel_sumber', [
+            'poktan_kwt',
+            'kolam_budidaya',
+            'nelayan_tangkap',
+            'komoditas_hortikultura',
+            'komoditas_palawija',
+            'warning_opt',
+          ]);
 
         if (error || !data) return;
 

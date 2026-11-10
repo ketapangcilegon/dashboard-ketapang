@@ -20,7 +20,12 @@ import {
   signOutEnumerator,
   type EnumeratorProfile
 } from '@/lib/enumeratorAuth';
-import { SEED_OBSERVASI_DATA } from '@/lib/kameraSeedData';
+import {
+  SEED_OBSERVASI_DATA,
+  getInitialObservasiList,
+  fetchObservasiClientCached,
+  invalidateObservasiClientCache,
+} from '@/lib/kameraSeedData';
 import EditObservasiModal, { canEditRecord } from './EditObservasiModal';
 
 // Peta 3D (MapLibre + deck.gl) hanya dimuat di browser & hanya saat tab dibuka
@@ -256,21 +261,8 @@ export default function KameraCerdasView({
   const [newlyCreatedCoords, setNewlyCreatedCoords] = useState<[number, number] | null>(null);
   const [isShutterFlashing, setIsShutterFlashing] = useState<boolean>(false);
 
-  // Field Observations List - Diinisialisasi langsung dengan data observasi terbaru (cache localStorage / SEED_OBSERVASI_DATA)
-  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('panci_kamera_observasi_cache');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {}
-    }
-    return SEED_OBSERVASI_DATA;
-  });
+  // Field Observations List - Diinisialisasi langsung dengan data observasi terbaru (cache / SEED_OBSERVASI_DATA)
+  const [observasiList, setObservasiList] = useState<ObservasiRecord[]>(() => getInitialObservasiList());
   const [observasiLoaded, setObservasiLoaded] = useState<boolean>(true);
   const [observasiError, setObservasiError] = useState<string | null>(null);
 
@@ -279,21 +271,13 @@ export default function KameraCerdasView({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // 1. Fetch Existing Observations
-  const loadObservasi = useCallback(async () => {
+  // 1. Fetch Existing Observations (Deduplicated & Summary Hydrated)
+  const loadObservasi = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await fetch('/api/kamera-cerdas/observasi');
-      const json = await res.json();
-      if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
-        setObservasiList(json.data);
+      const data = await fetchObservasiClientCached(forceRefresh);
+      if (Array.isArray(data) && data.length > 0) {
+        setObservasiList(data);
         setObservasiError(null);
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('panci_kamera_observasi_cache', JSON.stringify(json.data));
-          } catch {}
-        }
-      } else if (!res.ok) {
-        setObservasiError(json?.error || 'Data observasi tidak dapat dimuat.');
       }
     } catch (err) {
       console.warn('Gagal memuat observasi dari server, menggunakan data tersimpan:', err);
@@ -303,7 +287,7 @@ export default function KameraCerdasView({
   }, []);
 
   useEffect(() => {
-    loadObservasi();
+    loadObservasi(false);
   }, [loadObservasi]);
 
   // 2. Real-time GPS Tracker
@@ -830,7 +814,8 @@ export default function KameraCerdasView({
         setCapturedPhoto(null);
         setAiDraftResult(null);
         setSaveSuccessMsg(`Data ${mode === 'pasokan_beras' ? 'Pasokan Beras' : 'Tanaman Pangan'} berhasil disimpan ke Supabase & Pin GIS di-generate!`);
-        await loadObservasi();
+        invalidateObservasiClientCache();
+        await loadObservasi(true);
 
         // Otomatis beralih ke Tab Peta Lapangan & buat pin di lokasi GPS yang kamera submit
         if (typeof window !== 'undefined') {
@@ -1307,7 +1292,11 @@ export default function KameraCerdasView({
               const json = await res.json();
               if (!res.ok) throw new Error(json?.error || 'Gagal menyimpan');
               if (json?.data) {
-                setObservasiList((prev) => prev.map((item) => (item.id === json.data.id ? json.data : item)));
+                setObservasiList((prev) => {
+                  const next = prev.map((item) => (item.id === json.data.id ? json.data : item));
+                  invalidateObservasiClientCache(next);
+                  return next;
+                });
               }
             }}
           />
@@ -1321,7 +1310,7 @@ export default function KameraCerdasView({
             observasiList={observasiList}
             loaded={observasiLoaded}
             error={observasiError}
-            onRefresh={loadObservasi}
+            onRefresh={() => loadObservasi(true)}
           />
         </div>
       )}

@@ -9,6 +9,7 @@ import { FSVA_LEGEND, SKPG_LEGEND } from '@/lib/ikpg';
 import { useMap } from 'react-leaflet';
 import * as XLSX from 'xlsx';
 import { isKelurahanMatch, normalizeKelurahanName } from '@/lib/wilayah';
+import { fetchObservasiClientCached } from '@/lib/kameraSeedData';
 
 // Dynamically import Leaflet components to avoid SSR errors in Next.js
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -1198,7 +1199,7 @@ export default function MapUnified({
           try {
             const { data: ytdRows } = await supabase
               .from('gizi_balita_skpg_kelurahan')
-              .select('*')
+              .select('kelurahan, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih')
               .eq('tahun', bordaYear);
             
             if (ytdRows && ytdRows.length > 0) {
@@ -1239,7 +1240,7 @@ export default function MapUnified({
           } else {
             const { data: skpgRows, error } = await supabase
               .from('gizi_balita_skpg_kelurahan')
-              .select('*')
+              .select('kelurahan, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih, tahun, bulan')
               .eq('tahun', activeSkpgPeriod.tahun)
               .eq('bulan', activeSkpgPeriod.bulan);
             
@@ -1298,17 +1299,6 @@ export default function MapUnified({
           }
         }
 
-        // Ambil data observasi Kamera Cerdas lapangan
-        try {
-          const obsRes = await fetch('/api/kamera-cerdas/observasi');
-          const obsJson = await obsRes.json();
-          if (obsJson?.data && Array.isArray(obsJson.data)) {
-            setObservasiData(obsJson.data);
-          }
-        } catch (e) {
-          // ignore error jika offline
-        }
-
       } catch (err) {
         console.error('Gagal mengambil data peta Supabase:', err);
       } finally {
@@ -1318,6 +1308,20 @@ export default function MapUnified({
 
     fetchMapData();
   }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear, bordaYear, activeLayer]);
+
+  // Ambil data observasi Kamera Cerdas sekali saat mount (deduplicated & summary hydrated)
+  useEffect(() => {
+    if (!mounted) return;
+    let active = true;
+    fetchObservasiClientCached(false).then((data) => {
+      if (active && Array.isArray(data)) {
+        setObservasiData(data);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [mounted]);
 
   if (!mounted || kmzLoading) {
     return (
