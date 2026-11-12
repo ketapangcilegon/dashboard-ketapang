@@ -14,19 +14,27 @@ const DEFAULT_SETTINGS: FeatureAccessSettings = {
   updatedAt: new Date().toISOString()
 };
 
-// In-memory cache for ultra-fast response
+// In-memory cache for ultra-fast response (5 menit TTL; otomatis di-update saat POST)
 let cachedSettings: FeatureAccessSettings | null = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 10000; // 10 detik
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 menit
+
+const FEATURE_ACCESS_CDN_HEADERS = {
+  'Cache-Control': 'public, max-age=60, s-maxage=120, stale-while-revalidate=600',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600',
+};
 
 export async function GET() {
   const now = Date.now();
   if (cachedSettings && (now - lastFetchTime) < CACHE_TTL_MS) {
-    return NextResponse.json({
-      success: true,
-      settings: cachedSettings,
-      cached: true
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        settings: cachedSettings,
+        cached: true
+      },
+      { headers: FEATURE_ACCESS_CDN_HEADERS }
+    );
   }
 
   try {
@@ -44,19 +52,25 @@ export async function GET() {
       };
       cachedSettings = merged;
       lastFetchTime = now;
-      return NextResponse.json({
-        success: true,
-        settings: merged
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          settings: merged
+        },
+        { headers: FEATURE_ACCESS_CDN_HEADERS }
+      );
     }
   } catch (err) {
     console.warn('[FeatureAccess] Fallback to default settings:', err);
   }
 
-  return NextResponse.json({
-    success: true,
-    settings: cachedSettings || DEFAULT_SETTINGS
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      settings: cachedSettings || DEFAULT_SETTINGS
+    },
+    { headers: FEATURE_ACCESS_CDN_HEADERS }
+  );
 }
 
 export async function POST(request: Request) {

@@ -244,7 +244,8 @@ export async function GET(request: Request) {
       { success: true, count: maskedResult.length, data: maskedResult },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 'public, max-age=120, s-maxage=300, stale-while-revalidate=3600',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
         },
       }
     );

@@ -187,6 +187,25 @@ export function useKMZLoader() {
     try {
       if (!inFlightKmzPromise) {
         inFlightKmzPromise = (async () => {
+          const KML_CACHE_NAME = 'panci-kmz-cache-v1';
+          const KML_CACHE_KEY = '/__cached_extracted_kml_v250426.xml';
+
+          // 1. Cek Browser CacheStorage (0 network transfer & 0 JSZip unzip untuk kunjungan berulang!)
+          if (typeof window !== 'undefined' && 'caches' in window) {
+            try {
+              const cache = await window.caches.open(KML_CACHE_NAME);
+              const cachedKmlRes = await cache.match(KML_CACHE_KEY);
+              if (cachedKmlRes && cachedKmlRes.ok) {
+                const cachedKmlText = await cachedKmlRes.text();
+                if (cachedKmlText && cachedKmlText.length > 1000) {
+                  return await processKML(cachedKmlText);
+                }
+              }
+            } catch {
+              // Lanjut ke network fetch jika CacheStorage tidak tersedia
+            }
+          }
+
           let res = await fetch(LOCAL_PRIMARY_URL, { cache: 'force-cache' }).catch(() => null);
           if (!res || !res.ok) {
             res = await fetch(SUPABASE_FALLBACK_URL);
@@ -199,7 +218,24 @@ export function useKMZLoader() {
           if (!kmlFile) {
             return { kecamatan: [], kelurahan: [], sawah: [] };
           }
-          return await processKML(await kmlFile.async('string'));
+          const extractedKmlText = await kmlFile.async('string');
+
+          // Simpan hasil ekstraksi KML ke Browser CacheStorage agar refresh/kunjungan berikutnya instan
+          if (typeof window !== 'undefined' && 'caches' in window) {
+            try {
+              const cache = await window.caches.open(KML_CACHE_NAME);
+              await cache.put(
+                KML_CACHE_KEY,
+                new Response(extractedKmlText, {
+                  headers: { 'Content-Type': 'application/vnd.google-earth.kml+xml' },
+                })
+              );
+            } catch {
+              // Abaikan jika gagal menyimpan ke CacheStorage
+            }
+          }
+
+          return await processKML(extractedKmlText);
         })();
       }
       const result = await inFlightKmzPromise;

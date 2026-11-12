@@ -179,6 +179,14 @@ async function autoBackupPrices(year: number, month: number, prices: Record<stri
   }
 }
 
+const SAGON_BULANAN_TTL_MS = 30 * 60 * 1000; // 30 menit server memory cache
+const sagonBulananCache = new Map<string, { payload: Record<string, unknown>; expiresAt: number }>();
+
+const SAGON_CDN_HEADERS = {
+  'Cache-Control': 'public, max-age=900, s-maxage=1800, stale-while-revalidate=7200',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=7200',
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get('month');
@@ -186,6 +194,12 @@ export async function GET(request: Request) {
 
   const selectedMonth = monthParam ? parseInt(monthParam, 10) : 3;
   const selectedYear = yearParam ? parseInt(yearParam, 10) : 2026;
+  const cacheKey = `${selectedYear}-${selectedMonth}`;
+
+  const cachedEntry = sagonBulananCache.get(cacheKey);
+  if (cachedEntry && Date.now() < cachedEntry.expiresAt) {
+    return NextResponse.json(cachedEntry.payload, { headers: SAGON_CDN_HEADERS });
+  }
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -352,24 +366,28 @@ export async function GET(request: Request) {
         });
       }
 
-      return NextResponse.json({ 
+      const payload2026 = { 
         success: true, 
         month: selectedMonth, 
         year: selectedYear, 
         pricesCur, 
         pricesPrev,
         source
-      });
+      };
+      sagonBulananCache.set(cacheKey, { payload: payload2026, expiresAt: Date.now() + SAGON_BULANAN_TTL_MS });
+      return NextResponse.json(payload2026, { headers: SAGON_CDN_HEADERS });
     }
 
-    return NextResponse.json({ 
+    const payloadDb = { 
       success: true, 
       month: selectedMonth, 
       year: selectedYear, 
       pricesCur, 
       pricesPrev,
       source: 'database'
-    });
+    };
+    sagonBulananCache.set(cacheKey, { payload: payloadDb, expiresAt: Date.now() + SAGON_BULANAN_TTL_MS });
+    return NextResponse.json(payloadDb, { headers: SAGON_CDN_HEADERS });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || 'Server error' }, { status: 500 });
   }

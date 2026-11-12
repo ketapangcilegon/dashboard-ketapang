@@ -543,5 +543,13 @@ export async function GET() {
     summary: r.data
   }));
 
-  return NextResponse.json({ status, cached_tables: status.length });
+  return NextResponse.json(
+    { status, cached_tables: status.length },
+    {
+      headers: {
+        'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1800',
+        'Vercel-CDN-Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1800',
+      },
+    }
+  );
 }

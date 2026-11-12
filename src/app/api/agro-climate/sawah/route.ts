@@ -42,10 +42,18 @@ export async function GET(request: Request) {
 
     const telemetry = evaluateSawahAgroTelemetry(nama, { lat, lng }, luasM2, liveWeather);
 
-    return NextResponse.json({
-      success: true,
-      data: telemetry,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: telemetry,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=7200',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: msg }, { status: 500 });

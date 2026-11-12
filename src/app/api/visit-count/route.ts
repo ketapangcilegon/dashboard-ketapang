@@ -47,7 +47,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, total_count: 0 });
     }
 
-    return NextResponse.json({ success: true, total_count: Number(data?.total_count || 0) });
+    return NextResponse.json(
+      { success: true, total_count: Number(data?.total_count || 0) },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=120, s-maxage=300, stale-while-revalidate=600',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('[Visit Counter] GET Exception:', err);
     return NextResponse.json({ success: false, total_count: 0 }, { status: 500 });

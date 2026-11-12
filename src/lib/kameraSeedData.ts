@@ -38,8 +38,8 @@ export function hydrateObservasiPhotos(records: ObservasiRecord[]): ObservasiRec
 let clientCachedObservasi: ObservasiRecord[] | null = null;
 let clientCacheTimestamp = 0;
 let inFlightObservasiPromise: Promise<ObservasiRecord[]> | null = null;
-const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const LS_CACHE_KEY = 'panci_kamera_observasi_cache_v2';
+const CLIENT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes persistent cache
+const LS_CACHE_KEY = 'panci_kamera_observasi_cache_v3';
 
 export function getInitialObservasiList(): ObservasiRecord[] {
   if (clientCachedObservasi && clientCachedObservasi.length > 0) {
@@ -50,9 +50,12 @@ export function getInitialObservasiList(): ObservasiRecord[] {
       const raw = localStorage.getItem(LS_CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hydrated = hydrateObservasiPhotos(parsed);
+        const list = Array.isArray(parsed) ? parsed : parsed?.data;
+        const ts = typeof parsed?.ts === 'number' ? parsed.ts : 0;
+        if (Array.isArray(list) && list.length > 0) {
+          const hydrated = hydrateObservasiPhotos(list);
           clientCachedObservasi = hydrated;
+          if (ts > 0) clientCacheTimestamp = ts;
           return hydrated;
         }
       }
@@ -73,17 +76,25 @@ export function invalidateObservasiClientCache(updatedList?: ObservasiRecord[]) 
             ? { ...r, foto_url: '__SEED_PHOTO__' }
             : r
         );
-        localStorage.setItem(LS_CACHE_KEY, JSON.stringify(compact));
+        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ ts: clientCacheTimestamp, data: compact }));
       } catch {}
     }
   } else {
     clientCachedObservasi = null;
     clientCacheTimestamp = 0;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(LS_CACHE_KEY);
+      } catch {}
+    }
   }
   inFlightObservasiPromise = null;
 }
 
 export async function fetchObservasiClientCached(forceRefresh = false): Promise<ObservasiRecord[]> {
+  if (!clientCachedObservasi && typeof window !== 'undefined') {
+    getInitialObservasiList();
+  }
   if (
     !forceRefresh &&
     clientCachedObservasi &&

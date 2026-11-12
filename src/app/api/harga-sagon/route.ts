@@ -235,7 +235,8 @@ export async function GET(request: Request) {
     if (cached && Date.now() < cached.expiresAt) {
       return NextResponse.json(cached.payload, {
         headers: {
-          'Cache-Control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800',
+          'Cache-Control': 'public, max-age=600, s-maxage=1800, stale-while-revalidate=3600',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=7200',
           'X-Sagon-Cache': 'HIT',
         },
       });
@@ -515,7 +516,8 @@ export async function GET(request: Request) {
 
   return NextResponse.json(responsePayload, {
     headers: {
-      'Cache-Control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800',
+      'Cache-Control': 'public, max-age=600, s-maxage=1800, stale-while-revalidate=3600',
+      'Vercel-CDN-Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=7200',
       'X-Sagon-Cache': 'MISS',
     },
   });
