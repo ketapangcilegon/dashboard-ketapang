@@ -89,6 +89,11 @@ export default function KameraCerdasMap({
   const [selectedRecord, setSelectedRecord] = useState<ObservasiRecord | null>(null);
   const kalibrasi: Kalibrasi = useMemo(() => hitungKalibrasi(observasiList), [observasiList]);
 
+  useEffect(() => {
+    const t = setTimeout(() => mapRef.current?.invalidateSize(), 300);
+    return () => clearTimeout(t);
+  }, []);
+
   // Auto-focus and open popup when focusCoords or focusPinId changes
   useEffect(() => {
     if (focusCoords && mapRef.current) {
@@ -255,7 +260,7 @@ export default function KameraCerdasMap({
       </div>
 
       {/* Main Leaflet Map */}
-      <div className="flex-1 w-full h-full min-h-[420px] relative">
+      <div className="absolute inset-0 z-0">
         <MapContainer
           center={[-6.01, 106.02]}
           zoom={12.5}
