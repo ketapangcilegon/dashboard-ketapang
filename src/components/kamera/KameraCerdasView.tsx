@@ -895,12 +895,13 @@ export default function KameraCerdasView({
 
             <button
               onClick={() => setActiveTab('map')}
-              className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 leading-none ${
-                activeTab === 'map' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-500 hover:text-emerald-800'
+              className={`px-2.5 py-0.5 rounded-md transition-all flex items-center gap-1.5 leading-none cursor-pointer ${
+                activeTab === 'map' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-emerald-800'
               }`}
+              title="Buka Peta dengan Pin Toko Beras Terverifikasi"
             >
-              <Layers className="w-3 h-3" />
-              <span>Pin ({observasiList.length})</span>
+              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span>Pilihan Pin Toko ({observasiList.length})</span>
             </button>
 
             <button
@@ -1258,12 +1259,13 @@ export default function KameraCerdasView({
 
       {/* ── Tab 2: Peta Spasial Hasil Observasi ── */}
       {activeTab === 'map' && (
-        <div className="flex-1 w-full h-full relative">
+        <div className="flex-1 w-full h-full relative min-h-[420px]">
           <KameraCerdasMap
             observasiList={observasiList}
             onRefresh={loadObservasi}
             focusPinId={newlyCreatedPinId}
             focusCoords={newlyCreatedCoords}
+            onSwitchToArusMap={() => setActiveTab('arus')}
           />
         </div>
       )}
@@ -1311,6 +1313,7 @@ export default function KameraCerdasView({
             loaded={observasiLoaded}
             error={observasiError}
             onRefresh={() => loadObservasi(true)}
+            onSwitchToPinMap={() => setActiveTab('map')}
           />
         </div>
       )}

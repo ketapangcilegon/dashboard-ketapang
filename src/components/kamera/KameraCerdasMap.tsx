@@ -9,7 +9,7 @@ import { SARANA_DISTRIBUSI_LIST, TANAMAN_PANGAN_LIST } from '@/lib/kamera-normat
 import { MapRefSetter, MoveZoomControl, FitBoundsControl } from '@/components/gis/MapHelpers';
 import LocateMe from '@/components/gis/LocateMe';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
-import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles, Truck } from 'lucide-react';
+import { Filter, Store, Trees, MapPin, Calendar, CheckCircle2, ChevronRight, Layers, Sparkles, Truck, Globe2 } from 'lucide-react';
 import {
   hitungKalibrasi,
   hitungEstimasiTahunan,
@@ -24,6 +24,7 @@ export interface KameraCerdasMapProps {
   onRefresh?: () => void;
   focusPinId?: string | null;
   focusCoords?: [number, number] | null;
+  onSwitchToArusMap?: () => void;
 }
 
 // Builder Icon Teardrop Tematik Serumpun Padi
@@ -73,7 +74,8 @@ export default function KameraCerdasMap({
   observasiList = [],
   onRefresh,
   focusPinId,
-  focusCoords
+  focusCoords,
+  onSwitchToArusMap
 }: KameraCerdasMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
@@ -128,7 +130,7 @@ export default function KameraCerdasMap({
   };
 
   return (
-    <div className="w-full h-full relative overflow-hidden flex flex-col bg-[#F5FAF2]">
+    <div className="w-full h-full min-h-[420px] relative overflow-hidden flex flex-col bg-[#F5FAF2]">
       
       {/* Floating Filter Bar */}
       <div className="absolute top-4 left-14 sm:left-16 right-4 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
@@ -224,6 +226,18 @@ export default function KameraCerdasMap({
             </button>
           </div>
 
+          {/* Tombol Beralih ke Peta Arus Pasokan */}
+          {onSwitchToArusMap && (
+            <button
+              onClick={onSwitchToArusMap}
+              className="px-3 py-2 rounded-xl backdrop-blur-md border border-cyan-400/40 bg-[#071a2e]/90 text-cyan-200 hover:text-white hover:border-cyan-300 text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Beralih ke Peta Arus Pasokan & Distribusi Beras"
+            >
+              <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Peta Arus Pasokan</span>
+            </button>
+          )}
+
           {/* OSM Overlay Toggle Button */}
           <button
             onClick={() => setShowOsm(!showOsm)}
@@ -241,7 +255,7 @@ export default function KameraCerdasMap({
       </div>
 
       {/* Main Leaflet Map */}
-      <div className="flex-1 w-full h-full relative">
+      <div className="flex-1 w-full h-full min-h-[420px] relative">
         <MapContainer
           center={[-6.01, 106.02]}
           zoom={12.5}

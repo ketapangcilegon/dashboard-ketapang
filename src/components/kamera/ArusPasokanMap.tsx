@@ -6,7 +6,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Activity, Calendar, ChevronDown, ChevronUp, Compass, Eye, EyeOff, Filter, Info, Loader2, Mail,
-  RefreshCw, RotateCcw, Store, Truck, X, AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Plus, Minus
+  RefreshCw, RotateCcw, Store, Truck, X, AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Plus, Minus,
+  MapPin, Globe2
 } from 'lucide-react';
 import type { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
 import { WILAYAH } from '@/lib/wilayah';
@@ -243,12 +244,13 @@ interface ArusPasokanMapProps {
   loaded?: boolean;
   error?: string | null;
   onRefresh?: () => void;
+  onSwitchToPinMap?: () => void;
 }
 
 const glass = 'bg-[#071a2e]/85 backdrop-blur-xl border border-cyan-300/20 shadow-[0_10px_40px_rgba(0,0,0,0.55)]';
 const selectCls = 'w-full bg-[#0c2640] border border-cyan-300/25 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-cyan-50 focus:outline-none focus:border-cyan-300';
 
-export default function ArusPasokanMap({ observasiList = [], loaded = true, error = null, onRefresh }: ArusPasokanMapProps) {
+export default function ArusPasokanMap({ observasiList = [], loaded = true, error = null, onRefresh, onSwitchToPinMap }: ArusPasokanMapProps) {
   const mapInstanceRef = useRef<L.Map | null>(null);
 
   // Mode tampilan tonase di peta: default 'tahunan' (Estimasi Tahunan), dapat ditoggle ke 'terdata' (Pasokan Terdata)
@@ -761,6 +763,17 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <Calendar className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
             <span>Estimasi Tahunan</span>
           </button>
+          {onSwitchToPinMap && (
+            <button
+              type="button"
+              onClick={onSwitchToPinMap}
+              className="h-7 px-3 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-400 shadow-sm"
+              title="Buka Peta dengan Pin Toko Beras"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+              <span>Pin Toko ({validSaranaList.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -768,6 +781,19 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
       <div className="absolute top-[68px] sm:top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
         {/* Baris Atas: Pill Toggle Mode Pasokan (Desktop) + Tombol Filter */}
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Tombol Pilihan Peta Pin Toko Beras (Desktop) */}
+          {onSwitchToPinMap && (
+            <button
+              type="button"
+              onClick={onSwitchToPinMap}
+              className="h-8 sm:h-9 px-3.5 rounded-full sm:rounded-xl text-[11px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all bg-emerald-600 hover:bg-emerald-500 border border-emerald-300 text-white shadow-[0_0_18px_rgba(16,185,129,0.55)] active:scale-95"
+              title="Buka Peta dengan Pin Toko Beras Terverifikasi Lapangan"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+              <span>Pilihan Pin Toko ({validSaranaList.length})</span>
+            </button>
+          )}
+
           {/* Toggle Kapsul Horizontal (Tampil di Desktop >= 640px sesuai Capture 2) */}
           <div
             role="group"
@@ -861,11 +887,24 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             </button>
           )}
 
-          {/* 6. Titik Sarana Toggle */}
+          {/* 6a. Buka Peta Pin Toko */}
+          {onSwitchToPinMap && (
+            <button
+              type="button"
+              onClick={onSwitchToPinMap}
+              title="Buka Peta dengan Pin Toko Beras"
+              aria-label="Buka Peta Pin Toko"
+              className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer bg-emerald-600/30 text-emerald-300 border border-emerald-400 hover:bg-emerald-600 hover:text-white`}
+            >
+              <MapPin className="w-4 h-4 text-rose-400" />
+            </button>
+          )}
+
+          {/* 6b. Titik Sarana Toggle */}
           <button
             type="button"
             onClick={() => setTampilSarana((v) => !v)}
-            title="Toggle Titik Sarana Toko Beras"
+            title="Toggle Titik Sarana Toko Beras di Peta Arus"
             aria-label="Toggle Titik Sarana"
             className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
               tampilSarana
