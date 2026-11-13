@@ -33,12 +33,12 @@ export const NO_DATA_COLOR = { fill: '#cccccc', border: '#999999' };
 
 // Threshold FSVA (BKP standard)
 export const getFSVACategory = (ikp: number) => {
-  if (ikp < 46.37) return { p: 1, k: 'sangat_rentan' };
-  if (ikp < 53.95) return { p: 2, k: 'rentan' };
-  if (ikp < 61.83) return { p: 3, k: 'agak_rentan' };
-  if (ikp < 69.71) return { p: 4, k: 'agak_tahan' };
-  if (ikp < 77.29) return { p: 5, k: 'tahan' };
-  return { p: 6, k: 'sangat_tahan' };
+  if (ikp < 46.37) return { p: 1, k: 'sangat_rentan', label: 'Sangat rentan' };
+  if (ikp < 53.95) return { p: 2, k: 'rentan', label: 'Rentan' };
+  if (ikp < 61.83) return { p: 3, k: 'agak_rentan', label: 'Agak rentan' };
+  if (ikp < 69.71) return { p: 4, k: 'agak_tahan', label: 'Agak tahan' };
+  if (ikp < 77.29) return { p: 5, k: 'tahan', label: 'Tahan' };
+  return { p: 6, k: 'sangat_tahan', label: 'Sangat tahan' };
 };
 
 export const FSVA_LEGEND = [

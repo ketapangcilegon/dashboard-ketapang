@@ -149,7 +149,8 @@ function getIKPGStyle(
 export function KelurahanLayer({
   data, activeIKPGLayer, ikpgOpacity = 0.65, fsvaData = [], skpgData = [],
   fsvaMatangData = [], skpgMatangData = [], intervensiData = [],
-  selectedYear = 2026, selectedMonth = 1
+  selectedYear = 2026, selectedMonth = 1,
+  fsvaYear = 2026, bordaYear = 2026
 }: {
   data: any[];
   activeIKPGLayer: string;
@@ -161,6 +162,8 @@ export function KelurahanLayer({
   intervensiData?: any[];
   selectedYear?: number;
   selectedMonth?: number;
+  fsvaYear?: number;
+  bordaYear?: number;
 }) {
   if (!data?.length) return null;
   return (
@@ -168,9 +171,16 @@ export function KelurahanLayer({
       {data.map((f, i) => {
         const nama = f.properties?.name || f.properties?.Name || '';
         const style = getIKPGStyle(nama, activeIKPGLayer, fsvaData, skpgData, fsvaMatangData, skpgMatangData, intervensiData, ikpgOpacity);
+        const fsvaSig = fsvaMatangData && fsvaMatangData.length > 0
+          ? `${fsvaYear}-${fsvaMatangData[0]?.ikp || 'x'}-${fsvaMatangData.length}`
+          : `no-fsva-${fsvaYear}`;
+        const skpgSig = skpgMatangData && skpgMatangData.length > 0
+          ? `${selectedYear}-${selectedMonth}-${skpgMatangData.length}`
+          : `no-skpg-${selectedYear}-${selectedMonth}`;
+
         return (
           <GeoJSON
-            key={`kel-${i}-${activeIKPGLayer || 'x'}-${ikpgOpacity}-${selectedYear}-${selectedMonth}-${fsvaMatangData.length}-${skpgMatangData.length}-${intervensiData.length}`}
+            key={`kel-${i}-${activeIKPGLayer || 'x'}-${ikpgOpacity}-${fsvaSig}-${skpgSig}-${bordaYear}-${intervensiData.length}`}
             data={f}
             style={style as any}
             onEachFeature={(f, l) => {
@@ -188,14 +198,11 @@ export function KelurahanLayer({
                 const row = fsvaMatangData?.find(r => isKelurahanMatch(r.nama_kelurahan || r.kelurahan, namaKel));
                 if (row) {
                   const ikp = parseFloat(row.ikp || '0');
-                  const { k } = getFSVACategory(ikp);
-                  // Calculate raw priorities (1-6) from cutoff desils
-                  const prioritas = ikp < 46.37 ? 1 : ikp < 53.95 ? 2 : ikp < 61.83 ? 3 : ikp < 69.71 ? 4 : ikp < 77.29 ? 5 : 6;
-                  const label = k.replace('_', ' ').toUpperCase();
+                  const { p, k, label } = getFSVACategory(ikp);
                   popupContent += `
                     <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Indeks Ketahanan Pangan (IKP)</b>: <span style="font-weight:900;color:#0f172a;">${ikp.toFixed(2)}</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Prioritas FSVA</b>: <span style="font-weight:900;color:#0f172a;">Prioritas ${prioritas}</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Kategori</b>: <span style="font-weight:bold;color:${FSVA_COLORS[k]?.border || '#333'};">${label}</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Prioritas FSVA</b>: <span style="font-weight:900;color:#0f172a;">Prioritas ${p}</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Status</b>: <span style="font-weight:bold;color:${FSVA_COLORS[k]?.border || '#333'};">${label}</span></p>
                   `;
                 } else {
                   popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data FSVA.</p>`;
@@ -206,12 +213,12 @@ export function KelurahanLayer({
                   const total = (row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0) + (row.gizi_normal || 0) + (row.gizi_berlebih || 0);
                   const prev = total > 0 ? ((row.gizi_kurang || 0) + (row.gizi_sangat_kurang || 0)) / total * 100 : 0;
                   const cat = prev > 15 ? 'rentan' : prev >= 10 ? 'waspada' : 'aman';
-                  const label = cat.toUpperCase();
+                  const statusLabel = prev > 15 ? 'Awas' : prev >= 10 ? 'Waspada' : 'Aman';
                   popupContent += `
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Kurang (SKPG)</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_kurang} balita</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Sangat Kurang</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_sangat_kurang} balita</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Rasio Kerawanan Gizi</b>: <span style="font-weight:900;color:#0f172a;">${prev.toFixed(2)}%</span></p>
-                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Kategori</b>: <span style="font-weight:bold;color:${SKPG_COLORS[cat]?.border || '#333'};">${label}</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Kurang (SKPG)</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_kurang || 0} balita</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Gizi Sangat Kurang</b>: <span style="font-weight:900;color:#0f172a;">${row.gizi_sangat_kurang || 0} balita</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Prevalensi Gizi Buruk</b>: <span style="font-weight:900;color:#0f172a;">${prev.toFixed(2)}%</span></p>
+                    <p style="margin:4px 0;font-size:11px;color:#475569;"><b>Status</b>: <span style="font-weight:bold;color:${SKPG_COLORS[cat]?.border || '#333'};">${statusLabel}</span></p>
                   `;
                 } else {
                   popupContent += `<p style="margin:4px 0;font-size:11px;color:#94a3b8;">Tidak ada data SKPG.</p>`;

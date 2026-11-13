@@ -38,3 +38,17 @@ export function isKelurahanMatch(name1: string | null | undefined, name2: string
   
   return n1 === n2;
 }
+
+export function getKecamatanByKelurahan(kelName: string | null | undefined): string {
+  if (!kelName) return 'Kota Cilegon';
+  const clean = kelName.replace(/^kel\.?\s*/i, '').trim();
+  const normalized = normalizeKelurahanName(clean);
+  if (KEL_TO_KEC[normalized]) return KEL_TO_KEC[normalized];
+  if (KEL_TO_KEC[clean]) return KEL_TO_KEC[clean];
+  for (const [k, kec] of Object.entries(KEL_TO_KEC)) {
+    if (k.toLowerCase() === clean.toLowerCase() || k.toLowerCase() === normalized.toLowerCase()) {
+      return kec;
+    }
+  }
+  return 'Kota Cilegon';
+}

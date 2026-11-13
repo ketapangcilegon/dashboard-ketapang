@@ -5,10 +5,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useKMZLoader } from '@/hooks/useKMZLoader';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Layers, MapPin, Navigation, Map, Plus, Minus, ChevronDown, ChevronUp, Download } from 'lucide-react';
-import { FSVA_LEGEND, SKPG_LEGEND } from '@/lib/ikpg';
+import { FSVA_LEGEND, SKPG_LEGEND, getFSVACategory } from '@/lib/ikpg';
 import { useMap } from 'react-leaflet';
 import * as XLSX from 'xlsx';
-import { isKelurahanMatch, normalizeKelurahanName } from '@/lib/wilayah';
+import { isKelurahanMatch, normalizeKelurahanName, getKecamatanByKelurahan } from '@/lib/wilayah';
 import { fetchObservasiClientCached } from '@/lib/kameraSeedData';
 
 // Dynamically import Leaflet components to avoid SSR errors in Next.js
@@ -335,6 +335,88 @@ function MapController({
   };
 
   const handleDownloadLokusXlsx = () => {
+    // 1. Download Layer FSVA
+    if (activeLayer === 'fsva') {
+      const headers = [
+        ["No", "Kecamatan", "Kelurahan", "Indeks Ketahanan Pangan", "Prioritas", "Status"]
+      ];
+
+      const sortedFsva = [...(fsvaMatangData || [])]
+        .map(item => {
+          const kel = item.nama_kelurahan || item.kelurahan || '';
+          const ikp = parseFloat(item.ikp || '0');
+          const cat = getFSVACategory(ikp);
+          const kec = getKecamatanByKelurahan(kel);
+          return {
+            kelurahan: kel,
+            kecamatan: kec,
+            ikp,
+            prioritas: cat.p,
+            status: cat.label
+          };
+        })
+        .sort((a, b) => a.ikp - b.ikp);
+
+      const rows = sortedFsva.map((item, idx) => [
+        idx + 1,
+        item.kecamatan,
+        `Kel. ${item.kelurahan}`,
+        parseFloat(item.ikp.toFixed(2)),
+        item.prioritas,
+        item.status
+      ]);
+
+      const data = [...headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `FSVA ${fsvaYear}`);
+      XLSX.writeFile(wb, "Prioritas_Lokus_Intervensi_FSVA.xlsx");
+      return;
+    }
+
+    // 2. Download Layer SKPG
+    if (activeLayer === 'skpg') {
+      const headers = [
+        ["No", "Kecamatan", "Kelurahan", "Prevalensi Gizi Buruk", "Status"]
+      ];
+
+      const rankedList = (skpgMatangData || [])
+        .map(item => {
+          const sk = item.gizi_sangat_kurang || item.bb_sangat_kurang || 0;
+          const k = item.gizi_kurang || item.bb_kurang || 0;
+          const n = item.gizi_normal || item.bb_normal || 0;
+          const l = item.gizi_berlebih || item.bb_lebih || 0;
+          const total = sk + k + n + l;
+          const prevalensi = total > 0 ? ((sk + k) / total) * 100 : 0;
+          const kel = item.nama_kelurahan || item.kelurahan || '';
+          const kec = getKecamatanByKelurahan(kel);
+          const status = prevalensi > 15 ? 'Awas' : prevalensi >= 10 ? 'Waspada' : 'Aman';
+          return {
+            kelurahan: kel,
+            kecamatan: kec,
+            prevalensi,
+            status
+          };
+        })
+        .sort((a, b) => b.prevalensi - a.prevalensi);
+
+      const rows = rankedList.map((item, idx) => [
+        idx + 1,
+        item.kecamatan,
+        `Kel. ${item.kelurahan}`,
+        `${item.prevalensi.toFixed(1)}%`,
+        item.status
+      ]);
+
+      const data = [...headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "SKPG");
+      XLSX.writeFile(wb, "Prioritas_Lokus_Intervensi_SKPG.xlsx");
+      return;
+    }
+
+    // 3. Download Layer Borda (Default)
     const headers = [
       ["No", "Kelurahan Borda Count (FSVA & SKPG)", "Skor Borda", "Desil Borda", "Rank Borda", "Kelurahan Gizi Buruk (SKPG)", "Prevalensi Gizi Buruk (%)"]
     ];
@@ -371,7 +453,7 @@ function MapController({
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Prioritas Lokus");
-    XLSX.writeFile(wb, "Prioritas_Lokus_Intervensi.xlsx");
+    XLSX.writeFile(wb, "Prioritas_Lokus_Intervensi_FSVA+SKPG.xlsx");
   };
 
   return (
@@ -1444,6 +1526,8 @@ export default function MapUnified({
             ikpgOpacity={opacity / 100}
             selectedYear={selectedYear}
             selectedMonth={selectedMonth}
+            fsvaYear={fsvaYear}
+            bordaYear={bordaYear}
           />
           {/* Pin pasokan beras khusus hanya muncul di peta Food Security Intelligence, bukan di peta FSVA & SKPG */}
           <KameraObservasiLayer data={observasiData} includeBeras={false} />
