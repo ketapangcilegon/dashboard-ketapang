@@ -23,6 +23,7 @@ interface NavbarProps {
   setSelectedMonth?: (month: number) => void;
   skpgLatestMonth?: number;
   skpgLatestYear?: number;
+  fsvaLatestYear?: number;
   onMenuClick?: () => void;
   onOpenVersionModal?: () => void;
 }
@@ -38,6 +39,7 @@ export default function Navbar({
   setSelectedMonth = () => {},
   skpgLatestMonth,
   skpgLatestYear,
+  fsvaLatestYear,
   onMenuClick = () => {},
   onOpenVersionModal,
 }: NavbarProps) {
@@ -46,6 +48,42 @@ export default function Navbar({
     tahun: skpgLatestYear || 2026,
     bulan: skpgLatestMonth || 8,
   });
+  const [fsvaYear, setFsvaYear] = useState<number>(fsvaLatestYear || 2026);
+
+  useEffect(() => {
+    if (fsvaLatestYear) {
+      setFsvaYear(fsvaLatestYear);
+    }
+
+    // Ambil tahun FSVA matang terbaru dari database
+    const fetchLatestFsva = async () => {
+      try {
+        const { data } = await supabase
+          .from('fsva_matang')
+          .select('periode')
+          .order('periode', { ascending: false })
+          .limit(1);
+
+        if (data && data.length > 0 && data[0].periode) {
+          setFsvaYear(data[0].periode);
+        }
+      } catch (err) {
+        console.warn('Gagal memuat periode FSVA di Navbar:', err);
+      }
+    };
+
+    fetchLatestFsva();
+
+    const handleFsvaPeriodChange = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt?.detail?.periode) {
+        setFsvaYear(customEvt.detail.periode);
+      }
+    };
+
+    window.addEventListener('fsva_period_updated', handleFsvaPeriodChange);
+    return () => window.removeEventListener('fsva_period_updated', handleFsvaPeriodChange);
+  }, [fsvaLatestYear]);
 
   useEffect(() => {
     if (skpgLatestYear && skpgLatestMonth) {
@@ -156,7 +194,7 @@ export default function Navbar({
         <div className="hidden md:flex flex-col text-right text-[10px] font-black text-emerald-50/90 tracking-wide leading-tight whitespace-nowrap select-none">
           <div>Harga Pangan: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
           <div>KPI: <span className="text-white">Tahun 2025</span></div>
-          <div>Baseline FSVA: <span className="text-white">Tahun 2025</span></div>
+          <div>Baseline FSVA: <span className="text-white">Tahun {fsvaYear}</span></div>
           <div>Baseline SKPG: <span className="text-white">{skpgText}</span></div>
         </div>
 

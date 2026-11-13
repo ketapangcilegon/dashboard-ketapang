@@ -353,6 +353,7 @@ export default function DashboardPage() {
   const [tEnergiLatestYear, setTEnergiLatestYear] = useState<number>(2025);
   const [produksiLatestYear, setProduksiLatestYear] = useState<number>(2025);
   const [intervensiLatestYear, setIntervensiLatestYear] = useState<number>(2025);
+  const [fsvaLatestYear, setFsvaLatestYear] = useState<number>(2026);
 
   const [balitaLatestData, setBalitaLatestData] = useState<any[]>([]);
   const [balitaLatestYear, setBalitaLatestYear] = useState<number>(2026);
@@ -629,7 +630,8 @@ export default function DashboardPage() {
               .select('periode')
               .order('periode', { ascending: false })
               .limit(1);
-            const latestFsvaYear = latestFsva && latestFsva.length > 0 ? latestFsva[0].periode : 2025;
+            const latestFsvaYear = latestFsva && latestFsva.length > 0 ? latestFsva[0].periode : 2026;
+            setFsvaLatestYear(latestFsvaYear);
 
             const { data: fsvaM, error } = await supabase.from('fsva_matang').select('*').eq('periode', latestFsvaYear);
             if (!error && fsvaM && fsvaM.length > 0) {
@@ -1676,6 +1678,7 @@ export default function DashboardPage() {
             setSelectedMonth={setSelectedMonth}
             skpgLatestMonth={balitaLatestMonth}
             skpgLatestYear={balitaLatestYear}
+            fsvaLatestYear={fsvaLatestYear}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
             onOpenVersionModal={() => setShowVersionModal(true)}
           />

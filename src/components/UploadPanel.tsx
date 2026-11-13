@@ -446,6 +446,11 @@ export default function UploadPanel() {
         successCount++;
       }
 
+      if (typeof window !== 'undefined' && selectedType === 'fsva_matang') {
+        const lastPeriode = rows && rows.length > 0 ? (parseInt(rows[0]['periode']) || 2026) : 2026;
+        window.dispatchEvent(new CustomEvent('fsva_period_updated', { detail: { periode: lastPeriode } }));
+      }
+
       setStatus('success');
       setMessage(`Berhasil memproses ${successCount} baris data! Dashboard Anda telah diperbarui.`);
     } catch (err: any) {
