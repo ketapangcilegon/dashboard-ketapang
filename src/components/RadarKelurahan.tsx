@@ -287,9 +287,32 @@ export default function RadarKelurahan() {
     setCompareKec(parentKec);
   }, [parentKec]);
 
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [availableYears, setAvailableYears] = useState<number[]>([2025, 2026]);
   const [loading, setLoading] = useState<boolean>(true);
   const [dbRows, setDbRows] = useState<any[]>([]);
+
+  // Fetch available years in fsva_matang dynamically
+  useEffect(() => {
+    async function fetchYears() {
+      try {
+        const { data, error } = await supabase
+          .from('fsva_matang')
+          .select('periode')
+          .order('periode', { ascending: true });
+        if (!error && data) {
+          const years = Array.from(new Set(data.map(r => r.periode))).filter(Boolean).sort((a, b) => a - b);
+          if (years.length > 0) {
+            setAvailableYears(years);
+            setSelectedYear(years[years.length - 1]);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load FSVA periods for Radar:', e);
+      }
+    }
+    fetchYears();
+  }, []);
 
   // Query Supabase db table fsva_matang
   useEffect(() => {
@@ -661,11 +684,10 @@ export default function RadarKelurahan() {
             label="Tahun Data FSVA"
             value={selectedYear}
             onChange={(val) => setSelectedYear(Number(val))}
-            options={[
-              { value: 2025, label: 'Tahun 2025' },
-              { value: 2026, label: 'Tahun 2026 (Proyeksi)', disabled: true },
-              { value: 2027, label: 'Tahun 2027 (Proyeksi)', disabled: true },
-            ]}
+            options={availableYears.map(yr => ({
+              value: yr,
+              label: `Tahun ${yr}`
+            }))}
             variant="emerald"
             searchable={false}
             icon={<Calendar className="w-3.5 h-3.5 text-emerald-600" />}

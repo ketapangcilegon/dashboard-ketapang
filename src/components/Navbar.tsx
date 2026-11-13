@@ -24,6 +24,7 @@ interface NavbarProps {
   skpgLatestMonth?: number;
   skpgLatestYear?: number;
   fsvaLatestYear?: number;
+  kpiLatestYear?: number;
   onMenuClick?: () => void;
   onOpenVersionModal?: () => void;
 }
@@ -40,6 +41,7 @@ export default function Navbar({
   skpgLatestMonth,
   skpgLatestYear,
   fsvaLatestYear,
+  kpiLatestYear,
   onMenuClick = () => {},
   onOpenVersionModal,
 }: NavbarProps) {
@@ -49,6 +51,13 @@ export default function Navbar({
     bulan: skpgLatestMonth || 8,
   });
   const [fsvaYear, setFsvaYear] = useState<number>(fsvaLatestYear || 2026);
+  const [kpiYear, setKpiYear] = useState<number>(kpiLatestYear || 2025);
+
+  useEffect(() => {
+    if (kpiLatestYear) {
+      setKpiYear(kpiLatestYear);
+    }
+  }, [kpiLatestYear]);
 
   useEffect(() => {
     if (fsvaLatestYear) {
@@ -193,7 +202,7 @@ export default function Navbar({
         {/* Timestamp & Update Data Info Block (Professional GovTech Style) */}
         <div className="hidden md:flex flex-col text-right text-[10px] font-black text-emerald-50/90 tracking-wide leading-tight whitespace-nowrap select-none">
           <div>Harga Pangan: <span className="text-white font-black bg-red-500/80 px-1 py-0.2 rounded text-[8px] ml-0.5 tracking-normal animate-pulse shadow-sm">REALTIME</span></div>
-          <div>KPI: <span className="text-white">Tahun 2025</span></div>
+          <div>KPI: <span className="text-white">Tahun {kpiYear}</span></div>
           <div>Baseline FSVA: <span className="text-white">Tahun {fsvaYear}</span></div>
           <div>Baseline SKPG: <span className="text-white">{skpgText}</span></div>
         </div>

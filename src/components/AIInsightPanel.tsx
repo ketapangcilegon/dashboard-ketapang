@@ -6,6 +6,7 @@ import { Copy, Check, Loader2, Lightbulb, RefreshCw, Sparkles, Brain, ArrowRight
 interface AIInsightPanelProps {
   year: number;
   month: number;
+  fsvaYear?: number;
   kecamatan: string;
   kelurahan: string;
   cvBeras: number;
@@ -101,6 +102,7 @@ Mayoritas balita di Kota Cilegon berada pada kategori **Normal** (**${bNormal.to
 export default function AIInsightPanel({
   year,
   month,
+  fsvaYear,
   kecamatan,
   kelurahan,
   cvBeras,
@@ -400,7 +402,7 @@ export default function AIInsightPanel({
 
         {showInfo && (
           <div className="mt-2 ml-3 text-[10px] text-slate-700 bg-amber-50/90 border border-amber-200/80 p-2.5 rounded-lg font-medium leading-relaxed shadow-sm animate-in fade-in duration-200 max-w-xl">
-            Catatan: Indikator FSVA, KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator SKPG dan panel harga pangan menggunakan basis data tahun 2026, dengan data SKPG mengacu pada date stamp data balita BB/U dan data harga komoditas diperbarui secara real-time dari panel harga harian.
+            Catatan: Indikator FSVA menggunakan basis data tahun {fsvaYear || 2026}, indikator KPI, IKP, dan POU menggunakan basis data tahun 2025. Adapun indikator SKPG dan panel harga pangan menggunakan basis data tahun {year || 2026}, dengan data SKPG mengacu pada date stamp data balita BB/U dan data harga komoditas diperbarui secara real-time dari panel harga harian.
           </div>
         )}
       </div>

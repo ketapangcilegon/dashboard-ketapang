@@ -354,6 +354,15 @@ export default function DashboardPage() {
   const [produksiLatestYear, setProduksiLatestYear] = useState<number>(2025);
   const [intervensiLatestYear, setIntervensiLatestYear] = useState<number>(2025);
   const [fsvaLatestYear, setFsvaLatestYear] = useState<number>(2026);
+  const kpiLatestYear = Math.max(
+    cvLatestYear,
+    pphLatestYear,
+    kProteinLatestYear,
+    kEnergiLatestYear,
+    tProteinLatestYear,
+    tEnergiLatestYear,
+    produksiLatestYear
+  ) || 2025;
 
   const [balitaLatestData, setBalitaLatestData] = useState<any[]>([]);
   const [balitaLatestYear, setBalitaLatestYear] = useState<number>(2026);
@@ -1256,6 +1265,7 @@ export default function DashboardPage() {
           <AIInsightPanel 
             year={selectedYear}
             month={selectedMonth}
+            fsvaYear={fsvaLatestYear}
             kecamatan={selectedKecamatan}
             kelurahan={selectedKelurahan}
             cvBeras={getCVBulananValue()}
@@ -1679,6 +1689,7 @@ export default function DashboardPage() {
             skpgLatestMonth={balitaLatestMonth}
             skpgLatestYear={balitaLatestYear}
             fsvaLatestYear={fsvaLatestYear}
+            kpiLatestYear={kpiLatestYear}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
             onOpenVersionModal={() => setShowVersionModal(true)}
           />
@@ -1744,7 +1755,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-4 sm:h-5 bg-emerald-600 rounded-full shrink-0"></div>
                             <h2 className="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-widest leading-none">
-                              KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON 2025
+                              KEY PERFORMANCE INDICATOR (KPI) KETAHANAN PANGAN CILEGON {kpiLatestYear}
                             </h2>
                           </div>
                         </div>
@@ -1889,6 +1900,7 @@ export default function DashboardPage() {
                       <AIInsightPanel 
                         year={selectedYear}
                         month={selectedMonth}
+                        fsvaYear={fsvaLatestYear}
                         kecamatan={selectedKecamatan}
                         kelurahan={selectedKelurahan}
                         cvBeras={getCVBulananValue()}
@@ -2152,6 +2164,7 @@ export default function DashboardPage() {
                     <AIInsightPanel 
                       year={selectedYear}
                       month={selectedMonth}
+                      fsvaYear={fsvaLatestYear}
                       kecamatan={selectedKecamatan}
                       kelurahan={selectedKelurahan}
                       cvBeras={getCVBulananValue()}
