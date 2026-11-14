@@ -160,7 +160,33 @@ export default function KameraCerdasView({
   // Sesi Enumerator (Google). Klien terpisah dari sesi Admin agar tidak pernah dianggap Admin.
   useEffect(() => {
     let aktif = true;
-    enumeratorSupabase.auth.getSession()
+    const bersihkanUrl = () => {
+      try {
+        const u = new URL(window.location.href);
+        ['code', 'error', 'error_code', 'error_description'].forEach((k) => u.searchParams.delete(k));
+        window.history.replaceState({}, '', u.toString());
+      } catch { /* abaikan */ }
+    };
+    const siapkanSesi = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code) {
+          // Tukar kode OAuth (PKCE) secara eksplisit agar sesi Google pasti terbentuk
+          const { data: cur } = await enumeratorSupabase.auth.getSession();
+          if (!cur.session) {
+            const { error } = await enumeratorSupabase.auth.exchangeCodeForSession(code);
+            if (error && aktif) setGoogleError(`Login Google gagal: ${error.message}`);
+          }
+          bersihkanUrl();
+        } else if (params.get('error_description')) {
+          if (aktif) setGoogleError(`Login Google gagal: ${params.get('error_description')}`);
+          bersihkanUrl();
+        }
+      } catch { /* lanjut ke getSession */ }
+      return enumeratorSupabase.auth.getSession();
+    };
+    siapkanSesi()
       .then(({ data }) => {
         if (aktif) setEnumerator(toEnumeratorProfile(data.session?.user));
       })
