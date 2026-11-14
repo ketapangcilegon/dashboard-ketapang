@@ -1,22 +1,71 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock } from 'lucide-react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock, Users, Globe2, MapPin, Activity, Calendar } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
+
+interface VisitorStatsData {
+  total_count: number;
+  online_count: number;
+  today_count: number;
+  this_month_count: number;
+  last_month_count: number;
+  today_label?: string;
+  this_month_label?: string;
+  last_month_label?: string;
+  last_visited_at?: string | null;
+  current_visitor?: {
+    masked_ip: string;
+    location: string;
+  };
+  regions?: Array<{
+    location: string;
+    count: number;
+    last_visited_at: string;
+  }>;
+  active_sessions?: Array<{
+    masked_ip: string;
+    location: string;
+    hits: number;
+    last_seen: string;
+  }>;
+}
 
 interface TentangAplikasiProps {
   onBack?: () => void;
 }
 
 export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    statistik_kunjungan: true,
+  });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [visitorStats, setVisitorStats] = useState<VisitorStatsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const { isTentangLocked } = useFeatureAccess();
 
   useEffect(() => {
     const sessionActive = typeof window !== 'undefined' && sessionStorage.getItem('adminSession') === 'active';
     setIsAdmin(sessionActive);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/visit-count?stats=1')
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && data?.success) {
+          setVisitorStats(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setStatsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const canViewTechnical = !isTentangLocked || isAdmin;
@@ -512,6 +561,256 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   Seluruh merek dagang, logo, dan hak cipta pihak ketiga tetap menjadi milik pemegang hak masing-masing. Penggunaan perangkat lunak open source dalam aplikasi ini mengikuti ketentuan lisensi yang ditetapkan oleh masing-masing pengembang.
                 </p>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section 7: Statistik Kunjungan & Sebaran Wilayah Pengunjung (Paling Bawah) */}
+        <div className="dashboard-card bg-white p-0 rounded-xl shadow-md border border-emerald-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <button
+            onClick={() => toggleSection('statistik_kunjungan')}
+            className="w-full flex items-center justify-between p-6 md:p-8 cursor-pointer hover:bg-emerald-50/40 transition-colors text-left focus:outline-none group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-all duration-300 shrink-0">
+                <Users className="w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">
+                  Statistik Kunjungan & Sebaran Wilayah Pengunjung
+                </h2>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                  Pemantauan trafik real-time, akumulasi periode, dan geolokasi IP pengunjung
+                </p>
+              </div>
+            </div>
+            <div className="p-1.5 bg-slate-50 group-hover:bg-slate-100 rounded-xl border border-slate-200/50 transition-colors shrink-0 flex items-center justify-center">
+              {expandedSections['statistik_kunjungan'] ? (
+                <ChevronUp className="w-5 h-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-500" />
+              )}
+            </div>
+          </button>
+
+          {expandedSections['statistik_kunjungan'] && (
+            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-slate-100 space-y-6 animate-in fade-in slide-in-from-top-2 duration-350">
+              {statsLoading ? (
+                <div className="py-8 text-center text-xs font-bold text-slate-400">
+                  Memuat data statistik pengunjung...
+                </div>
+              ) : (
+                <>
+                  {/* 5 Kartu Ringkasan Kunjungan */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
+                    {/* 1. Sedang Online */}
+                    <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                          Sedang Online
+                        </span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-black text-emerald-700 tabular-nums">
+                          {(visitorStats?.online_count ?? 1).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-[10px] font-semibold text-emerald-600 mt-0.5">
+                          Sesi aktif (15 mnt terakhir)
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. Hari Ini */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                          Hari Ini
+                        </span>
+                        <Activity className="w-3.5 h-3.5 text-teal-600" />
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                          {(visitorStats?.today_count ?? 1).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+                          {visitorStats?.today_label || 'Hari berjalan (WIB)'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Bulan Ini */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                          Bulan Ini
+                        </span>
+                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                          {(visitorStats?.this_month_count ?? 1).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+                          {visitorStats?.this_month_label || 'Bulan berjalan'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. Bulan Lalu */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                          Bulan Lalu
+                        </span>
+                        <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                          {(visitorStats?.last_month_count ?? 0).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+                          {visitorStats?.last_month_label || 'Bulan sebelumnya'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5. Total Kunjungan */}
+                    <div className="col-span-2 sm:col-span-1 p-3.5 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex flex-col justify-between shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">
+                          Total Kunjungan
+                        </span>
+                        <Users className="w-3.5 h-3.5 text-emerald-200" />
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-black text-white tabular-nums">
+                          {(visitorStats?.total_count ?? 0).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-[10px] font-semibold text-emerald-100 mt-0.5">
+                          Akumulasi keseluruhan
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sebaran Daerah / Kota & Log IP Pengunjung */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Kolom Kiri: Sebaran Wilayah Asal Pengunjung */}
+                    <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Globe2 className="w-4 h-4 text-emerald-600" />
+                          <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                            Sebaran Daerah Asal Pengunjung
+                          </h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          Geolokasi IP
+                        </span>
+                      </div>
+
+                      {visitorStats?.regions && visitorStats.regions.length > 0 ? (
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {(() => {
+                            const maxRegCount = Math.max(
+                              ...visitorStats.regions.map((r) => r.count),
+                              1
+                            );
+                            return visitorStats.regions.map((reg, idx) => {
+                              const pct = Math.max(8, Math.round((reg.count / maxRegCount) * 100));
+                              return (
+                                <div key={reg.location} className="space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="font-bold text-slate-700 flex items-center gap-1.5 truncate">
+                                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                                        #{idx + 1}
+                                      </span>
+                                      <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                                      <span className="truncate">{reg.location}</span>
+                                    </span>
+                                    <span className="font-black text-slate-800 tabular-nums shrink-0 ml-2">
+                                      {reg.count.toLocaleString('id-ID')} kunjungan
+                                    </span>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 italic py-2">
+                          Belum ada data wilayah tercatat.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Kolom Kanan: Identitas jaringan & IP pengunjung terkini */}
+                    <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-teal-600" />
+                          <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                            IP Address & Sesi Pengunjung Aktif
+                          </h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          Privasi Disamarkan
+                        </span>
+                      </div>
+
+                      {visitorStats?.current_visitor && (
+                        <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-emerald-800 block">
+                              Koneksi Anda Saat Ini
+                            </span>
+                            <span className="font-extrabold text-slate-800">
+                              {visitorStats.current_visitor.masked_ip} • {visitorStats.current_visitor.location}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-black text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                            Anda
+                          </span>
+                        </div>
+                      )}
+
+                      {visitorStats?.active_sessions && visitorStats.active_sessions.length > 0 && (
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                          {visitorStats.active_sessions.map((s, i) => (
+                            <div
+                              key={`${s.masked_ip}-${i}`}
+                              className="flex items-center justify-between text-[11px] bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/80"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                <code className="font-bold text-slate-700 text-[10.5px]">
+                                  {s.masked_ip}
+                                </code>
+                                <span className="text-slate-500 truncate">
+                                  ({s.location})
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-semibold text-slate-400 shrink-0 ml-2">
+                                {new Date(s.last_seen).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })} WIB
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
