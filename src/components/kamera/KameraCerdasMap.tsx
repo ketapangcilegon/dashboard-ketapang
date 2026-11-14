@@ -330,12 +330,6 @@ export default function KameraCerdasMap({
         </MapContainer>
       </div>
 
-      {/* Floating Bottom Count Badge */}
-      <div className="absolute bottom-4 left-4 z-[400] bg-white/90 backdrop-blur-md border border-emerald-200 px-3 py-1.5 rounded-xl text-slate-900 text-xs font-bold shadow-xl flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        <span>{filteredData.length} Titik Lapangan Terpetakan</span>
-      </div>
-
     </div>
   );
 }
