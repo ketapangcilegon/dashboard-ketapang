@@ -43,6 +43,16 @@ export function toEnumeratorProfile(user: User | null | undefined): EnumeratorPr
 
 export async function signInWithGoogle(): Promise<{ error?: string }> {
   try {
+    // Pra-cek: pastikan provider Google aktif di project Supabase (hindari layar hitam / JSON error)
+    try {
+      const res = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: supabaseAnonKey } });
+      if (res.ok) {
+        const settings = await res.json();
+        if (settings?.external?.google === false) {
+          return { error: 'Login Google belum diaktifkan di server (Supabase Auth > Providers > Google). Hubungi administrator.' };
+        }
+      }
+    } catch { /* lanjutkan bila pra-cek gagal */ }
     const redirectTo = `${window.location.origin}/?view=kamera_cerdas`;
     const { error } = await enumeratorSupabase.auth.signInWithOAuth({
       provider: 'google',

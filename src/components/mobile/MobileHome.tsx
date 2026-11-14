@@ -1614,7 +1614,7 @@ export default function MobileHome({
       </div>
 
       {/* 6.6. Panel Peta Arus Pasokan & Distribusi Beras (Capture 2 Reference) */}
-      <div className="w-full h-[520px] rounded-3xl overflow-hidden shadow-md border border-slate-800">
+      <div className="w-full h-[78vh] min-h-[560px] rounded-3xl overflow-hidden shadow-md border border-slate-800">
         <KameraCerdasView initialTab="arus" />
       </div>
 

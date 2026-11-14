@@ -313,7 +313,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
 
   // Default responsif: panel dilipat di layar kecil
   useEffect(() => {
-    const kecil = window.matchMedia('(max-width: 640px)').matches;
+    const kecil = window.matchMedia('(max-width: 768px)').matches;
     if (kecil) {
       setKpiTerbuka(false);
       setLegendaTerbuka(false);
@@ -767,7 +767,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <button
               type="button"
               onClick={onSwitchToPinMap}
-              className="h-7 px-3 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-400 shadow-sm"
+              className="hidden h-7 px-3 rounded-xl text-[10.5px] font-black items-center gap-1.5 cursor-pointer transition-all bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-400 shadow-sm"
               title="Buka Peta dengan Pin Toko Beras"
             >
               <MapPin className="w-3.5 h-3.5 text-rose-300 shrink-0" />
@@ -786,7 +786,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
             <button
               type="button"
               onClick={onSwitchToPinMap}
-              className="h-8 sm:h-9 px-3.5 rounded-full sm:rounded-xl text-[11px] sm:text-[11.5px] font-black flex items-center gap-1.5 cursor-pointer transition-all bg-emerald-600 hover:bg-emerald-500 border border-emerald-300 text-white shadow-[0_0_18px_rgba(16,185,129,0.55)] active:scale-95"
+              className="hidden sm:flex h-8 sm:h-9 px-3.5 rounded-full sm:rounded-xl text-[11px] sm:text-[11.5px] font-black items-center gap-1.5 cursor-pointer transition-all bg-emerald-600 hover:bg-emerald-500 border border-emerald-300 text-white shadow-[0_0_18px_rgba(16,185,129,0.55)] active:scale-95"
               title="Buka Peta dengan Pin Toko Beras Terverifikasi Lapangan"
             >
               <MapPin className="w-3.5 h-3.5 text-rose-300 shrink-0" />
@@ -894,7 +894,7 @@ export default function ArusPasokanMap({ observasiList = [], loaded = true, erro
               onClick={onSwitchToPinMap}
               title="Buka Peta dengan Pin Toko Beras"
               aria-label="Buka Peta Pin Toko"
-              className={`${glass} h-9 w-9 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer bg-emerald-600/30 text-emerald-300 border border-emerald-400 hover:bg-emerald-600 hover:text-white`}
+              className={`${glass} hidden sm:flex h-9 w-9 rounded-xl items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer bg-emerald-600/30 text-emerald-300 border border-emerald-400 hover:bg-emerald-600 hover:text-white`}
             >
               <MapPin className="w-4 h-4 text-rose-400" />
             </button>

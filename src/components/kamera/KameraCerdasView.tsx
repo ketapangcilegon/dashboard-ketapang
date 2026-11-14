@@ -876,7 +876,7 @@ export default function KameraCerdasView({
                 <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
+            <p className="hidden sm:block text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
           </div>
         </div>
 
@@ -901,7 +901,8 @@ export default function KameraCerdasView({
               title="Buka Peta dengan Pin Toko Beras Terverifikasi"
             >
               <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span>Pilihan Pin Toko ({observasiList.length})</span>
+              <span className="hidden sm:inline">Pilihan Pin Toko</span>
+              <span>{observasiList.length > 0 ? <><span className="hidden sm:inline">(</span>{observasiList.length}<span className="hidden sm:inline">)</span></> : ''}</span>
             </button>
 
             <button
