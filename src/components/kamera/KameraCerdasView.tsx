@@ -53,6 +53,8 @@ export default function KameraCerdasView({
 }: KameraCerdasViewProps = {}) {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<KameraTab>(initialTab);
+  // Filter jenis pin pada peta Pin: semua | pasokan_beras | tanaman_pangan
+  const [pinFilterMode, setPinFilterMode] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
 
   useEffect(() => {
     if (initialTab) {
@@ -953,6 +955,30 @@ export default function KameraCerdasView({
             </button>
           </div>
 
+          {/* Ikon filter jenis pin (beras / tanaman pangan) – tampil di tab Pin */}
+          {activeTab === 'map' && (
+            <div className="flex bg-emerald-50/90 p-0.5 rounded-lg border border-emerald-200 gap-0.5">
+              <button
+                type="button"
+                onClick={() => setPinFilterMode((m) => (m === 'pasokan_beras' ? 'semua' : 'pasokan_beras'))}
+                title="Tampilkan hanya pin Pasokan Beras"
+                aria-label="Filter Pasokan Beras"
+                className={`px-2 py-0.5 rounded-md transition-all flex items-center cursor-pointer ${pinFilterMode === 'pasokan_beras' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-emerald-800'}`}
+              >
+                <Store className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPinFilterMode((m) => (m === 'tanaman_pangan' ? 'semua' : 'tanaman_pangan'))}
+                title="Tampilkan hanya pin Tanaman Pangan"
+                aria-label="Filter Tanaman Pangan"
+                className={`px-2 py-0.5 rounded-md transition-all flex items-center cursor-pointer ${pinFilterMode === 'tanaman_pangan' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-emerald-800'}`}
+              >
+                <Trees className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Admin Indicator / Login Trigger */}
           {isAdmin ? (
             <div className="flex items-center gap-1.5">
@@ -1293,6 +1319,7 @@ export default function KameraCerdasView({
             focusPinId={newlyCreatedPinId}
             focusCoords={newlyCreatedCoords}
             onSwitchToArusMap={() => setActiveTab('arus')}
+            filterMode={pinFilterMode}
           />
         </div>
       )}

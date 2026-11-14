@@ -25,6 +25,7 @@ export interface KameraCerdasMapProps {
   focusPinId?: string | null;
   focusCoords?: [number, number] | null;
   onSwitchToArusMap?: () => void;
+  filterMode?: 'semua' | 'pasokan_beras' | 'tanaman_pangan';
 }
 
 // Builder Icon Teardrop Tematik Serumpun Padi
@@ -75,13 +76,15 @@ export default function KameraCerdasMap({
   onRefresh,
   focusPinId,
   focusCoords,
-  onSwitchToArusMap
+  onSwitchToArusMap,
+  filterMode: filterModeProp
 }: KameraCerdasMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
   // Filters & Mode Pasokan (default 'tahunan' = Estimasi Tahunan)
-  const [filterMode, setFilterMode] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
+  const [filterModeLokal, setFilterModeLokal] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
+  const filterMode = filterModeProp ?? filterModeLokal;
   const [modePasokan, setModePasokan] = useState<'tahunan' | 'terdata'>('tahunan');
   const [filterKecamatan, setFilterKecamatan] = useState<string>('semua');
   const [filterKelurahan, setFilterKelurahan] = useState<string>('semua');
@@ -137,126 +140,55 @@ export default function KameraCerdasMap({
   return (
     <div className="w-full h-full min-h-[420px] relative overflow-hidden flex flex-col bg-[#F5FAF2]">
       
-      {/* Floating Filter Bar */}
-      <div className="absolute top-4 left-14 sm:left-16 right-4 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
-        <div className="bg-white/90 backdrop-blur-md border border-emerald-200 px-3 py-2 rounded-xl shadow-xl flex flex-wrap items-center gap-2 text-xs">
-          
-          {/* Mode Switcher Tabs */}
-          <div className="flex bg-emerald-50 p-0.5 rounded-lg border border-emerald-200 font-bold">
-            <button
-              onClick={() => setFilterMode('semua')}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                filterMode === 'semua' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
-              }`}
-            >
-              Semua ({observasiList.length})
-            </button>
-            <button
-              onClick={() => setFilterMode('pasokan_beras')}
-              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                filterMode === 'pasokan_beras' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
-              }`}
-            >
-              <Store className="w-3.5 h-3.5" />
-              <span>Pasokan Beras</span>
-            </button>
-            <button
-              onClick={() => setFilterMode('tanaman_pangan')}
-              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                filterMode === 'tanaman_pangan' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
-              }`}
-            >
-              <Trees className="w-3.5 h-3.5" />
-              <span>Tanaman Pangan</span>
-            </button>
-          </div>
-
-          {/* Kecamatan Dropdown */}
-          <select
-            value={filterKecamatan}
-            onChange={(e) => handleKecamatanChange(e.target.value)}
-            className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
+      {/* Kolom Ikon Navigasi (kiri, lurus ke bawah, glass hitam transparan) */}
+      <div className="absolute left-[10px] top-[164px] z-[400] flex flex-col gap-[5px] pointer-events-auto">
+        {([
+          { key: 'terdata', title: 'Pasokan Terdata', icon: <Truck className="w-4 h-4" />, aktif: modePasokan === 'terdata', onClick: () => setModePasokan('terdata') },
+          { key: 'tahunan', title: 'Estimasi Tahunan', icon: <Calendar className="w-4 h-4" />, aktif: modePasokan === 'tahunan', onClick: () => setModePasokan('tahunan') },
+          { key: 'osm', title: 'Overlay Jalan & Sungai', icon: <Layers className="w-4 h-4" />, aktif: showOsm, onClick: () => setShowOsm(!showOsm) },
+          ...(onSwitchToArusMap ? [{ key: 'arus', title: 'Peta Arus Pasokan', icon: <Globe2 className="w-4 h-4" />, aktif: false, onClick: onSwitchToArusMap }] : []),
+        ]).map((b) => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={b.onClick}
+            title={b.title}
+            aria-label={b.title}
+            className={`w-[34px] h-[34px] rounded-[10px] flex items-center justify-center cursor-pointer backdrop-blur-md border shadow-lg transition-all active:scale-95 ${
+              b.aktif
+                ? 'bg-cyan-500/25 border-cyan-300/70 text-cyan-100 shadow-[0_0_12px_rgba(34,227,255,0.45)]'
+                : 'bg-[#091728]/50 border-white/20 text-white hover:bg-[#0f2138]/75 hover:border-white/45'
+            }`}
           >
-            <option value="semua">Semua Kecamatan</option>
-            {Object.keys(WILAYAH).map(kec => (
-              <option key={kec} value={kec}>{kec}</option>
+            {b.icon}
+          </button>
+        ))}
+      </div>
+
+      {/* Dropdown Kecamatan (kanan atas) */}
+      <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5 pointer-events-auto">
+        <select
+          value={filterKecamatan}
+          onChange={(e) => handleKecamatanChange(e.target.value)}
+          className="bg-[#091728]/60 backdrop-blur-md border border-white/25 rounded-[10px] px-2.5 h-[34px] text-white focus:outline-none focus:border-cyan-300 font-bold text-[11px] shadow-lg max-w-[170px]"
+        >
+          <option className="text-slate-900" value="semua">Semua Kecamatan</option>
+          {Object.keys(WILAYAH).map(kec => (
+            <option className="text-slate-900" key={kec} value={kec}>{kec}</option>
+          ))}
+        </select>
+        {filterKecamatan !== 'semua' && (
+          <select
+            value={filterKelurahan}
+            onChange={(e) => setFilterKelurahan(e.target.value)}
+            className="bg-[#091728]/60 backdrop-blur-md border border-white/25 rounded-[10px] px-2.5 h-[34px] text-white focus:outline-none focus:border-cyan-300 font-bold text-[11px] shadow-lg max-w-[170px]"
+          >
+            <option className="text-slate-900" value="semua">Semua Kelurahan</option>
+            {(WILAYAH[filterKecamatan] || []).map(kel => (
+              <option className="text-slate-900" key={kel} value={kel}>{kel}</option>
             ))}
           </select>
-
-          {/* Kelurahan Dropdown */}
-          {filterKecamatan !== 'semua' && (
-            <select
-              value={filterKelurahan}
-              onChange={(e) => setFilterKelurahan(e.target.value)}
-              className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-emerald-500 font-bold text-[11px]"
-            >
-              <option value="semua">Semua Kelurahan</option>
-              {(WILAYAH[filterKecamatan] || []).map(kel => (
-                <option key={kel} value={kel}>{kel}</option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Toggle Mode Pasokan (Pasokan Terdata | Estimasi Tahunan) */}
-          <div
-            role="group"
-            aria-label="Mode Tampilan Tonase Pasokan"
-            className="bg-[#051829]/90 backdrop-blur-xl border border-cyan-300/35 rounded-2xl sm:rounded-full p-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 shadow-xl"
-          >
-            <button
-              type="button"
-              onClick={() => setModePasokan('terdata')}
-              className={`h-7 px-3 rounded-xl sm:rounded-full text-[10.5px] sm:text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
-                modePasokan === 'terdata'
-                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
-                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Truck className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
-              <span>Pasokan Terdata</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setModePasokan('tahunan')}
-              className={`h-7 px-3 rounded-xl sm:rounded-full text-[10.5px] sm:text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
-                modePasokan === 'tahunan'
-                  ? 'bg-gradient-to-r from-cyan-500/35 to-teal-400/35 border border-cyan-300 text-white shadow-[0_0_14px_rgba(34,227,255,0.65),inset_0_0_8px_rgba(34,227,255,0.3)]'
-                  : 'border border-transparent text-cyan-100/80 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
-              <span>Estimasi Tahunan</span>
-            </button>
-          </div>
-
-          {/* Tombol Beralih ke Peta Arus Pasokan */}
-          {onSwitchToArusMap && (
-            <button
-              onClick={onSwitchToArusMap}
-              className="px-3 py-2 rounded-xl backdrop-blur-md border border-cyan-400/40 bg-[#071a2e]/90 text-cyan-200 hover:text-white hover:border-cyan-300 text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Beralih ke Peta Arus Pasokan & Distribusi Beras"
-            >
-              <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">Peta Arus Pasokan</span>
-            </button>
-          )}
-
-          {/* OSM Overlay Toggle Button */}
-          <button
-            onClick={() => setShowOsm(!showOsm)}
-            className={`px-3 py-2 rounded-xl backdrop-blur-md border text-xs font-bold shadow-xl transition-all flex items-center gap-1.5 ${
-              showOsm
-                ? 'bg-emerald-600 text-white border-emerald-400'
-                : 'bg-white/90 text-slate-600 border-emerald-200 hover:text-emerald-800'
-            }`}
-            title="Tampilkan / Sembunyikan Overlay Jalan & Sungai"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Overlay Jalan</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Main Leaflet Map */}
