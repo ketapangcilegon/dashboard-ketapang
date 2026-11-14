@@ -26,6 +26,8 @@ export interface KameraCerdasMapProps {
   focusCoords?: [number, number] | null;
   onSwitchToArusMap?: () => void;
   filterMode?: 'semua' | 'pasokan_beras' | 'tanaman_pangan';
+  kecamatan?: string;
+  kelurahan?: string;
 }
 
 // Builder Icon Teardrop Tematik Serumpun Padi
@@ -77,7 +79,9 @@ export default function KameraCerdasMap({
   focusPinId,
   focusCoords,
   onSwitchToArusMap,
-  filterMode: filterModeProp
+  filterMode: filterModeProp,
+  kecamatan: kecamatanProp,
+  kelurahan: kelurahanProp
 }: KameraCerdasMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
@@ -86,8 +90,10 @@ export default function KameraCerdasMap({
   const [filterModeLokal, setFilterModeLokal] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
   const filterMode = filterModeProp ?? filterModeLokal;
   const [modePasokan, setModePasokan] = useState<'tahunan' | 'terdata'>('tahunan');
-  const [filterKecamatan, setFilterKecamatan] = useState<string>('semua');
-  const [filterKelurahan, setFilterKelurahan] = useState<string>('semua');
+  const [kecLokal, setFilterKecamatan] = useState<string>('semua');
+  const [kelLokal, setFilterKelurahan] = useState<string>('semua');
+  const filterKecamatan = kecamatanProp ?? kecLokal;
+  const filterKelurahan = kelurahanProp ?? kelLokal;
   const [showOsm, setShowOsm] = useState<boolean>(false);
   const [selectedRecord, setSelectedRecord] = useState<ObservasiRecord | null>(null);
   const kalibrasi: Kalibrasi = useMemo(() => hitungKalibrasi(observasiList), [observasiList]);
@@ -163,32 +169,6 @@ export default function KameraCerdasMap({
             {b.icon}
           </button>
         ))}
-      </div>
-
-      {/* Dropdown Kecamatan (kanan atas) */}
-      <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5 pointer-events-auto">
-        <select
-          value={filterKecamatan}
-          onChange={(e) => handleKecamatanChange(e.target.value)}
-          className="bg-[#091728]/60 backdrop-blur-md border border-white/25 rounded-[10px] px-2.5 h-[34px] text-white focus:outline-none focus:border-cyan-300 font-bold text-[11px] shadow-lg max-w-[170px]"
-        >
-          <option className="text-slate-900" value="semua">Semua Kecamatan</option>
-          {Object.keys(WILAYAH).map(kec => (
-            <option className="text-slate-900" key={kec} value={kec}>{kec}</option>
-          ))}
-        </select>
-        {filterKecamatan !== 'semua' && (
-          <select
-            value={filterKelurahan}
-            onChange={(e) => setFilterKelurahan(e.target.value)}
-            className="bg-[#091728]/60 backdrop-blur-md border border-white/25 rounded-[10px] px-2.5 h-[34px] text-white focus:outline-none focus:border-cyan-300 font-bold text-[11px] shadow-lg max-w-[170px]"
-          >
-            <option className="text-slate-900" value="semua">Semua Kelurahan</option>
-            {(WILAYAH[filterKecamatan] || []).map(kel => (
-              <option className="text-slate-900" key={kel} value={kel}>{kel}</option>
-            ))}
-          </select>
-        )}
       </div>
 
       {/* Main Leaflet Map */}

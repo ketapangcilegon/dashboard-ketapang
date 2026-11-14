@@ -11,6 +11,7 @@ import KameraAgregasiDashboard from './KameraAgregasiDashboard';
 import { cariKelurahanTerdekat, resolveDynamicGeocode, haversineDistanceMeters } from '@/lib/kamera-normatif';
 import { maskEmailAddress } from '@/lib/arusPasokan';
 import { ObservasiRecord } from '@/app/api/kamera-cerdas/observasi/route';
+import { WILAYAH } from '@/lib/wilayah';
 import { supabase } from '@/lib/supabase';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
 import {
@@ -55,6 +56,9 @@ export default function KameraCerdasView({
   const [activeTab, setActiveTab] = useState<KameraTab>(initialTab);
   // Filter jenis pin pada peta Pin: semua | pasokan_beras | tanaman_pangan
   const [pinFilterMode, setPinFilterMode] = useState<'semua' | 'pasokan_beras' | 'tanaman_pangan'>('semua');
+  const [pinKecamatan, setPinKecamatan] = useState<string>('semua');
+  const [pinKelurahan, setPinKelurahan] = useState<string>('semua');
+  const [kecMenuOpen, setKecMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialTab) {
@@ -874,7 +878,7 @@ export default function KameraCerdasView({
     <div className="w-full h-full flex flex-col bg-[#F5FAF2] text-slate-800 relative overflow-hidden select-none">
       
       {/* ── Top App Bar Navigation ── */}
-      <div className="bg-gradient-to-r from-white via-[#F7FCEB] to-[#EAF8EE] border-b border-emerald-100 px-3 sm:px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between z-30 shrink-0 shadow-[0_4px_18px_rgba(16,120,70,0.08)]">
+      <div className="bg-gradient-to-r from-white via-[#F7FCEB] to-[#EAF8EE] border-b border-emerald-100 px-3 sm:px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between z-[500] shrink-0 shadow-[0_4px_18px_rgba(16,120,70,0.08)]">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/30">
             <Camera className="w-4 h-4" />
@@ -903,6 +907,47 @@ export default function KameraCerdasView({
               >
                 <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
               </button>
+              {/* Dropdown Kecamatan (tab Pin) � di sebelah ikon lampu kuning */}
+              {activeTab === 'map' && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setKecMenuOpen((v) => !v)}
+                    className="h-6 px-2 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs max-w-[150px]"
+                    aria-expanded={kecMenuOpen}
+                    title="Pilih kecamatan / kelurahan"
+                  >
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{pinKelurahan !== 'semua' ? pinKelurahan : pinKecamatan !== 'semua' ? pinKecamatan : 'Kecamatan'}</span>
+                    <span className="text-[8px] leading-none">{kecMenuOpen ? '?' : '?'}</span>
+                  </button>
+                  {kecMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setKecMenuOpen(false)} />
+                      <div className="absolute left-0 top-7 z-50 w-44 max-h-56 overflow-y-auto rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-50 to-white shadow-xl p-1 text-[10px] font-semibold">
+                        <button type="button" onClick={() => { setPinKecamatan('semua'); setPinKelurahan('semua'); setKecMenuOpen(false); }}
+                          className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}>
+                          Semua Kecamatan
+                        </button>
+                        {Object.keys(WILAYAH).map((kec) => (
+                          <div key={kec}>
+                            <button type="button" onClick={() => { setPinKecamatan(kec); setPinKelurahan('semua'); if (!(WILAYAH[kec] || []).length) setKecMenuOpen(false); }}
+                              className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === kec && pinKelurahan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}>
+                              {kec}
+                            </button>
+                            {pinKecamatan === kec && (WILAYAH[kec] || []).map((kel) => (
+                              <button key={kel} type="button" onClick={() => { setPinKelurahan(kel); setKecMenuOpen(false); }}
+                                className={`w-full text-left pl-5 pr-2 py-0.5 rounded-md cursor-pointer text-[9.5px] ${pinKelurahan === kel ? 'bg-emerald-500 text-white' : 'text-emerald-800 hover:bg-emerald-100'}`}>
+                                {kel}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <p className="hidden sm:block text-[10px] text-slate-500">Field Data Collection & Geospatial Intelligence</p>
           </div>
@@ -1320,6 +1365,8 @@ export default function KameraCerdasView({
             focusCoords={newlyCreatedCoords}
             onSwitchToArusMap={() => setActiveTab('arus')}
             filterMode={pinFilterMode}
+            kecamatan={pinKecamatan}
+            kelurahan={pinKelurahan}
           />
         </div>
       )}
