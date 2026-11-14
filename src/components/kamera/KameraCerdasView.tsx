@@ -907,7 +907,8 @@ export default function KameraCerdasView({
               >
                 <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
               </button>
-              {/* Dropdown Kecamatan (tab Pin) � di sebelah ikon lampu kuning */}
+
+              {/* Dropdown Kecamatan (tab Pin) - di sebelah ikon lampu kuning */}
               {activeTab === 'map' && (
                 <div className="relative">
                   <button
@@ -919,25 +920,35 @@ export default function KameraCerdasView({
                   >
                     <MapPin className="w-3 h-3 shrink-0" />
                     <span className="truncate">{pinKelurahan !== 'semua' ? pinKelurahan : pinKecamatan !== 'semua' ? pinKecamatan : 'Kecamatan'}</span>
-                    <span className="text-[8px] leading-none">{kecMenuOpen ? '?' : '?'}</span>
+                    <span className="text-[8px] leading-none">{kecMenuOpen ? '▲' : '▼'}</span>
                   </button>
                   {kecMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setKecMenuOpen(false)} />
                       <div className="absolute left-0 top-7 z-50 w-44 max-h-56 overflow-y-auto rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-50 to-white shadow-xl p-1 text-[10px] font-semibold">
-                        <button type="button" onClick={() => { setPinKecamatan('semua'); setPinKelurahan('semua'); setKecMenuOpen(false); }}
-                          className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}>
+                        <button
+                          type="button"
+                          onClick={() => { setPinKecamatan('semua'); setPinKelurahan('semua'); setKecMenuOpen(false); }}
+                          className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}
+                        >
                           Semua Kecamatan
                         </button>
                         {Object.keys(WILAYAH).map((kec) => (
                           <div key={kec}>
-                            <button type="button" onClick={() => { setPinKecamatan(kec); setPinKelurahan('semua'); if (!(WILAYAH[kec] || []).length) setKecMenuOpen(false); }}
-                              className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === kec && pinKelurahan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}>
+                            <button
+                              type="button"
+                              onClick={() => { setPinKecamatan(kec); setPinKelurahan('semua'); if (!(WILAYAH[kec] || []).length) setKecMenuOpen(false); }}
+                              className={`w-full text-left px-2 py-1 rounded-md cursor-pointer ${pinKecamatan === kec && pinKelurahan === 'semua' ? 'bg-emerald-600 text-white' : 'text-emerald-900 hover:bg-emerald-100'}`}
+                            >
                               {kec}
                             </button>
                             {pinKecamatan === kec && (WILAYAH[kec] || []).map((kel) => (
-                              <button key={kel} type="button" onClick={() => { setPinKelurahan(kel); setKecMenuOpen(false); }}
-                                className={`w-full text-left pl-5 pr-2 py-0.5 rounded-md cursor-pointer text-[9.5px] ${pinKelurahan === kel ? 'bg-emerald-500 text-white' : 'text-emerald-800 hover:bg-emerald-100'}`}>
+                              <button
+                                key={kel}
+                                type="button"
+                                onClick={() => { setPinKelurahan(kel); setKecMenuOpen(false); }}
+                                className={`w-full text-left pl-5 pr-2 py-0.5 rounded-md cursor-pointer text-[9.5px] ${pinKelurahan === kel ? 'bg-emerald-500 text-white' : 'text-emerald-800 hover:bg-emerald-100'}`}
+                              >
                                 {kel}
                               </button>
                             ))}
