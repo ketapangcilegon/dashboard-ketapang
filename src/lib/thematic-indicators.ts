@@ -5,6 +5,8 @@
  * Dilengkapi Robust Baseline & Placeholder Engine untuk mengantisipasi data yang belum diinput admin.
  */
 
+import { isKelurahanMatch, normalizeKelurahanName } from '@/lib/wilayah';
+
 export type ThematicMode = 'none' | 'ikp' | 'penduduk' | 'fsva' | 'skpg' | 'stunting';
 
 export interface KelurahanThematicData {
@@ -165,15 +167,15 @@ export function resolveKelurahanData(
     giziBalita?: any[];
   }
 ): KelurahanThematicData {
-  const cleanName = (rawName || '').replace(/^Kelurahan\s+|^Kecamatan\s+/i, '').trim();
+  const cleanName = normalizeKelurahanName((rawName || '').replace(/^Kelurahan\s+|^Kecamatan\s+/i, '').trim());
 
   // 1. Cek Baseline Terverifikasi
   let record = BASELINE_KELURAHAN_DATA[cleanName];
 
-  // Jika nama tidak ada persis, cari case-insensitive
+  // Jika nama tidak ada persis, cari dengan isKelurahanMatch
   if (!record) {
     const foundKey = Object.keys(BASELINE_KELURAHAN_DATA).find(
-      k => k.toLowerCase() === cleanName.toLowerCase()
+      k => isKelurahanMatch(k, cleanName)
     );
     if (foundKey) {
       record = BASELINE_KELURAHAN_DATA[foundKey];
@@ -200,28 +202,23 @@ export function resolveKelurahanData(
 
   // 2. Overwrite / Inject dengan Data Riil Supabase jika Admin sudah menginput
   if (supabaseData?.fsvaMatang?.length) {
-    const fsvaRow = supabaseData.fsvaMatang.find((r: any) => {
-      const rn = (r.nama_kelurahan || r.kelurahan || '').replace(/^Kelurahan\s+/i, '').trim().toLowerCase();
-      return rn === cleanName.toLowerCase();
-    });
+    const fsvaRow = supabaseData.fsvaMatang.find((r: any) =>
+      isKelurahanMatch(r.nama_kelurahan || r.kelurahan, cleanName)
+    );
 
     if (fsvaRow) {
       if (typeof fsvaRow.ikp === 'number' || !isNaN(parseFloat(fsvaRow.ikp))) {
         record.ikpScore = parseFloat(fsvaRow.ikp);
         record.isPlaceholder = false;
+        if (record.ikpScore >= 77.29) record.fsvaPriority = 6;
+        else if (record.ikpScore >= 69.71) record.fsvaPriority = 5;
+        else if (record.ikpScore >= 61.83) record.fsvaPriority = 4;
+        else if (record.ikpScore >= 53.95) record.fsvaPriority = 3;
+        else if (record.ikpScore >= 46.37) record.fsvaPriority = 2;
+        else record.fsvaPriority = 1;
       }
       if (typeof fsvaRow.stunting === 'number' || !isNaN(parseFloat(fsvaRow.stunting))) {
         record.stuntingPct = parseFloat(fsvaRow.stunting);
-      }
-      if (typeof fsvaRow.rank === 'number') {
-        if (record.ikpScore !== null && record.ikpScore !== undefined) {
-          if (record.ikpScore >= 77.29) record.fsvaPriority = 6;
-          else if (record.ikpScore >= 69.71) record.fsvaPriority = 5;
-          else if (record.ikpScore >= 61.83) record.fsvaPriority = 4;
-          else if (record.ikpScore >= 53.95) record.fsvaPriority = 3;
-          else if (record.ikpScore >= 46.37) record.fsvaPriority = 2;
-          else record.fsvaPriority = 1;
-        }
       }
     }
   }

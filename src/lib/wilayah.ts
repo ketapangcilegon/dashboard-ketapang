@@ -18,25 +18,36 @@ Object.entries(WILAYAH).forEach(([kec, kels]) => {
 export const ALL_KEL = Object.values(WILAYAH).flat().sort();
 export const ALL_KEC = Object.keys(WILAYAH).sort();
 
+function toKelurahanKey(name: string): string {
+  const raw = name
+    .replace(/^(kelurahan|kel\.?)\s+/i, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  if (raw === 'grogol' || raw === 'gerogol') return 'gerogol';
+  if (raw === 'dringo' || raw === 'deringo') return 'deringo';
+  return raw;
+}
+
+const KEY_TO_CANONICAL_KEL: Record<string, string> = {};
+ALL_KEL.forEach((kel) => {
+  KEY_TO_CANONICAL_KEL[toKelurahanKey(kel)] = kel;
+});
+
 export function normalizeKelurahanName(name: string | null | undefined): string {
   if (!name) return '';
   const trimmed = name.trim();
-  const lower = trimmed.toLowerCase();
-
-  if (lower === 'grogol' || lower === 'gerogol') return 'Gerogol';
-  if (lower === 'dringo' || lower === 'deringo') return 'Deringo';
-
+  const key = toKelurahanKey(trimmed);
+  if (KEY_TO_CANONICAL_KEL[key]) {
+    return KEY_TO_CANONICAL_KEL[key];
+  }
   return trimmed;
 }
 
 export function isKelurahanMatch(name1: string | null | undefined, name2: string | null | undefined): boolean {
   if (!name1 || !name2) return false;
   if (name1 === name2) return true;
-  
-  const n1 = normalizeKelurahanName(name1).toLowerCase();
-  const n2 = normalizeKelurahanName(name2).toLowerCase();
-  
-  return n1 === n2;
+  return toKelurahanKey(name1) === toKelurahanKey(name2);
 }
 
 export function getKecamatanByKelurahan(kelName: string | null | undefined): string {

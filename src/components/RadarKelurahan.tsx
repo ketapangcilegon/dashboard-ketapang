@@ -6,7 +6,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
 } from 'recharts';
-import { WILAYAH, ALL_KEC, ALL_KEL, KEL_TO_KEC } from '@/lib/wilayah';
+import { WILAYAH, ALL_KEC, ALL_KEL, KEL_TO_KEC, isKelurahanMatch } from '@/lib/wilayah';
 import CustomSelect, { CustomSelectOption } from '@/components/CustomSelect';
 import { 
   ShieldCheck, AlertCircle, Layers, Sliders, ArrowRightLeft, 
@@ -60,13 +60,13 @@ function getForm2FSVAData(dbRows: any[]): Record<string, KelurahanData> {
   Object.entries(WILAYAH).forEach(([kec, kels]) => {
     kels.forEach((kel) => {
       // Find matching item in DB rows first
-      const dbMatch = (dbRows || []).find(
-        (d) => d.nama_kelurahan?.toLowerCase().replace(/\s+/g, '') === kel.toLowerCase().replace(/\s+/g, '')
+      const dbMatch = (dbRows || []).find((d) =>
+        isKelurahanMatch(d.nama_kelurahan || d.kelurahan, kel)
       );
 
       // Or fallback to official Form 2.1 & 2.3 JSON
-      const jsonMatch = Object.values(fsvaForm2Data).find(
-        (item: any) => item.kelurahan?.toLowerCase().replace(/\s+/g, '') === kel.toLowerCase().replace(/\s+/g, '')
+      const jsonMatch = Object.values(fsvaForm2Data).find((item: any) =>
+        isKelurahanMatch(item.kelurahan, kel)
       ) || {};
 
       const item = dbMatch || jsonMatch;

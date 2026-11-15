@@ -690,7 +690,11 @@ export default function AIIntelligenceMap({
     async function fetchIndicatorData() {
       try {
         const [fsvaRes, skpgRes, giziRes] = await Promise.all([
-          supabase.from('fsva_matang').select('*'),
+          supabase
+            .from('fsva_matang')
+            .select('*')
+            .order('periode', { ascending: false })
+            .order('created_at', { ascending: false }),
           supabase.from('skpg_matang').select('*'),
           supabase.from('gizi_balita_skpg_kelurahan').select('*').limit(100),
         ]);

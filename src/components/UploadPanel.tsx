@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { UploadCloud, CheckCircle2, AlertCircle, Loader2, Download, FileSpreadsheet, PlusCircle, Edit } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, clearSupabaseRestCache } from '@/lib/supabase';
 
 // Standard Kecamatan and Kelurahan in Cilegon City
 const WILAYAH: Record<string, string[]> = {
@@ -258,199 +258,174 @@ export default function UploadPanel() {
       setMessage(`Mengunggah ${rows.length} baris data ke database...`);
       let successCount = 0;
 
-      for (const row of rows) {
-        if (selectedType === 'harga') {
-          // Normalize inputs
-          const tanggal = row['Tanggal'] || new Date().toISOString().split('T')[0];
-          const kec = row['Kecamatan'] || 'Cibeber';
-          const kel = row['Kelurahan'] || 'Cibeber';
-          const beras = parseFloat(row['Beras']) || 0;
-          const minyak = parseFloat(row['Minyak']) || 0;
-          const telur = parseFloat(row['Telur']) || 0;
-          const gula = parseFloat(row['Gula']) || 0;
-          const cabai = parseFloat(row['Cabai']) || 0;
-          const cv = computeCV(beras, minyak, telur, gula, cabai);
-
-          const { error } = await supabase.from('harga_pangan').insert({
-            tanggal,
-            kecamatan: kec.trim(),
-            kelurahan: kel.trim(),
-            beras,
-            minyak_goreng: minyak,
-            telur,
-            gula_pasir: gula,
-            cabe_merah: cabai,
-            daging_ayam: 35000, // Default chicken price
-            cv_harga: cv,
-          });
-
-        } else if (selectedType === 'ikp') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const ikpCilegon = parseFloat(row['IKP Cilegon']) || 0;
-          const ikpProvinsi = row['IKP Provinsi Banten'] !== undefined && row['IKP Provinsi Banten'] !== '' ? parseFloat(row['IKP Provinsi Banten']) : (row['IKP Banten'] !== undefined && row['IKP Banten'] !== '' ? parseFloat(row['IKP Banten']) : null);
-          const ikpNasional = row['IKP Nasional'] !== undefined && row['IKP Nasional'] !== '' ? parseFloat(row['IKP Nasional']) : null;
-
-          const { error } = await supabase.from('ikp_data').upsert({
-            tahun,
-            ikp_cilegon: ikpCilegon,
-            ikp_provinsi: ikpProvinsi,
-            ikp_nasional: ikpNasional,
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'pou') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const pouNasional = parseFloat(row['POU Nasional']) || 0;
-          const pouProvinsi = parseFloat(row['POU Provinsi Banten']) || 0;
-          const pouCilegon = parseFloat(row['POU Cilegon']) || 0;
-
-          const { error } = await supabase.from('pou_data').upsert({
-            tahun,
-            pou_nasional: pouNasional,
-            pou_provinsi: pouProvinsi,
-            pou_cilegon: pouCilegon,
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'cv_beras') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const targetStr = String(row['Target CV'] || '< 10 %');
-          const target = parseFloat(targetStr.replace(/[^\d.]/g, '')) || 10;
-          const cilegon = parseFloat(row['CV Beras']) || 0;
-
-          const { error } = await supabase.from('cv_beras_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'pph') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const target = parseFloat(row['PPH Nasional Target']) || 80;
-          const cilegon = parseFloat(row['PPH Cilegon']) || 0;
-
-          const { error } = await supabase.from('pph_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'k_energi') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const target = parseFloat(row['Konsumsi Energi Standar Nasional']) || 2100;
-          const cilegon = parseFloat(row['Konsumsi Energi Cilegon']) || 0;
-
-          const { error } = await supabase.from('konsumsi_energi_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'k_protein') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const target = parseFloat(row['Konsumsi Protein Standar Nasional']) || 57;
-          const cilegon = parseFloat(row['Konsumsi Protein Cilegon']) || 0;
-
-          const { error } = await supabase.from('konsumsi_protein_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 't_energi') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const target = parseFloat(row['Ketersediaan Energi Standar Nasional']) || 2400;
-          const cilegon = parseFloat(row['Ketersediaan Energi Cilegon']) || 0;
-
-          const { error } = await supabase.from('ketersediaan_energi_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 't_protein') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const target = parseFloat(row['Ketersediaan Protein Standar Nasional']) || 63;
-          const cilegon = parseFloat(row['Ketersediaan Protein Cilegon']) || 0;
-
-          const { error } = await supabase.from('ketersediaan_protein_data').upsert({
-            tahun,
-            target,
-            cilegon
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'produksi_beras') {
-          const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
-          const gkg = parseFloat(row['Produksi GKG']) || 0;
-          const konversi = parseFloat(row['Angka Konversi GKG ke Beras']) || 63.23;
-          const beras = parseFloat(row['Produksi Beras']) || parseFloat((gkg * konversi / 100).toFixed(2));
-
-          const { error } = await supabase.from('produksi_beras_data').upsert({
-            tahun,
-            produksi_gkg: gkg,
-            konversi,
-            produksi_beras: beras
-          }, { onConflict: 'tahun' });
-
-          if (error) throw error;
-        } else if (selectedType === 'fsva_matang') {
-          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
-          const kode_kel_bps = String(row['kode_kel_bps'] || '').trim();
-          const ikp = parseFloat(row['ikp']) || 0;
-          const periode = parseInt(row['periode']) || 2025;
-
-          if (!nama_kelurahan || !kode_kel_bps) continue;
-
-          const { error } = await supabase.from('fsva_matang').insert({
-            nama_kelurahan,
-            kode_kel_bps,
-            ikp,
-            periode
-          });
-
-          if (error) throw error;
-        } else if (selectedType === 'intervensi_kelurahan') {
-          const no_urut = parseInt(row['no_urut']) || 0;
-          const tahun = parseInt(row['Tahun']) || 2026;
-          const bulan = 1; // Default to Jan
-          const kode_kec_bps = String(row['kode_kec_bps'] || '').trim();
-          const nama_kecamatan = String(row['nama_kecamatan'] || '').trim();
-          const kode_desa_bps = String(row['kode_desa_bps'] || '').trim();
-          const nama_kelurahan = String(row['nama_kelurahan'] || '').trim();
-          const gpm = parseInt(row['GPM']) || 0;
-          const bantuan_pangan = parseInt(row['bantuan_pangan']) || 0;
-
-          if (!nama_kelurahan) continue;
-
-          const { error } = await supabase.from('intervensi_kelurahan').insert({
-            no_urut,
-            tahun,
-            bulan,
-            kode_kec_bps,
-            nama_kecamatan,
-            kode_desa_bps,
-            nama_kelurahan,
-            gpm,
-            bantuan_pangan
-          });
-
-          if (error) throw error;
+      if (selectedType === 'fsva_matang' || selectedType === 'intervensi_kelurahan') {
+        const res = await fetch('/api/admin/upload-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: selectedType, rows }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          throw new Error(payload?.error || 'Gagal mengunggah data batch ke server.');
         }
+        successCount = payload.count || rows.length;
+        clearSupabaseRestCache();
 
-        successCount++;
+        if (typeof window !== 'undefined' && selectedType === 'fsva_matang') {
+          const lastPeriode = payload.periode || (rows.length > 0 ? (parseInt(rows[0]['periode']) || 2026) : 2026);
+          window.dispatchEvent(new CustomEvent('fsva_period_updated', { detail: { periode: lastPeriode } }));
+        }
+      } else {
+        for (const row of rows) {
+          if (selectedType === 'harga') {
+            // Normalize inputs
+            const tanggal = row['Tanggal'] || new Date().toISOString().split('T')[0];
+            const kec = row['Kecamatan'] || 'Cibeber';
+            const kel = row['Kelurahan'] || 'Cibeber';
+            const beras = parseFloat(row['Beras']) || 0;
+            const minyak = parseFloat(row['Minyak']) || 0;
+            const telur = parseFloat(row['Telur']) || 0;
+            const gula = parseFloat(row['Gula']) || 0;
+            const cabai = parseFloat(row['Cabai']) || 0;
+            const cv = computeCV(beras, minyak, telur, gula, cabai);
+
+            const { error } = await supabase.from('harga_pangan').insert({
+              tanggal,
+              kecamatan: kec.trim(),
+              kelurahan: kel.trim(),
+              beras,
+              minyak_goreng: minyak,
+              telur,
+              gula_pasir: gula,
+              cabe_merah: cabai,
+              daging_ayam: 35000, // Default chicken price
+              cv_harga: cv,
+            });
+            if (error) throw error;
+
+          } else if (selectedType === 'ikp') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const ikpCilegon = parseFloat(row['IKP Cilegon']) || 0;
+            const ikpProvinsi = row['IKP Provinsi Banten'] !== undefined && row['IKP Provinsi Banten'] !== '' ? parseFloat(row['IKP Provinsi Banten']) : (row['IKP Banten'] !== undefined && row['IKP Banten'] !== '' ? parseFloat(row['IKP Banten']) : null);
+            const ikpNasional = row['IKP Nasional'] !== undefined && row['IKP Nasional'] !== '' ? parseFloat(row['IKP Nasional']) : null;
+
+            const { error } = await supabase.from('ikp_data').upsert({
+              tahun,
+              ikp_cilegon: ikpCilegon,
+              ikp_provinsi: ikpProvinsi,
+              ikp_nasional: ikpNasional,
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'pou') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const pouNasional = parseFloat(row['POU Nasional']) || 0;
+            const pouProvinsi = parseFloat(row['POU Provinsi Banten']) || 0;
+            const pouCilegon = parseFloat(row['POU Cilegon']) || 0;
+
+            const { error } = await supabase.from('pou_data').upsert({
+              tahun,
+              pou_nasional: pouNasional,
+              pou_provinsi: pouProvinsi,
+              pou_cilegon: pouCilegon,
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'cv_beras') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const targetStr = String(row['Target CV'] || '< 10 %');
+            const target = parseFloat(targetStr.replace(/[^\d.]/g, '')) || 10;
+            const cilegon = parseFloat(row['CV Beras']) || 0;
+
+            const { error } = await supabase.from('cv_beras_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'pph') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const target = parseFloat(row['PPH Nasional Target']) || 80;
+            const cilegon = parseFloat(row['PPH Cilegon']) || 0;
+
+            const { error } = await supabase.from('pph_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'k_energi') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const target = parseFloat(row['Konsumsi Energi Standar Nasional']) || 2100;
+            const cilegon = parseFloat(row['Konsumsi Energi Cilegon']) || 0;
+
+            const { error } = await supabase.from('konsumsi_energi_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'k_protein') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const target = parseFloat(row['Konsumsi Protein Standar Nasional']) || 57;
+            const cilegon = parseFloat(row['Konsumsi Protein Cilegon']) || 0;
+
+            const { error } = await supabase.from('konsumsi_protein_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 't_energi') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const target = parseFloat(row['Ketersediaan Energi Standar Nasional']) || 2400;
+            const cilegon = parseFloat(row['Ketersediaan Energi Cilegon']) || 0;
+
+            const { error } = await supabase.from('ketersediaan_energi_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 't_protein') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const target = parseFloat(row['Ketersediaan Protein Standar Nasional']) || 63;
+            const cilegon = parseFloat(row['Ketersediaan Protein Cilegon']) || 0;
+
+            const { error } = await supabase.from('ketersediaan_protein_data').upsert({
+              tahun,
+              target,
+              cilegon
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          } else if (selectedType === 'produksi_beras') {
+            const tahun = parseInt(row['Tahun']) || new Date().getFullYear();
+            const gkg = parseFloat(row['Produksi GKG']) || 0;
+            const konversi = parseFloat(row['Angka Konversi GKG ke Beras']) || 63.23;
+            const beras = parseFloat(row['Produksi Beras']) || parseFloat((gkg * konversi / 100).toFixed(2));
+
+            const { error } = await supabase.from('produksi_beras_data').upsert({
+              tahun,
+              produksi_gkg: gkg,
+              konversi,
+              produksi_beras: beras
+            }, { onConflict: 'tahun' });
+
+            if (error) throw error;
+          }
+
+          successCount++;
+        }
+        clearSupabaseRestCache();
       }
 
-      if (typeof window !== 'undefined' && selectedType === 'fsva_matang') {
-        const lastPeriode = rows && rows.length > 0 ? (parseInt(rows[0]['periode']) || 2026) : 2026;
-        window.dispatchEvent(new CustomEvent('fsva_period_updated', { detail: { periode: lastPeriode } }));
-      }
-
+      e.target.value = '';
       setStatus('success');
       setMessage(`Berhasil memproses ${successCount} baris data! Dashboard Anda telah diperbarui.`);
     } catch (err: any) {

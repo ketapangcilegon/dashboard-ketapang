@@ -16,10 +16,10 @@ const LONG_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 jam untuk tabel referensi/his
 const MAX_CACHE_ENTRIES = 150;
 const MAX_MEMORY_CACHE_BYTES = 512 * 1024; // <= 512 KB di RAM
 const MAX_LOCALSTORAGE_BYTES = 180 * 1024; // <= 180 KB per entry di localStorage agar kuota browser aman
-const LS_REST_PREFIX = 'panci_rest_v2_';
-const LS_API_PREFIX = 'panci_api_v2_';
+const LS_REST_PREFIX = 'panci_rest_v3_';
+const LS_API_PREFIX = 'panci_api_v3_';
 
-// Tabel yang datanya bersifat operasional harian (TTL 30 menit di localStorage)
+// Tabel yang datanya bersifat operasional harian / sering diperbarui Admin (TTL 30 menit di localStorage)
 const SHORT_TTL_TABLES = new Set([
   'forecast_result',
   'dashboard_media',
@@ -27,6 +27,10 @@ const SHORT_TTL_TABLES = new Set([
   'sp_cache_data',
   'page_visits',
   'feature_access_settings',
+  'fsva_matang',
+  'intervensi_kelurahan',
+  'gizi_balita_skpg_kelurahan',
+  'skpg_matang',
 ]);
 
 const restGetCache = new Map<string, CachedRestResponse>();
@@ -102,7 +106,7 @@ export function clearSupabaseRestCache() {
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && (k.startsWith(LS_REST_PREFIX) || k.startsWith(LS_API_PREFIX))) {
+        if (k && (k.startsWith('panci_rest_') || k.startsWith('panci_api_'))) {
           keysToRemove.push(k);
         }
       }
@@ -110,6 +114,22 @@ export function clearSupabaseRestCache() {
     } catch {
       // ignore
     }
+  }
+}
+
+// Bersihkan cache v2 lama sekali saat modul dimuat di browser agar data duplikat lama langsung terhapus
+if (typeof window !== 'undefined') {
+  try {
+    const legacyKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('panci_rest_v2_') || k.startsWith('panci_api_v2_'))) {
+        legacyKeys.push(k);
+      }
+    }
+    legacyKeys.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
   }
 }
 

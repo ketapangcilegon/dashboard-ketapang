@@ -964,11 +964,17 @@ function MapController({
                     return <div className="text-[10px] font-bold text-slate-400 py-1">Tidak ada data FSVA.</div>;
                   }
                   // Sort by IKP ascending (lowest value = highest priority)
+                  const seenKel = new Set<string>();
                   const sortedFsva = [...fsvaMatangData]
                     .map(item => ({
-                      kelurahan: item.nama_kelurahan || item.kelurahan,
+                      kelurahan: normalizeKelurahanName(item.nama_kelurahan || item.kelurahan),
                       ikp: parseFloat(item.ikp) || 0
                     }))
+                    .filter(item => {
+                      if (!item.kelurahan || seenKel.has(item.kelurahan)) return false;
+                      seenKel.add(item.kelurahan);
+                      return true;
+                    })
                     .sort((a, b) => a.ikp - b.ikp)
                     .slice(0, 10);
 
@@ -1111,6 +1117,8 @@ export default function MapUnified({
     return () => window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
   }, []);
 
+  const [fsvaRefreshTick, setFsvaRefreshTick] = useState<number>(0);
+
   // Fetch all valid FSVA years available in database
   useEffect(() => {
     if (!mounted) return;
@@ -1133,6 +1141,13 @@ export default function MapUnified({
       }
     };
     fetchValidFsvaYears();
+
+    const handleFsvaUpdated = () => {
+      fetchValidFsvaYears();
+      setFsvaRefreshTick(t => t + 1);
+    };
+    window.addEventListener('fsva_period_updated', handleFsvaUpdated);
+    return () => window.removeEventListener('fsva_period_updated', handleFsvaUpdated);
   }, [mounted]);
 
   // Fetch valid Borda years available in database only if data is complete
@@ -1254,21 +1269,35 @@ export default function MapUnified({
       try {
         // Fetch FSVA Dataset: For Borda Count layer (year Y), use FSVA year Y - 1 (e.g. Borda 2026 uses FSVA 2025)
         try {
+          const dedupeFsvaRows = (rows: any[]) => {
+            const seen = new Set<string>();
+            const result: any[] = [];
+            for (const r of rows) {
+              const canon = normalizeKelurahanName(r.nama_kelurahan || r.kelurahan);
+              if (!canon || seen.has(canon)) continue;
+              seen.add(canon);
+              result.push({ ...r, nama_kelurahan: canon });
+            }
+            return result;
+          };
+
           const targetFsvaYear = activeLayer === 'borda' ? (bordaYear - 1) : fsvaYear;
           const { data: fsvaM, error } = await supabase
             .from('fsva_matang')
             .select('*')
-            .eq('periode', targetFsvaYear);
+            .eq('periode', targetFsvaYear)
+            .order('created_at', { ascending: false });
           
           if (!error && fsvaM && fsvaM.length > 0) {
-            setFsvaMatangData(fsvaM);
+            setFsvaMatangData(dedupeFsvaRows(fsvaM));
           } else {
             // Fallback to active fsvaYear if exact targetFsvaYear doesn't exist
             const { data: fsvaFB } = await supabase
               .from('fsva_matang')
               .select('*')
-              .eq('periode', fsvaYear);
-            setFsvaMatangData(fsvaFB || []);
+              .eq('periode', fsvaYear)
+              .order('created_at', { ascending: false });
+            setFsvaMatangData(dedupeFsvaRows(fsvaFB || []));
           }
         } catch (e) {
           console.warn('fsva_matang fetch failed:', e);
@@ -1389,7 +1418,7 @@ export default function MapUnified({
     }
 
     fetchMapData();
-  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear, bordaYear, activeLayer]);
+  }, [mounted, selectedYear, selectedMonth, activeSkpgPeriod, fsvaYear, bordaYear, activeLayer, fsvaRefreshTick]);
 
   // Ambil data observasi Kamera Cerdas sekali saat mount (deduplicated & summary hydrated)
   useEffect(() => {

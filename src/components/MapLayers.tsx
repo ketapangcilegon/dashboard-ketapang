@@ -171,11 +171,13 @@ export function KelurahanLayer({
       {data.map((f, i) => {
         const nama = f.properties?.name || f.properties?.Name || '';
         const style = getIKPGStyle(nama, activeIKPGLayer, fsvaData, skpgData, fsvaMatangData, skpgMatangData, intervensiData, ikpgOpacity);
-        const fsvaSig = fsvaMatangData && fsvaMatangData.length > 0
-          ? `${fsvaYear}-${fsvaMatangData[0]?.ikp || 'x'}-${fsvaMatangData.length}`
+        const matchedFsva = fsvaMatangData?.find(r => isKelurahanMatch(r.nama_kelurahan || r.kelurahan, nama));
+        const fsvaSig = matchedFsva
+          ? `${fsvaYear}-${matchedFsva.ikp}-${fsvaMatangData.length}`
           : `no-fsva-${fsvaYear}`;
-        const skpgSig = skpgMatangData && skpgMatangData.length > 0
-          ? `${selectedYear}-${selectedMonth}-${skpgMatangData.length}`
+        const matchedSkpg = skpgMatangData?.find(r => isKelurahanMatch(r.nama_kelurahan || r.kelurahan, nama));
+        const skpgSig = matchedSkpg
+          ? `${selectedYear}-${selectedMonth}-${matchedSkpg.gizi_kurang || 0}-${matchedSkpg.gizi_sangat_kurang || 0}-${matchedSkpg.prevalensiRataRata || 0}`
           : `no-skpg-${selectedYear}-${selectedMonth}`;
 
         return (
