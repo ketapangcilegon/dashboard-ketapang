@@ -140,7 +140,7 @@ export default function MobileFeatureCatalogModal({
 
   const featureGroups: { category: string; items: FeatureItem[] }[] = [
     {
-      category: 'Fitur Unggulan (11 Modul)',
+      category: 'Fitur Utama (11 Modul)',
       items: [
         {
           id: 'harga_full',
@@ -260,7 +260,7 @@ export default function MobileFeatureCatalogModal({
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
             <div>
-              <h3 className="font-black text-slate-800 text-base tracking-tight">Fitur Unggulan</h3>
+              <h3 className="font-black text-slate-800 text-base tracking-tight">Fitur Utama</h3>
               <p className="text-[11px] text-slate-500 font-medium">11 fitur dan modul analisis ketahanan pangan Cilegon</p>
             </div>
             <button

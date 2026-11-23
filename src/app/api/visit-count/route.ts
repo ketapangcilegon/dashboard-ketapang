@@ -302,7 +302,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    regions.sort((a, b) => b.count - a.count);
+    // Default urut berdasarkan waktu terakhir kunjungan (terbaru di atas)
+    regions.sort(
+      (a, b) =>
+        new Date(b.last_visited_at).getTime() - new Date(a.last_visited_at).getTime() ||
+        b.count - a.count
+    );
     activeOnlineList.sort((a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime());
 
     return NextResponse.json(
@@ -321,7 +326,7 @@ export async function GET(request: NextRequest) {
           masked_ip: visitorGeo.maskedIp,
           location: visitorGeo.locationLabel,
         },
-        regions: regions.slice(0, 15),
+        regions: regions.slice(0, 50),
         active_sessions: activeOnlineList.slice(0, 10),
       },
       {

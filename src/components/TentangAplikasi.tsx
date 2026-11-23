@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock, Users, Globe2, MapPin, Activity, Calendar } from 'lucide-react';
+import { Info, ShieldAlert, Code2, ArrowLeft, Brain, Database, ChevronDown, ChevronUp, Award, Lock, Users, Globe2, MapPin, Activity, Calendar, Clock, BarChart3 } from 'lucide-react';
 import { FULL_VERSION } from '@/lib/version';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
 
@@ -43,6 +43,7 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [visitorStats, setVisitorStats] = useState<VisitorStatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [regionSortMode, setRegionSortMode] = useState<'recent' | 'most_visits'>('recent');
   const { isTentangLocked } = useFeatureAccess();
 
   useEffect(() => {
@@ -698,26 +699,69 @@ export default function TentangAplikasi({ onBack }: TentangAplikasiProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Kolom Kiri: Sebaran Wilayah Asal Pengunjung */}
                     <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <div className="flex items-center gap-2">
-                          <Globe2 className="w-4 h-4 text-emerald-600" />
-                          <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Globe2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider truncate">
                             Sebaran Daerah Asal Pengunjung
                           </h3>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400">
-                          Geolokasi IP
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="hidden sm:inline text-[10px] font-bold text-slate-400 mr-0.5">
+                            Geolokasi IP
+                          </span>
+                          {/* 2 Tombol Filter Ikon (Hemat Ruang): 1. Waktu Terakhir Kunjungan (Default), 2. Jumlah Kunjungan Terbanyak */}
+                          <div className="inline-flex items-center bg-slate-200/75 p-0.5 rounded-lg border border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => setRegionSortMode('recent')}
+                              title="Urut berdasarkan waktu terakhir kunjungan (Default)"
+                              aria-label="Urut berdasarkan waktu terakhir kunjungan"
+                              className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                                regionSortMode === 'recent'
+                                  ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                              }`}
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRegionSortMode('most_visits')}
+                              title="Urut berdasarkan IP address dengan jumlah kunjungan terbanyak"
+                              aria-label="Urut berdasarkan IP address dengan jumlah kunjungan terbanyak"
+                              className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                                regionSortMode === 'most_visits'
+                                  ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                              }`}
+                            >
+                              <BarChart3 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {visitorStats?.regions && visitorStats.regions.length > 0 ? (
                         <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                           {(() => {
+                            const sortedRegions = [...visitorStats.regions].sort((a, b) => {
+                              if (regionSortMode === 'most_visits') {
+                                return (
+                                  b.count - a.count ||
+                                  new Date(b.last_visited_at).getTime() - new Date(a.last_visited_at).getTime()
+                                );
+                              }
+                              return (
+                                new Date(b.last_visited_at).getTime() - new Date(a.last_visited_at).getTime() ||
+                                b.count - a.count
+                              );
+                            });
                             const maxRegCount = Math.max(
-                              ...visitorStats.regions.map((r) => r.count),
+                              ...sortedRegions.map((r) => r.count),
                               1
                             );
-                            return visitorStats.regions.map((reg, idx) => {
+                            return sortedRegions.map((reg, idx) => {
                               const pct = Math.max(8, Math.round((reg.count / maxRegCount) * 100));
                               return (
                                 <div key={reg.location} className="space-y-1">

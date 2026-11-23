@@ -1521,13 +1521,13 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* 5. Sektor / Fitur Unggulan (Capture 1 Reference) */}
+      {/* 5. Sektor / Fitur Utama (Capture 1 Reference) */}
       <div className="bg-gradient-to-br from-[#FFF8E8] to-[#FFF2D2] p-3.5 rounded-3xl border border-[#FFE8B5] shadow-[0_4px_20px_rgba(255,232,181,0.25)] space-y-2.5">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2">
             <div className="w-2 h-4.5 bg-[#F28C00] rounded-full shrink-0" />
             <h3 className="font-black text-xs uppercase tracking-wider text-[#172B4D]">
-              FITUR UNGGULAN
+              FITUR UTAMA
             </h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1539,8 +1539,8 @@ export default function MobileHome({
                   ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm ring-2 ring-amber-300 scale-105'
                   : 'bg-white hover:bg-amber-50 text-amber-600 border-[#FFE8B5] shadow-2xs'
               }`}
-              title="Informasi Ekosistem Fitur Unggulan"
-              aria-label="Informasi Fitur Unggulan"
+              title="Informasi Ekosistem Fitur Utama"
+              aria-label="Informasi Fitur Utama"
             >
               <Lightbulb className="w-3.5 h-3.5 fill-amber-400 text-amber-600" />
             </button>
