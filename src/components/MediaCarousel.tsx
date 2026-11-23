@@ -550,16 +550,16 @@ export default function MediaCarousel() {
           )}
         </div>
 
-        {/* Desktop Chevron Buttons: Kiri & Kanan */}
+        {/* Desktop Chevron Buttons: Kiri & Kanan (Glass Effect Transparan, Lebih Jelas Saat Hover) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             prevSlide();
           }}
-          className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+          className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-black/65 active:bg-black/75 backdrop-blur-[1.5px] hover:backdrop-blur-md text-white/65 hover:text-white shadow-xs hover:shadow-md border border-white/25 hover:border-white/60 flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
           aria-label="Previous Slide"
         >
-          <ChevronLeft className="w-4 h-4 text-white" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
 
         <button
@@ -567,10 +567,10 @@ export default function MediaCarousel() {
             e.stopPropagation();
             nextSlide();
           }}
-          className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-lg border border-white/30 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+          className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-black/65 active:bg-black/75 backdrop-blur-[1.5px] hover:backdrop-blur-md text-white/65 hover:text-white shadow-xs hover:shadow-md border border-white/25 hover:border-white/60 flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
           aria-label="Next Slide"
         >
-          <ChevronRight className="w-4 h-4 text-white" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
@@ -740,16 +740,16 @@ export default function MediaCarousel() {
           </div>
         )}
 
-        {/* Mobile Chevron Buttons */}
+        {/* Mobile Chevron Buttons (Glass Effect Transparan, Lebih Jelas Saat Hover/Sentuh) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             prevSlide();
           }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all active:scale-95"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-white/10 hover:bg-black/65 active:bg-black/75 backdrop-blur-[1.5px] hover:backdrop-blur-md text-white/65 hover:text-white active:text-white shadow-xs hover:shadow-md border border-white/25 hover:border-white/60 flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-95"
           aria-label="Previous Slide"
         >
-          <ChevronLeft className="w-4 h-4 text-white" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
 
         <button
@@ -757,10 +757,10 @@ export default function MediaCarousel() {
             e.stopPropagation();
             nextSlide();
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white shadow-md border border-white/30 flex items-center justify-center cursor-pointer transition-all active:scale-95"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-white/10 hover:bg-black/65 active:bg-black/75 backdrop-blur-[1.5px] hover:backdrop-blur-md text-white/65 hover:text-white active:text-white shadow-xs hover:shadow-md border border-white/25 hover:border-white/60 flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-95"
           aria-label="Next Slide"
         >
-          <ChevronRight className="w-4 h-4 text-white" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 

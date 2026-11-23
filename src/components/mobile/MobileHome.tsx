@@ -699,7 +699,7 @@ export default function MobileHome({
     },
     {
       id: 'analisis_skpg',
-      name: 'Analisis SKPG',
+      name: 'SKPG',
       tag: 'Kewaspadaan',
       icon: <Activity className="w-5 h-5 text-white" />,
       gradient: 'from-[#EF4444] to-[#DC2626]',
