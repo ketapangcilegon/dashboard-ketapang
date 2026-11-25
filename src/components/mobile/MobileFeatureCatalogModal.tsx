@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { 
   X, MapPin, Store, Sparkles, Target, Activity, Camera, 
   Bot, Layers, BarChart3, ShieldCheck, Database, Info, 
-  ExternalLink, ChevronRight, CheckCircle2, Truck 
+  ExternalLink, ChevronRight, CheckCircle2, Truck, Calendar 
 } from 'lucide-react';
 
 interface FeatureItem {
@@ -197,6 +197,14 @@ export default function MobileFeatureCatalogModal({
           icon: <Activity className="w-5 h-5 text-white" />,
           gradient: 'from-purple-600 to-indigo-600',
           badge: 'EWS',
+        },
+        {
+          id: 'kalender_skpg',
+          title: 'Kalender SKPG',
+          subtitle: 'Matriks & tren bulanan SKPG Jan–Des (Juknis 2026)',
+          icon: <Calendar className="w-5 h-5 text-white" />,
+          gradient: 'from-emerald-600 to-teal-700',
+          badge: 'SKPG 2026',
         },
         {
           id: 'radar_kelurahan',

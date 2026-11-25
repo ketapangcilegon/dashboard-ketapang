@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Brain, BarChart3, TrendingUp, Package, Utensils, Calendar, MapPin, Loader2, CheckCircle, AlertTriangle, ShieldAlert, Sparkles, RefreshCw, UploadCloud, Download, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import MapSKPGMini from './MapSKPGMini';
+import SKPGDataDukungPanel from './SKPGDataDukungPanel';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
 
@@ -379,37 +380,33 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
         }
 
         // 2. Fetch nutrition (gizi balita)
-        // For 2024 & 2025: read from gizi_balita_skpg (kecamatan-level SKPG monthly data)
-        // For 2026+: read from gizi_balita (kelurahan-level aggregated data)
-        if (fetchYear <= 2025) {
-          // --- SKPG kecamatan-level table ---
-          const { data: skpgGiziRows } = await supabase
-            .from('gizi_balita_skpg')
-            .select('kecamatan, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih, total_balita')
-            .eq('tahun', fetchYear)
-            .eq('bulan', fetchMonth);
+        // Prioritaskan tabel resmi gizi_balita_skpg untuk semua tahun; fallback ke gizi_balita (2026+) jika belum ada
+        const { data: skpgGiziRows } = await supabase
+          .from('gizi_balita_skpg')
+          .select('kecamatan, bb_sangat_kurang, bb_kurang, bb_normal, bb_lebih, total_balita')
+          .eq('tahun', fetchYear)
+          .eq('bulan', fetchMonth);
 
-          if (skpgGiziRows && skpgGiziRows.length > 0) {
-            const kecNutr: Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }> = {};
-            KECAMATANS.forEach(k => { kecNutr[k] = { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 }; });
+        if (skpgGiziRows && skpgGiziRows.length > 0 && skpgGiziRows.some((r) => (r.total_balita || 0) > 0)) {
+          const kecNutr: Record<string, { sangatKurang: number; kurang: number; normal: number; lebih: number; total: number }> = {};
+          KECAMATANS.forEach(k => { kecNutr[k] = { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 }; });
 
-            skpgGiziRows.forEach(r => {
-              if (kecNutr[r.kecamatan] !== undefined) {
-                kecNutr[r.kecamatan] = {
-                  sangatKurang: r.bb_sangat_kurang || 0,
-                  kurang:       r.bb_kurang || 0,
-                  normal:       r.bb_normal || 0,
-                  lebih:        r.bb_lebih || 0,
-                  total:        r.total_balita || 0,
-                };
-              }
-            });
-            setNutrition(kecNutr);
-          } else {
-            setNutrition(BASELINE_NUTRITION);
-          }
+          skpgGiziRows.forEach(r => {
+            if (kecNutr[r.kecamatan] !== undefined) {
+              kecNutr[r.kecamatan] = {
+                sangatKurang: r.bb_sangat_kurang || 0,
+                kurang:       r.bb_kurang || 0,
+                normal:       r.bb_normal || 0,
+                lebih:        r.bb_lebih || 0,
+                total:        r.total_balita || 0,
+              };
+            }
+          });
+          setNutrition(kecNutr);
+        } else if (fetchYear <= 2025) {
+          setNutrition(BASELINE_NUTRITION);
         } else {
-          // --- 2026+: gizi_balita table (kelurahan-level) ---
+          // --- 2026+ fallback: gizi_balita table (kelurahan-level) ---
           const { data: giziRows } = await supabase
             .from('gizi_balita')
             .select('*')
@@ -1852,6 +1849,34 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
             </div>
           )}
         </>
+      )}
+
+      {/* V. Data Dukung Iklim (BMKG), Kebencanaan (Opsional) & Analisis Kualitatif SKPG */}
+      {isPeriodAvailable && (
+        <SKPGDataDukungPanel
+          level="kecamatan"
+          tahun={displayYear}
+          bulan={displayMonth}
+          kompositSummary={{
+            statusKota: !kotaCilegon.availableAkses
+              ? 'BELUM TERSEDIA'
+              : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6
+              ? 'AMAN'
+              : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) >= 4
+              ? 'WASPADA'
+              : 'RENTAN',
+            skorKota: kotaCilegon.availableAkses
+              ? kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot
+              : '-',
+            statusAkses: kotaCilegon.statusAkses,
+            statusGizi: kotaCilegon.nutrition.status,
+            wilayahPrioritas: KECAMATANS.filter((kec) => {
+              const ak = getKeterjangkauanRow(kec);
+              const gz = getPemanfaatanRow(kec);
+              return (ak.available && ak.index < 3) || gz.bobot < 3;
+            }).map((k) => `Kec. ${k}`),
+          }}
+        />
       )}
 
       {/* Upload/Download Excel Section (Moved to bottom) */}

@@ -178,7 +178,8 @@ export async function POST(req: NextRequest) {
       const total_balita = bb_sangat_kurang + bb_kurang + bb_normal + bb_lebih;
       const total_kurang = bb_sangat_kurang + bb_kurang;
       const nilai = total_balita > 0 ? parseFloat(((total_kurang / total_balita) * 100).toFixed(2)) : 0;
-      const bobot = nilai >= 15 ? 1 : nilai >= 10 ? 2 : 3;
+      // Standar Juknis SKPG 2026 Tabel 2: r > 15% = 1 (Rentan), 10% <= r <= 15% = 2 (Waspada), r < 10% = 3 (Aman)
+      const bobot = nilai > 15 ? 1 : nilai >= 10 ? 2 : 3;
       const status = bobot === 3 ? 'AMAN' : bobot === 2 ? 'WASPADA' : 'RENTAN';
 
       skpgKelurahanRows.push({
@@ -231,7 +232,8 @@ export async function POST(req: NextRequest) {
     const skpgKecamatanRows = Object.entries(kecAgg).map(([key, v]) => {
       const kecName = key.split('-')[0];
       const nilai = v.total_balita > 0 ? parseFloat(((v.total_kurang / v.total_balita) * 100).toFixed(2)) : 0;
-      const bobot = nilai >= 15 ? 1 : nilai >= 10 ? 2 : 3;
+      // Standar Juknis SKPG 2026 Tabel 2: r > 15% = 1 (Rentan), 10% <= r <= 15% = 2 (Waspada), r < 10% = 3 (Aman)
+      const bobot = nilai > 15 ? 1 : nilai >= 10 ? 2 : 3;
       const status = bobot === 3 ? 'AMAN' : bobot === 2 ? 'WASPADA' : 'RENTAN';
       return {
         tahun: v.tahun,

@@ -51,6 +51,7 @@ const AIInsightPanel = dynamic(() => import('@/components/AIInsightPanel'), {
 });
 const AnalisisSKPG = dynamic(() => import('@/components/AnalisisSKPG'), { ssr: false });
 const AnalisisSKPGKelurahan = dynamic(() => import('@/components/AnalisisSKPGKelurahan'), { ssr: false });
+const KalenderSKPG = dynamic(() => import('@/components/KalenderSKPG'), { ssr: false });
 const TentangAplikasi = dynamic(() => import('@/components/TentangAplikasi'), { ssr: false });
 const ForecastView = dynamic(() => import('@/components/ForecastView'), { ssr: false });
 const ValidasiForecastView = dynamic(() => import('@/components/ValidasiForecastView'), { ssr: false });
@@ -1470,6 +1471,10 @@ export default function DashboardPage() {
       return <AnalisisSKPGKelurahan onSwitchView={(view: string) => setCurrentView(view)} />;
     }
 
+    if (currentView === 'kalender_skpg') {
+      return <KalenderSKPG />;
+    }
+
     if (currentView === 'radar_kelurahan') {
       return <RadarKelurahan />;
     }
@@ -2501,6 +2506,10 @@ export default function DashboardPage() {
 
               {currentView === 'analisis_skpg_kelurahan' && (
                 <AnalisisSKPGKelurahan onSwitchView={(view: string) => setCurrentView(view)} />
+              )}
+
+              {currentView === 'kalender_skpg' && (
+                <KalenderSKPG />
               )}
 
               {currentView === 'radar_kelurahan' && (

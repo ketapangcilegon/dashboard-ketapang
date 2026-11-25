@@ -7,6 +7,7 @@ import {
   Sparkles, Calendar, TrendingUp, AlertTriangle, ShieldAlert, Loader2, Utensils, RefreshCw, Brain, Download, CheckCircle
 } from 'lucide-react';
 import MapSKPGMini from './MapSKPGMini';
+import SKPGDataDukungPanel from './SKPGDataDukungPanel';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
 
@@ -1667,6 +1668,40 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                   );
                 })()}
               </div>
+
+              {/* V. Data Dukung Iklim (BMKG), Kebencanaan (Opsional) & Analisis Kualitatif SKPG Kelurahan */}
+              <SKPGDataDukungPanel
+                level="kelurahan"
+                tahun={displayYear}
+                bulan={displayMonth}
+                kompositSummary={{
+                  statusKota: !kotaCilegon.availableAkses
+                    ? 'BELUM TERSEDIA'
+                    : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) === 6
+                    ? 'AMAN'
+                    : (kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot) >= 4
+                    ? 'WASPADA'
+                    : 'RENTAN',
+                  skorKota: kotaCilegon.availableAkses
+                    ? kotaCilegon.indexAkses + kotaCilegon.nutrition.bobot
+                    : '-',
+                  statusAkses: kotaCilegon.statusAkses,
+                  statusGizi: kotaCilegon.nutrition.status,
+                  wilayahPrioritas: KELURAHANS.map((kel) => {
+                    const ak = getKeterjangkauanRow(kel.nama, kel.kecamatan);
+                    const gz = getPemanfaatanRow(kel.nama);
+                    return {
+                      nama: `Kel. ${kel.nama} (${kel.kecamatan})`,
+                      skor: ak.available && gz.bobot > 0 ? ak.index + gz.bobot : 6,
+                      giziPct: gz.value,
+                    };
+                  })
+                    .filter((k) => k.skor < 6 || k.giziPct >= 10)
+                    .sort((a, b) => a.skor - b.skor || b.giziPct - a.giziPct)
+                    .slice(0, 6)
+                    .map((k) => k.nama),
+                }}
+              />
             </>
           ) : (
             <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl border border-slate-150 shadow-sm flex flex-col items-center justify-center text-center max-w-4xl mx-auto my-6">
