@@ -1,51 +1,87 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
-  Loader2,
   RefreshCw,
   Sparkles,
   Copy,
   Check,
-  ChevronDown,
   Plus,
   Mic,
   MicOff,
   ArrowUp,
   ThumbsUp,
   ThumbsDown,
-  Share2,
   ArrowDown,
   Edit3,
-  Database,
   Camera,
   Trash2,
   X,
-  Brain
+  Brain,
+  ExternalLink,
+  BookOpen,
+  Database,
+  MapPin,
 } from 'lucide-react';
 
 import { KELURAHAN_COORDINATES } from '@/lib/kamera-normatif';
 import ChatChart, { ChartConfig } from './ChatChart';
+import { HargaPanganChatPanel } from './chat/HargaPanganChatPanel';
+import { ForecastChatTable } from './chat/ForecastChatTable';
+import { IkpPouChatPanel } from './chat/IkpPouChatPanel';
+import { IndikatorKetapangChatPanel } from './chat/IndikatorKetapangChatPanel';
+import { EwsChatPanel } from './chat/EwsChatPanel';
+import { GkgChatPanel } from './chat/GkgChatPanel';
+import { MapTematikChatCard } from './chat/MapTematikChatCard';
+import type {
+  SagonPanelData,
+  ForecastTableData,
+  IkpPouPanelData,
+  IndikatorKetapangPanelData,
+  EwsPanelData,
+  GkgPanelData,
+} from '@/lib/chatPanels';
 
 // ============================================================
 // AIIntelligencePanel
-// Panel chat interaktif AI Food Intelligence (Sesuai UI/UX dkpp-info)
+// Panel chat interaktif AI Food Intelligence (PANCI x Algoritma dkpp-info)
 // Fitur:
-// - Kotak input text dinamis (Pill rounded-full / Multiline rounded-2xl, auto-resize)
-// - Warna latar chat user: bg-[#A8DCAB] text-emerald-950
-// - Batas margin mobile responsive yang ramping (px-1.5 sm:px-4)
-// - Ikon resmi ChatDKPP (/ikon-chatDKPP.png)
-// - Mode Berpikir (Think Mode Pill) & Voice Input (Web Speech API)
-// - Tombol kirim biru bulat (#1A73E8)
+// - Multi-turn Conversational Context Engine (10 putaran memori konteks)
+// - 7 Panel Visualisasi Live Tersemat di Chat (SAGON, Forecast ML, IKP/PoU, 7 Indikator, EWS, GKG, Peta Tematik)
+// - Rich Markdown Formatting (Tabel rapat, Recharts JSON, Link klikable, Italic, Gambar, Sitasi Sumber)
+// - Mode Berpikir Mendalam (Think Mode) & Multimodal Vision & Web Speech API
 // ============================================================
 
 const CHAT_SESSION_STORAGE_KEY = 'cilegon_food_intelligence_chat_session';
 
+interface SourceCitation {
+  type: 'KNOWLEDGE BASE' | 'LIVE DATABASE' | 'GIS SPATIAL';
+  title: string;
+  detail?: string;
+}
+
+interface ToolCallBadge {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface Message {
   role: 'user' | 'model';
   text: string;
+  type?: string;
   wilayah?: string[];
   referencedDocs?: string[];
+  sources?: SourceCitation[];
+  toolCalls?: ToolCallBadge[];
+  harga_sagon_panel?: SagonPanelData;
+  forecast_table?: ForecastTableData;
+  ikp_pou_panel?: IkpPouPanelData;
+  indikator_ketapang_panel?: IndikatorKetapangPanelData;
+  ews_panel?: EwsPanelData;
+  gkg_panel?: GkgPanelData;
+  mapAction?: MapAction;
   timestamp: Date;
   imageUrl?: string;
 }
@@ -60,18 +96,13 @@ function loadSessionMessages(): Message[] {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return parsed.map((m: any) => ({
         ...m,
-        timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       }));
     }
   } catch (e) {
     console.warn('Failed loading chat session:', e);
   }
   return [];
-}
-
-interface SyncStatus {
-  sp_cache_tables: number;
-  tables: { tabel: string; age_minutes: number }[];
 }
 
 export interface MatchedPin {
@@ -108,24 +139,116 @@ interface AIIntelligencePanelProps {
 }
 
 const QUICK_PROMPTS = [
-  '📊 Bagaimana kondisi ketahanan pangan Cilegon saat ini (IKP, FSVA, SKPG, POU)?',
-  '🎯 Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2026-2030?',
+  '🔍 Apa tantangan strategis ketahanan pangan di Kota Cilegon dan rekomendasinya?',
+  '💰 Tampilkan panel harga pangan strategis hari ini dari 3 pasar tradisional Cilegon',
+  '🔮 Tampilkan tabel peramalan harga pangan komoditas strategis Kota Cilegon',
+  '📈 Tampilkan grafik tren IKP dan PoU 5 tahun terakhir Kota Cilegon',
+  '⚠️ Tampilkan peringatan dini kerentanan pangan dan status Early Warning System (EWS)',
+  '🎯 Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2025-2030?',
   '👩‍🌾 Tampilkan sebaran dan profil 84 KWT (Kelompok Wanita Tani) se-Kota Cilegon!',
-  '💰 Bagaimana kondisi harga pangan harian SAGON dan peramalan EWS inflasi?',
-  '📈 Buat grafik produksi padi 5 tahun terakhir beserta trendline',
-  '🌾 Berapa luas sawah baku dan kondisi lengas tanah ECMWF di Cilegon?',
-  '🐟 Bagaimana data potensi perikanan, sebaran 723 nelayan, dan produksi ikan Cilegon?',
-  '⛵ Tampilkan data profil perikanan Cilegon (pangkalan, 58 KUB, koperasi, dan kapal tangkap)',
-  '👨‍🌾 Di kelurahan mana yang paling banyak terdapat peternak?'
+  '🐟 Bagaimana profil perikanan Cilegon, 9 pangkalan nelayan, 58 KUB, dan produksi ikan?',
+  '🌾 Berapa luas sawah baku, neraca kemandirian beras, dan kondisi lengas tanah ECMWF?',
 ];
 
 function formatTime(d: Date): string {
   return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
-function renderMarkdown(text: string): React.ReactNode {
-  if (!text) return null;
-  const lines = text.split('\n');
+// Pembersih ringan di sisi klien (menjamin salinan & tampilan bebas LaTeX/tabel pecah)
+function sanitizeClientMarkdown(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\$\\rightarrow\$/g, '→')
+    .replace(/\$\\times\$/g, '×')
+    .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+    .replace(/\$([^\$\n]+)\$/g, '$1')
+    .replace(/(?:^|\n)\s*[•\-\*]\s*\n+\s*/g, '\n• ')
+    .replace(/(\|[^\n]+\|)\n\s*\n+(?=\|[^\n]+\|)/g, '$1\n')
+    .trim();
+}
+
+// Inline Markdown Parser (diadopsi dari ChatContainer.tsx dkpp-info: gambar, tautan, kode, tebal, miring)
+function parseInlineFormatting(text: string): React.ReactNode {
+  const parts = text.split(/(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+?\*\*|\*[^*]+?\*)/g);
+  return parts.map((part, idx) => {
+    const imgMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      const [, alt, src] = imgMatch;
+      return (
+        <span key={idx} className="inline-block my-2 text-left">
+          <img
+            src={src}
+            alt={alt || 'Visualisasi Data'}
+            className="max-h-72 max-w-full rounded-2xl border border-slate-200 shadow-md object-cover"
+            loading="lazy"
+          />
+          {alt && <span className="block text-[11px] text-slate-500 mt-1 italic font-medium">{alt}</span>}
+        </span>
+      );
+    }
+
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch) {
+      const [, label, href] = linkMatch;
+      if (href.startsWith('/')) {
+        return (
+          <Link
+            key={idx}
+            href={href}
+            className="inline-flex items-center gap-1 font-bold text-emerald-700 underline underline-offset-2 decoration-emerald-500 hover:text-emerald-950 transition-colors"
+          >
+            <span>{label}</span>
+            <ExternalLink className="w-3 h-3 inline shrink-0 opacity-80" />
+          </Link>
+        );
+      }
+      return (
+        <a
+          key={idx}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 font-bold text-emerald-700 underline underline-offset-2 decoration-emerald-500 hover:text-emerald-950 transition-colors"
+        >
+          <span>{label}</span>
+          <ExternalLink className="w-3 h-3 inline shrink-0 opacity-80" />
+        </a>
+      );
+    }
+
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return (
+        <code key={idx} className="bg-slate-100 text-emerald-800 px-1.5 py-0.5 rounded text-[11px] font-mono font-bold">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      const inner = part.slice(2, -2);
+      return (
+        <strong key={idx} className="font-extrabold text-slate-900">
+          {inner.includes('[') && inner.includes('](') ? parseInlineFormatting(inner) : inner}
+        </strong>
+      );
+    }
+
+    if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+      return (
+        <em key={idx} className="italic text-slate-700">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+
+    return part;
+  });
+}
+
+function renderMarkdown(rawText: string): React.ReactNode {
+  if (!rawText) return null;
+  const cleaned = sanitizeClientMarkdown(rawText);
+  const lines = cleaned.split('\n');
   const elements: React.ReactNode[] = [];
   let i = 0;
 
@@ -133,7 +256,7 @@ function renderMarkdown(text: string): React.ReactNode {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Deteksi Blok Visualisasi Grafik (```json:chart atau ```chart atau ```json dengan struktur chart)
+    // 1. Blok Grafik Recharts
     if (trimmed.startsWith('```json:chart') || trimmed.startsWith('```chart') || trimmed.startsWith('```json')) {
       const isChartTag = trimmed.startsWith('```json:chart') || trimmed.startsWith('```chart');
       const codeLines: string[] = [];
@@ -142,9 +265,7 @@ function renderMarkdown(text: string): React.ReactNode {
         codeLines.push(lines[i]);
         i++;
       }
-      if (i < lines.length && lines[i].trim().startsWith('```')) {
-        i++; // skip closing ```
-      }
+      if (i < lines.length && lines[i].trim().startsWith('```')) i++;
 
       const rawCode = codeLines.join('\n').trim();
       let parsedChart: ChartConfig | null = null;
@@ -157,10 +278,10 @@ function renderMarkdown(text: string): React.ReactNode {
             description: jsonObj.description || '',
             xAxisKey: jsonObj.xAxisKey || Object.keys(jsonObj.data?.[0] || {})[0] || 'label',
             series: jsonObj.series || [
-              { key: Object.keys(jsonObj.data?.[0] || {}).find(k => k !== jsonObj.xAxisKey) || 'value', label: 'Nilai' }
+              { key: Object.keys(jsonObj.data?.[0] || {}).find((k) => k !== jsonObj.xAxisKey) || 'value', label: 'Nilai' },
             ],
             data: jsonObj.data || [],
-            showTrendline: jsonObj.showTrendline ?? true
+            showTrendline: jsonObj.showTrendline ?? true,
           };
         }
       } catch {
@@ -168,9 +289,7 @@ function renderMarkdown(text: string): React.ReactNode {
       }
 
       if (parsedChart && parsedChart.data && parsedChart.data.length > 0) {
-        elements.push(
-          <ChatChart key={`chart-${i}`} config={parsedChart} />
-        );
+        elements.push(<ChatChart key={`chart-${i}`} config={parsedChart} />);
         continue;
       } else {
         elements.push(
@@ -182,8 +301,14 @@ function renderMarkdown(text: string): React.ReactNode {
       }
     }
 
-    // Deteksi tabel Markdown (| Kolom 1 | Kolom 2 |)
-    if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].includes('---')) {
+    // 2. Tabel Markdown
+    if (
+      trimmed.startsWith('|') &&
+      trimmed.endsWith('|') &&
+      i + 1 < lines.length &&
+      lines[i + 1].trim().startsWith('|') &&
+      lines[i + 1].includes('---')
+    ) {
       const tableLines: string[] = [];
       while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
         tableLines.push(lines[i].trim());
@@ -191,7 +316,7 @@ function renderMarkdown(text: string): React.ReactNode {
       }
 
       if (tableLines.length >= 2) {
-        const headerCols = tableLines[0].split('|').slice(1, -1).map(c => c.trim());
+        const headerCols = tableLines[0].split('|').slice(1, -1).map((c) => c.trim());
         const rowLines = tableLines.slice(2);
 
         elements.push(
@@ -201,19 +326,19 @@ function renderMarkdown(text: string): React.ReactNode {
                 <tr>
                   {headerCols.map((col, ci) => (
                     <th key={ci} className="px-3 py-2 border-b border-emerald-900 whitespace-nowrap">
-                      {parseBold(col)}
+                      {parseInlineFormatting(col)}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {rowLines.map((r, ri) => {
-                  const cells = r.split('|').slice(1, -1).map(c => c.trim());
+                  const cells = r.split('|').slice(1, -1).map((c) => c.trim());
                   return (
                     <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/80 hover:bg-emerald-50/50'}>
                       {cells.map((cell, cidx) => (
-                        <td key={cidx} className="px-3 py-2 text-slate-800 font-medium whitespace-normal">
-                          {parseBold(cell)}
+                        <td key={cidx} className="px-3 py-2 text-slate-800 font-medium whitespace-normal leading-relaxed">
+                          {parseInlineFormatting(cell)}
                         </td>
                       ))}
                     </tr>
@@ -227,10 +352,20 @@ function renderMarkdown(text: string): React.ReactNode {
       }
     }
 
+    // 3. Headings
+    if (trimmed.startsWith('#### ')) {
+      elements.push(
+        <h5 key={i} className="text-[12px] font-bold text-slate-800 mt-2.5 mb-1 uppercase tracking-wide">
+          {parseInlineFormatting(trimmed.replace(/^####\s*/, ''))}
+        </h5>
+      );
+      i++;
+      continue;
+    }
     if (trimmed.startsWith('### ')) {
       elements.push(
         <h4 key={i} className="text-[13px] font-extrabold text-emerald-800 mt-3 mb-1 uppercase tracking-wide border-b border-emerald-100 pb-0.5">
-          {trimmed.replace(/^###\s*/, '')}
+          {parseInlineFormatting(trimmed.replace(/^###\s*/, ''))}
         </h4>
       );
       i++;
@@ -238,8 +373,8 @@ function renderMarkdown(text: string): React.ReactNode {
     }
     if (trimmed.startsWith('## ')) {
       elements.push(
-        <h3 key={i} className="text-[14px] font-black text-slate-800 mt-3.5 mb-1 uppercase tracking-wide">
-          {trimmed.replace(/^##\s*/, '')}
+        <h3 key={i} className="text-[14px] font-black text-slate-900 mt-3.5 mb-1">
+          {parseInlineFormatting(trimmed.replace(/^##\s*/, ''))}
         </h3>
       );
       i++;
@@ -248,41 +383,54 @@ function renderMarkdown(text: string): React.ReactNode {
     if (trimmed.startsWith('# ')) {
       elements.push(
         <h2 key={i} className="text-[15px] font-black text-slate-900 mt-3.5 mb-1.5">
-          {trimmed.replace(/^#\s*/, '')}
+          {parseInlineFormatting(trimmed.replace(/^#\s*/, ''))}
         </h2>
       );
       i++;
       continue;
     }
 
+    // 4. Bullet Lists
     if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
       elements.push(
-        <li key={i} className="text-[12.5px] text-slate-700 leading-relaxed ml-4 list-disc pl-1 mb-1">
-          {parseBold(trimmed.replace(/^[-•*]\s*/, ''))}
-        </li>
-      );
-      i++;
-      continue;
-    }
-
-    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
-    if (numMatch) {
-      elements.push(
-        <div key={i} className="flex gap-2 text-[12.5px] text-slate-700 leading-relaxed ml-1 mb-1">
-          <span className="font-bold text-emerald-700">{numMatch[1]}.</span>
-          <span className="flex-1">{parseBold(numMatch[2])}</span>
+        <div key={i} className="flex gap-2 my-1 ml-1 items-start text-[12.5px] sm:text-[13px]">
+          <span className="text-emerald-600 font-bold mt-0.5 shrink-0">•</span>
+          <span className="text-slate-700 leading-relaxed flex-1">
+            {parseInlineFormatting(trimmed.replace(/^[-•*]\s*/, ''))}
+          </span>
         </div>
       );
       i++;
       continue;
     }
 
+    // 5. Numbered Lists
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (numMatch) {
+      elements.push(
+        <div key={i} className="flex gap-2 text-[12.5px] sm:text-[13px] text-slate-700 leading-relaxed ml-1 my-1 items-start">
+          <span className="font-extrabold text-emerald-700 shrink-0">{numMatch[1]}.</span>
+          <span className="flex-1">{parseInlineFormatting(numMatch[2])}</span>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // 6. Blockquotes
     if (trimmed.startsWith('> ')) {
       elements.push(
-        <blockquote key={i} className="border-l-3 border-emerald-600 pl-3 py-1 my-2 bg-emerald-50/60 rounded-r-lg text-[12px] text-emerald-950 font-medium italic">
-          {parseBold(trimmed.replace(/^>\s*/, ''))}
+        <blockquote key={i} className="border-l-3 border-emerald-600 pl-3 py-1.5 my-2 bg-emerald-50/60 rounded-r-lg text-[12px] text-emerald-950 font-medium italic">
+          {parseInlineFormatting(trimmed.replace(/^>\s*/, ''))}
         </blockquote>
       );
+      i++;
+      continue;
+    }
+
+    // 7. Horizontal Rules
+    if (trimmed === '---' || trimmed === '***') {
+      elements.push(<hr key={i} className="my-2.5 border-slate-200" />);
       i++;
       continue;
     }
@@ -294,35 +442,14 @@ function renderMarkdown(text: string): React.ReactNode {
     }
 
     elements.push(
-      <p key={i} className="text-[12.5px] text-slate-700 leading-relaxed mb-2 font-normal">
-        {parseBold(line)}
+      <p key={i} className="text-[12.5px] sm:text-[13px] text-slate-700 leading-relaxed mb-1.5 font-normal">
+        {parseInlineFormatting(line)}
       </p>
     );
     i++;
   }
 
   return <div>{elements}</div>;
-}
-
-function parseBold(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-  return parts.map((part, idx) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={idx} className="font-extrabold text-slate-900">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code key={idx} className="bg-slate-100 text-emerald-800 px-1 py-0.5 rounded text-[11px] font-mono font-bold">
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    return part;
-  });
 }
 
 export default function AIIntelligencePanel({
@@ -332,12 +459,11 @@ export default function AIIntelligencePanel({
   isFullScreen = false,
   isFullChat = false,
   externalPrompt,
-  onClearExternalPrompt
+  onClearExternalPrompt,
 }: AIIntelligencePanelProps) {
   const [messages, setMessages] = useState<Message[]>(() => loadSessionMessages());
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -347,7 +473,7 @@ export default function AIIntelligencePanel({
   const [isListening, setIsListening] = useState(false);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
 
-  // Multimodal Vision state (Fase 2)
+  // Multimodal Vision state
   const [selectedImage, setSelectedImage] = useState<{ file: File; preview: string; base64: string; mimeType: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -355,14 +481,15 @@ export default function AIIntelligencePanel({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null); // SpeechRecognition instance untuk cleanup
+  const recognitionRef = useRef<any>(null);
 
-  // Hentikan recognition saat komponen unmount agar tidak memory leak
   useEffect(() => {
-    return () => { recognitionRef.current?.stop(); };
+    return () => {
+      recognitionRef.current?.stop();
+    };
   }, []);
 
-  // Auto-resize textarea seamlessly (seperti ChatInput dkpp-info)
+  // Auto-resize textarea
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
@@ -371,7 +498,7 @@ export default function AIIntelligencePanel({
     }
   }, [inputValue]);
 
-  // Sinkronisasi riwayat pesan ke browser sessionStorage agar tidak hilang dalam 1 sesi
+  // Simpan riwayat percakapan ke sessionStorage (tanpa menyimpan payload besar bila tidak perlu)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -393,7 +520,6 @@ export default function AIIntelligencePanel({
     }
   };
 
-  // Auto scroll to bottom saat pesan baru bertambah
   const scrollToBottom = useCallback((smooth = true) => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' });
@@ -404,7 +530,6 @@ export default function AIIntelligencePanel({
     scrollToBottom(true);
   }, [messages, loading, scrollToBottom]);
 
-  // Handle klik chip sorotan wilayah untuk interaksi langsung ke peta
   const handleWilayahClick = (wilayahName: string) => {
     const cleanName = wilayahName.replace(/^Kelurahan\s+|^Kecamatan\s+/i, '').trim();
     const coord = KELURAHAN_COORDINATES[cleanName];
@@ -422,8 +547,8 @@ export default function AIIntelligencePanel({
           name: `Kelurahan ${cleanName}`,
           category: 'wilayah',
           kelurahan: cleanName,
-          kecamatan: coord.kec
-        }
+          kecamatan: coord.kec,
+        },
       });
     }
     if (onWilayahHighlight) {
@@ -431,30 +556,12 @@ export default function AIIntelligencePanel({
     }
   };
 
-  // Monitor scroll position
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    const isUp = scrollHeight - scrollTop - clientHeight > 120;
-    setShowScrollBottom(isUp);
+    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 120);
   };
 
-  // Status sync data Serumpun Padi
-  const loadSync = useCallback(async () => {
-    try {
-      const res = await fetch('/api/sp-sync');
-      if (res.ok) {
-        const data = await res.json();
-        setSyncStatus(data);
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => {
-    loadSync();
-  }, [loadSync]);
-
-  // Trigger manual sync & copy database
   const handleManualSync = async () => {
     setSyncing(true);
     setSyncSuccessMsg(null);
@@ -462,12 +569,11 @@ export default function AIIntelligencePanel({
       const res = await fetch('/api/sp-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: true })
+        body: JSON.stringify({ force: true }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setSyncSuccessMsg('Database Serumpun-Padi berhasil disinkronkan & disalin!');
-        await loadSync();
+        setSyncSuccessMsg('Database Serumpun-Padi berhasil disinkronkan!');
         setTimeout(() => setSyncSuccessMsg(null), 3500);
       }
     } catch {
@@ -476,14 +582,6 @@ export default function AIIntelligencePanel({
     }
     setSyncing(false);
   };
-
-  // Effect untuk mengeksekusi external prompt dari aksi klik peta (Reverse Intelligence & Agri-Advisory)
-  useEffect(() => {
-    if (externalPrompt && externalPrompt.trim()) {
-      sendMessage(externalPrompt.trim());
-      onClearExternalPrompt?.();
-    }
-  }, [externalPrompt, onClearExternalPrompt]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -502,14 +600,13 @@ export default function AIIntelligencePanel({
         file,
         preview: URL.createObjectURL(file),
         base64: base64Data,
-        mimeType: file.type || 'image/jpeg'
+        mimeType: file.type || 'image/jpeg',
       });
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
-  // Send message
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed && !selectedImage) return;
@@ -520,15 +617,15 @@ export default function AIIntelligencePanel({
       role: 'user',
       text: trimmed || 'Analisis foto/kondisi ini terkait pertanian/pangan Kota Cilegon',
       imageUrl: currentImg?.preview,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setSelectedImage(null);
     setLoading(true);
     setPlusMenuOpen(false);
 
-    // ─── INSTANT REAL-TIME MAP REACTION (Client Pre-trigger) ───
+    // Pre-trigger peta instan apabila menyebut nama kelurahan spesifik
     const queryLower = trimmed.toLowerCase();
     for (const [kelName, coord] of Object.entries(KELURAHAN_COORDINATES)) {
       if (queryLower.includes(kelName.toLowerCase())) {
@@ -542,7 +639,7 @@ export default function AIIntelligencePanel({
           name: isSawah ? `Sawah Kelurahan ${kelName}` : `Kelurahan ${kelName}`,
           category: isSawah ? 'sawah' : 'wilayah',
           kelurahan: kelName,
-          kecamatan: coord.kec
+          kecamatan: coord.kec,
         };
 
         if (onMapAction) {
@@ -553,7 +650,7 @@ export default function AIIntelligencePanel({
             lng: coord.lng,
             zoom: isSawah ? 16 : 15.5,
             layersToEnable: layers,
-            pin: prePin
+            pin: prePin,
           });
         }
         if (onPinsHighlight) onPinsHighlight([prePin]);
@@ -562,48 +659,61 @@ export default function AIIntelligencePanel({
       }
     }
 
-    const history = messages.map(m => ({ role: m.role, text: m.text }));
-    const payloadMessage = isThinkingMode
-      ? `[MODE BERPIKIR MENDALAM: Uraikan data, metodologi perhitungan komprehensif, dan analisis bertahap]\n${trimmed || 'Tolong diagnosis foto/data ini dan berikan rekomendasi penanganan.'}`
-      : trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.';
+    // Kirim hingga 10 pesan terakhir ke Context Engine di backend (algoritma dkpp-info)
+    const history = messages.slice(-10).map((m) => ({ role: m.role, text: m.text }));
 
     try {
       const res = await fetch('/api/ai-intelligence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: payloadMessage,
+          message: trimmed || 'Tolong diagnosis foto tanaman/hama/posyandu ini dan berikan rekomendasi penanganan.',
           history,
-          imageData: currentImg ? { data: currentImg.base64, mimeType: currentImg.mimeType } : undefined
-        })
+          thinkingMode: isThinkingMode,
+          imageData: currentImg ? { data: currentImg.base64, mimeType: currentImg.mimeType } : undefined,
+        }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.text) {
+        const parsedMapAction: MapAction | undefined = data.map_action
+          ? {
+              type: data.map_action.type,
+              target: data.map_action.target,
+              lat: data.map_action.lat,
+              lng: data.map_action.lng,
+              zoom: data.map_action.zoom,
+              layersToEnable: data.map_action.layers_to_enable,
+              pin: data.map_action.pin,
+              thematicMode: data.map_action.thematic_mode || data.map_action.thematicMode,
+              filteredWilayah: data.map_action.filtered_wilayah,
+              filterActive: data.map_action.filter_active,
+              filterLabel: data.map_action.filter_label,
+            }
+          : undefined;
+
         const modelMsg: Message = {
           role: 'model',
           text: data.text,
+          type: data.type || 'text',
           wilayah: data.wilayah_highlight || [],
           referencedDocs: data.referenced_docs || [],
-          timestamp: new Date()
+          sources: data.sources || [],
+          toolCalls: data.tool_calls || [],
+          harga_sagon_panel: data.harga_sagon_panel,
+          forecast_table: data.forecast_table,
+          ikp_pou_panel: data.ikp_pou_panel,
+          indikator_ketapang_panel: data.indikator_ketapang_panel,
+          ews_panel: data.ews_panel,
+          gkg_panel: data.gkg_panel,
+          mapAction: parsedMapAction,
+          timestamp: new Date(),
         };
-        setMessages(prev => [...prev, modelMsg]);
+        setMessages((prev) => [...prev, modelMsg]);
 
-        if (data.map_action && onMapAction) {
-          onMapAction({
-            type: data.map_action.type,
-            target: data.map_action.target,
-            lat: data.map_action.lat,
-            lng: data.map_action.lng,
-            zoom: data.map_action.zoom,
-            layersToEnable: data.map_action.layers_to_enable,
-            pin: data.map_action.pin,
-            thematicMode: data.map_action.thematic_mode || data.map_action.thematicMode,
-            filteredWilayah: data.map_action.filtered_wilayah,
-            filterActive: data.map_action.filter_active,
-            filterLabel: data.map_action.filter_label,
-          });
+        if (parsedMapAction && onMapAction) {
+          onMapAction(parsedMapAction);
         }
         if (data.wilayah_highlight?.length > 0 && onWilayahHighlight) {
           onWilayahHighlight(data.wilayah_highlight);
@@ -612,28 +722,35 @@ export default function AIIntelligencePanel({
           onPinsHighlight(data.matched_pins);
         }
       } else {
-        setMessages(prev => [
+        setMessages((prev) => [
           ...prev,
           {
             role: 'model',
             text: `⚠️ **Terjadi kesalahan:** ${data.error || 'Respons tidak tersedia. Silakan coba lagi.'}`,
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         ]);
       }
     } catch {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: 'model',
           text: '⚠️ **Koneksi gagal.** Periksa koneksi internet Anda dan coba lagi.',
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       ]);
     }
 
     setLoading(false);
   }, [loading, messages, onWilayahHighlight, onPinsHighlight, onMapAction, selectedImage, isThinkingMode]);
+
+  useEffect(() => {
+    if (externalPrompt && externalPrompt.trim()) {
+      sendMessage(externalPrompt.trim());
+      onClearExternalPrompt?.();
+    }
+  }, [externalPrompt, onClearExternalPrompt, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -644,7 +761,7 @@ export default function AIIntelligencePanel({
 
   const handleCopy = (text: string, idx: number) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(() => { });
+      navigator.clipboard.writeText(sanitizeClientMarkdown(text)).catch(() => {});
     }
     setCopiedIndex(idx);
     setTimeout(() => setCopiedIndex(null), 2000);
@@ -652,19 +769,16 @@ export default function AIIntelligencePanel({
 
   const handleEditPrompt = (text: string) => {
     setInputValue(text);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
   const toggleFeedback = (idx: number, type: 'like' | 'dislike') => {
-    setFeedbackState(prev => ({
+    setFeedbackState((prev) => ({
       ...prev,
-      [idx]: prev[idx] === type ? null : type
+      [idx]: prev[idx] === type ? null : type,
     }));
   };
 
-  // Web Speech API Voice Recognition (Sesuai ChatInput dkpp-info)
   const toggleSpeechRecognition = () => {
     if (typeof window === 'undefined') return;
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -672,7 +786,6 @@ export default function AIIntelligencePanel({
       return;
     }
 
-    // Jika sedang aktif, stop
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -692,19 +805,23 @@ export default function AIIntelligencePanel({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setInputValue(prev => (prev ? `${prev} ${transcript}` : transcript));
+        setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript));
         setIsListening(false);
         recognitionRef.current = null;
       };
-      recognition.onerror = () => { setIsListening(false); recognitionRef.current = null; };
-      recognition.onend = () => { setIsListening(false); recognitionRef.current = null; };
+      recognition.onerror = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
     } catch {
       setIsListening(false);
       recognitionRef.current = null;
     }
   };
-
-  const isMultiline = inputValue.includes('\n') || inputValue.length > 60;
 
   return (
     <div className={`flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative ${isFullScreen ? 'h-full' : 'h-[580px]'}`}>
@@ -735,7 +852,7 @@ export default function AIIntelligencePanel({
             onClick={handleManualSync}
             disabled={syncing}
             className="flex items-center gap-1 text-[9.5px] font-black uppercase text-slate-500 hover:text-emerald-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50"
-            title="Sinkron & Salin Manual Database Serumpun Padi ke Dashboard Ketapang"
+            title="Sinkron Manual Database Serumpun Padi ke Dashboard Ketapang"
           >
             <RefreshCw className={`w-2.5 h-2.5 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
             <span className="hidden xs:inline">{syncing ? 'Menyinkronkan…' : 'Sinkron DB'}</span>
@@ -743,7 +860,7 @@ export default function AIIntelligencePanel({
         </div>
       </div>
 
-      {/* Scrollable Chat Area (Mobile Margins Ramping: px-1.5 sm:px-4, py-2.5 sm:py-6 sesuai dkpp-info) */}
+      {/* Scrollable Chat Area */}
       <div
         ref={chatContainerRef}
         onScroll={handleScroll}
@@ -751,10 +868,9 @@ export default function AIIntelligencePanel({
       >
         <div className={`mx-auto space-y-4 sm:space-y-5 w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} px-0`}>
 
-          {/* Initial / Empty State — Sesuai dkpp-info (Center Greeting + 6 Showcase Cards) */}
+          {/* Empty State — Sesuai dkpp-info */}
           {messages.length === 0 && !loading && (
             <div className="max-w-2xl mx-auto min-h-[50vh] flex flex-col items-center justify-center text-center animate-in fade-in duration-300 space-y-4 px-2 py-3">
-              {/* Logo Resmi ChatDKPP */}
               <div className="w-16 h-16 sm:w-24 sm:h-24 relative flex items-center justify-center select-none">
                 <img
                   src="/ikon-chatDKPP.png"
@@ -763,58 +879,56 @@ export default function AIIntelligencePanel({
                 />
               </div>
 
-              {/* Center Greeting Title */}
               <div className="space-y-1">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                   What’s on the agenda today?
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 font-medium max-w-md mx-auto">
-                  Asisten Cerdas Ketahanan Pangan, Pertanian, Perikanan & Pemantauan Wilayah Kota Cilegon
+                  Asisten Cerdas Ketahanan Pangan, Neraca Komoditas, Pertanian, Perikanan & Pemantauan Wilayah Kota Cilegon
                 </p>
               </div>
 
-              {/* Feature Showcase Shortcuts Grid */}
               <div className="w-full pt-2">
                 <div className="text-[10.5px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">
-                  Jelajahi Fitur & Analisis Live DKPP:
+                  Jelajahi Panel Interaktif & Analisis Strategis PANCI:
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-left">
                   {[
                     {
                       icon: '📈',
                       title: 'IKP & PoU 5 Tahun',
-                      desc: 'Tren Indeks Ketahanan Pangan vs Banten & Nasional',
-                      prompt: '📊 Bagaimana kondisi ketahanan pangan Cilegon saat ini (IKP, FSVA, SKPG, POU)?',
+                      desc: 'Grafik live Indeks Ketahanan Pangan vs Banten & Nasional',
+                      prompt: 'Tampilkan grafik tren IKP dan Prevalensi Ketidakcukupan Pangan (PoU) 5 tahun terakhir Kota Cilegon',
+                    },
+                    {
+                      icon: '💰',
+                      title: 'Harga Pangan Live',
+                      desc: 'Tabel interaktif SAGON 3 pasar tradisional Cilegon',
+                      prompt: 'Tampilkan panel harga pangan strategis hari ini dari 3 pasar tradisional Cilegon',
+                    },
+                    {
+                      icon: '🔮',
+                      title: 'Peramalan Harga ML',
+                      desc: 'Tabel proyeksi harga 1 & 3 bulan ke depan & EWS',
+                      prompt: 'Tampilkan tabel peramalan harga pangan komoditas strategis Kota Cilegon',
+                    },
+                    {
+                      icon: '🔍',
+                      title: 'Analisis Tantangan',
+                      desc: 'Evaluasi defisit neraca pangan & rekomendasi kebijakan',
+                      prompt: 'Apa tantangan strategis ketahanan pangan di Kota Cilegon dan bagaimana rekomendasi kebijakannya?',
                     },
                     {
                       icon: '🎯',
                       title: 'Renstra DKPP 2026',
-                      desc: 'Target IKU, Sasaran Strategis & Pagu Program 2026-2030',
-                      prompt: '🎯 Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2026-2030?',
+                      desc: 'Target IKU, Sasaran Strategis & Pagu Program 2025-2030',
+                      prompt: 'Apa target IKU, Sasaran Strategis, dan Pagu Program Renstra DKPP Cilegon 2025-2030?',
                     },
                     {
                       icon: '👩‍🌾',
                       title: '84 KWT se-Cilegon',
-                      desc: 'Sebaran dan profil Kelompok Wanita Tani 8 Kecamatan',
-                      prompt: '👩‍🌾 Tampilkan sebaran dan profil 84 KWT (Kelompok Wanita Tani) se-Kota Cilegon!',
-                    },
-                    {
-                      icon: '🐟',
-                      title: 'Potensi Perikanan',
-                      desc: 'Data 723 Nelayan, 58 KUB, 410 Kapal & Produksi Ikan',
-                      prompt: '🐟 Bagaimana data potensi perikanan, sebaran 723 nelayan, dan produksi ikan Cilegon?',
-                    },
-                    {
-                      icon: '💰',
-                      title: 'Harga Pangan SAGON',
-                      desc: 'Update harian Pasar Kranggot, Blok F, Merak & EWS',
-                      prompt: '💰 Bagaimana kondisi harga pangan harian SAGON dan peramalan EWS inflasi?',
-                    },
-                    {
-                      icon: '🌾',
-                      title: 'Sawah & Agro-Satelit',
-                      desc: '407 Petak Sawah Baku & Lengas Tanah ECMWF',
-                      prompt: '🌾 Berapa luas sawah baku dan kondisi lengas tanah ECMWF di Cilegon?',
+                      desc: 'Sebaran geospasial & profil Kelompok Wanita Tani 8 kecamatan',
+                      prompt: 'Tampilkan sebaran dan profil 84 KWT (Kelompok Wanita Tani) se-Kota Cilegon!',
                     },
                   ].map((item, idx) => (
                     <button
@@ -841,8 +955,6 @@ export default function AIIntelligencePanel({
           {messages.map((msg, idx) => (
             <div key={idx} className="w-full">
               {msg.role === 'user' ? (
-
-                /* USER MESSAGE (Sesuai dkpp-info: bg-[#A8DCAB] text-emerald-950) */
                 <div className="flex gap-0 sm:gap-3 justify-end mb-3 sm:mb-4 group">
                   <div className="max-w-[92%] sm:max-w-[80%] rounded-2xl sm:rounded-3xl px-3.5 sm:px-5 py-2 sm:py-3 shadow-xs bg-[#A8DCAB] text-emerald-950 font-medium rounded-tr-xs ml-auto">
                     {msg.imageUrl && (
@@ -863,12 +975,8 @@ export default function AIIntelligencePanel({
                     </div>
                   </div>
                 </div>
-
               ) : (
-
-                /* ASSISTANT MESSAGE (Sesuai dkpp-info: hidden sm:flex avatar, rounded-2xl card, copy top-right) */
                 <div className="flex gap-0 sm:gap-3 justify-start mb-4 group">
-                  {/* Assistant Avatar: Ikon Resmi Chat DKPP (Tampil di Desktop sm:flex, disembunyikan di Mobile) */}
                   <div
                     className="hidden sm:flex w-8 h-8 items-center justify-center shrink-0 mt-0.5 select-none"
                     title="Food Security Intelligence Assistant"
@@ -880,7 +988,7 @@ export default function AIIntelligencePanel({
                     />
                   </div>
 
-                  <div className="relative group w-full rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs bg-white border border-gray-200/80 rounded-tl-xs pr-7 sm:pr-8">
+                  <div className="relative group w-full min-w-0 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs bg-white border border-gray-200/80 rounded-tl-xs pr-7 sm:pr-8">
                     {/* Top-Right Copy Icon */}
                     <button
                       type="button"
@@ -898,11 +1006,113 @@ export default function AIIntelligencePanel({
                       )}
                     </button>
 
+                    {/* Tool Calls Chips (Adopsi dkpp-info) */}
+                    {msg.toolCalls && msg.toolCalls.length > 0 && (
+                      <div className="mb-2.5 flex flex-wrap gap-1.5 border-b border-slate-100 pb-2">
+                        {msg.toolCalls.map((tool, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200"
+                          >
+                            <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>Live Panel: {tool.name.replace(/_/g, ' ')}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Formatted Markdown Narrative */}
                     <div className="prose prose-sm max-w-none text-slate-800">
                       {renderMarkdown(msg.text)}
                     </div>
 
-                    {/* Action Bar (Copy, Feedback, Share) */}
+                    {/* 7 Interactive Inline Panels (Adopsi penuh dkpp-info) */}
+                    {msg.harga_sagon_panel && (
+                      <HargaPanganChatPanel
+                        data={msg.harga_sagon_panel}
+                        onAskCommodity={(prompt) => sendMessage(prompt)}
+                      />
+                    )}
+
+                    {msg.forecast_table && (
+                      <ForecastChatTable
+                        data={msg.forecast_table}
+                        onAskCommodity={(prompt) => sendMessage(prompt)}
+                      />
+                    )}
+
+                    {msg.ikp_pou_panel && <IkpPouChatPanel data={msg.ikp_pou_panel} />}
+
+                    {msg.indikator_ketapang_panel && (
+                      <IndikatorKetapangChatPanel data={msg.indikator_ketapang_panel} />
+                    )}
+
+                    {msg.ews_panel && (
+                      <EwsChatPanel
+                        data={msg.ews_panel}
+                        onOpenActionPlan={(item) =>
+                          sendMessage(`Rekomendasi strategi intervensi pasar untuk stabilisasi komoditas ${item.name} di Kota Cilegon`)
+                        }
+                      />
+                    )}
+
+                    {msg.gkg_panel && <GkgChatPanel data={msg.gkg_panel} />}
+
+                    {msg.type === 'map_card' && (
+                      <MapTematikChatCard
+                        onTriggerMapAction={(action) => onMapAction && onMapAction(action)}
+                      />
+                    )}
+
+                    {/* Interactive Wilayah Highlight Chips */}
+                    {msg.wilayah && msg.wilayah.length > 0 && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1">
+                          <MapPin className="w-3 h-3 text-emerald-600" /> Sorot Wilayah:
+                        </span>
+                        {msg.wilayah.slice(0, 8).map((w, wi) => (
+                          <button
+                            key={wi}
+                            type="button"
+                            onClick={() => handleWilayahClick(w)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10.5px] font-bold transition-colors cursor-pointer"
+                          >
+                            <span>📍 {w}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Source Citations (RAG Knowledge Base & Live DB) */}
+                    {((msg.sources && msg.sources.length > 0) || (msg.referencedDocs && msg.referencedDocs.length > 0)) && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
+                        {msg.sources && msg.sources.length > 0
+                          ? msg.sources.slice(0, 4).map((src, si) => (
+                              <span
+                                key={si}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[10px] text-slate-600 font-semibold"
+                              >
+                                {src.type === 'KNOWLEDGE BASE' ? (
+                                  <BookOpen className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                                ) : (
+                                  <Database className="w-2.5 h-2.5 text-teal-600 shrink-0" />
+                                )}
+                                <span className="truncate max-w-[220px]">{src.title}</span>
+                              </span>
+                            ))
+                          : msg.referencedDocs?.slice(0, 3).map((doc, di) => (
+                              <span
+                                key={di}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[10px] text-slate-600 font-semibold"
+                              >
+                                <BookOpen className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                                <span className="truncate max-w-[220px]">{doc}</span>
+                              </span>
+                            ))}
+                      </div>
+                    )}
+
+                    {/* Action Bar */}
                     <div className="flex items-center gap-2 pt-2.5 mt-2 border-t border-gray-100 text-gray-400 text-xs">
                       <button
                         onClick={() => handleCopy(msg.text, idx)}
@@ -915,8 +1125,9 @@ export default function AIIntelligencePanel({
 
                       <button
                         onClick={() => toggleFeedback(idx, 'like')}
-                        className={`p-1 rounded transition-colors cursor-pointer ${feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'hover:text-gray-700'
-                          }`}
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          feedbackState[idx] === 'like' ? 'text-emerald-600 bg-emerald-50' : 'hover:text-gray-700'
+                        }`}
                         title="Bagus / Akurat"
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
@@ -924,8 +1135,9 @@ export default function AIIntelligencePanel({
 
                       <button
                         onClick={() => toggleFeedback(idx, 'dislike')}
-                        className={`p-1 rounded transition-colors cursor-pointer ${feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'hover:text-gray-700'
-                          }`}
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          feedbackState[idx] === 'dislike' ? 'text-rose-600 bg-rose-50' : 'hover:text-gray-700'
+                        }`}
                         title="Perlu perbaikan"
                       >
                         <ThumbsDown className="w-3.5 h-3.5" />
@@ -937,7 +1149,7 @@ export default function AIIntelligencePanel({
             </div>
           ))}
 
-          {/* Loading Indicator (Bouncing Dots #A8DCAB Sesuai dkpp-info) */}
+          {/* Loading Indicator */}
           {loading && (
             <div className="flex gap-2.5 sm:gap-3 justify-start items-center mb-4">
               <div className="hidden sm:flex w-8 h-8 items-center justify-center shrink-0 select-none">
@@ -953,7 +1165,11 @@ export default function AIIntelligencePanel({
                   <div className="w-2 h-2 rounded-full bg-[#A8DCAB] animate-bounce [animation-delay:0.2s]" />
                   <div className="w-2 h-2 rounded-full bg-[#A8DCAB] animate-bounce [animation-delay:0.4s]" />
                 </div>
-                <span className="font-medium text-slate-600">Chatbot sedang menganalisis database & menghitung respons…</span>
+                <span className="font-medium text-slate-600">
+                  {isThinkingMode
+                    ? 'Mode Berpikir Mendalam sedang menyintesis multi-dokumen & neraca…'
+                    : 'Menganalisis konteks percakapan & basis data resmi DKPP…'}
+                </span>
               </div>
             </div>
           )}
@@ -973,10 +1189,8 @@ export default function AIIntelligencePanel({
         </button>
       )}
 
-      {/* Sticky ChatInput Container (Sesuai ChatInput dkpp-info) */}
+      {/* Sticky ChatInput Container */}
       <div className="px-2 sm:px-6 pb-2.5 sm:pb-3 pt-1.5 bg-white border-t border-gray-100 shrink-0 relative z-20">
-
-        {/* Multimodal Image Preview Chip jika ada foto terlampir */}
         {selectedImage && (
           <div className={`${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto mb-2 p-1.5 bg-slate-900 text-white rounded-xl flex items-center justify-between gap-2 shadow-md border border-emerald-500/40 animate-in fade-in slide-in-from-bottom-2`}>
             <div className="flex items-center gap-2 overflow-hidden">
@@ -999,7 +1213,6 @@ export default function AIIntelligencePanel({
           </div>
         )}
 
-        {/* Hidden File Input for Multimodal Vision */}
         <input
           type="file"
           ref={fileInputRef}
@@ -1008,30 +1221,25 @@ export default function AIIntelligencePanel({
           onChange={handleImageSelect}
         />
 
-        {/* ChatGPT Standard Professional ChatInput Box */}
         <div className={`w-full ${isFullChat ? 'max-w-[97%] sm:max-w-[96%]' : 'max-w-3xl'} mx-auto`}>
           <div className="relative flex flex-col justify-between bg-white border border-slate-200/90 shadow-xs focus-within:border-slate-300 focus-within:shadow-md transition-all duration-200 rounded-2xl sm:rounded-3xl p-2 sm:p-2.5">
-            {/* Textarea Input (Auto-Resize Seamlessly) */}
             <textarea
               ref={inputRef}
               value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
+              onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything or upload photo..."
+              placeholder="Tanyakan analisis pangan, lanjutan diskusi, atau unggah foto…"
               rows={1}
               disabled={loading}
               className="w-full bg-transparent px-2.5 pt-1 pb-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-none min-h-[36px] max-h-36 sm:max-h-48 leading-relaxed font-normal"
             />
 
-            {/* Bottom Toolbar (ChatGPT Standard UI: Tools on left, Think/Mic/Send on right) */}
             <div className="flex items-center justify-between mt-1 px-1">
-              {/* Left Action Tools */}
               <div className="flex items-center gap-1">
-                {/* Plus / Quick Prompts Button */}
                 <div className="relative shrink-0">
                   <button
                     type="button"
-                    onClick={() => setPlusMenuOpen(s => !s)}
+                    onClick={() => setPlusMenuOpen((s) => !s)}
                     className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
                     title="Pilihan & Pertanyaan Cepat"
                   >
@@ -1039,16 +1247,16 @@ export default function AIIntelligencePanel({
                   </button>
 
                   {plusMenuOpen && (
-                    <div className="absolute bottom-10 left-0 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      <div className="text-[10px] font-black text-slate-400 uppercase px-2 py-1 tracking-wider">Topik Cepat Analisis:</div>
-                      <div className="space-y-1">
+                    <div className="absolute bottom-10 left-0 w-72 sm:w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="text-[10px] font-black text-slate-400 uppercase px-2 py-1 tracking-wider">Topik Cepat Analisis & Panel Live:</div>
+                      <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                         {QUICK_PROMPTS.map((qp, qpi) => (
                           <button
                             key={qpi}
                             onClick={() => {
                               setInputValue(qp);
                               setPlusMenuOpen(false);
-                              if (inputRef.current) inputRef.current.focus();
+                              inputRef.current?.focus();
                             }}
                             className="w-full text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer truncate flex items-center gap-1.5"
                           >
@@ -1060,7 +1268,6 @@ export default function AIIntelligencePanel({
                   )}
                 </div>
 
-                {/* Camera / Multimodal Vision Button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1071,24 +1278,21 @@ export default function AIIntelligencePanel({
                 </button>
               </div>
 
-              {/* Right Action Tools */}
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Think Mode Pill Button */}
                 <button
                   type="button"
-                  onClick={() => setIsThinkingMode(prev => !prev)}
-                  title="Mode Berpikir Mendalam"
+                  onClick={() => setIsThinkingMode((prev) => !prev)}
+                  title="Mode Berpikir Mendalam (Analisis Multi-Dokumen)"
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer ${
                     isThinkingMode
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                   }`}
                 >
-                  <Brain className="w-3.5 h-3.5 text-slate-500" />
+                  <Brain className={`w-3.5 h-3.5 ${isThinkingMode ? 'text-blue-600' : 'text-slate-500'}`} />
                   <span>Think</span>
                 </button>
 
-                {/* Voice Input (Web Speech API) */}
                 <button
                   type="button"
                   onClick={toggleSpeechRecognition}
@@ -1102,7 +1306,6 @@ export default function AIIntelligencePanel({
                   {isListening ? <MicOff className="w-4 h-4 text-rose-600" /> : <Mic className="w-4 h-4 text-slate-600" />}
                 </button>
 
-                {/* Send Button — Standard ChatGPT Round Dark Button */}
                 <button
                   type="button"
                   onClick={() => sendMessage(inputValue)}
@@ -1124,7 +1327,6 @@ export default function AIIntelligencePanel({
             </div>
           </div>
 
-          {/* Centered Disclaimer below input (Sesuai dkpp-info) */}
           <div className="text-[11px] text-center text-gray-400 mt-1.5 px-2 select-none">
             Food Security Intelligence can make mistakes. Check important info.
           </div>
