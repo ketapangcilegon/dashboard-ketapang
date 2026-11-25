@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import fsvaForm2Raw from '@/lib/fsva-form2-official-data.json';
+import { normalizeValue } from '@/lib/fsva/normalization';
+import { WEIGHTS } from '@/lib/fsva/constants';
 
 const fsvaForm2Data: Record<string, any> = fsvaForm2Raw as any;
 
@@ -53,59 +55,135 @@ interface KelurahanData {
   rank: number;
 }
 
-// Function to lookup official FSVA 11-indicator data
+// Function to lookup & dynamically calculate official FSVA 11-indicator data per year & kelurahan
 function getForm2FSVAData(dbRows: any[]): Record<string, KelurahanData> {
   const result: Record<string, KelurahanData> = {};
+  const clampScore = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
   Object.entries(WILAYAH).forEach(([kec, kels]) => {
     kels.forEach((kel) => {
-      // Find matching item in DB rows first
+      // Find matching item in DB rows for the selected year
       const dbMatch = (dbRows || []).find((d) =>
         isKelurahanMatch(d.nama_kelurahan || d.kelurahan, kel)
       );
 
-      // Or fallback to official Form 2.1 & 2.3 JSON
-      const jsonMatch = Object.values(fsvaForm2Data).find((item: any) =>
+      // Kelurahan-specific Form 2.1 & 2.3 baseline (43 unique kelurahan profiles)
+      const jsonMatch: Record<string, any> = Object.values(fsvaForm2Data).find((item: any) =>
         isKelurahanMatch(item.kelurahan, kel)
       ) || {};
 
-      const item = dbMatch || jsonMatch;
+      // Merge per-field so null columns in DB (e.g., 2026 IKP-only upload) never overwrite kelurahan baseline with static constants
+      const raw_ncpr = Number(dbMatch?.ncpr ?? dbMatch?.raw_ncpr ?? jsonMatch.raw_ncpr ?? 6.0);
+      const raw_energy = Number(dbMatch?.energy ?? dbMatch?.raw_energy ?? jsonMatch.raw_energy ?? 97.5);
+      const raw_animal_protein = Number(dbMatch?.animal_protein ?? dbMatch?.raw_animal_protein ?? jsonMatch.raw_animal_protein ?? 75.0);
+      const raw_food_reserves = Number(dbMatch?.food_reserves ?? dbMatch?.raw_food_reserves ?? jsonMatch.raw_food_reserves ?? 0.28);
+      const raw_poverty = Number(dbMatch?.poverty ?? dbMatch?.rasio_miskin ?? dbMatch?.raw_poverty ?? jsonMatch.raw_poverty ?? 10.5);
+      const raw_price_cv = Number(dbMatch?.price_cv ?? dbMatch?.raw_price_cv ?? jsonMatch.raw_price_cv ?? 4.2);
+      const raw_pou = Number(dbMatch?.pou ?? dbMatch?.raw_pou ?? jsonMatch.raw_pou ?? 2.3);
+      const raw_female_school = Number(dbMatch?.female_school ?? dbMatch?.raw_female_school ?? jsonMatch.raw_female_school ?? 9.2);
+      const raw_no_water = Number(dbMatch?.no_water ?? dbMatch?.rasio_air ?? dbMatch?.raw_no_water ?? jsonMatch.raw_no_water ?? 2.3);
+      const raw_pph = Number(dbMatch?.pph ?? dbMatch?.raw_pph ?? jsonMatch.raw_pph ?? 92.5);
+      const raw_stunting = Number(dbMatch?.stunting ?? dbMatch?.raw_stunting ?? jsonMatch.raw_stunting ?? 4.4);
+
+      const hasFullDbIndicators = dbMatch != null && (
+        dbMatch.ncpr != null || dbMatch.poverty != null || dbMatch.stunting != null || dbMatch.idx_ketersediaan != null
+      );
+
+      // Compute individual normalized 0-100 scores dynamically from raw indicators when DB has raw columns, or from kelurahan baseline
+      let score_ncpr = dbMatch?.score_ncpr ?? dbMatch?.score_lahan ?? (dbMatch?.ncpr != null ? clampScore(normalizeValue('ncpr', raw_ncpr) * 100) : (jsonMatch.score_ncpr ?? 40));
+      let score_energy = dbMatch?.score_energy ?? dbMatch?.score_sarana ?? (dbMatch?.energy != null ? clampScore(normalizeValue('energy', raw_energy) * 100) : (jsonMatch.score_energy ?? 68));
+      let score_animal_protein = dbMatch?.score_animal_protein ?? (dbMatch?.animal_protein != null ? clampScore(normalizeValue('protein', raw_animal_protein) * 100) : (jsonMatch.score_animal_protein ?? 52));
+      let score_food_reserves = dbMatch?.score_food_reserves ?? (dbMatch?.food_reserves != null ? clampScore(normalizeValue('cadangan', raw_food_reserves) * 100) : (jsonMatch.score_food_reserves ?? 8));
+      let score_poverty = dbMatch?.score_poverty ?? dbMatch?.score_miskin ?? (dbMatch?.poverty != null ? clampScore(normalizeValue('poverty', raw_poverty) * 100) : (jsonMatch.score_poverty ?? 73));
+      let score_price_cv = dbMatch?.score_price_cv ?? dbMatch?.score_jalan ?? (dbMatch?.price_cv != null ? clampScore(normalizeValue('cv_harga', raw_price_cv) * 100) : (jsonMatch.score_price_cv ?? 88));
+      let score_pou = dbMatch?.score_pou ?? (dbMatch?.pou != null ? clampScore(normalizeValue('pou', raw_pou) * 100) : (jsonMatch.score_pou ?? 97));
+      let score_female_school = dbMatch?.score_female_school ?? (dbMatch?.female_school != null ? clampScore(normalizeValue('sekolah', raw_female_school) * 100) : (jsonMatch.score_female_school ?? 75));
+      let score_no_water = dbMatch?.score_no_water ?? dbMatch?.score_air ?? (dbMatch?.no_water != null ? clampScore(normalizeValue('air', raw_no_water) * 100) : (jsonMatch.score_no_water ?? 98));
+      let score_pph = dbMatch?.score_pph ?? (dbMatch?.pph != null ? clampScore(normalizeValue('pph', raw_pph) * 100) : (jsonMatch.score_pph ?? 88));
+      let score_stunting = dbMatch?.score_stunting ?? dbMatch?.score_tenkes ?? (dbMatch?.stunting != null ? clampScore(normalizeValue('stunting', raw_stunting) * 100) : (jsonMatch.score_stunting ?? 94));
+
+      const baseIkp = Number(jsonMatch.ikp ?? 72.26);
+      const targetIkp = dbMatch?.ikp != null ? Number(dbMatch.ikp) : baseIkp;
+
+      // If DB row only provides updated composite IKP (e.g., FSVA 2026 batch upload), scale kelurahan's indicator & pillar scores proportionally to its 2026 IKP
+      const scaleRatio = (!hasFullDbIndicators && dbMatch?.ikp != null && baseIkp > 0)
+        ? targetIkp / baseIkp
+        : 1;
+
+      if (scaleRatio !== 1) {
+        score_ncpr = clampScore(score_ncpr * scaleRatio);
+        score_energy = clampScore(score_energy * scaleRatio);
+        score_animal_protein = clampScore(score_animal_protein * scaleRatio);
+        score_food_reserves = clampScore(score_food_reserves * scaleRatio);
+        score_poverty = clampScore(score_poverty * scaleRatio);
+        score_price_cv = clampScore(score_price_cv * scaleRatio);
+        score_pou = clampScore(score_pou * scaleRatio);
+        score_female_school = clampScore(score_female_school * scaleRatio);
+        score_no_water = clampScore(score_no_water * scaleRatio);
+        score_pph = clampScore(score_pph * scaleRatio);
+        score_stunting = clampScore(score_stunting * scaleRatio);
+      }
+
+      const wKet = WEIGHTS.ncpr + WEIGHTS.energy + WEIGHTS.protein + WEIGHTS.cadangan;
+      const wAks = WEIGHTS.poverty + WEIGHTS.cv_harga + WEIGHTS.pou;
+      const wPem = WEIGHTS.sekolah + WEIGHTS.air + WEIGHTS.pph + WEIGHTS.stunting;
+
+      const calcKet = clampScore((score_ncpr * WEIGHTS.ncpr + score_energy * WEIGHTS.energy + score_animal_protein * WEIGHTS.protein + score_food_reserves * WEIGHTS.cadangan) / wKet);
+      const calcAks = clampScore((score_poverty * WEIGHTS.poverty + score_price_cv * WEIGHTS.cv_harga + score_pou * WEIGHTS.pou) / wAks);
+      const calcPem = clampScore((score_female_school * WEIGHTS.sekolah + score_no_water * WEIGHTS.air + score_pph * WEIGHTS.pph + score_stunting * WEIGHTS.stunting) / wPem);
+
+      const idx_ketersediaan = dbMatch?.idx_ketersediaan != null
+        ? Number(dbMatch.idx_ketersediaan)
+        : (scaleRatio !== 1 && jsonMatch.idx_ketersediaan != null ? clampScore(Number(jsonMatch.idx_ketersediaan) * scaleRatio) : (jsonMatch.idx_ketersediaan ?? calcKet));
+      const idx_akses = dbMatch?.idx_akses != null
+        ? Number(dbMatch.idx_akses)
+        : (scaleRatio !== 1 && jsonMatch.idx_akses != null ? clampScore(Number(jsonMatch.idx_akses) * scaleRatio) : (jsonMatch.idx_akses ?? calcAks));
+      const idx_pemanfaatan = dbMatch?.idx_pemanfaatan != null
+        ? Number(dbMatch.idx_pemanfaatan)
+        : (scaleRatio !== 1 && jsonMatch.idx_pemanfaatan != null ? clampScore(Number(jsonMatch.idx_pemanfaatan) * scaleRatio) : (jsonMatch.idx_pemanfaatan ?? calcPem));
+
+      const inverseRatio = scaleRatio > 0 ? 1 / scaleRatio : 1;
 
       result[kel] = {
         nama: kel,
         kecamatan: kec,
-        // Raw Values
-        raw_ncpr: item.ncpr ?? item.raw_ncpr ?? 6.0,
-        raw_energy: item.energy ?? item.raw_energy ?? 97.5,
-        raw_animal_protein: item.animal_protein ?? item.raw_animal_protein ?? 75.0,
-        raw_food_reserves: item.food_reserves ?? item.raw_food_reserves ?? 0.28,
-        raw_poverty: item.poverty ?? item.raw_poverty ?? 10.5,
-        raw_price_cv: item.price_cv ?? item.raw_price_cv ?? 4.2,
-        raw_pou: item.pou ?? item.raw_pou ?? 2.3,
-        raw_female_school: item.female_school ?? item.raw_female_school ?? 9.2,
-        raw_no_water: item.no_water ?? item.raw_no_water ?? 2.3,
-        raw_pph: item.pph ?? item.raw_pph ?? 92.5,
-        raw_stunting: item.stunting ?? item.raw_stunting ?? 4.4,
-        // Scores
-        score_ncpr: item.score_ncpr ?? item.score_lahan ?? 40,
-        score_energy: item.score_energy ?? item.score_sarana ?? 68,
-        score_animal_protein: item.score_animal_protein ?? 52,
-        score_food_reserves: item.score_food_reserves ?? 8,
-        score_poverty: item.score_poverty ?? item.score_miskin ?? 73,
-        score_price_cv: item.score_price_cv ?? item.score_jalan ?? 88,
-        score_pou: item.score_pou ?? 97,
-        score_female_school: item.score_female_school ?? 75,
-        score_no_water: item.score_no_water ?? item.score_air ?? 98,
-        score_pph: item.score_pph ?? 88,
-        score_stunting: item.score_stunting ?? item.score_tenkes ?? 94,
-        // Aggregates
-        idx_ketersediaan: item.idx_ketersediaan ?? 42,
-        idx_akses: item.idx_akses ?? 86,
-        idx_pemanfaatan: item.idx_pemanfaatan ?? 89,
-        ikp: item.ikp ?? 72.26,
-        rank: item.rank ?? 1,
+        raw_ncpr: +(raw_ncpr * (scaleRatio !== 1 ? inverseRatio : 1)).toFixed(2),
+        raw_energy: +(raw_energy * (scaleRatio !== 1 ? scaleRatio : 1)).toFixed(1),
+        raw_animal_protein: +(raw_animal_protein * (scaleRatio !== 1 ? scaleRatio : 1)).toFixed(1),
+        raw_food_reserves: +(raw_food_reserves * (scaleRatio !== 1 ? scaleRatio : 1)).toFixed(2),
+        raw_poverty: +(raw_poverty * (scaleRatio !== 1 ? inverseRatio : 1)).toFixed(1),
+        raw_price_cv: +raw_price_cv.toFixed(1),
+        raw_pou: +(raw_pou * (scaleRatio !== 1 ? inverseRatio : 1)).toFixed(2),
+        raw_female_school: +raw_female_school.toFixed(1),
+        raw_no_water: +(raw_no_water * (scaleRatio !== 1 ? inverseRatio : 1)).toFixed(2),
+        raw_pph: +Math.min(100, raw_pph * (scaleRatio !== 1 ? scaleRatio : 1)).toFixed(1),
+        raw_stunting: +(raw_stunting * (scaleRatio !== 1 ? inverseRatio : 1)).toFixed(2),
+        score_ncpr,
+        score_energy,
+        score_animal_protein,
+        score_food_reserves,
+        score_poverty,
+        score_price_cv,
+        score_pou,
+        score_female_school,
+        score_no_water,
+        score_pph,
+        score_stunting,
+        idx_ketersediaan,
+        idx_akses,
+        idx_pemanfaatan,
+        ikp: +targetIkp.toFixed(2),
+        rank: dbMatch?.rank != null ? Number(dbMatch.rank) : 0,
       };
     });
+  });
+
+  // Compute dynamic rank (1 = highest IKP, 43 = lowest IKP) whenever DB rank is null
+  const sortedByIkp = Object.values(result).sort((a, b) => b.ikp - a.ikp);
+  sortedByIkp.forEach((item, idx) => {
+    if (!item.rank || item.rank <= 0) {
+      result[item.nama].rank = idx + 1;
+    }
   });
 
   return result;

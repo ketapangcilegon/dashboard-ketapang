@@ -4,10 +4,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  Sparkles, Calendar, TrendingUp, AlertTriangle, ShieldAlert, Loader2, Utensils, RefreshCw, Brain, Download
+  Sparkles, Calendar, TrendingUp, AlertTriangle, ShieldAlert, Loader2, Utensils, RefreshCw, Brain, Download, CheckCircle
 } from 'lucide-react';
 import MapSKPGMini from './MapSKPGMini';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
 
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
@@ -502,24 +502,17 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
   };
 
   const getGiziPieData = () => {
-    const normalVal = kotaCilegon.nutrition.totalBalita > 0 
-      ? Math.round((kotaCilegon.nutrition.normal / kotaCilegon.nutrition.totalBalita) * 100) 
-      : 90;
-    const kurangVal = kotaCilegon.nutrition.totalBalita > 0 
-      ? Math.round((kotaCilegon.nutrition.kurang / kotaCilegon.nutrition.totalBalita) * 100) 
-      : 5;
-    const sangatKurangVal = kotaCilegon.nutrition.totalBalita > 0 
-      ? Math.round((kotaCilegon.nutrition.sangatKurang / kotaCilegon.nutrition.totalBalita) * 100) 
-      : 1;
-    const lebihVal = kotaCilegon.nutrition.totalBalita > 0 
-      ? Math.round((kotaCilegon.nutrition.lebih / kotaCilegon.nutrition.totalBalita) * 100) 
-      : 4;
+    const total = kotaCilegon.nutrition.totalBalita;
+    const normalVal = total > 0 ? +((kotaCilegon.nutrition.normal / total) * 100).toFixed(1) : 90;
+    const kurangVal = total > 0 ? +((kotaCilegon.nutrition.kurang / total) * 100).toFixed(1) : 5;
+    const sangatKurangVal = total > 0 ? +((kotaCilegon.nutrition.sangatKurang / total) * 100).toFixed(1) : 1;
+    const lebihVal = total > 0 ? +((kotaCilegon.nutrition.lebih / total) * 100).toFixed(1) : 4;
 
     return [
-      { name: 'Normal', value: kotaCilegon.nutrition.normal, percent: normalVal, color: '#10B981' },
-      { name: 'Kurang', value: kotaCilegon.nutrition.kurang, percent: kurangVal, color: '#F59E0B' },
-      { name: 'Sangat Kurang', value: kotaCilegon.nutrition.sangatKurang, percent: sangatKurangVal, color: '#EF4444' },
-      { name: 'Lebih', value: kotaCilegon.nutrition.lebih, percent: lebihVal, color: '#3B82F6' }
+      { name: 'Balita BB/U Normal', shortName: 'BB/U Normal', value: kotaCilegon.nutrition.normal, percent: normalVal, color: '#10B981' },
+      { name: 'Balita BB/U Kurang', shortName: 'BB/U Kurang', value: kotaCilegon.nutrition.kurang, percent: kurangVal, color: '#F59E0B' },
+      { name: 'Balita BB/U Sangat Kurang', shortName: 'BB/U Sgt Kurang', value: kotaCilegon.nutrition.sangatKurang, percent: sangatKurangVal, color: '#EF4444' },
+      { name: 'Balita BB/U Lebih', shortName: 'BB/U Lebih', value: kotaCilegon.nutrition.lebih, percent: lebihVal, color: '#3B82F6' }
     ];
   };
 
@@ -541,9 +534,12 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
       const akses = getKeterjangkauanRow(kel.nama, kel.kecamatan);
       const nutr = getPemanfaatanRow(kel.nama);
       const score = akses.index + nutr.bobot;
-      return { name: kel.nama, 'Skor Komposit': score };
+      const ket = score === 6 ? 'Aman' : score >= 4 ? 'Waspada' : 'Rentan';
+      return { name: kel.nama, kecamatan: kel.kecamatan, 'Skor Komposit': score, labelText: `${score} (${ket})`, giziPct: nutr.value };
     });
-    return list.sort((a, b) => a['Skor Komposit'] - b['Skor Komposit']).slice(0, 10);
+    return list
+      .sort((a, b) => a['Skor Komposit'] - b['Skor Komposit'] || b.giziPct - a.giziPct)
+      .slice(0, 10);
   };
 
   const now = new Date();
@@ -857,13 +853,17 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Perbandingan Harga Pangan Strategis YoY</h4>
                 <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 5 }}>
-                      <XAxis type="number" stroke="#94A3B8" fontSize={9} />
-                      <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} width={90} />
-                      <Tooltip formatter={(value) => value ? `Rp ${Number(value).toLocaleString('id-ID')}` : ''} contentStyle={{ fontSize: '10px' }} />
-                      <Legend wrapperStyle={{ fontSize: '9px' }} />
-                      <Bar dataKey="1 Tahun Sebelumnya" fill="#F97316" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                    <BarChart data={getAksesChartData()} layout="vertical" margin={{ top: 10, right: 86, left: 0, bottom: 5 }}>
+                      <XAxis type="number" stroke="#94A3B8" fontSize={8.5} tickFormatter={(v) => `Rp${Math.round(Number(v) / 1000)}rb`} />
+                      <YAxis dataKey="name" type="category" stroke="#64748B" fontSize={9} width={78} interval={0} tick={{ fontWeight: 700, fill: '#1e293b' }} />
+                      <Tooltip formatter={(value, name) => value ? [`Rp ${Number(value).toLocaleString('id-ID')}`, String(name)] : ['-', String(name)]} contentStyle={{ fontSize: '10px' }} />
+                      <Legend wrapperStyle={{ fontSize: '8.5px', fontWeight: 700 }} formatter={(val) => val === '1 Tahun Sebelumnya' ? `1 Thn Lalu (${labelPrev})` : `Bln Berjalan (${labelCur})`} />
+                      <Bar dataKey="1 Tahun Sebelumnya" fill="#F97316" radius={[0, 4, 4, 0]}>
+                        <LabelList dataKey="1 Tahun Sebelumnya" position="right" formatter={(value: any) => value ? `Rp ${Number(value).toLocaleString('id-ID')} (YoY)` : ''} style={{ fontSize: 7.5, fontWeight: 800, fill: '#c2410c' }} />
+                      </Bar>
+                      <Bar dataKey="Bulan Berjalan" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                        <LabelList dataKey="Bulan Berjalan" position="right" formatter={(value: any) => value ? `Rp ${Number(value).toLocaleString('id-ID')} (Kini)` : ''} style={{ fontSize: 7.5, fontWeight: 800, fill: '#1d4ed8' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1089,26 +1089,78 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     {/* Kolom 2: Grafik (Span 5) */}
                     <div className="lg:col-span-5 flex flex-col justify-between">
                       <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">Grafik Distribusi Status Gizi Balita (BB/U)</h4>
-                      <div className="h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2 flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={getGiziPieData()}
-                              cx="50%"
-                              cy="45%"
-                              innerRadius={50}
-                              outerRadius={75}
-                              paddingAngle={3}
-                              dataKey="value"
-                            >
-                              {getGiziPieData().map((entry, idx) => (
-                                <Cell key={`cell-${idx}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => value ? `${Number(value).toLocaleString('id-ID')} balita` : ''} contentStyle={{ fontSize: '10px' }} />
-                            <Legend wrapperStyle={{ fontSize: '9px' }} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                      <div className="min-h-[230px] w-full bg-white rounded-xl border border-slate-150 p-2.5 flex flex-col justify-between">
+                        {(() => {
+                          const pieData = getGiziPieData();
+                          const totalBalita = kotaCilegon.nutrition.totalBalita;
+                          return (
+                            <>
+                              <div className="h-[145px] w-full relative">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={pieData}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={38}
+                                      outerRadius={58}
+                                      paddingAngle={2.5}
+                                      dataKey="value"
+                                      labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
+                                      label={({ cx = 0, cy = 0, midAngle = 0, outerRadius = 58, index = 0 }) => {
+                                        const item = pieData[index];
+                                        if (!item) return null;
+                                        const RAD = Math.PI / 180;
+                                        const extraR = index === 0 ? 14 : index === 1 ? 14 : index === 2 ? 25 : 16;
+                                        const r = Number(outerRadius) + extraR;
+                                        const x = Number(cx) + r * Math.cos(-midAngle * RAD);
+                                        const y = Number(cy) + r * Math.sin(-midAngle * RAD);
+                                        const anchor = x >= Number(cx) ? 'start' : 'end';
+                                        return (
+                                          <text
+                                            x={x}
+                                            y={y}
+                                            fill={item.color}
+                                            textAnchor={anchor}
+                                            dominantBaseline="central"
+                                            style={{ fontSize: '8px', fontWeight: 800 }}
+                                          >
+                                            {`${item.value.toLocaleString('id-ID')} (${item.shortName})`}
+                                          </text>
+                                        );
+                                      }}
+                                    >
+                                      {pieData.map((entry, idx) => (
+                                        <Cell key={`cell-${idx}`} fill={entry.color} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip
+                                      formatter={(value, name) => [
+                                        `${Number(value || 0).toLocaleString('id-ID')} anak`,
+                                        String(name)
+                                      ]}
+                                      contentStyle={{ fontSize: '10px', borderRadius: '8px' }}
+                                    />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                  <span className="text-[7.5px] font-bold uppercase text-slate-400 leading-none">Total BB/U</span>
+                                  <span className="text-[10px] font-black text-slate-800 leading-tight mt-0.5">{totalBalita.toLocaleString('id-ID')}</span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1.5 border-t border-slate-100">
+                                {pieData.map((item) => (
+                                  <div key={item.name} className="flex items-center gap-1.5 text-[8.5px] leading-tight">
+                                    <span className="w-2.5 h-2.5 rounded-xs shrink-0" style={{ backgroundColor: item.color }} />
+                                    <span className="text-slate-700 font-bold truncate" title={`${item.value.toLocaleString('id-ID')} (${item.name} • ${item.percent}%)`}>
+                                      <strong className="text-slate-900 font-black">{item.value.toLocaleString('id-ID')}</strong> ({item.name} • {item.percent}%)
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -1273,7 +1325,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                       <MapSKPGMini 
                         level="kelurahan" 
                         dataStatus={getKompositStatusMap()} 
-                        height="240px" 
+                        height="275px" 
                         mapTitle="Peta Komposit SKPG Kelurahan"
                         periodLabel={`${MONTH_NAMES_INDO[displayMonth]} ${displayYear}`}
                       />
@@ -1282,18 +1334,42 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                     {/* Kolom 2: Grafik 10 Kelurahan Terendah (Span 4) */}
                     <div className="lg:col-span-4 flex flex-col justify-between">
                       <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2 text-center lg:text-left">10 Kelurahan Dengan Skor Komposit Terendah</h4>
-                      <div className="h-[240px] w-full bg-white rounded-xl border border-slate-150 p-2">
+                      <div className="h-[275px] w-full bg-white rounded-xl border border-slate-150 p-2">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={getKompositChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                            <XAxis dataKey="name" stroke="#94A3B8" fontSize={8} tickLine={false} />
-                            <YAxis stroke="#94A3B8" fontSize={9} domain={[0, 6]} tickCount={7} />
-                            <Tooltip contentStyle={{ fontSize: '10px' }} />
-                            <Bar dataKey="Skor Komposit" fill="#EF4444" radius={[4, 4, 0, 0]}>
+                          <BarChart data={getKompositChartData()} layout="vertical" margin={{ top: 6, right: 64, left: 2, bottom: 14 }}>
+                            <XAxis
+                              type="number"
+                              domain={[0, 6]}
+                              ticks={[0, 1, 2, 3, 4, 5, 6]}
+                              stroke="#94A3B8"
+                              fontSize={9}
+                              label={{ value: 'Skor Komposit (IA + IP)', position: 'insideBottom', offset: -8, fontSize: 8.5, fill: '#64748B', fontWeight: 700 }}
+                            />
+                            <YAxis
+                              dataKey="name"
+                              type="category"
+                              interval={0}
+                              width={88}
+                              stroke="#64748B"
+                              fontSize={8.5}
+                              tickLine={false}
+                              tick={{ fill: '#0f172a', fontWeight: 800 }}
+                            />
+                            <Tooltip
+                              formatter={(value, _name, props) => [props?.payload?.labelText || value, `Kel. ${props?.payload?.name || ''} (Kec. ${props?.payload?.kecamatan || ''})`]}
+                              contentStyle={{ fontSize: '10px', borderRadius: '8px' }}
+                            />
+                            <Bar dataKey="Skor Komposit" fill="#EF4444" radius={[0, 4, 4, 0]} barSize={14}>
                               {getKompositChartData().map((entry, idx) => {
-                                const colors = ['#EF4444', '#F59E0B', '#10B981']; // Rentan, Waspada, Aman
+                                const colors = ['#EF4444', '#F59E0B', '#10B981'];
                                 const idxCol = entry['Skor Komposit'] === 6 ? 2 : entry['Skor Komposit'] >= 4 ? 1 : 0;
                                 return <Cell key={`cell-${idx}`} fill={colors[idxCol]} />;
                               })}
+                              <LabelList
+                                dataKey="labelText"
+                                position="right"
+                                style={{ fontSize: 8, fontWeight: 800, fill: '#1e293b' }}
+                              />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -1428,48 +1504,168 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
                 </div>
               </div>
 
-              {/* 4. Peta / Hasil Ringkasan Komposit Kelurahan */}
-              <div className="dashboard-card p-6 bg-white shadow-sm border border-slate-200">
+              {/* 4. Evaluasi & Rekomendasi Kebijakan Intervensi SKPG Tingkat Kelurahan */}
+              <div className="dashboard-card p-6 bg-gradient-to-br from-white to-emerald-50/15 shadow-sm border border-slate-200">
                 <h3 className="font-extrabold text-[#0B1E41] text-xs leading-none uppercase tracking-widest mb-5 flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                  <ShieldAlert className="w-4.5 h-4.5 text-emerald-600" />
-                  IV. Ringkasan Evaluasi Komposit SKPG - Kota Cilegon
+                  <Brain className="w-4.5 h-4.5 text-emerald-600 animate-pulse" />
+                  IV. Rekomendasi Kebijakan & Tindak Lanjut (Tingkat Kelurahan)
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Bobot Score Board */}
-                  <div className="space-y-4">
-                    <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Total Balita Kota Cilegon</h4>
-                      <p className="text-2xl font-black text-[#0B1E41]">
-                        {isGiziDataAvailable ? kotaCilegon.nutrition.totalBalita.toLocaleString('id-ID') : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Rata-rata Prevalensi Gizi Kurang</h4>
-                      <p className="text-2xl font-black text-emerald-600">
-                        {isGiziDataAvailable ? `${kotaCilegon.nutrition.value}%` : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
+                {(() => {
+                  const evalKelList = KELURAHANS.map((kel) => {
+                    const akses = getKeterjangkauanRow(kel.nama, kel.kecamatan);
+                    const gizi = getPemanfaatanRow(kel.nama);
+                    const hasGizi = gizi.bobot > 0;
+                    const score = hasGizi ? akses.index + gizi.bobot : 0;
+                    const compStatus = !hasGizi ? 'N/A' : score === 6 ? 'AMAN' : score >= 4 ? 'WASPADA' : 'RENTAN';
+                    return {
+                      nama: kel.nama,
+                      kecamatan: kel.kecamatan,
+                      aksesStatus: akses.status,
+                      aksesIndex: akses.index,
+                      giziStatus: gizi.status,
+                      giziPct: gizi.value,
+                      underweight: gizi.underweightTotal,
+                      score,
+                      compStatus,
+                    };
+                  });
 
-                  {/* Recommendation Alerts */}
-                  <div className="space-y-4">
-                    {isGiziDataAvailable ? (
-                      <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-xl">
-                        <h4 className="font-black text-emerald-800 uppercase tracking-wider mb-2">Aspek Pemanfaatan (Gizi): AMAN</h4>
-                        <p className="text-slate-700 text-xs">Seluruh 43 kelurahan di Kota Cilegon mencatatkan prevalensi balita underweight rata-rata **{kotaCilegon.nutrition.value}%**.</p>
+                  const giziPerhatian = evalKelList.filter((k) => k.giziStatus === 'RENTAN' || k.giziStatus === 'WASPADA');
+                  const topUnderweightKels = [...evalKelList]
+                    .filter((k) => k.giziStatus !== 'N/A')
+                    .sort((a, b) => b.giziPct - a.giziPct)
+                    .slice(0, 5);
+
+                  const rentanAksesKels = evalKelList.filter((k) => k.aksesStatus === 'RENTAN');
+                  const waspadaAksesKels = evalKelList.filter((k) => k.aksesStatus === 'WASPADA');
+
+                  const prioritasKompositKels = [...evalKelList]
+                    .filter((k) => k.compStatus === 'RENTAN' || k.compStatus === 'WASPADA')
+                    .sort((a, b) => a.score - b.score || b.giziPct - a.giziPct);
+
+                  const lokusPrioritasUtama = (prioritasKompositKels.length > 0 ? prioritasKompositKels : topUnderweightKels).slice(0, 6);
+
+                  const commodities = [
+                    { label: 'beras medium', r: kotaCilegon.beras.r },
+                    { label: 'minyak goreng kemasan', r: kotaCilegon.minyak.r },
+                    { label: 'telur ayam ras', r: kotaCilegon.telur.r },
+                  ].sort((a, b) => b.r - a.r);
+                  const topDriver = commodities[0];
+                  const fmtPct = (v: number) => `${v > 0 ? '+' : ''}${v}%`;
+
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Kolom Kiri: Ringkasan Metrik & Status 2 Aspek */}
+                      <div className="lg:col-span-7 space-y-4 text-[11px] leading-relaxed text-slate-600 font-semibold">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3.5 bg-slate-50 border border-slate-150 rounded-xl">
+                            <h4 className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 mb-1">Total Balita Ditimbang (43 Kel.)</h4>
+                            <p className="text-xl font-black text-[#0B1E41]">
+                              {isGiziDataAvailable ? kotaCilegon.nutrition.totalBalita.toLocaleString('id-ID') : 'N/A'}
+                            </p>
+                          </div>
+                          <div className="p-3.5 bg-slate-50 border border-slate-150 rounded-xl">
+                            <h4 className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 mb-1">Rata-rata Gizi Kurang Kota</h4>
+                            <p className="text-xl font-black text-emerald-600">
+                              {isGiziDataAvailable ? `${kotaCilegon.nutrition.value}%` : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {isGiziDataAvailable ? (
+                          <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-xl">
+                            <h4 className="font-black text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                              Status Aspek Pemanfaatan (Gizi Kelurahan): {kotaCilegon.nutrition.status}
+                            </h4>
+                            <p className="text-slate-700">
+                              Rata-rata prevalensi balita underweight di 43 kelurahan tercatat <strong className="text-slate-900 font-extrabold">{kotaCilegon.nutrition.value}%</strong>.{' '}
+                              {giziPerhatian.length > 0 ? (
+                                <>
+                                  Kelurahan yang memerlukan intervensi gizi terfokus (status Waspada/Rentan):{' '}
+                                  <strong className="text-slate-900 font-extrabold">
+                                    {giziPerhatian.map((k) => `${k.nama} (${k.giziPct}%)`).join(', ')}
+                                  </strong>.
+                                </>
+                              ) : (
+                                <>
+                                  Seluruh kelurahan berada di bawah ambang waspada 10%, namun pemantauan Posyandu diprioritaskan pada 5 kelurahan dengan persentase tertinggi:{' '}
+                                  <strong className="text-slate-900 font-extrabold">
+                                    {topUnderweightKels.map((k) => `${k.nama} (${k.giziPct}%)`).join(', ')}
+                                  </strong>.
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                            <h4 className="font-black text-slate-400 uppercase tracking-wider mb-1">Aspek Pemanfaatan (Gizi): DATA N/A</h4>
+                            <p className="text-slate-500">Data gizi balita belum tersedia pada periode terpilih untuk dievaluasi.</p>
+                          </div>
+                        )}
+
+                        <div className={`p-4 rounded-xl border ${kotaCilegon.statusAkses === 'AMAN' ? 'bg-emerald-50/60 border-emerald-100' : 'bg-amber-50/80 border-amber-100'}`}>
+                          <h4 className={`font-black uppercase tracking-wider mb-1.5 flex items-center gap-1.5 ${kotaCilegon.statusAkses === 'AMAN' ? 'text-emerald-800' : 'text-amber-800'}`}>
+                            <AlertTriangle className={`w-4 h-4 shrink-0 ${kotaCilegon.statusAkses === 'AMAN' ? 'text-emerald-600' : 'text-amber-600'}`} />
+                            Status Aspek Akses (Harga Kelurahan): {kotaCilegon.statusAkses}
+                          </h4>
+                          <p className="text-slate-700">
+                            Rata-rata akses pangan kota berstatus <strong className="text-slate-900 font-extrabold">{kotaCilegon.statusAkses}</strong> (Bobot Akses: <strong className="text-slate-900 font-extrabold">{kotaCilegon.totalBobotAkses}</strong>), dengan perubahan harga YoY tertinggi pada {topDriver.label} (<strong className="text-slate-900 font-extrabold">{fmtPct(topDriver.r)}</strong>).
+                          </p>
+                          <ul className="list-disc pl-4 mt-2 space-y-1 text-slate-700">
+                            {rentanAksesKels.length > 0 && (
+                              <li>
+                                <strong>{rentanAksesKels.length} Kelurahan berstatus RENTAN Akses (Indeks 1):</strong>{' '}
+                                {rentanAksesKels.slice(0, 8).map((k) => k.nama).join(', ')}
+                                {rentanAksesKels.length > 8 ? `, dan ${rentanAksesKels.length - 8} kelurahan lainnya.` : '.'}
+                              </li>
+                            )}
+                            {waspadaAksesKels.length > 0 && (
+                              <li>
+                                <strong>{waspadaAksesKels.length} Kelurahan berstatus WASPADA Akses (Indeks 2):</strong>{' '}
+                                {waspadaAksesKels.slice(0, 8).map((k) => k.nama).join(', ')}
+                                {waspadaAksesKels.length > 8 ? `, dan ${waspadaAksesKels.length - 8} kelurahan lainnya.` : '.'}
+                              </li>
+                            )}
+                          </ul>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                        <h4 className="font-black text-slate-400 uppercase tracking-wider mb-2">Aspek Pemanfaatan (Gizi): DATA N/A</h4>
-                        <p className="text-slate-500 text-xs">Data stunting belum tersedia pada periode terpilih untuk dievaluasi.</p>
+
+                      {/* Kolom Kanan: Alternatif Solusi & Lokus Kelurahan Prioritas Intervensi */}
+                      <div className="lg:col-span-5 flex flex-col justify-between bg-slate-50/70 p-4 rounded-xl border border-slate-150">
+                        <div>
+                          <h4 className="font-black text-[#0B1E41] text-[10.5px] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                            <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+                            Alternatif Solusi & Lokus Kelurahan Prioritas Intervensi:
+                          </h4>
+                          <div className="space-y-2.5">
+                            <div className="flex gap-2 text-[10.5px] text-slate-700 font-bold bg-white p-3 rounded-lg shadow-xs border border-slate-100 leading-relaxed">
+                              <span className="text-rose-500 font-black">•</span>
+                              <span>
+                                <strong>Operasi Pasar & GPM Tepat Sasaran:</strong> Prioritaskan titik gelar Gerakan Pangan Murah (GPM) komoditas {topDriver.label} dan beras medium di lokus kelurahan prioritas:{' '}
+                                <strong className="text-slate-900">
+                                  {lokusPrioritasUtama.map((k) => `Kel. ${k.nama} (Kec. ${k.kecamatan})`).join(', ')}
+                                </strong>.
+                              </span>
+                            </div>
+                            <div className="flex gap-2 text-[10.5px] text-slate-700 font-bold bg-white p-3 rounded-lg shadow-xs border border-slate-100 leading-relaxed">
+                              <span className="text-amber-500 font-black">•</span>
+                              <span>
+                                <strong>Intervensi PMT & Surveilans Posyandu Kelurahan:</strong> Perkuat pemberian makanan tambahan (PMT) berbahan pangan lokal B2SA pada kelurahan dengan prevalensi balita underweight tertinggi ({topUnderweightKels.slice(0, 3).map((k) => `Kel. ${k.nama} ${k.giziPct}%`).join(', ')}).
+                              </span>
+                            </div>
+                            <div className="flex gap-2 text-[10.5px] text-slate-700 font-bold bg-white p-3 rounded-lg shadow-xs border border-slate-100 leading-relaxed">
+                              <span className="text-emerald-500 font-black">•</span>
+                              <span>
+                                <strong>Stabilisasi Distribusi & Pemanfaatan KWT Kelurahan:</strong> Kolaborasi DKPP, Disperindag, dan Perum Bulog dalam penyaluran bantuan pangan CPPD serta optimalisasi 84 KWT kelurahan untuk penyangga pangan rumah tangga.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    <div className="p-4 bg-amber-50/80 border border-amber-100 rounded-xl">
-                      <h4 className="font-black text-amber-800 uppercase tracking-wider mb-2">Aspek Akses (Harga): WASPADA</h4>
-                      <p className="text-slate-700 text-xs">Didorong oleh kenaikan harga minyak goreng yang signifikan dibanding tahun sebelumnya.</p>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </>
           ) : (
