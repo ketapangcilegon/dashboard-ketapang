@@ -26,6 +26,7 @@ import {
   MapInvalidator,
 } from './gis/MapHelpers';
 import LocateMe from './gis/LocateMe';
+import { OFFICIAL_KWT_LIST } from '@/lib/kwt/data';
 import {
   KecamatanLayer,
   SawahLayer,
@@ -734,7 +735,7 @@ export default function AIIntelligenceMap({
       if (l.includes('nelayan')) setShowNelayan(true);
       if (l.includes('kolam')) setShowKolam(true);
       if (l.includes('poktan')) setShowPoktan(true);
-      if (l.includes('kwt')) setShowKWT(true);
+      if (l.includes('kwt')) { setShowKWT(true); setShowPoktan(true); }
       if (l.includes('ternak')) setShowPoktan(true);
       if (l.includes('horti')) setShowHorti(true);
       if (l.includes('palawija')) setShowPalawija(true);
@@ -857,6 +858,25 @@ export default function AIIntelligenceMap({
       (p) => p && typeof p.lat === 'number' && !isNaN(p.lat) && typeof p.lng === 'number' && !isNaN(p.lng)
     );
   }, [highlightPins, mapAction]);
+
+  // Pin AI bertipe KWT dirender oleh layer 'Poktan & KWT' (tertaut centang layer), bukan pin sorotan terpisah
+  const renderAiPins = useMemo(() => validAiPins.filter((p) => p.category !== 'kwt'), [validAiPins]);
+
+  // Layer Poktan & KWT: 84 KWT resmi tergeokode (menggantikan KWT dummy dari cache) + Poktan/Gapoktan non-KWT
+  const poktanLayerData = useMemo(() => {
+    const nonKwt = (dbData.poktan || []).filter((r: any) => r?.jenis !== 'KWT');
+    const kwtOfficial = OFFICIAL_KWT_LIST.filter((k) => k.latitude && k.longitude).map((k) => ({
+      lat: k.latitude,
+      lng: k.longitude,
+      jenis: 'KWT',
+      nama_poktan: k.nama_kwt.toUpperCase().startsWith('KWT') ? k.nama_kwt : `KWT ${k.nama_kwt}`,
+      nama_ketua: k.nama_ketua || '',
+      kelurahan: `Kel. ${k.kelurahan}, Kec. ${k.kecamatan}`,
+      produk_unggulan: k.jenis_usaha || '',
+      status_aktif: k.keterangan || 'Aktif',
+    }));
+    return [...nonKwt, ...kwtOfficial];
+  }, [dbData.poktan]);
 
   // Pisahkan observasi Kamera Cerdas: Pasokan Beras & Pangan Lokal
   const kameraBerasList = useMemo(() => {
@@ -1282,9 +1302,9 @@ export default function AIIntelligenceMap({
         )}
 
         {/* 4. Layer Pin Database Sektor Serumpun Padi */}
-        {showPoktan && dbData.poktan?.length > 0 && (
+        {showPoktan && poktanLayerData.length > 0 && (
           <PoktanDBPins
-            data={dbData.poktan}
+            data={poktanLayerData}
             showPoktan={showPoktan}
             showKWT={showKWT}
             showGapoktan={showGapoktan}
@@ -1330,7 +1350,7 @@ export default function AIIntelligenceMap({
         )}
 
         {/* 5. Active AI Matched Pins (Glow Highlight) */}
-        {validAiPins.map((pin, pidx) => (
+        {renderAiPins.map((pin, pidx) => (
           <GeoJSONComp
             key={`ai-matched-pin-${pidx}-${pin.lat}-${pin.lng}`}
             data={
