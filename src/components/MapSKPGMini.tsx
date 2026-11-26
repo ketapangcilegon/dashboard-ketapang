@@ -37,26 +37,65 @@ const KECAMATAN_CENTROIDS: { name: string; coord: [number, number] }[] = [
   { name: 'CIWANDAN', coord: [-6.045, 105.968] }
 ];
 
-// Helper to calculate centroid of polygon
+// Hitung luas aproksimasi ring poligon (shoelace) agar label selalu ditaruh di poligon daratan utama (terbesar)
+function getRingArea(ring: number[][]): number {
+  if (!Array.isArray(ring) || ring.length < 3) return 0;
+  let area = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i]?.[0] ?? 0;
+    const yi = ring[i]?.[1] ?? 0;
+    const xj = ring[j]?.[0] ?? 0;
+    const yj = ring[j]?.[1] ?? 0;
+    area += (xj + xi) * (yj - yi);
+  }
+  return Math.abs(area) / 2;
+}
+
+// Ekstrak seluruh outer ring dari Polygon, MultiPolygon, maupun GeometryCollection (hasil togeojson dari KML MultiGeometry)
+function extractOuterRings(geom: any): number[][][] {
+  if (!geom) return [];
+  if (geom.type === 'Polygon' && Array.isArray(geom.coordinates?.[0])) {
+    return [geom.coordinates[0]];
+  }
+  if (geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates)) {
+    return geom.coordinates
+      .map((poly: any) => (Array.isArray(poly?.[0]) ? poly[0] : null))
+      .filter(Boolean);
+  }
+  if (geom.type === 'GeometryCollection' && Array.isArray(geom.geometries)) {
+    return geom.geometries.flatMap((g: any) => extractOuterRings(g));
+  }
+  return [];
+}
+
+// Helper to calculate centroid of largest polygon ring (supports Polygon, MultiPolygon, and GeometryCollection)
 function getFeatureCentroid(feature: any): [number, number] | null {
   try {
-    const geom = feature.geometry;
-    if (!geom) return null;
-    let coords: number[][] = [];
-    if (geom.type === 'Polygon') {
-      coords = geom.coordinates[0];
-    } else if (geom.type === 'MultiPolygon') {
-      coords = geom.coordinates[0][0];
+    const rings = extractOuterRings(feature?.geometry);
+    if (rings.length === 0) return null;
+
+    // Pilih ring terbesar (daratan utama, bukan pulau kecil / fragmen)
+    let bestRing = rings[0];
+    let maxArea = getRingArea(rings[0]);
+    for (let i = 1; i < rings.length; i++) {
+      const a = getRingArea(rings[i]);
+      if (a > maxArea) {
+        maxArea = a;
+        bestRing = rings[i];
+      }
     }
-    if (!coords || coords.length === 0) return null;
-    let sumLng = 0, sumLat = 0;
-    coords.forEach((c: number[]) => {
-      if (c && c.length >= 2) {
+
+    if (!bestRing || bestRing.length === 0) return null;
+    let sumLng = 0, sumLat = 0, count = 0;
+    bestRing.forEach((c: number[]) => {
+      if (c && c.length >= 2 && !isNaN(c[0]) && !isNaN(c[1])) {
         sumLng += c[0];
         sumLat += c[1];
+        count++;
       }
     });
-    return [sumLat / coords.length, sumLng / coords.length];
+    if (count === 0) return null;
+    return [sumLat / count, sumLng / count];
   } catch {
     return null;
   }
@@ -302,9 +341,9 @@ export default function MapSKPGMini({
 
   const activeFeatures = level === 'kecamatan' ? layers.kecamatan : layers.kelurahan;
 
-  // Base coordinates & zoom for mini map
-  const center: [number, number] = [-6.012, 106.026];
-  const zoom = 9.85;
+  // Base coordinates & zoom for mini map (mencakup utuh dari Suralaya di utara hingga Cikerai di selatan)
+  const center: [number, number] = [-5.995, 106.022];
+  const zoom = 9.75;
 
   const styleFeature = (feature: any) => {
     const name = String(feature.properties?.name || feature.properties?.Name || '').trim();
