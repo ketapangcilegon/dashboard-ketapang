@@ -92,16 +92,23 @@ export function scoreKeterjangkauan(
     };
   }
 
-  const rBeras = parseFloat((((cur.beras - prev.beras) / prev.beras) * 100).toFixed(1));
-  const rMinyak = parseFloat((((cur.minyak - prev.minyak) / prev.minyak) * 100).toFixed(1));
-  const rTelur = parseFloat((((cur.telur - prev.telur) / prev.telur) * 100).toFixed(1));
+  // Evaluasi cut-off menggunakan nilai unrounded persis rumus Excel Form Bapanas Sheet IA:
+  // =IF(O>10,1,IF(O<5,3,2)) untuk Beras; =IF(Q>15,1,IF(Q<5,3,2)) untuk Minyak & Telur
+  const rBerasRaw = ((cur.beras - prev.beras) / prev.beras) * 100;
+  const rMinyakRaw = ((cur.minyak - prev.minyak) / prev.minyak) * 100;
+  const rTelurRaw = ((cur.telur - prev.telur) / prev.telur) * 100;
 
-  const bobotBeras = rBeras > 10 ? 1 : rBeras >= 5 ? 2 : 3;
-  const bobotMinyak = rMinyak > 15 ? 1 : rMinyak >= 5 ? 2 : 3;
-  const bobotTelur = rTelur > 15 ? 1 : rTelur >= 5 ? 2 : 3;
+  const rBeras = parseFloat(rBerasRaw.toFixed(1));
+  const rMinyak = parseFloat(rMinyakRaw.toFixed(1));
+  const rTelur = parseFloat(rTelurRaw.toFixed(1));
+
+  const bobotBeras = rBerasRaw > 10 ? 1 : rBerasRaw < 5 ? 3 : 2;
+  const bobotMinyak = rMinyakRaw > 15 ? 1 : rMinyakRaw < 5 ? 3 : 2;
+  const bobotTelur = rTelurRaw > 15 ? 1 : rTelurRaw < 5 ? 3 : 2;
 
   const totalBobot = bobotBeras + bobotMinyak + bobotTelur;
-  const index = totalBobot >= 8 ? 3 : totalBobot >= 6 ? 2 : 1;
+  // Form Bapanas Sheet IA: =IF(U<=5,"RENTAN",IF(U>7,"AMAN","WASPADA"))
+  const index = totalBobot > 7 ? 3 : totalBobot <= 5 ? 1 : 2;
   const status: SkpgStatus = index === 3 ? 'AMAN' : index === 2 ? 'WASPADA' : 'RENTAN';
 
   return {
@@ -134,8 +141,11 @@ export function scorePemanfaatan(sangatKurang: number, kurang: number, totalBali
     };
   }
   const underweightTotal = (sangatKurang || 0) + (kurang || 0);
-  const prevalensi = parseFloat(((underweightTotal / totalBalita) * 100).toFixed(2));
-  const index = prevalensi > 15 ? 1 : prevalensi >= 10 ? 2 : 3;
+  // Evaluasi cut-off menggunakan nilai unrounded persis rumus Excel Form Bapanas Sheet IP:
+  // =IF(O<10,3,IF(O>15,1,2))
+  const prevalensiRaw = (underweightTotal / totalBalita) * 100;
+  const prevalensi = parseFloat(prevalensiRaw.toFixed(2));
+  const index = prevalensiRaw < 10 ? 3 : prevalensiRaw > 15 ? 1 : 2;
   const status: SkpgStatus = index === 3 ? 'AMAN' : index === 2 ? 'WASPADA' : 'RENTAN';
 
   return {

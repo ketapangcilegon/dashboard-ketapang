@@ -354,25 +354,31 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
     fetchAiInsight(selectedYear, selectedMonth, totals);
   }, [selectedYear, selectedMonth, loading, isPeriodAvailable]);
 
-  // Compute individual sub-district rows (Keterjangkauan)
+  // Compute individual sub-district rows (Keterjangkauan) — persis rumus Form Bapanas Sheet IA
+  // Setiap kelurahan tertaut harga pasar kecamatan induknya:
+  // Pulomerak & Gerogol -> Pasar Baru Merak; Cibeber & Cilegon -> Pasar Blok F;
+  // Ciwandan, Jombang, Purwakarta, Citangkil -> Pasar Kranggot
   const getKeterjangkauanRow = (kelNama: string, kecInduk: string) => {
-    // Price data mapped to its parent kecamatan
     const cur = pricesCur[kecInduk] || { beras: 0, minyak: 0, telur: 0 };
     const prev = pricesPrev[kecInduk] || { beras: 0, minyak: 0, telur: 0 };
 
     const available = cur.beras > 0 && cur.minyak > 0 && cur.telur > 0 &&
                       prev.beras > 0 && prev.minyak > 0 && prev.telur > 0;
 
-    const rBeras = available ? parseFloat(((cur.beras - prev.beras) / prev.beras * 100).toFixed(1)) : 0;
-    const rMinyak = available ? parseFloat(((cur.minyak - prev.minyak) / prev.minyak * 100).toFixed(1)) : 0;
-    const rTelur = available ? parseFloat(((cur.telur - prev.telur) / prev.telur * 100).toFixed(1)) : 0;
+    const rBerasRaw = available ? ((cur.beras - prev.beras) / prev.beras) * 100 : 0;
+    const rMinyakRaw = available ? ((cur.minyak - prev.minyak) / prev.minyak) * 100 : 0;
+    const rTelurRaw = available ? ((cur.telur - prev.telur) / prev.telur) * 100 : 0;
 
-    const bobotBeras = rBeras > 10 ? 1 : rBeras >= 5 ? 2 : 3;
-    const bobotMinyak = rMinyak > 15 ? 1 : rMinyak >= 5 ? 2 : 3;
-    const bobotTelur = rTelur > 15 ? 1 : rTelur >= 5 ? 2 : 3;
+    const rBeras = parseFloat(rBerasRaw.toFixed(1));
+    const rMinyak = parseFloat(rMinyakRaw.toFixed(1));
+    const rTelur = parseFloat(rTelurRaw.toFixed(1));
+
+    const bobotBeras = rBerasRaw > 10 ? 1 : rBerasRaw < 5 ? 3 : 2;
+    const bobotMinyak = rMinyakRaw > 15 ? 1 : rMinyakRaw < 5 ? 3 : 2;
+    const bobotTelur = rTelurRaw > 15 ? 1 : rTelurRaw < 5 ? 3 : 2;
 
     const totalBobot = bobotBeras + bobotMinyak + bobotTelur;
-    const index = totalBobot >= 8 ? 3 : totalBobot >= 6 ? 2 : 1;
+    const index = totalBobot > 7 ? 3 : totalBobot <= 5 ? 1 : 2;
     const status = index === 3 ? 'AMAN' : index === 2 ? 'WASPADA' : 'RENTAN';
 
     return {
@@ -380,7 +386,7 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
     };
   };
 
-  // Compute individual sub-district rows (Pemanfaatan)
+  // Compute individual sub-district rows (Pemanfaatan) — persis rumus Form Bapanas Sheet IP
   const getPemanfaatanRow = (kelNama: string) => {
     const nutr = nutrition[kelNama] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
     const underweightTotal = nutr.sangatKurang + nutr.kurang;
@@ -389,23 +395,22 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
       return { nutr, underweightTotal, value: 0, bobot: 0, status: 'N/A' };
     }
 
-    const value = parseFloat((underweightTotal / nutr.total * 100).toFixed(1));
-    const bobot = value > 15 ? 1 : value >= 10 ? 2 : 3;
+    const valueRaw = (underweightTotal / nutr.total) * 100;
+    const value = parseFloat(valueRaw.toFixed(1));
+    const bobot = valueRaw < 10 ? 3 : valueRaw > 15 ? 1 : 2;
     const status = bobot === 3 ? 'AMAN' : bobot === 2 ? 'WASPADA' : 'RENTAN';
 
     return { nutr, underweightTotal, value, bobot, status };
   };
 
   // Total averages for Kota Cilegon
-  // Rata-rata harga Kota Cilegon dihitung dari rata-rata 3 pasar acuan (Kranggot, Blok F, Merak)
-  // agar 100% konsisten dengan SKPG Tingkat Kecamatan
+  // Disamakan 100% dengan rumus Form Bapanas Sheet IA (=AVERAGE(8 kecamatan)) & Sheet IP (=SUM(43 kelurahan))
   const getKotaCilegonTotals = () => {
-    const MARKET_REPS = ['Ciwandan', 'Cibeber', 'Pulomerak'] as const;
     let sumCurBeras = 0, sumPrevBeras = 0;
     let sumCurMinyak = 0, sumPrevMinyak = 0;
     let sumCurTelur = 0, sumPrevTelur = 0;
 
-    MARKET_REPS.forEach(kec => {
+    KECAMATANS.forEach(kec => {
       const cur = pricesCur[kec] || { beras: 0, minyak: 0, telur: 0 };
       const prev = pricesPrev[kec] || { beras: 0, minyak: 0, telur: 0 };
       sumCurBeras += cur.beras;
@@ -427,32 +432,44 @@ export default function AnalisisSKPGKelurahan({ onSwitchView = () => {} }: Anali
       totalBalita += nutr.total;
     });
 
-    const numMarkets = MARKET_REPS.length; // 3 pasar
-    const avgCurBeras = Math.round(sumCurBeras / numMarkets);
-    const avgPrevBeras = Math.round(sumPrevBeras / numMarkets);
-    const avgCurMinyak = Math.round(sumCurMinyak / numMarkets);
-    const avgPrevMinyak = Math.round(sumPrevMinyak / numMarkets);
-    const avgCurTelur = Math.round(sumCurTelur / numMarkets);
-    const avgPrevTelur = Math.round(sumPrevTelur / numMarkets);
+    const numKec = KECAMATANS.length; // 8 kecamatan (persis AVERAGE(I5:I12) Form Bapanas)
+    const avgCurBerasRaw = sumCurBeras / numKec;
+    const avgPrevBerasRaw = sumPrevBeras / numKec;
+    const avgCurMinyakRaw = sumCurMinyak / numKec;
+    const avgPrevMinyakRaw = sumPrevMinyak / numKec;
+    const avgCurTelurRaw = sumCurTelur / numKec;
+    const avgPrevTelurRaw = sumPrevTelur / numKec;
+
+    const avgCurBeras = Math.round(avgCurBerasRaw);
+    const avgPrevBeras = Math.round(avgPrevBerasRaw);
+    const avgCurMinyak = Math.round(avgCurMinyakRaw);
+    const avgPrevMinyak = Math.round(avgPrevMinyakRaw);
+    const avgCurTelur = Math.round(avgCurTelurRaw);
+    const avgPrevTelur = Math.round(avgPrevTelurRaw);
 
     const pricesAvailable = avgCurBeras > 0 && avgCurMinyak > 0 && avgCurTelur > 0 &&
                             avgPrevBeras > 0 && avgPrevMinyak > 0 && avgPrevTelur > 0;
 
     const underweightTotal = totalSangatKurang + totalKurang;
     const isStuntingAvailable = totalBalita > 0;
-    const valueStunting = isStuntingAvailable ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
-    const bobotStunting = isStuntingAvailable ? (valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3) : 0;
+    const valueStuntingRaw = isStuntingAvailable ? (underweightTotal / totalBalita) * 100 : 0;
+    const valueStunting = parseFloat(valueStuntingRaw.toFixed(1));
+    const bobotStunting = isStuntingAvailable ? (valueStuntingRaw < 10 ? 3 : valueStuntingRaw > 15 ? 1 : 2) : 0;
     const statusStunting = isStuntingAvailable ? (bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN') : 'N/A';
 
-    const rBeras = parseFloat(((avgCurBeras - avgPrevBeras) / avgPrevBeras * 100).toFixed(1));
-    const rMinyak = parseFloat(((avgCurMinyak - avgPrevMinyak) / avgPrevMinyak * 100).toFixed(1));
-    const rTelur = parseFloat(((avgCurTelur - avgPrevTelur) / avgPrevTelur * 100).toFixed(1));
+    const rBerasRaw = pricesAvailable ? ((avgCurBerasRaw - avgPrevBerasRaw) / avgPrevBerasRaw) * 100 : 0;
+    const rMinyakRaw = pricesAvailable ? ((avgCurMinyakRaw - avgPrevMinyakRaw) / avgPrevMinyakRaw) * 100 : 0;
+    const rTelurRaw = pricesAvailable ? ((avgCurTelurRaw - avgPrevTelurRaw) / avgPrevTelurRaw) * 100 : 0;
 
-    const bobotBeras = rBeras > 10 ? 1 : rBeras >= 5 ? 2 : 3;
-    const bobotMinyak = rMinyak > 15 ? 1 : rMinyak >= 5 ? 2 : 3;
-    const bobotTelur = rTelur > 15 ? 1 : rTelur >= 5 ? 2 : 3;
+    const rBeras = parseFloat(rBerasRaw.toFixed(1));
+    const rMinyak = parseFloat(rMinyakRaw.toFixed(1));
+    const rTelur = parseFloat(rTelurRaw.toFixed(1));
+
+    const bobotBeras = rBerasRaw > 10 ? 1 : rBerasRaw < 5 ? 3 : 2;
+    const bobotMinyak = rMinyakRaw > 15 ? 1 : rMinyakRaw < 5 ? 3 : 2;
+    const bobotTelur = rTelurRaw > 15 ? 1 : rTelurRaw < 5 ? 3 : 2;
     const totalBobotAkses = bobotBeras + bobotMinyak + bobotTelur;
-    const indexAkses = totalBobotAkses >= 8 ? 3 : totalBobotAkses >= 6 ? 2 : 1;
+    const indexAkses = totalBobotAkses > 7 ? 3 : totalBobotAkses <= 5 ? 1 : 2;
     const statusAkses = indexAkses === 3 ? 'AMAN' : indexAkses === 2 ? 'WASPADA' : 'RENTAN';
 
     return {

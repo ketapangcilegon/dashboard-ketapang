@@ -490,22 +490,24 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       };
     }
 
-    // Price diff percentage (r)
-    const rBeras = parseFloat(((cur.beras - prev.beras) / prev.beras * 100).toFixed(1));
-    const rMinyak = parseFloat(((cur.minyak - prev.minyak) / prev.minyak * 100).toFixed(1));
-    const rTelur = parseFloat(((cur.telur - prev.telur) / prev.telur * 100).toFixed(1));
+    // Price diff percentage (r) — evaluasi cut-off unrounded persis rumus Excel Form Bapanas Sheet IA
+    const rBerasRaw = ((cur.beras - prev.beras) / prev.beras) * 100;
+    const rMinyakRaw = ((cur.minyak - prev.minyak) / prev.minyak) * 100;
+    const rTelurRaw = ((cur.telur - prev.telur) / prev.telur) * 100;
 
-    // Scoring Beras (r > 10% = 1, 5-10% = 2, r < 5% = 3)
-    const bobotBeras = rBeras > 10 ? 1 : rBeras >= 5 ? 2 : 3;
+    const rBeras = parseFloat(rBerasRaw.toFixed(1));
+    const rMinyak = parseFloat(rMinyakRaw.toFixed(1));
+    const rTelur = parseFloat(rTelurRaw.toFixed(1));
 
-    // Scoring Minyak & Telur (r > 15% = 1, 5-15% = 2, r < 5% = 3)
-    const bobotMinyak = rMinyak > 15 ? 1 : rMinyak >= 5 ? 2 : 3;
-    const bobotTelur = rTelur > 15 ? 1 : rTelur >= 5 ? 2 : 3;
+    // Form Bapanas Sheet IA: =IF(O>10,1,IF(O<5,3,2)) dan =IF(Q>15,1,IF(Q<5,3,2))
+    const bobotBeras = rBerasRaw > 10 ? 1 : rBerasRaw < 5 ? 3 : 2;
+    const bobotMinyak = rMinyakRaw > 15 ? 1 : rMinyakRaw < 5 ? 3 : 2;
+    const bobotTelur = rTelurRaw > 15 ? 1 : rTelurRaw < 5 ? 3 : 2;
 
     const totalBobot = bobotBeras + bobotMinyak + bobotTelur;
 
-    // Index & Status (3-5 = Rentan, 6-7 = Waspada, 8-9 = Aman)
-    const index = totalBobot >= 8 ? 3 : totalBobot >= 6 ? 2 : 1;
+    // Form Bapanas Sheet IA: =IF(U<=5,"RENTAN",IF(U>7,"AMAN","WASPADA"))
+    const index = totalBobot > 7 ? 3 : totalBobot <= 5 ? 1 : 2;
     const status = index === 3 ? 'AMAN' : index === 2 ? 'WASPADA' : 'RENTAN';
 
     return {
@@ -524,14 +526,15 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
     };
   };
 
-  // Nutrition Calculations (Pemanfaatan)
+  // Nutrition Calculations (Pemanfaatan) — persis rumus Excel Form Bapanas Sheet IP
   const getPemanfaatanRow = (kec: string) => {
     const nutr = nutrition[kec] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 100 };
     const underweightTotal = nutr.sangatKurang + nutr.kurang;
-    const value = nutr.total > 0 ? parseFloat((underweightTotal / nutr.total * 100).toFixed(1)) : 0;
+    const valueRaw = nutr.total > 0 ? (underweightTotal / nutr.total) * 100 : 0;
+    const value = parseFloat(valueRaw.toFixed(1));
 
-    // Cut-off (r > 15% = 1 / Rentan, 10-15% = 2 / Waspada, r < 10% = 3 / Aman)
-    const bobot = value > 15 ? 1 : value >= 10 ? 2 : 3;
+    // Form Bapanas Sheet IP: =IF(O<10,3,IF(O>15,1,2))
+    const bobot = valueRaw < 10 ? 3 : valueRaw > 15 ? 1 : 2;
     const status = bobot === 3 ? 'AMAN' : bobot === 2 ? 'WASPADA' : 'RENTAN';
 
     return {
@@ -544,29 +547,26 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
   };
 
   // Combined Averages for KOTA CILEGON
-  // Rata-rata harga Kota Cilegon dihitung dari rata-rata 3 pasar acuan:
-  // Pasar Kranggot (Ciwandan), Pasar Blok F (Cibeber), dan Pasar Baru Merak (Pulomerak)
+  // Persis rumus Form Bapanas Sheet IA (R13: =AVERAGE(I5:I12)) & Sheet IP (R12: =SUM(I4:I11))
   const getKotaCilegonAverages = () => {
-    const MARKET_REPS = ['Ciwandan', 'Cibeber', 'Pulomerak'] as const;
     let sumPrevBeras = 0, sumCurBeras = 0;
     let sumPrevMinyak = 0, sumCurMinyak = 0;
     let sumPrevTelur = 0, sumCurTelur = 0;
 
-    MARKET_REPS.forEach(kec => {
+    let totalSangatKurang = 0, totalKurang = 0, totalNormal = 0, totalLebih = 0, totalBalita = 0;
+
+    KECAMATANS.forEach(kec => {
       const cur = pricesCur[kec] || { beras: 0, minyak: 0, telur: 0 };
       const prev = pricesPrev[kec] || { beras: 0, minyak: 0, telur: 0 };
+      const nutr = nutrition[kec] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
+
       sumCurBeras += cur.beras;
       sumPrevBeras += prev.beras;
       sumCurMinyak += cur.minyak;
       sumPrevMinyak += prev.minyak;
       sumCurTelur += cur.telur;
       sumPrevTelur += prev.telur;
-    });
 
-    let totalSangatKurang = 0, totalKurang = 0, totalNormal = 0, totalLebih = 0, totalBalita = 0;
-
-    KECAMATANS.forEach(kec => {
-      const nutr = nutrition[kec] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
       totalSangatKurang += nutr.sangatKurang;
       totalKurang += nutr.kurang;
       totalNormal += nutr.normal;
@@ -574,20 +574,28 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       totalBalita += nutr.total;
     });
 
-    const numMarkets = MARKET_REPS.length; // 3 pasar
-    const avgCurBeras = Math.round(sumCurBeras / numMarkets);
-    const avgPrevBeras = Math.round(sumPrevBeras / numMarkets);
-    const avgCurMinyak = Math.round(sumCurMinyak / numMarkets);
-    const avgPrevMinyak = Math.round(sumPrevMinyak / numMarkets);
-    const avgCurTelur = Math.round(sumCurTelur / numMarkets);
-    const avgPrevTelur = Math.round(sumPrevTelur / numMarkets);
+    const num = KECAMATANS.length; // 8 kecamatan (AVERAGE(I5:I12) Form Bapanas)
+    const avgCurBerasRaw = sumCurBeras / num;
+    const avgPrevBerasRaw = sumPrevBeras / num;
+    const avgCurMinyakRaw = sumCurMinyak / num;
+    const avgPrevMinyakRaw = sumPrevMinyak / num;
+    const avgCurTelurRaw = sumCurTelur / num;
+    const avgPrevTelurRaw = sumPrevTelur / num;
+
+    const avgCurBeras = Math.round(avgCurBerasRaw);
+    const avgPrevBeras = Math.round(avgPrevBerasRaw);
+    const avgCurMinyak = Math.round(avgCurMinyakRaw);
+    const avgPrevMinyak = Math.round(avgPrevMinyakRaw);
+    const avgCurTelur = Math.round(avgCurTelurRaw);
+    const avgPrevTelur = Math.round(avgPrevTelurRaw);
 
     const pricesAvailable = avgCurBeras > 0 && avgCurMinyak > 0 && avgCurTelur > 0 &&
                             avgPrevBeras > 0 && avgPrevMinyak > 0 && avgPrevTelur > 0;
 
     const underweightTotal = totalSangatKurang + totalKurang;
-    const valueStunting = totalBalita > 0 ? parseFloat((underweightTotal / totalBalita * 100).toFixed(1)) : 0;
-    const bobotStunting = valueStunting > 15 ? 1 : valueStunting >= 10 ? 2 : 3;
+    const valueStuntingRaw = totalBalita > 0 ? (underweightTotal / totalBalita) * 100 : 0;
+    const valueStunting = parseFloat(valueStuntingRaw.toFixed(1));
+    const bobotStunting = valueStuntingRaw < 10 ? 3 : valueStuntingRaw > 15 ? 1 : 2;
     const statusStunting = bobotStunting === 3 ? 'AMAN' : bobotStunting === 2 ? 'WASPADA' : 'RENTAN';
 
     if (!pricesAvailable) {
@@ -614,16 +622,20 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       };
     }
 
-    // price differentials
-    const rBeras = parseFloat(((avgCurBeras - avgPrevBeras) / avgPrevBeras * 100).toFixed(1));
-    const rMinyak = parseFloat(((avgCurMinyak - avgPrevMinyak) / avgPrevMinyak * 100).toFixed(1));
-    const rTelur = parseFloat(((avgCurTelur - avgPrevTelur) / avgPrevTelur * 100).toFixed(1));
+    // price differentials unrounded persis Form Bapanas Sheet IA (R13)
+    const rBerasRaw = ((avgCurBerasRaw - avgPrevBerasRaw) / avgPrevBerasRaw) * 100;
+    const rMinyakRaw = ((avgCurMinyakRaw - avgPrevMinyakRaw) / avgPrevMinyakRaw) * 100;
+    const rTelurRaw = ((avgCurTelurRaw - avgPrevTelurRaw) / avgPrevTelurRaw) * 100;
 
-    const bobotBeras = rBeras > 10 ? 1 : rBeras >= 5 ? 2 : 3;
-    const bobotMinyak = rMinyak > 15 ? 1 : rMinyak >= 5 ? 2 : 3;
-    const bobotTelur = rTelur > 15 ? 1 : rTelur >= 5 ? 2 : 3;
+    const rBeras = parseFloat(rBerasRaw.toFixed(1));
+    const rMinyak = parseFloat(rMinyakRaw.toFixed(1));
+    const rTelur = parseFloat(rTelurRaw.toFixed(1));
+
+    const bobotBeras = rBerasRaw > 10 ? 1 : rBerasRaw < 5 ? 3 : 2;
+    const bobotMinyak = rMinyakRaw > 15 ? 1 : rMinyakRaw < 5 ? 3 : 2;
+    const bobotTelur = rTelurRaw > 15 ? 1 : rTelurRaw < 5 ? 3 : 2;
     const totalBobotAkses = bobotBeras + bobotMinyak + bobotTelur;
-    const indexAkses = totalBobotAkses >= 8 ? 3 : totalBobotAkses >= 6 ? 2 : 1;
+    const indexAkses = totalBobotAkses > 7 ? 3 : totalBobotAkses <= 5 ? 1 : 2;
     const statusAkses = indexAkses === 3 ? 'AMAN' : indexAkses === 2 ? 'WASPADA' : 'RENTAN';
 
     return {
