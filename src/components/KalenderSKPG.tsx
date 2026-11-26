@@ -278,11 +278,13 @@ export default function KalenderSKPG() {
     });
 
     // Baris agregat Kota Cilegon per bulan (1..12)
+    // Harga Kota Cilegon dihitung dari rata-rata 3 pasar acuan (Kranggot/Ciwandan, Blok F/Cibeber, Merak/Pulomerak)
+    const MARKET_REPS = ['Ciwandan', 'Cibeber', 'Pulomerak'] as const;
     const kotaByMonth = months.map((m) => {
       let sumCurB = 0, sumPrevB = 0, sumCurM = 0, sumPrevM = 0, sumCurT = 0, sumPrevT = 0, cntP = 0;
       let sumSk = 0, sumKr = 0, sumNm = 0, sumLb = 0, sumTot = 0;
 
-      SKPG_KECAMATANS.forEach((kec) => {
+      MARKET_REPS.forEach((kec) => {
         const cp = hargaMap[`${selectedYear}-${m}-${kec}`];
         const pp = hargaMap[`${selectedYear - 1}-${m}-${kec}`];
         if (cp && pp && cp.beras > 0 && pp.beras > 0) {
@@ -294,6 +296,9 @@ export default function KalenderSKPG() {
           sumPrevT += pp.telur;
           cntP++;
         }
+      });
+
+      SKPG_KECAMATANS.forEach((kec) => {
         const g = giziKecMap[`${selectedYear}-${m}-${kec}`];
         if (g && g.tot > 0) {
           sumSk += g.sk;

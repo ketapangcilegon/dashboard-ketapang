@@ -544,25 +544,29 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
   };
 
   // Combined Averages for KOTA CILEGON
+  // Rata-rata harga Kota Cilegon dihitung dari rata-rata 3 pasar acuan:
+  // Pasar Kranggot (Ciwandan), Pasar Blok F (Cibeber), dan Pasar Baru Merak (Pulomerak)
   const getKotaCilegonAverages = () => {
+    const MARKET_REPS = ['Ciwandan', 'Cibeber', 'Pulomerak'] as const;
     let sumPrevBeras = 0, sumCurBeras = 0;
     let sumPrevMinyak = 0, sumCurMinyak = 0;
     let sumPrevTelur = 0, sumCurTelur = 0;
 
-    let totalSangatKurang = 0, totalKurang = 0, totalNormal = 0, totalLebih = 0, totalBalita = 0;
-
-    KECAMATANS.forEach(kec => {
+    MARKET_REPS.forEach(kec => {
       const cur = pricesCur[kec] || { beras: 0, minyak: 0, telur: 0 };
       const prev = pricesPrev[kec] || { beras: 0, minyak: 0, telur: 0 };
-      const nutr = nutrition[kec] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
-
       sumCurBeras += cur.beras;
       sumPrevBeras += prev.beras;
       sumCurMinyak += cur.minyak;
       sumPrevMinyak += prev.minyak;
       sumCurTelur += cur.telur;
       sumPrevTelur += prev.telur;
+    });
 
+    let totalSangatKurang = 0, totalKurang = 0, totalNormal = 0, totalLebih = 0, totalBalita = 0;
+
+    KECAMATANS.forEach(kec => {
+      const nutr = nutrition[kec] || { sangatKurang: 0, kurang: 0, normal: 0, lebih: 0, total: 0 };
       totalSangatKurang += nutr.sangatKurang;
       totalKurang += nutr.kurang;
       totalNormal += nutr.normal;
@@ -570,13 +574,13 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       totalBalita += nutr.total;
     });
 
-    const num = KECAMATANS.length;
-    const avgCurBeras = Math.round(sumCurBeras / num);
-    const avgPrevBeras = Math.round(sumPrevBeras / num);
-    const avgCurMinyak = Math.round(sumCurMinyak / num);
-    const avgPrevMinyak = Math.round(sumPrevMinyak / num);
-    const avgCurTelur = Math.round(sumCurTelur / num);
-    const avgPrevTelur = Math.round(sumPrevTelur / num);
+    const numMarkets = MARKET_REPS.length; // 3 pasar
+    const avgCurBeras = Math.round(sumCurBeras / numMarkets);
+    const avgPrevBeras = Math.round(sumPrevBeras / numMarkets);
+    const avgCurMinyak = Math.round(sumCurMinyak / numMarkets);
+    const avgPrevMinyak = Math.round(sumPrevMinyak / numMarkets);
+    const avgCurTelur = Math.round(sumCurTelur / numMarkets);
+    const avgPrevTelur = Math.round(sumPrevTelur / numMarkets);
 
     const pricesAvailable = avgCurBeras > 0 && avgCurMinyak > 0 && avgCurTelur > 0 &&
                             avgPrevBeras > 0 && avgPrevMinyak > 0 && avgPrevTelur > 0;

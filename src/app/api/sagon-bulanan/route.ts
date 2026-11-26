@@ -24,19 +24,42 @@ const FALLBACKS_2026_MARKETS: Record<string, { beras: number; minyak: number; te
 
 const KECAMATANS = ['Cibeber', 'Cilegon', 'Pulomerak', 'Ciwandan', 'Jombang', 'Gerogol', 'Purwakarta', 'Citangkil'] as const;
 
-async function scrapeMarketInfografis(marketId: string): Promise<{ data: CommodityData; isFallback: boolean }> {
+function avgMonthSeries(variants: number[][]): number[] {
+  const out: number[] = Array(12).fill(0);
+  for (let m = 0; m < 12; m++) {
+    let sum = 0;
+    let cnt = 0;
+    for (const arr of variants) {
+      const v = arr?.[m] || 0;
+      if (v > 0) {
+        sum += v;
+        cnt++;
+      }
+    }
+    out[m] = cnt > 0 ? Math.round(sum / cnt) : 0;
+  }
+  return out;
+}
+
+async function scrapeMarketInfografis(
+  marketId: string,
+  prevYear: number,
+  curYear: number
+): Promise<{ data: CommodityData; isFallback: boolean }> {
+  const yPrev = String(prevYear);
+  const yCur = String(curYear);
   const defaultData: CommodityData = {
-    beras: { '2025': Array(12).fill(FALLBACKS_2025.beras), '2026': Array(12).fill(FALLBACKS_2026_MARKETS[marketId].beras) },
-    minyak: { '2025': Array(12).fill(FALLBACKS_2025.minyak), '2026': Array(12).fill(FALLBACKS_2026_MARKETS[marketId].minyak) },
-    telur: { '2025': Array(12).fill(FALLBACKS_2025.telur), '2026': Array(12).fill(FALLBACKS_2026_MARKETS[marketId].telur) }
+    beras: { [yPrev]: Array(12).fill(FALLBACKS_2025.beras), [yCur]: Array(12).fill(FALLBACKS_2026_MARKETS[marketId].beras) },
+    minyak: { [yPrev]: Array(12).fill(FALLBACKS_2025.minyak), [yCur]: Array(12).fill(FALLBACKS_2026_MARKETS[marketId].minyak) },
+    telur: { [yPrev]: Array(12).fill(FALLBACKS_2025.telur), [yCur]: Array(12).fill(FALLBACKS_2026_MARKETS[marketId].telur) }
   };
 
   try {
     const body = new URLSearchParams({
-      pasar: marketId,
-      tahun_pertama: '2025',
-      tahun_kedua: '2026',
-      daterange: '01/01/2025 - 12/31/2026'
+      id_pasar: marketId,
+      tahun_pertama: yPrev,
+      tahun_kedua: yCur,
+      daterange: `01/01/${yPrev} - 12/31/${yCur}`
     });
 
     // TLS bypass scoped: aktif hanya saat request ke sagon.cilegon.go.id
@@ -63,18 +86,33 @@ async function scrapeMarketInfografis(marketId: string): Promise<{ data: Commodi
 
     const html = await response.text();
     const $ = cheerio.load(html);
-    const results: any = {};
+
+    // Kumpulkan SEMUA varian per komoditas di pasar ini agar bisa dirata-ratakan (bukan saling menimpa):
+    // 1. Beras Medium: wajib mengandung "beras" & "medium", serta BUKAN "premium"
+    // 2. Minyak Kemasan: semua "minyak" (Minyakita, Minyak Goreng Kemasan, merk apapun) KECUALI "curah"
+    // 3. Telur Ayam Ras: semua "telur" ayam ras/negeri (bukan kampung/bebek/puyuh)
+    const variants: Record<'beras' | 'minyak' | 'telur', Record<string, number[][]>> = {
+      beras: { [yPrev]: [], [yCur]: [] },
+      minyak: { [yPrev]: [], [yCur]: [] },
+      telur: { [yPrev]: [], [yCur]: [] },
+    };
 
     $('div.card-header').each((_, header) => {
       const headerText = $(header).find('strong').text().trim();
       if (!headerText) return;
+      const lower = headerText.toLowerCase();
 
       let matchedKey: 'beras' | 'minyak' | 'telur' | null = null;
-      if (['beras medium (cimanuk)', 'beras medium (dk)', 'beras medium', 'beras'].some(alias => headerText.toLowerCase().includes(alias))) {
+      if (lower.includes('beras') && lower.includes('medium') && !lower.includes('premium')) {
         matchedKey = 'beras';
-      } else if (['minyak goreng kemasan', 'minyak goreng', 'minyakita', 'minyak kemasan'].some(alias => headerText.toLowerCase().includes(alias))) {
+      } else if (lower.includes('minyak') && !lower.includes('curah')) {
         matchedKey = 'minyak';
-      } else if (['telur ayam ras', 'telur ayam', 'telur'].some(alias => headerText.toLowerCase().includes(alias))) {
+      } else if (
+        lower.includes('telur') &&
+        !lower.includes('kampung') &&
+        !lower.includes('bebek') &&
+        !lower.includes('puyuh')
+      ) {
         matchedKey = 'telur';
       }
 
@@ -89,10 +127,8 @@ async function scrapeMarketInfografis(marketId: string): Promise<{ data: Commodi
 
       if (!scriptText.includes('series:')) return;
 
-      const seriesRegex = /name:\s*['"](2025|2026)['"],\s*data:\s*\[([^\]]+)\]/g;
+      const seriesRegex = new RegExp(`name:\\s*['"](${yPrev}|${yCur})['"],\\s*data:\\s*\\[([^\\]]+)\\]`, 'g');
       let match;
-
-      if (!results[matchedKey]) results[matchedKey] = {};
 
       while ((match = seriesRegex.exec(scriptText)) !== null) {
         const year = match[1];
@@ -102,22 +138,26 @@ async function scrapeMarketInfografis(marketId: string): Promise<{ data: Commodi
           .map(val => parseInt(val.trim().replace(/['"]/g, ''), 10))
           .map(val => isNaN(val) ? 0 : val);
 
-        results[matchedKey][year] = dataArr;
+        if (dataArr.length === 12 && variants[matchedKey][year]) {
+          variants[matchedKey][year].push(dataArr);
+        }
       }
     });
 
-    const mergedData = { ...defaultData };
+    const mergedData: CommodityData = {
+      beras: { ...defaultData.beras },
+      minyak: { ...defaultData.minyak },
+      telur: { ...defaultData.telur },
+    };
     let hasScrapedData = false;
     for (const key of ['beras', 'minyak', 'telur'] as const) {
-      if (results[key]) {
-        if (results[key]['2025'] && results[key]['2025'].length === 12) {
-          mergedData[key]['2025'] = results[key]['2025'];
-          hasScrapedData = true;
-        }
-        if (results[key]['2026'] && results[key]['2026'].length === 12) {
-          mergedData[key]['2026'] = results[key]['2026'];
-          hasScrapedData = true;
-        }
+      if (variants[key][yPrev].length > 0) {
+        mergedData[key][yPrev] = avgMonthSeries(variants[key][yPrev]);
+        hasScrapedData = true;
+      }
+      if (variants[key][yCur].length > 0) {
+        mergedData[key][yCur] = avgMonthSeries(variants[key][yCur]);
+        hasScrapedData = true;
       }
     }
     return { data: mergedData, isFallback: !hasScrapedData };
@@ -165,9 +205,15 @@ async function autoBackupPrices(year: number, month: number, prices: Record<stri
       return;
     }
 
+    await authClient
+      .from('harga_komoditas_skpg')
+      .delete()
+      .eq('tahun', year)
+      .eq('bulan', month);
+
     const { error: upsertError } = await authClient
       .from('harga_komoditas_skpg')
-      .upsert(records, { onConflict: 'tahun, bulan, kecamatan' });
+      .insert(records);
 
     if (upsertError) {
       console.error('[AutoBackup] Price upsert failed:', upsertError.message);
@@ -294,14 +340,19 @@ export async function GET(request: Request) {
       }
 
     } else {
-      // Tahun 2026 ke atas: 3 komoditas, curPrices = scraping SAGON live, prevPrices = YoY dari DB (tahun-1, bulan sama)
-      console.log(`[Sagon API] Year ${effectiveYear} >= 2026: scraping Sagon + YoY from DB (${effectiveYear - 1}/${effectiveMonth}).`);
+      // Tahun 2026 ke atas: 3 komoditas, curPrices & prevPrices dihitung konsisten dari rata-rata varian per pasar di SAGON
+      // (Beras Medium non-premium, Minyak Kemasan non-curah termasuk Minyakita, Telur Ayam Ras) lalu dirata-ratakan 3 pasar
+      console.log(`[Sagon API] Year ${effectiveYear} >= 2026: scraping Sagon per-market average for ${effectiveYear} & ${effectiveYear - 1} (month ${effectiveMonth}).`);
+
+      const prevYear = effectiveYear - 1;
+      const yCur = String(effectiveYear);
+      const yPrev = String(prevYear);
 
       let anyFallback = false;
       const [m1Result, m2Result, m3Result] = await Promise.all([
-        scrapeMarketInfografis('1'),
-        scrapeMarketInfografis('2'),
-        scrapeMarketInfografis('3')
+        scrapeMarketInfografis('1', prevYear, effectiveYear),
+        scrapeMarketInfografis('2', prevYear, effectiveYear),
+        scrapeMarketInfografis('3', prevYear, effectiveYear)
       ]);
       const market1 = m1Result.data;
       const market2 = m2Result.data;
@@ -310,20 +361,52 @@ export async function GET(request: Request) {
 
       const monthIdx = Math.max(0, Math.min(11, effectiveMonth - 1));
 
-      const pricesMarket = {
-        '1': { beras: market1.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].beras, minyak: market1.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak, telur: market1.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].telur },
-        '2': { beras: market2.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].beras, minyak: market2.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak, telur: market2.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].telur },
-        '3': { beras: market3.beras[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras, minyak: market3.minyak[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak, telur: market3.telur[String(effectiveYear)]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur }
+      const pricesMarketCur = {
+        '1': { beras: market1.beras[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].beras, minyak: market1.minyak[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].minyak, telur: market1.telur[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['1'].telur },
+        '2': { beras: market2.beras[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].beras, minyak: market2.minyak[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].minyak, telur: market2.telur[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['2'].telur },
+        '3': { beras: market3.beras[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].beras, minyak: market3.minyak[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].minyak, telur: market3.telur[yCur]?.[monthIdx] || FALLBACKS_2026_MARKETS['3'].telur }
       };
 
+      const pricesMarketPrev = {
+        '1': { beras: market1.beras[yPrev]?.[monthIdx] || 0, minyak: market1.minyak[yPrev]?.[monthIdx] || 0, telur: market1.telur[yPrev]?.[monthIdx] || 0 },
+        '2': { beras: market2.beras[yPrev]?.[monthIdx] || 0, minyak: market2.minyak[yPrev]?.[monthIdx] || 0, telur: market2.telur[yPrev]?.[monthIdx] || 0 },
+        '3': { beras: market3.beras[yPrev]?.[monthIdx] || 0, minyak: market3.minyak[yPrev]?.[monthIdx] || 0, telur: market3.telur[yPrev]?.[monthIdx] || 0 }
+      };
 
       // Market mapping: Kranggot(1)->Ciwandan,Citangkil,Purwakarta,Jombang | BlokF(2)->Cibeber,Cilegon | Merak(3)->Gerogol,Pulomerak
-      Object.assign(pricesCur, { Cibeber: pricesMarket['2'], Cilegon: pricesMarket['2'], Pulomerak: pricesMarket['3'], Gerogol: pricesMarket['3'], Ciwandan: pricesMarket['1'], Jombang: pricesMarket['1'], Purwakarta: pricesMarket['1'], Citangkil: pricesMarket['1'] });
+      Object.assign(pricesCur, {
+        Cibeber: pricesMarketCur['2'],
+        Cilegon: pricesMarketCur['2'],
+        Pulomerak: pricesMarketCur['3'],
+        Gerogol: pricesMarketCur['3'],
+        Ciwandan: pricesMarketCur['1'],
+        Jombang: pricesMarketCur['1'],
+        Purwakarta: pricesMarketCur['1'],
+        Citangkil: pricesMarketCur['1']
+      });
 
-      const { data: dbRows } = await supabase.from('harga_komoditas_skpg').select('*').eq('tahun', effectiveYear - 1).eq('bulan', effectiveMonth);
+      const marketPrevByKec: Record<string, { beras: number; minyak: number; telur: number }> = {
+        Cibeber: pricesMarketPrev['2'],
+        Cilegon: pricesMarketPrev['2'],
+        Pulomerak: pricesMarketPrev['3'],
+        Gerogol: pricesMarketPrev['3'],
+        Ciwandan: pricesMarketPrev['1'],
+        Jombang: pricesMarketPrev['1'],
+        Purwakarta: pricesMarketPrev['1'],
+        Citangkil: pricesMarketPrev['1']
+      };
+
+      // Gunakan hasil rata-rata varian SAGON tahun sebelumnya agar 100% apple-to-apple;
+      // fallback ke DB harga_komoditas_skpg hanya jika nilai SAGON tahun lalu 0/kosong
+      const { data: dbPrevRows } = await supabase.from('harga_komoditas_skpg').select('*').eq('tahun', prevYear).eq('bulan', effectiveMonth);
       for (const kec of KECAMATANS) {
-        const dbRow = dbRows?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
-        pricesPrev[kec] = { beras: dbRow ? Number(dbRow.beras) : FALLBACKS_2025.beras, minyak: dbRow ? Number(dbRow.minyak) : FALLBACKS_2025.minyak, telur: dbRow ? Number(dbRow.telur) : FALLBACKS_2025.telur };
+        const sPrev = marketPrevByKec[kec];
+        const dbRow = dbPrevRows?.find(r => r.kecamatan.toLowerCase() === kec.toLowerCase());
+        pricesPrev[kec] = {
+          beras: sPrev.beras > 0 ? sPrev.beras : (dbRow ? Number(dbRow.beras) : FALLBACKS_2025.beras),
+          minyak: sPrev.minyak > 0 ? sPrev.minyak : (dbRow ? Number(dbRow.minyak) : FALLBACKS_2025.minyak),
+          telur: sPrev.telur > 0 ? sPrev.telur : (dbRow ? Number(dbRow.telur) : FALLBACKS_2025.telur)
+        };
       }
 
       // --- DYNAMIC DATABASE CACHE & AUTO-COPY SYSTEM ---
