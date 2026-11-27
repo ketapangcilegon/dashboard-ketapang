@@ -211,13 +211,13 @@ export function SawahLayer({
   );
 }
 
-/* ─────────── Icon helper ─────────── */
-export const makeIcon = (emoji: string, bgColor: string, size: number = 26) =>
+/* ─────────── Icon helper (50% dari ukuran eksisting: 26px -> 13px) ─────────── */
+export const makeIcon = (emoji: string, bgColor: string, size: number = 13) =>
   L.divIcon({
     className: '',
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
-    html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:2px solid #fff;border-radius:50% 50% 50% 0;transform: scale(var(--pin-scale, 1)) rotate(-45deg);transform-origin:bottom left;box-shadow:0 2px 6px rgba(0,0,0,0.4);transition:transform 0.25s ease-out;"><span style="transform:rotate(45deg);font-size:${Math.round(size * 0.5)}px">${emoji}</span></div>`,
+    html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:1.25px solid #fff;border-radius:50% 50% 50% 0;transform: scale(var(--pin-scale, 1)) rotate(-45deg);transform-origin:bottom left;box-shadow:0 1.5px 4px rgba(0,0,0,0.4);transition:transform 0.25s ease-out;"><span style="transform:rotate(45deg);font-size:${Math.max(6, Math.round(size * 0.52))}px;line-height:1;">${emoji}</span></div>`,
   });
 
 /* ─────────── Pin layers — all use `show` prop ─────────── */
@@ -355,7 +355,7 @@ export function KolamPins({ data, show = true }: { data: any[]; show?: boolean }
 
 export function NelayanPins({ data, show = true }: { data: any[]; show?: boolean }) {
   if (!show || !data?.length) return null;
-  const icon = makeIcon('⛵', '#2ec4b6', 28);
+  const icon = makeIcon('⛵', '#2ec4b6', 14);
   return (
     <>
       {data.map((n, i) => (
@@ -397,7 +397,7 @@ export function KolamDBPins({ data, show = true }: { data: any[]; show?: boolean
 
 export function NelayanDBPins({ data, show = true }: { data: any[]; show?: boolean }) {
   if (!show || !data?.length) return null;
-  const icon = makeIcon('⛵', '#2ec4b6', 28);
+  const icon = makeIcon('⛵', '#2ec4b6', 14);
   return (
     <>
       {data.filter(r => r.lat && r.lng && r.lat !== 0).map((r, i) => (

@@ -830,7 +830,7 @@ export default function AIIntelligencePanel({
       <div className="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
         <div className="flex items-center gap-1.5 font-bold">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-slate-700 font-extrabold">Food Security Intelligence</span>
+          <span className="text-slate-700 font-extrabold">RAG Chatbot - Food Security Intelligence</span>
           {syncSuccessMsg && (
             <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-black animate-pulse ml-2">
               {syncSuccessMsg}

@@ -480,23 +480,23 @@ function createKameraObservasiIcon(item: ObservasiRecord) {
     }
   }
 
-  const size = 16;
+  const size = 8;
 
   return L.divIcon({
     className: 'kamera-cerdas-pin-gis',
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
-        <!-- Glowing Radar Pulse -->
-        <div class="sp-loc-pulse" style="width:22px;height:22px;background:${bgColor}44;top:calc(100% - 8px);left:50%;margin-left:-11px;margin-top:-11px;"></div>
+        <!-- Glowing Radar Pulse (50% scaled) -->
+        <div class="sp-loc-pulse" style="width:12px;height:12px;background:${bgColor}44;top:calc(100% - 4px);left:50%;margin-left:-6px;margin-top:-6px;"></div>
         
         <!-- Transparent Label with Sharp Shadow -->
-        <div style="background:transparent;color:#ffffff;font-weight:900;font-size:9.5px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:2px;z-index:10;pointer-events:none;">
+        <div style="background:transparent;color:#ffffff;font-weight:800;font-size:8px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:1.5px;z-index:10;pointer-events:none;">
           ${item.nama_lokasi || item.kategori_label || (isPasokan ? 'Pemasok Beras' : 'Pangan Lokal')}
         </div>
 
-        <!-- Teardrop Marker Pin (50% dari ukuran eksisting 32px -> 16px) -->
-        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:1.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1.5px 5px rgba(0,0,0,0.45);z-index:5;">
-          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.55)}px">${emoji}</span>
+        <!-- Teardrop Marker Pin (50% dari ukuran eksisting 16px -> 8px) -->
+        <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgColor};border:1px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1px 3px rgba(0,0,0,0.45);z-index:5;">
+          <span style="transform:rotate(45deg);font-size:5px;line-height:1;">${emoji}</span>
         </div>
       </div>
     `,
@@ -625,6 +625,23 @@ function KameraObservasiPins({
 }
 
 
+// Module-level singleton caches (hemat kuota free tier Supabase & Vercel, mencegah fetch ulang saat pindah tab/view)
+let cachedSpPinsMem: {
+  poktan: any[];
+  kolam: any[];
+  nelayan: any[];
+  horti: any[];
+  palawija: any[];
+  warning: any[];
+} | null = null;
+let cachedIndicatorMem: {
+  fsvaMatang: any[];
+  skpgMatang: any[];
+  giziBalita: any[];
+} | null = null;
+const SP_PINS_SESSION_KEY = 'panci_sp_pins_cache_v2';
+const SP_PINS_TTL_MS = 30 * 60 * 1000;
+
 export default function AIIntelligenceMap({
   activeTab = 'split',
   highlightWilayah = [],
@@ -655,62 +672,70 @@ export default function AIIntelligenceMap({
   const [filteredWilayah, setFilteredWilayah] = useState<string[]>([]);
   const [filterLabel, setFilterLabel] = useState<string>('');
 
-  // Sector layer toggles
+  // Sector layer toggles — Default aktif HANYA: Batas Administrasi, Sawah Baku, Nelayan Tangkap, dan Poktan & KWT
   const [showSawah, setShowSawah] = useState(true);
-  const [showSentinelNdvi, setShowSentinelNdvi] = useState(true);
+  const [showSentinelNdvi, setShowSentinelNdvi] = useState(false);
   const [showSentinelLegend, setShowSentinelLegend] = useState(false);
   const [showPoktan, setShowPoktan] = useState(true);
   const [showKWT, setShowKWT] = useState(true);
   const [showGapoktan, setShowGapoktan] = useState(true);
-  const [showKolam, setShowKolam] = useState(true);
+  const [showKolam, setShowKolam] = useState(false);
   const [showNelayan, setShowNelayan] = useState(true);
-  const [showHorti, setShowHorti] = useState(true);
-  const [showPalawija, setShowPalawija] = useState(true);
-  const [showWarning, setShowWarning] = useState(true);
+  const [showHorti, setShowHorti] = useState(false);
+  const [showPalawija, setShowPalawija] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
   const [showKecamatan, setShowKecamatan] = useState(true);
   const [showKelurahan, setShowKelurahan] = useState(true);
 
-  // Kamera Cerdas Observasi Pins & Layer Toggles
-  const [showKameraBeras, setShowKameraBeras] = useState(true);
-  const [showKameraPanganLokal, setShowKameraPanganLokal] = useState(true);
+  // Kamera Cerdas Observasi Pins & Layer Toggles (Default nonaktif, lazy-fetched saat diaktifkan)
+  const [showKameraBeras, setShowKameraBeras] = useState(false);
+  const [showKameraPanganLokal, setShowKameraPanganLokal] = useState(false);
   const [kameraObservasiList, setKameraObservasiList] = useState<ObservasiRecord[]>(SEED_OBSERVASI_DATA);
+  const kameraFetchedRef = useRef(false);
 
-  // Supabase indicator data state
+  // Supabase indicator data state (Lazy-loaded hanya saat thematicMode !== 'none' + di-cache di memori)
   const [indicatorData, setIndicatorData] = useState<{
     fsvaMatang: any[];
     skpgMatang: any[];
     giziBalita: any[];
-  }>({
+  }>(() => cachedIndicatorMem || {
     fsvaMatang: [],
     skpgMatang: [],
     giziBalita: [],
   });
 
-  // Fetch real data from Supabase for indicators
+  // Lazy-fetch indikator tematik dari Supabase HANYA jika user/AI mengaktifkan mode tematik (0 egress saat default)
   useEffect(() => {
+    if (thematicMode === 'none' || cachedIndicatorMem) return;
+    let cancelled = false;
     async function fetchIndicatorData() {
       try {
         const [fsvaRes, skpgRes, giziRes] = await Promise.all([
           supabase
             .from('fsva_matang')
-            .select('*')
+            .select('nama_kelurahan, ikp, periode')
             .order('periode', { ascending: false })
-            .order('created_at', { ascending: false }),
-          supabase.from('skpg_matang').select('*'),
-          supabase.from('gizi_balita_skpg_kelurahan').select('*').limit(100),
+            .limit(86),
+          supabase.from('skpg_matang').select('*').limit(86),
+          supabase.from('gizi_balita_skpg_kelurahan').select('kelurahan, bb_sangat_kurang, bb_kurang, total_balita, nilai, status').limit(86),
         ]);
-
-        setIndicatorData({
+        if (cancelled) return;
+        const nextData = {
           fsvaMatang: fsvaRes.data || [],
           skpgMatang: skpgRes.data || [],
           giziBalita: giziRes.data || [],
-        });
+        };
+        cachedIndicatorMem = nextData;
+        setIndicatorData(nextData);
       } catch (err) {
         console.warn('Fallback ke baseline 43 kelurahan Cilegon:', err);
       }
     }
     fetchIndicatorData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [thematicMode]);
 
   // Realtime Smart Layer & Thematic Activation dari Chatbot AI Prompt
   useEffect(() => {
@@ -746,14 +771,17 @@ export default function AIIntelligenceMap({
     }
   }, [mapAction]);
 
-  // Fetch data observasi kamera cerdas (deduplicated & summary hydrated, zero redundant 5.3 MB sp_cache_data pull)
+  // Lazy-fetch data observasi kamera cerdas HANYA saat layer Kamera Cerdas diaktifkan (hemat Vercel Function & Supabase)
   useEffect(() => {
     let active = true;
-    fetchObservasiClientCached(false).then((data) => {
-      if (active && Array.isArray(data) && data.length > 0) {
-        setKameraObservasiList(data);
-      }
-    });
+    if ((showKameraBeras || showKameraPanganLokal) && !kameraFetchedRef.current) {
+      kameraFetchedRef.current = true;
+      fetchObservasiClientCached(false).then((data) => {
+        if (active && Array.isArray(data) && data.length > 0) {
+          setKameraObservasiList(data);
+        }
+      });
+    }
 
     const handleObsUpdate = (e: Event) => {
       const customEvt = e as CustomEvent;
@@ -767,9 +795,9 @@ export default function AIIntelligenceMap({
       active = false;
       window.removeEventListener('kamera_observasi_updated', handleObsUpdate);
     };
-  }, []);
+  }, [showKameraBeras, showKameraPanganLokal]);
 
-  // Database pin data fetched from sp_cache_data
+  // Database pin data fetched from sp_cache_data (dengan singleton + sessionStorage cache 30 menit)
   const [dbData, setDbData] = useState<{
     poktan: any[];
     kolam: any[];
@@ -777,7 +805,7 @@ export default function AIIntelligenceMap({
     horti: any[];
     palawija: any[];
     warning: any[];
-  }>({
+  }>(() => cachedSpPinsMem || {
     poktan: [],
     kolam: [],
     nelayan: [],
@@ -786,13 +814,30 @@ export default function AIIntelligenceMap({
     warning: [],
   });
 
-  // Load KMZ (Supabase Storage kmz-files / fallback)
+  // Load KMZ (local static asset + CacheStorage browser = 0 Supabase egress)
   useEffect(() => {
     loadFromURL();
   }, [loadFromURL]);
 
-  // Fetch Serumpun Padi database pins from sp_cache_data (hanya 6 tabel kecil ~6 KB, tidak menarik kamera_cerdas_observasi 5.3 MB)
+  // Fetch Serumpun Padi database pins dari sp_cache_data sekali per sesi (cache 30 menit di memori + sessionStorage)
   useEffect(() => {
+    if (cachedSpPinsMem) return;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem(SP_PINS_SESSION_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.ts && Date.now() - parsed.ts < SP_PINS_TTL_MS && parsed.data) {
+            cachedSpPinsMem = parsed.data;
+            setDbData(parsed.data);
+            return;
+          }
+        }
+      } catch {
+        // lanjut fetch Supabase
+      }
+    }
+
     async function fetchCachePins() {
       try {
         const { data, error } = await supabase
@@ -837,7 +882,13 @@ export default function AIIntelligenceMap({
           }
         }
 
+        cachedSpPinsMem = res;
         setDbData(res);
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(SP_PINS_SESSION_KEY, JSON.stringify({ ts: Date.now(), data: res }));
+          } catch {}
+        }
       } catch (err) {
         console.error('Gagal mengambil pin DB Serumpun Padi:', err);
       }
@@ -914,13 +965,13 @@ export default function AIIntelligenceMap({
     return Array.from(set);
   }, [highlightWilayah, mapAction]);
 
-  // Generate multi-colored 10m Sentinel-2 pixel grid cells inside sawah polygons
+  // Lazy-compute multi-colored 10m Sentinel-2 pixel grid HANYA saat showSentinelNdvi diaktifkan user
   const sentinelGridFeatures = useMemo(() => {
-    if (!layers.sawah?.length) return [];
+    if (!showSawah || !showSentinelNdvi || !layers.sawah?.length) return [];
     return generateSawahPixelGridFeatures(layers.sawah);
-  }, [layers.sawah]);
+  }, [showSawah, showSentinelNdvi, layers.sawah]);
 
-  // Dynamic custom pin icon builder for AI highlights
+  // Dynamic custom pin icon builder for AI highlights (50% dari ukuran eksisting: 30px -> 15px)
   const createAiPinIcon = (category: string, name: string) => {
     const isBeras = category === 'beras' || category === 'pasokan_beras';
     const isPanganLokal = category === 'pangan_lokal' || category === 'tanaman_pangan';
@@ -963,20 +1014,20 @@ export default function AIIntelligenceMap({
       : isWilayah ? '📍'
       : '🌱';
 
-    const size = 30;
+    const size = 15;
 
     return L.divIcon({
       className: 'custom-ai-thematic-pin',
       html: `
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:pointer;">
-          <div class="sp-loc-pulse" style="width:44px;height:44px;background:${bgClass}44;top:calc(100% - 15px);left:50%;margin-left:-22px;margin-top:-22px;"></div>
+          <div class="sp-loc-pulse" style="width:22px;height:22px;background:${bgClass}44;top:calc(100% - 8px);left:50%;margin-left:-11px;margin-top:-11px;"></div>
           
-          <div style="background:transparent;color:#ffffff;font-weight:900;font-size:11.5px;text-shadow:0 1px 3px rgba(0,0,0,0.95),0 0 6px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:3px;z-index:10;pointer-events:none;letter-spacing:0.2px;">
+          <div style="background:transparent;color:#ffffff;font-weight:800;font-size:9px;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.95),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;margin-bottom:2px;z-index:10;pointer-events:none;letter-spacing:0.15px;">
             ${name || 'Lokasi'}
           </div>
 
-          <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgClass};border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,0.45);z-index:5;">
-            <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.52)}px">${iconEmoji}</span>
+          <div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${bgClass};border:1.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 5px rgba(0,0,0,0.45);z-index:5;">
+            <span style="transform:rotate(45deg);font-size:8px;line-height:1;">${iconEmoji}</span>
           </div>
         </div>
       `,
@@ -1198,28 +1249,32 @@ export default function AIIntelligenceMap({
               try {
                 (l as any).bringToFront?.();
               } catch {}
-              const name = feat.properties?.name || feat.properties?.Name || 'Hamparan Sawah Cilegon';
-              const rawLuasM2 = feat.properties?.luas_m2 ?? calculateGeometryAreaM2(feat.geometry);
-              const rawLuasHa = (rawLuasM2 / 10000).toFixed(2);
               const sid = feat._id || Math.random().toString(36).substring(7);
+              let computedRef: { name: string; rawLuasHa: string; pixelBreakdown: any; telemetry: any } | null = null;
 
-              // Ambil koordinat titik tengah poligon
-              let lat = -6.0271;
-              let lng = 106.0712;
-              try {
-                if (feat.geometry?.type === 'Polygon' && feat.geometry.coordinates?.[0]?.[0]) {
-                  lng = feat.geometry.coordinates[0][0][0];
-                  lat = feat.geometry.coordinates[0][0][1];
-                } else if (feat.geometry?.type === 'MultiPolygon' && feat.geometry.coordinates?.[0]?.[0]?.[0]) {
-                  lng = feat.geometry.coordinates[0][0][0][0];
-                  lat = feat.geometry.coordinates[0][0][0][1];
-                }
-              } catch {}
+              // Lazy popup builder: hitung telemetri & HTML HANYA saat poligon diklik (menghemat 407x evaluasi saat mount)
+              l.bindPopup(() => {
+                const name = feat.properties?.name || feat.properties?.Name || 'Hamparan Sawah Cilegon';
+                const rawLuasM2 = feat.properties?.luas_m2 ?? calculateGeometryAreaM2(feat.geometry);
+                const rawLuasHa = (rawLuasM2 / 10000).toFixed(2);
 
-              const telemetry = evaluateSawahAgroTelemetry(name, { lat, lng }, rawLuasM2);
-              const { pixelBreakdown } = telemetry;
+                let lat = -6.0271;
+                let lng = 106.0712;
+                try {
+                  if (feat.geometry?.type === 'Polygon' && feat.geometry.coordinates?.[0]?.[0]) {
+                    lng = feat.geometry.coordinates[0][0][0];
+                    lat = feat.geometry.coordinates[0][0][1];
+                  } else if (feat.geometry?.type === 'MultiPolygon' && feat.geometry.coordinates?.[0]?.[0]?.[0]) {
+                    lng = feat.geometry.coordinates[0][0][0][0];
+                    lat = feat.geometry.coordinates[0][0][0][1];
+                  }
+                } catch {}
 
-              l.bindPopup(`
+                const telemetry = evaluateSawahAgroTelemetry(name, { lat, lng }, rawLuasM2);
+                const { pixelBreakdown } = telemetry;
+                computedRef = { name, rawLuasHa, pixelBreakdown, telemetry };
+
+                return `
                 <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;padding:4px 0;min-width:280px;max-width:320px;color:#1e293b;">
                   
                   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">
@@ -1287,11 +1342,13 @@ export default function AIIntelligenceMap({
                     <span>🌱</span> Analisis Agronomi Presisi AI
                   </button>
                 </div>
-              `);
+              `;
+              });
 
               l.on('popupopen', () => {
                 const btn = document.getElementById(`btn-agri-${sid}`);
-                if (btn) {
+                if (btn && computedRef) {
+                  const { name, rawLuasHa, pixelBreakdown, telemetry } = computedRef;
                   btn.onclick = () => {
                     onTriggerChatPrompt?.(`Analisis agrometeorologi dan lengas tanah ECMWF untuk ${name} seluas ${rawLuasHa} Ha: Distribusi ${pixelBreakdown.persenOptimalHijau}% optimal (${pixelBreakdown.luasLebatHa} Ha), ${pixelBreakdown.persenSedangKuning}% sedang (${pixelBreakdown.luasBaruTanamHa} Ha), ${pixelBreakdown.persenDefisitMerah}% defisit, rata-rata kadar air ${telemetry.avgSoilMoistureRootZone} m³/m³ (Status: ${telemetry.stressStatus}). Berikan rekomendasi mitigasi irigasi dan manajemen air tersier.`);
                   };

@@ -338,14 +338,8 @@ export default function AnalisisSKPG({ onSwitchView = () => {} }: AnalisisSKPGPr
       return;
     }
 
-    if (selectedYear === 2026 && selectedMonth === 3) {
-      // Use exact high-fidelity Capture 1 baseline
-      setPricesCur(BASELINE_PRICES_2026);
-      setPricesPrev(Object.keys(BASELINE_PRICES_2026).reduce((acc, k) => ({ ...acc, [k]: BASELINE_PRICES_2025 }), {}));
-      setNutrition(BASELINE_NUTRITION);
-      setPriceSource('database');
-      return;
-    }
+    // Seluruh periode (termasuk Maret 2026) mengambil harga per pasar secara dinamis dari /api/sagon-bulanan
+    // (Kranggot -> Ciwandan, Citangkil, Purwakarta, Jombang; Blok F -> Cibeber, Cilegon; Merak -> Pulomerak, Gerogol)
 
     const fetchDynamicData = async () => {
       setLoading(true);

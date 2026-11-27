@@ -242,8 +242,16 @@ function isPointInGeometry(pt: [number, number], geometry: any): boolean {
  * Menghasilkan kumpulan Feature GeoJSON poligon mikro (Piksel Grid Asli Sentinel-2 ~10m × 10m)
  * yang secara presisi dipotong (clipped) dengan Point-in-Polygon agar 100% berada di dalam batas poligon sawah.
  */
+let cachedSawahGridKey = '';
+let cachedSawahGridFeatures: any[] | null = null;
+
 export function generateSawahPixelGridFeatures(sawahFeatures: any[]): any[] {
   if (!sawahFeatures?.length) return [];
+
+  const cacheKey = `${sawahFeatures.length}-${sawahFeatures[0]?._id || ''}`;
+  if (cachedSawahGridFeatures && cachedSawahGridKey === cacheKey) {
+    return cachedSawahGridFeatures;
+  }
 
   const gridFeatures: any[] = [];
 
@@ -281,8 +289,8 @@ export function generateSawahPixelGridFeatures(sawahFeatures: any[]): any[] {
     const stepLng = 0.000095;
     const stepLat = 0.000095;
 
-    const nCols = Math.min(18, Math.max(3, Math.ceil((maxLng - minLng) / stepLng)));
-    const nRows = Math.min(18, Math.max(3, Math.ceil((maxLat - minLat) / stepLat)));
+    const nCols = Math.min(8, Math.max(2, Math.ceil((maxLng - minLng) / stepLng)));
+    const nRows = Math.min(8, Math.max(2, Math.ceil((maxLat - minLat) / stepLat)));
 
     const colWidth = (maxLng - minLng) / nCols;
     const rowHeight = (maxLat - minLat) / nRows;
@@ -424,6 +432,8 @@ export function generateSawahPixelGridFeatures(sawahFeatures: any[]): any[] {
     });
   });
 
+  cachedSawahGridKey = cacheKey;
+  cachedSawahGridFeatures = gridFeatures;
   return gridFeatures;
 }
 

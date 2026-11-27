@@ -2052,8 +2052,8 @@ export default function DashboardPage() {
                            <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5 gap-2">
                              <div className="flex items-center gap-2 min-w-0">
                                <div className="w-1.5 h-4 bg-emerald-600 rounded-full shrink-0"></div>
-                               <h2 className="text-xs sm:text-base font-black text-emerald-950 uppercase tracking-tight leading-snug">
-                                 FOOD SECURITY INTELLIGENCE
+                               <h2 className="text-xs sm:text-base font-black text-emerald-950 tracking-tight leading-snug">
+                                 RAG Chatbot - Food Security Intelligence
                                </h2>
                              </div>
                              <button

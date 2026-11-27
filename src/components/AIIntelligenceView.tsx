@@ -86,8 +86,8 @@ export default function AIIntelligenceView() {
             <div className="w-1 bg-gradient-to-b from-emerald-500 to-emerald-700 rounded-full shrink-0" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-extrabold text-slate-800 text-sm sm:text-base uppercase tracking-wide leading-snug">
-                  FOOD SECURITY INTELLIGENCE
+                <h2 className="font-extrabold text-slate-800 text-sm sm:text-base tracking-wide leading-snug">
+                  RAG Chatbot - Food Security Intelligence
                 </h2>
               </div>
             </div>

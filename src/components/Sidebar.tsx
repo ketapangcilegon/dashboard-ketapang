@@ -164,6 +164,12 @@ export default function Sidebar({
                   <a
                     key={i}
                     href={`/?view=${sub.view}`}
+                    onMouseEnter={() => {
+                      if (sub.view === 'ai_intelligence') {
+                        import('./AIIntelligenceView').catch(() => {});
+                        import('./AIIntelligenceMap').catch(() => {});
+                      }
+                    }}
                     onClick={(e) => handleNavClick(e, sub.view)}
                     className={`relative flex items-center text-left px-2 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-all whitespace-normal break-words leading-tight before:content-[''] before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-px before:bg-emerald-500/40 ${
                       currentView === sub.view ? 'text-white bg-emerald-900/60 font-black' : ''
@@ -206,6 +212,12 @@ export default function Sidebar({
                   <a
                     key={i}
                     href={`/?view=${sub.view}`}
+                    onMouseEnter={() => {
+                      if (sub.view === 'ai_intelligence') {
+                        import('./AIIntelligenceView').catch(() => {});
+                        import('./AIIntelligenceMap').catch(() => {});
+                      }
+                    }}
                     onClick={(e) => handleNavClick(e, sub.view)}
                     className={`relative flex items-center text-left px-2 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-all whitespace-normal break-words leading-tight before:content-[''] before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-px before:bg-emerald-500/40 ${
                       currentView === sub.view ? 'text-white bg-emerald-900/60 font-black' : ''
